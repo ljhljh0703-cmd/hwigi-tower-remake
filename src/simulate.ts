@@ -12,7 +12,7 @@ const allocations: readonly Slot[][] = Array.from({ length: 1 << DIE_COUNT }, (_
   Array.from({ length: DIE_COUNT }, (_, i) => (mask & (1 << i)) === 0 ? 'attack' : 'guard'),
 )
 
-function expectedReward(enemyHp: number): number {
+export function expectedReward(enemyHp: number): number {
   return COUNTER_REWARDS.reduce((sum, reward) => sum + Math.min(enemyHp, reward.damage), 0) / COUNTER_REWARDS.length
 }
 
