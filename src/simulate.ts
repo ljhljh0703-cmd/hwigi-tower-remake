@@ -1,5 +1,5 @@
 import {
-  assignDie, DIE_COUNT, forecast, rerollDice, resolveTurn, startBattle, throwCounter,
+  assignDie, COUNTER_REWARDS, DIE_COUNT, forecast, rerollDice, resolveTurn, spinCounter, startBattle,
 } from './combat.ts'
 import type { Battle, Slot } from './combat.ts'
 
@@ -12,6 +12,10 @@ const allocations: readonly Slot[][] = Array.from({ length: 1 << DIE_COUNT }, (_
   Array.from({ length: DIE_COUNT }, (_, i) => (mask & (1 << i)) === 0 ? 'attack' : 'guard'),
 )
 
+function expectedReward(enemyHp: number): number {
+  return COUNTER_REWARDS.reduce((sum, reward) => sum + Math.min(enemyHp, reward.damage), 0) / COUNTER_REWARDS.length
+}
+
 export const allAttack: Policy = { allocation: () => ['attack', 'attack', 'attack'] }
 export const allGuard: Policy = { allocation: () => ['guard', 'guard', 'guard'] }
 export const balanced: Policy = { allocation: () => ['attack', 'guard', 'guard'] }
@@ -22,7 +26,7 @@ export const adapt: Policy = {
       const { dealt, damage, counter } = forecast(battle, plan)
       if (dealt >= battle.enemyHp) return 1000
       if (damage >= battle.playerHp) return -1000 + dealt
-      const expectedCounter = counter ? Math.min(3.5, battle.enemyHp - dealt) : 0
+      const expectedCounter = counter ? expectedReward(battle.enemyHp - dealt) : 0
       return dealt + expectedCounter - damage * (battle.playerHp <= 12 ? 1.8 : 0.85)
     }
     return allocations.reduce((best, plan) => score(plan) > score(best) ? plan : best)
@@ -41,7 +45,7 @@ export function countTradeoffs(battle: Battle): number {
     const result = forecast(battle, plan)
     return {
       lost: result.damage,
-      dealt: Math.min(battle.enemyHp, result.dealt + (result.counter ? 3.5 : 0)),
+      dealt: result.dealt + (result.counter ? expectedReward(battle.enemyHp - result.dealt) : 0),
     }
   })
   const viable = plans.filter((plan) => plan.lost < battle.playerHp)
@@ -63,7 +67,7 @@ export function simulate(seed: number, policy: Policy): Battle[] {
     battle = resolveTurn(battle)
     if (battle.phase === 'counter') {
       history.push(battle)
-      battle = throwCounter(battle)
+      battle = spinCounter(battle)
     }
     history.push(battle)
   }

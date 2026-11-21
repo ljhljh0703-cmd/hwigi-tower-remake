@@ -7,11 +7,26 @@ export type Slot = 'attack' | 'guard'
 export type Intent = 'impact' | 'combo'
 export type Phase = 'assign' | 'counter' | 'won' | 'lost'
 
+export const COUNTER_REWARDS = [
+  { damage: 1, joint: false },
+  { damage: 2, joint: false },
+  { damage: 3, joint: false },
+  { damage: 4, joint: false },
+  { damage: 6, joint: true },
+  { damage: 8, joint: true },
+] as const
+
+export interface CounterResult {
+  readonly slot: number
+  readonly damage: number
+  readonly joint: boolean
+}
+
 export interface Exchange {
   readonly turn: number
   readonly dealt: number
   readonly hitsTaken: readonly number[]
-  readonly counter: number | null
+  readonly counter: CounterResult | null
   readonly awakened: boolean
 }
 
@@ -160,12 +175,13 @@ export function resolveTurn(battle: Battle): Battle {
   return nextTurn(resolved)
 }
 
-export function throwCounter(battle: Battle): Battle {
+export function spinCounter(battle: Battle): Battle {
   if (battle.phase !== 'counter' || !battle.lastExchange) return battle
 
-  const face = roll(battle.seed, battle.turn, 4)
-  const enemyHp = Math.max(0, battle.enemyHp - face)
-  const thrown = { ...battle, enemyHp, lastExchange: { ...battle.lastExchange, counter: face } }
-  if (enemyHp === 0) return { ...thrown, phase: 'won' }
-  return nextTurn(thrown)
+  const slot = draw(battle.seed, battle.turn, 4) % COUNTER_REWARDS.length
+  const counter = { slot, ...COUNTER_REWARDS[slot] }
+  const enemyHp = Math.max(0, battle.enemyHp - counter.damage)
+  const resolved = { ...battle, enemyHp, lastExchange: { ...battle.lastExchange, counter } }
+  if (enemyHp === 0) return { ...resolved, phase: 'won' }
+  return nextTurn(resolved)
 }

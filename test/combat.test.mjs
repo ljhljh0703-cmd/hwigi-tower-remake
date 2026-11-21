@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
-  assignDie, forecast, intentOf, PLAYER_HP, rerollDice, resolveTurn, startBattle, throwCounter,
+  assignDie, COUNTER_REWARDS, forecast, intentOf, PLAYER_HP, rerollDice, resolveTurn, spinCounter, startBattle,
 } from '../src/combat.ts'
 import { adaptAndReroll, simulate } from '../src/simulate.ts'
 
@@ -77,21 +77,22 @@ test('a heavy blow deals only the unguarded amount', () => {
   assert.deepEqual(after.lastExchange.hitsTaken, [1])
 })
 
-test('an exact single block enables precisely one counter die on tap', () => {
+test('an exact single block enables precisely one roulette reward', () => {
   const battle = filled([6, 6, 2], ['guard', 'guard', 'attack'])
   const pending = resolveTurn(battle)
   assert.equal(pending.enemyHp, 28)
   assert.equal(pending.playerHp, PLAYER_HP)
   assert.equal(pending.phase, 'counter')
   assert.equal(pending.lastExchange.counter, null)
-  const after = throwCounter(pending)
-  assert.ok(after.lastExchange.counter >= 1 && after.lastExchange.counter <= 6)
-  assert.equal(after.enemyHp, 28 - after.lastExchange.counter)
+  const after = spinCounter(pending)
+  const reward = after.lastExchange.counter
+  assert.deepEqual(reward, { slot: reward.slot, ...COUNTER_REWARDS[reward.slot] })
+  assert.equal(after.enemyHp, 28 - reward.damage)
   assert.equal(after.turn, 2)
-  assert.equal(throwCounter(after), after)
+  assert.equal(spinCounter(after), after)
 })
 
-test('excess guard blocks the hit without bonus damage or a counter die', () => {
+test('excess guard blocks the hit without bonus damage or roulette', () => {
   const battle = filled([6, 6, 2], ['guard', 'guard', 'guard'])
   const after = resolveTurn(battle)
   assert.equal(after.playerHp, PLAYER_HP)
@@ -99,7 +100,7 @@ test('excess guard blocks the hit without bonus damage or a counter die', () => 
   assert.equal(after.phase, 'assign')
   assert.equal(after.turn, 2)
   assert.deepEqual(after.lastExchange.hitsTaken, [0])
-  assert.equal(throwCounter(after), after)
+  assert.equal(spinCounter(after), after)
 })
 
 test('combo uses the same shield across three hits without opening a counter', () => {
@@ -112,7 +113,27 @@ test('combo uses the same shield across three hits without opening a counter', (
   assert.deepEqual(blocked.lastExchange.hitsTaken, [0, 0, 0])
   assert.equal(blocked.phase, 'assign')
   assert.equal(blocked.enemyHp, 28)
-  assert.equal(throwCounter(blocked), blocked)
+  assert.equal(spinCounter(blocked), blocked)
+})
+
+test('only the top two roulette slots award a joint attack with Mataios', () => {
+  const outcomes = new Map()
+  for (let seed = 0; seed < 96; seed += 1) {
+    const pending = resolveTurn(filled([6, 6, 2], ['guard', 'guard', 'attack'], { seed }))
+    const resolved = spinCounter(pending)
+    const reward = resolved.lastExchange.counter
+    assert.deepEqual(resolved, spinCounter(pending))
+    assert.equal(resolved.enemyHp, 28 - reward.damage)
+    outcomes.set(reward.slot, { damage: reward.damage, joint: reward.joint })
+  }
+  assert.deepEqual([...outcomes].sort(([a], [b]) => a - b).map(([, reward]) => reward), [
+    { damage: 1, joint: false },
+    { damage: 2, joint: false },
+    { damage: 3, joint: false },
+    { damage: 4, joint: false },
+    { damage: 6, joint: true },
+    { damage: 8, joint: true },
+  ])
 })
 
 test('a finishing attack ends the turn before the enemy hits', () => {

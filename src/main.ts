@@ -1,9 +1,10 @@
 import Phaser from 'phaser'
 import {
   assignDie, DIE_COUNT, ENEMY_HP, IMPACT, PLAYER_HP, intentOf, rerollDice,
-  resolveTurn, startBattle, throwCounter, totals,
+  resolveTurn, spinCounter, startBattle, totals,
 } from './combat.ts'
 import { bindDiceInput } from './dice-drag.ts'
+import { CounterRoulette } from './counter-roulette.ts'
 import type { DropZone } from './dice-drag.ts'
 import './style.css'
 
@@ -36,6 +37,7 @@ const ui = {
   reroll: element<HTMLButtonElement>('reroll'),
   resolve: element<HTMLButtonElement>('resolve'),
   counter: element<HTMLButtonElement>('counter'),
+  counterPanel: element('counter-panel'),
   retry: element<HTMLButtonElement>('retry'),
 }
 
@@ -50,19 +52,46 @@ function freshBattle() {
 
 let battle = freshBattle()
 const selected = new Set<number>()
+const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
 
 class Arena extends Phaser.Scene {
   private player?: Phaser.GameObjects.Rectangle
   private enemy?: Phaser.GameObjects.Rectangle
+  private mataios?: Phaser.GameObjects.Rectangle
   private single?: Phaser.GameObjects.Rectangle
   private combo: Phaser.GameObjects.Rectangle[] = []
 
   create() {
     this.enemy = this.add.rectangle(252, 63, 42, 49, 0x868686).setStrokeStyle(1, 0xc1c1c1)
     this.player = this.add.rectangle(105, 67, 29, 40, 0xd1d1d1)
+    this.mataios = this.add.rectangle(55, 72, 20, 30, 0xa9a9a9).setVisible(false)
     this.single = this.add.rectangle(252, 24, 42, 4, 0xd1d1d1)
     this.combo = [238, 252, 266].map((x) => this.add.rectangle(x, 24, 8, 4, 0xd1d1d1))
     this.refresh()
+  }
+
+  counterStrike(joint: boolean) {
+    const { player, enemy, mataios } = this
+    if (!player || !enemy || !mataios) return
+
+    this.tweens.add({ targets: player, x: 214, duration: 128, ease: 'Cubic.In', yoyo: true })
+    if (joint) {
+      mataios.setVisible(true)
+      this.tweens.add({ targets: mataios, x: 192, duration: 144, ease: 'Cubic.In', yoyo: true })
+    }
+    this.tweens.add({
+      targets: enemy, x: joint ? 274 : 264, delay: 128, duration: 68, yoyo: true,
+      onStart: () => { enemy.setFillStyle(0xe9e9e9) },
+      onComplete: () => { enemy.setFillStyle(0x868686) },
+    })
+  }
+
+  finishStrike() {
+    if (!this.player || !this.enemy || !this.mataios) return
+    this.tweens.killTweensOf([this.player, this.enemy, this.mataios])
+    this.player.setX(105)
+    this.enemy.setX(252).setFillStyle(0x868686)
+    this.mataios.setX(55).setVisible(false)
   }
 
   refresh() {
@@ -139,7 +168,7 @@ function describeTurn() {
   if (phase === 'won') return '승리'
   if (phase === 'lost') return `패배 · 적 체력 ${enemyHp} 남음`
   return intentOf(turn) === 'impact'
-    ? `한 방 · ${IMPACT} 피해 · 방어가 딱 ${IMPACT}면 반격`
+    ? `한 방 · ${IMPACT} 피해 · 방어가 딱 ${IMPACT}면 룰렛`
     : '연타 · 4 피해씩 3번'
 }
 
@@ -149,8 +178,20 @@ function describeExchange() {
   const taken = exchange.hitsTaken.reduce((sum, value) => sum + value, 0)
   const parts = [`공격 ${exchange.dealt}`, `받은 피해 ${taken}`]
   if (exchange.hitsTaken.length === 3) parts[1] += ` (${exchange.hitsTaken.join(' + ')})`
-  if (exchange.counter !== null) parts.push(`반격 주사위 ${exchange.counter}`)
+  if (exchange.counter) {
+    const attack = exchange.counter.joint ? '마타이오스와 합공' : '반격'
+    parts.push(`${attack} ${exchange.counter.damage}`)
+  }
   return parts.join(' · ')
+}
+
+function updateEnemyHp(enemyHp: number) {
+  ui.enemyHp.value = enemyHp
+  ui.enemyTotal.textContent = `${enemyHp}/${ENEMY_HP}`
+}
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((finish) => window.setTimeout(finish, milliseconds))
 }
 
 function render() {
@@ -158,16 +199,15 @@ function render() {
   ui.turn.textContent = `${turn}턴`
   ui.intent.textContent = describeTurn()
   ui.playerHp.value = playerHp
-  ui.enemyHp.value = enemyHp
   ui.playerTotal.textContent = `${playerHp}/${PLAYER_HP}`
-  ui.enemyTotal.textContent = `${enemyHp}/${ENEMY_HP}`
+  updateEnemyHp(enemyHp)
   ui.feedback.textContent = describeExchange()
   ui.awakening.hidden = !lastExchange?.awakened
   ui.awakening.textContent = lastExchange?.awakened
     ? '마타이오스: “이 수를 알아.” · 주사위 모두 6'
     : ''
   ui.planning.hidden = phase !== 'assign'
-  ui.counter.hidden = phase !== 'counter'
+  roulette.setVisible(phase === 'counter')
   ui.retry.hidden = phase !== 'won' && phase !== 'lost'
   refreshDice()
   arena.refresh()
@@ -208,8 +248,22 @@ ui.resolve.addEventListener('click', () => {
   render()
   focusPhase()
 })
-ui.counter.addEventListener('click', () => {
-  battle = throwCounter(battle)
+ui.counter.addEventListener('click', async () => {
+  if (battle.phase !== 'counter' || ui.counter.disabled) return
+  const next = spinCounter(battle)
+  const reward = next.lastExchange?.counter
+  if (!reward) return
+
+  const animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  await roulette.reveal(reward, animate)
+  if (animate) {
+    arena.counterStrike(reward.joint)
+    await wait(145)
+  }
+  updateEnemyHp(next.enemyHp)
+  await wait(reward.joint ? 1000 : 700)
+  arena.finishStrike()
+  battle = next
   render()
   focusPhase()
 })

@@ -61,7 +61,17 @@
           <button id="resolve" type="button">턴 끝내기</button>
         </div>
       </section>
-      <button id="counter" type="button" hidden>반격 주사위 던지기</button>
+      <section id="counter-panel" aria-label="반격 룰렛" hidden>
+        <div class="roulette-stage" role="img" aria-label="반격 피해 1, 2, 3, 4 또는 마타이오스 합공 피해 6, 8">
+          <span class="roulette-pointer" aria-hidden="true"></span>
+          <div id="counter-wheel" aria-hidden="true"></div>
+        </div>
+        <button id="counter" type="button">반격 룰렛 돌리기</button>
+        <p id="counter-result" role="status" hidden>
+          <strong id="counter-title"></strong>
+          <span id="counter-damage"></span>
+        </p>
+      </section>
       <button id="retry" type="button" hidden>다시 싸우기</button>
     </main>
     <script type="module" src="/src/main.ts"></script>
