@@ -71,18 +71,26 @@ function canChangeDie(battle: Battle, index: number): boolean {
   return battle.phase === 'assign' && Number.isInteger(index) && index >= 0 && index < DIE_COUNT
 }
 
-export function assignDie(battle: Battle, index: number, slot: Slot): Battle {
+export function assignDie(battle: Battle, index: number, slot: Slot | null): Battle {
   if (!canChangeDie(battle, index)) return battle
   return { ...battle, slots: battle.slots.map((current, i) => i === index ? slot : current) }
 }
 
-export function rerollDie(battle: Battle, index: number): Battle {
-  if (battle.rerolled || !canChangeDie(battle, index)) return battle
-  return {
-    ...battle,
-    dice: battle.dice.map((value, i) => i === index ? roll(battle.seed, battle.turn, 3) : value),
-    rerolled: true,
+// Preserve the single-die draw and leave counter and awakening draws independent.
+const rerollChannels = [3, 6, 7]
+
+export function rerollDice(battle: Battle, indices: readonly number[]): Battle {
+  if (battle.rerolled || !indices.length || !indices.every((index) => canChangeDie(battle, index))) {
+    return battle
   }
+
+  const chosen = new Set(indices)
+  let drawIndex = 0
+  const dice = battle.dice.map((value, index) => {
+    if (!chosen.has(index)) return value
+    return roll(battle.seed, battle.turn, rerollChannels[drawIndex++])
+  })
+  return { ...battle, dice, rerolled: true }
 }
 
 export function totals(dice: readonly number[], slots: readonly (Slot | null)[]) {

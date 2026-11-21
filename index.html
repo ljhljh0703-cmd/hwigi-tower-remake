@@ -34,18 +34,21 @@
       <p id="feedback" role="status"></p>
 
       <section id="planning" aria-label="주사위 배치">
-        <div class="pool">
-          <p>아직 안 나눈 주사위</p>
+        <div class="pool" data-dice-zone="pool">
+          <div class="pool-heading">
+            <p>아직 안 나눈 주사위</p>
+            <button id="assign-pool" type="button">선택 배치 빼기</button>
+          </div>
           <div id="pool-dice" class="dice-row"></div>
         </div>
         <div class="slots">
-          <section class="slot" aria-label="공격 칸">
+          <section class="slot" aria-label="공격 칸" data-dice-zone="attack">
             <button id="assign-attack" type="button" class="slot-target">
               공격 <strong id="attack-total">0</strong>
             </button>
             <div id="attack-dice" class="dice-row"></div>
           </section>
-          <section class="slot" aria-label="방어 칸">
+          <section class="slot" aria-label="방어 칸" data-dice-zone="guard">
             <button id="assign-guard" type="button" class="slot-target">
               방어 <strong id="guard-total">0</strong>
             </button>

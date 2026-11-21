@@ -102,7 +102,15 @@ meter::-moz-meter-bar { background: #bdbdbd; }
   border: 1px solid #626262;
 }
 
-.pool p { font-size: .8rem; margin-block-end: 4px; }
+.pool-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-block-end: 4px;
+}
+
+.pool-heading p, #assign-pool { font-size: .8rem; }
 
 .slot {
   padding: 4px;
@@ -152,12 +160,33 @@ button:disabled {
   font-weight: 700;
   background: #d5d5d5;
   color: #222;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
 
 .die[aria-pressed='true'] {
   outline: 2px solid #e8e8e8;
   outline-offset: 1px;
   background: #949494;
+}
+
+.drop-active {
+  outline: 2px dashed #dedede;
+  outline-offset: -2px;
+}
+
+.dice-drag-preview {
+  position: fixed;
+  z-index: 1;
+  min-inline-size: 36px;
+  padding: 6px;
+  border: 1px solid #d5d5d5;
+  background: #3f3f3f;
+  text-align: center;
+  font-weight: 700;
+  white-space: pre;
+  pointer-events: none;
 }
 
 #counter, #retry { min-block-size: 52px; font-weight: 650; }

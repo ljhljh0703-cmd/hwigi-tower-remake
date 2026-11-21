@@ -1,9 +1,10 @@
 import Phaser from 'phaser'
 import {
-  assignDie, DIE_COUNT, ENEMY_HP, IMPACT, PLAYER_HP, intentOf, rerollDie,
+  assignDie, DIE_COUNT, ENEMY_HP, IMPACT, PLAYER_HP, intentOf, rerollDice,
   resolveTurn, startBattle, throwCounter, totals,
 } from './combat.ts'
-import type { Slot } from './combat.ts'
+import { bindDiceInput } from './dice-drag.ts'
+import type { DropZone } from './dice-drag.ts'
 import './style.css'
 
 function element<T extends HTMLElement>(id: string): T {
@@ -26,6 +27,7 @@ const ui = {
     guard: element('guard-dice'),
   },
   assign: {
+    pool: element<HTMLButtonElement>('assign-pool'),
     attack: element<HTMLButtonElement>('assign-attack'),
     guard: element<HTMLButtonElement>('assign-guard'),
   },
@@ -47,7 +49,7 @@ function freshBattle() {
 }
 
 let battle = freshBattle()
-let selected: number | null = null
+const selected = new Set<number>()
 
 class Arena extends Phaser.Scene {
   private player?: Phaser.GameObjects.Rectangle
@@ -90,9 +92,16 @@ const diceButtons = Array.from({ length: DIE_COUNT }, (_, index) => {
   button.type = 'button'
   button.className = 'die'
   button.id = `die-${index}`
-  button.addEventListener('click', () => {
-    selected = selected === index ? null : index
-    render()
+  bindDiceInput(button, {
+    select: () => {
+      if (!selected.delete(index)) selected.add(index)
+      render()
+    },
+    lift: () => {
+      const indices = selected.has(index) ? [...selected].sort((a, b) => a - b) : [index]
+      return { indices, faces: indices.map((die) => battle.dice[die]).join('  ') }
+    },
+    drop: (indices, zone) => place(indices, zone),
   })
   return button
 })
@@ -106,17 +115,21 @@ function refreshDice() {
     button.textContent = String(value)
     const place = slot === 'attack' ? '공격' : slot === 'guard' ? '방어' : '미배치'
     button.setAttribute('aria-label', `주사위 ${index + 1}, ${value}, ${place}`)
-    button.setAttribute('aria-pressed', String(selected === index))
+    button.setAttribute('aria-pressed', String(selected.has(index)))
     if (parent !== button.parentElement) parent.append(button)
   })
 
   const { attack, guard } = totals(battle.dice, battle.slots)
   ui.attackTotal.textContent = String(attack)
   ui.guardTotal.textContent = String(guard)
-  ui.assign.attack.disabled = !planning || selected === null
-  ui.assign.guard.disabled = !planning || selected === null
-  ui.reroll.disabled = !planning || selected === null || battle.rerolled
-  ui.reroll.textContent = battle.rerolled ? '다시 굴리기 사용함' : '다시 굴리기 (1회)'
+  const canPlace = planning && selected.size > 0
+  ui.assign.pool.disabled = !canPlace || ![...selected].some((index) => battle.slots[index] !== null)
+  ui.assign.attack.disabled = !canPlace
+  ui.assign.guard.disabled = !canPlace
+  ui.reroll.disabled = !canPlace || battle.rerolled
+  ui.reroll.textContent = battle.rerolled
+    ? '다시 굴리기 사용함'
+    : selected.size ? `다시 굴리기 (${selected.size}개)` : '다시 굴리기 (1회)'
   ui.resolve.disabled = !planning || battle.slots.includes(null)
 }
 
@@ -132,7 +145,7 @@ function describeTurn() {
 
 function describeExchange() {
   const exchange = battle.lastExchange
-  if (!exchange) return '주사위를 고르고 공격이나 방어 칸을 누르세요.'
+  if (!exchange) return '주사위를 끌어 놓거나, 여러 개를 고른 뒤 칸을 누르세요.'
   const taken = exchange.hitsTaken.reduce((sum, value) => sum + value, 0)
   const parts = [`공격 ${exchange.dealt}`, `받은 피해 ${taken}`]
   if (exchange.hitsTaken.length === 3) parts[1] += ` (${exchange.hitsTaken.join(' + ')})`
@@ -161,11 +174,11 @@ function render() {
   arena.refresh()
 }
 
-function place(slot: Slot) {
-  if (selected === null) return
-  const placed = selected
-  battle = assignDie(battle, placed, slot)
-  selected = null
+function place(indices: readonly number[], zone: DropZone) {
+  if (!indices.length || battle.phase !== 'assign') return
+  const slot = zone === 'pool' ? null : zone
+  for (const index of indices) battle = assignDie(battle, index, slot)
+  selected.clear()
   render()
   const unassigned = battle.slots.indexOf(null)
   if (unassigned < 0) ui.resolve.focus()
@@ -180,17 +193,19 @@ function focusPhase() {
 
 ui.playerHp.max = PLAYER_HP
 ui.enemyHp.max = ENEMY_HP
-ui.assign.attack.addEventListener('click', () => place('attack'))
-ui.assign.guard.addEventListener('click', () => place('guard'))
+for (const zone of ['pool', 'attack', 'guard'] as const) {
+  ui.assign[zone].addEventListener('click', () => place([...selected], zone))
+}
 ui.reroll.addEventListener('click', () => {
-  if (selected === null) return
-  battle = rerollDie(battle, selected)
+  const first = selected.values().next().value
+  if (first === undefined) return
+  battle = rerollDice(battle, [...selected])
   render()
-  diceButtons[selected].focus()
+  diceButtons[first].focus()
 })
 ui.resolve.addEventListener('click', () => {
   battle = resolveTurn(battle)
-  selected = null
+  selected.clear()
   render()
   focusPhase()
 })
@@ -201,7 +216,7 @@ ui.counter.addEventListener('click', () => {
 })
 ui.retry.addEventListener('click', () => {
   battle = freshBattle()
-  selected = null
+  selected.clear()
   render()
   focusPhase()
 })

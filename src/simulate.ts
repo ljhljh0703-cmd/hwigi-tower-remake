@@ -1,11 +1,11 @@
 import {
-  assignDie, DIE_COUNT, forecast, rerollDie, resolveTurn, startBattle, throwCounter,
+  assignDie, DIE_COUNT, forecast, rerollDice, resolveTurn, startBattle, throwCounter,
 } from './combat.ts'
 import type { Battle, Slot } from './combat.ts'
 
 export interface Policy {
   allocation: (battle: Battle) => readonly Slot[]
-  reroll?: (battle: Battle) => number
+  reroll?: (battle: Battle) => readonly number[]
 }
 
 const allocations: readonly Slot[][] = Array.from({ length: 1 << DIE_COUNT }, (_, mask) =>
@@ -30,16 +30,12 @@ export const adapt: Policy = {
   },
 }
 
-export function lowestDie(battle: Battle): number {
-  return battle.dice.indexOf(Math.min(...battle.dice))
-}
-
 export const adaptAndReroll: Policy = {
   ...adapt,
-  reroll: (battle) => Math.min(...battle.dice) <= 3 ? lowestDie(battle) : -1,
+  reroll: (battle) => battle.dice.flatMap((face, index) => face <= 3 ? [index] : []),
 }
 
-export const alwaysReroll: Policy = { ...adapt, reroll: lowestDie }
+export const alwaysReroll: Policy = { ...adapt, reroll: (battle) => battle.dice.map((_, index) => index) }
 
 export function countTradeoffs(battle: Battle): number {
   const plans = allocations.map((plan) => {
@@ -61,7 +57,7 @@ export function simulate(seed: number, policy: Policy): Battle[] {
   let battle = startBattle(seed)
   const history = [battle]
   for (let turn = 0; turn < 30 && battle.phase === 'assign'; turn += 1) {
-    battle = rerollDie(battle, policy.reroll?.(battle) ?? -1)
+    battle = rerollDice(battle, policy.reroll?.(battle) ?? [])
     const allocation = policy.allocation(battle)
     allocation.forEach((slot, index) => { battle = assignDie(battle, index, slot) })
     history.push(battle)
