@@ -202,9 +202,10 @@ function render() {
   ui.playerTotal.textContent = `${playerHp}/${PLAYER_HP}`
   updateEnemyHp(enemyHp)
   ui.feedback.textContent = describeExchange()
-  ui.awakening.hidden = !lastExchange?.awakened
-  ui.awakening.textContent = lastExchange?.awakened
-    ? '마타이오스: “이 수를 알아.” · 주사위 모두 6'
+  const awakenedDice = lastExchange?.awakenedDice
+  ui.awakening.hidden = !awakenedDice
+  ui.awakening.textContent = awakenedDice
+    ? `마타이오스: “이 수를 알아.” · 주사위 → ${awakenedDice.join('·')}`
     : ''
   ui.planning.hidden = phase !== 'assign'
   roulette.setVisible(phase === 'counter')

@@ -21,6 +21,8 @@ for (const [name, policy] of Object.entries(policies)) {
     incomplete: seeds - completed.length,
     awakened: finals.filter((battle) => battle.awakened).length,
     winsWithAwakening: wins.filter((battle) => battle.awakened).length,
+    rouletteSpins: histories.reduce((sum, history) =>
+      sum + history.filter((battle) => battle.phase === 'counter').length, 0),
     meanTurns: Number((completed.reduce((sum, battle) => sum + battle.turn, 0) / completed.length).toFixed(2)),
     turnsWithSeveralTradeoffs: plans.filter((battle) => countTradeoffs(battle) > 1).length,
     turnsObserved: plans.length,

@@ -152,14 +152,12 @@ test('a finishing attack ends the turn before the enemy hits', () => {
   assert.equal(resolveTurn(after), after)
 })
 
-test('awakening checks crisis, replaces each die with 6, and can happen once per battle', () => {
+test('awakening checks crisis and can happen once per battle', () => {
   const form = ([seed, extra]) => filled([1, 1, 1], ['guard', 'guard', 'attack'], { seed, ...extra })
   const seeds = Array.from({ length: 256 }, (_, seed) => seed)
   const seed = seeds.find((seed) => resolveTurn(form([seed, { playerHp: 10 }])).lastExchange.awakened)
   assert.notEqual(seed, undefined)
   const saved = resolveTurn(form([seed, { playerHp: 10 }]))
-  assert.equal(saved.phase, 'counter')
-  assert.deepEqual(saved.dice, [6, 6, 6])
   assert.equal(saved.playerHp, 10)
   assert.equal(resolveTurn(form([seed, { playerHp: 10, awakened: true }])).lastExchange.awakened, false)
   assert.equal(resolveTurn(form([seed, { playerHp: PLAYER_HP }])).lastExchange.awakened, false)
@@ -167,4 +165,75 @@ test('awakening checks crisis, replaces each die with 6, and can happen once per
   const safeThisTurn = { ...low, dice: [6, 6, 1] }
   assert.equal(forecast(safeThisTurn).damage, 0)
   assert.equal(resolveTurn(safeThisTurn).lastExchange.awakened, true)
+})
+
+const AWAKENING_SEED = 23
+
+test('awakening finishes an enemy with 4 or 6 HP using a guard, guard, attack plan', () => {
+  for (const enemyHp of [4, 6]) {
+    const battle = filled([5, 5, 3], ['guard', 'guard', 'attack'], {
+      seed: AWAKENING_SEED, playerHp: 6, enemyHp,
+    })
+    assert.ok(forecast(battle).dealt < enemyHp)
+    const after = resolveTurn(battle)
+    assert.equal(after.phase, 'won')
+    assert.equal(after.playerHp, 6)
+    assert.equal(after.enemyHp, 0)
+    assert.deepEqual(after.slots, battle.slots)
+    assert.deepEqual(after.dice, [6, 6, 6])
+    assert.deepEqual(after.lastExchange.awakenedDice, after.dice)
+  }
+})
+
+test('awakening minimizes incoming damage when the enemy cannot be finished', () => {
+  const battle = filled([2, 1, 1], ['guard', 'attack', 'attack'], {
+    seed: AWAKENING_SEED, playerHp: 10,
+  })
+  assert.equal(forecast(battle).damage, 10)
+  const after = resolveTurn(battle)
+  assert.equal(after.phase, 'assign')
+  assert.equal(after.turn, 2)
+  assert.equal(after.playerHp, 4)
+  assert.equal(after.enemyHp, 18)
+  assert.deepEqual(after.lastExchange.hitsTaken, [6])
+  assert.deepEqual(after.lastExchange.awakenedDice, [6, 6, 6])
+})
+
+test('an exact block before awakening still opens the roulette after guard increases', () => {
+  const battle = filled([4, 4, 4], ['guard', 'guard', 'guard'], {
+    seed: AWAKENING_SEED, playerHp: 6,
+  })
+  assert.equal(forecast(battle).counter, true)
+  const pending = resolveTurn(battle)
+  assert.deepEqual(pending.lastExchange.awakenedDice, [6, 6, 6])
+  assert.equal(forecast(pending).counter, false)
+  assert.equal(pending.phase, 'counter')
+  const after = spinCounter(pending)
+  assert.equal(after.enemyHp, battle.enemyHp - after.lastExchange.counter.damage)
+})
+
+test('an exact block created by awakening does not open the roulette', () => {
+  const battle = filled([1, 1, 1], ['guard', 'guard', 'attack'], {
+    seed: AWAKENING_SEED, playerHp: 10,
+  })
+  assert.equal(forecast(battle).counter, false)
+  const after = resolveTurn(battle)
+  assert.deepEqual(after.lastExchange.awakenedDice, [6, 6, 6])
+  assert.equal(forecast(battle, battle.slots, after.lastExchange.awakenedDice).counter, true)
+  assert.equal(after.phase, 'assign')
+  assert.equal(after.turn, 2)
+  assert.equal(spinCounter(after), after)
+})
+
+test('a finishing attack after awakening skips an earned roulette', () => {
+  const battle = filled([6, 6, 3], ['guard', 'guard', 'attack'], {
+    seed: AWAKENING_SEED, playerHp: 6, enemyHp: 4,
+  })
+  assert.equal(forecast(battle).counter, true)
+  const after = resolveTurn(battle)
+  assert.equal(after.lastExchange.awakened, true)
+  assert.equal(after.enemyHp, 0)
+  assert.equal(after.phase, 'won')
+  assert.equal(after.lastExchange.counter, null)
+  assert.equal(spinCounter(after), after)
 })

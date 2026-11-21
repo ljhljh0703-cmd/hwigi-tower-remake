@@ -28,6 +28,7 @@ export interface Exchange {
   readonly hitsTaken: readonly number[]
   readonly counter: CounterResult | null
   readonly awakened: boolean
+  readonly awakenedDice?: readonly number[]
 }
 
 export interface Battle {
@@ -147,6 +148,33 @@ function nextTurn(battle: Battle): Battle {
   return { ...battle, ...openTurn(battle.seed, battle.turn + 1) }
 }
 
+const awakeningFaces = [6, 5, 4, 3, 2, 1]
+const awakeningOptions = awakeningFaces.flatMap((first) =>
+  awakeningFaces.flatMap((second) => awakeningFaces.map((third) => [first, second, third])),
+)
+
+function chooseAwakeningDice(battle: Battle): number[] {
+  let bestDice = battle.dice
+  let bestFinishing = 0
+  let bestDamage = Infinity
+  let bestAttack = 0
+
+  // Descending die order breaks ties by keeping the first equally good roll.
+  for (const dice of awakeningOptions) {
+    const { attack } = totals(dice, battle.slots)
+    const { dealt, damage } = forecast(battle, battle.slots, dice)
+    const finishing = Number(dealt === battle.enemyHp)
+    const improvement = (finishing - bestFinishing) || (bestDamage - damage) || (attack - bestAttack)
+    if (improvement <= 0) continue
+
+    bestDice = dice
+    bestFinishing = finishing
+    bestDamage = damage
+    bestAttack = attack
+  }
+  return [...bestDice]
+}
+
 export function resolveTurn(battle: Battle): Battle {
   if (battle.phase !== 'assign' || battle.slots.includes(null)) return battle
 
@@ -154,8 +182,9 @@ export function resolveTurn(battle: Battle): Battle {
   const inCrisis = planned.damage >= battle.playerHp || battle.playerHp * 10 <= PLAYER_HP * 3
   const awakeningRoll = draw(battle.seed, battle.turn, 5) / 0x100000000
   const awakened = !battle.awakened && inCrisis && awakeningRoll < 0.1
-  const dice = awakened ? battle.dice.map(() => 6) : battle.dice
-  const result = awakened ? forecast(battle, battle.slots, dice) : planned
+  const awakenedDice = awakened ? chooseAwakeningDice(battle) : undefined
+  const dice = awakenedDice ?? battle.dice
+  const result = awakenedDice ? forecast(battle, battle.slots, awakenedDice) : planned
 
   const playerHp = Math.max(0, battle.playerHp - result.damage)
   const enemyHp = battle.enemyHp - result.dealt
@@ -165,6 +194,7 @@ export function resolveTurn(battle: Battle): Battle {
     hitsTaken: result.hits,
     counter: null,
     awakened,
+    ...(awakenedDice && { awakenedDice }),
   }
   const resolved: Battle = {
     ...battle,
@@ -177,7 +207,7 @@ export function resolveTurn(battle: Battle): Battle {
 
   if (enemyHp === 0) return { ...resolved, phase: 'won' }
   if (playerHp === 0) return { ...resolved, phase: 'lost' }
-  if (result.counter) return { ...resolved, phase: 'counter' }
+  if (planned.counter) return { ...resolved, phase: 'counter' }
   return nextTurn(resolved)
 }
 
