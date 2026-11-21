@@ -1,57 +1,106 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { intentForTurn, startBattle } from '../src/combat.ts'
+import {
+  assignDie, forecast, intentOf, PLAYER_HP, rerollDie, resolveTurn, startBattle, throwCounter,
+} from '../src/combat.ts'
+import { adaptAndReroll, simulate } from '../src/simulate.ts'
 
-const readPattern = (seed) => Array.from({ length: 12 }, (_, index) =>
-  intentForTurn(seed, index + 1),
-)
-
-test('same seed yields the same encounter and intent order', () => {
-  assert.deepEqual(startBattle(42), startBattle(42))
-  assert.deepEqual(readPattern(42), readPattern(42))
-  const samples = Array.from({ length: 32 }, (_, seed) => readPattern(seed).join())
-  assert.ok(new Set(samples).size > 1, 'the seed affects the pattern')
+const filled = (dice, slots, extra = {}) => ({
+  ...startBattle(42), dice, slots, ...extra,
 })
 
-test('each group of three turns contains each move once', () => {
-  const intents = readPattern(42)
-  for (let offset = 0; offset < intents.length; offset += 3) {
-    assert.deepEqual(intents.slice(offset, offset + 3).sort(), ['heavy', 'jab', 'rush'])
+test('a seed gives the same three opening dice and full battle twice', () => {
+  for (let seed = 0; seed < 128; seed += 1) {
+    assert.deepEqual(startBattle(seed), startBattle(seed))
+    const battle = startBattle(seed)
+    assert.equal(battle.dice.length, 3)
+    assert.ok(battle.dice.every((value) => value >= 1 && value <= 6))
+    assert.deepEqual(simulate(seed, adaptAndReroll), simulate(seed, adaptAndReroll))
+  }
+  const openingRolls = Array.from({ length: 128 }, (_, seed) => startBattle(seed).dice)
+  for (let index = 0; index < 3; index += 1) {
+    assert.deepEqual([...new Set(openingRolls.map((dice) => dice[index]))].sort(), [1, 2, 3, 4, 5, 6])
   }
 })
 
-test('same seed and policy yield the same full sequence', async () => {
-  const { readIntent, simulate } = await import('../src/simulate.ts')
-  for (let seed = 0; seed < 64; seed += 1) {
-    assert.deepEqual(simulate(seed, readIntent), simulate(seed, readIntent))
-  }
+test('a die belongs to only one slot and turn cannot end with dice left over', () => {
+  const start = startBattle(42)
+  assert.equal(resolveTurn(start), start)
+  const attack = assignDie(start, 0, 'attack')
+  const moved = assignDie(attack, 0, 'guard')
+  assert.deepEqual(moved.slots, ['guard', null, null])
+  assert.equal(resolveTurn(moved), moved)
+  assert.equal(assignDie(start, -1, 'guard'), start)
 })
 
-test('guard counters a heavy blow and interrupt stops a rush', async () => {
-  const { takeTurn } = await import('../src/combat.ts')
-  const battle = startBattle(31)
-  const guarded = takeTurn({ ...battle, intent: 'heavy' }, 'guard')
-  const interrupted = takeTurn({ ...battle, intent: 'rush' }, 'interrupt')
-  assert.deepEqual(guarded.lastExchange, { action: 'guard', intent: 'heavy', dealt: 4, taken: 0 })
-  assert.deepEqual(interrupted.lastExchange, { action: 'interrupt', intent: 'rush', dealt: 6, taken: 0 })
+test('a once-per-turn reroll keeps the new die even when it is worse', () => {
+  const originals = Array.from({ length: 128 }, (_, seed) => startBattle(seed))
+  const start = originals.find((battle) => rerollDie(battle, 0).dice[0] < battle.dice[0])
+  assert.ok(start)
+  const assigned = assignDie(start, 0, 'attack')
+  const changed = rerollDie(assigned, 0)
+  assert.ok(changed.dice[0] < assigned.dice[0])
+  assert.deepEqual(changed.dice.slice(1), assigned.dice.slice(1))
+  assert.deepEqual(changed.slots, assigned.slots)
+  assert.equal(rerollDie(changed, 1), changed)
 })
 
-test('a finishing attack prevents the enemy strike and the terminal state stays put', async () => {
-  const { takeTurn } = await import('../src/combat.ts')
-  const final = takeTurn({ ...startBattle(1), intent: 'heavy', playerHp: 1, enemyHp: 1 }, 'attack')
-  assert.equal(final.outcome, 'won')
-  assert.equal(final.playerHp, 1)
-  assert.equal(final.enemyHp, 0)
-  assert.equal(takeTurn(final, 'attack'), final)
+test('a heavy blow deals only the unguarded amount', () => {
+  const battle = filled([6, 5, 4], ['guard', 'guard', 'attack'])
+  const after = resolveTurn(battle)
+  assert.equal(after.playerHp, PLAYER_HP - 1)
+  assert.equal(after.enemyHp, 26)
+  assert.equal(after.turn, 2)
+  assert.equal(intentOf(after.turn), 'combo')
+  assert.deepEqual(after.lastExchange.hitsTaken, [1])
 })
 
-test('reading the tells and ignoring them produce a different outcome', async () => {
-  const { attackOnly, readIntent, simulate } = await import('../src/simulate.ts')
-  for (let seed = 0; seed < 64; seed += 1) {
-    const read = simulate(seed, readIntent).at(-1)
-    const spam = simulate(seed, attackOnly).at(-1)
-    assert.equal(read.outcome, 'won')
-    assert.equal(read.turn, 5)
-    assert.equal(spam.outcome, 'lost')
-  }
+test('a full single block gives overflow immediately and exactly one counter die on tap', () => {
+  const battle = filled([6, 6, 2], ['guard', 'guard', 'guard'])
+  const pending = resolveTurn(battle)
+  assert.equal(pending.enemyHp, 28)
+  assert.equal(pending.playerHp, PLAYER_HP)
+  assert.equal(pending.phase, 'counter')
+  assert.equal(pending.lastExchange.overflow, 2)
+  const after = throwCounter(pending)
+  assert.ok(after.lastExchange.counter >= 1 && after.lastExchange.counter <= 6)
+  assert.equal(after.enemyHp, 28 - after.lastExchange.counter)
+  assert.equal(after.turn, 2)
+  assert.equal(throwCounter(after), after)
+})
+
+test('combo uses the same shield across three hits without opening a counter', () => {
+  const battle = filled([5, 4, 4], ['guard', 'guard', 'attack'], { turn: 2 })
+  const after = resolveTurn(battle)
+  assert.deepEqual(after.lastExchange.hitsTaken, [0, 0, 3])
+  assert.equal(after.playerHp, PLAYER_HP - 3)
+  assert.equal(after.phase, 'assign')
+  const blocked = resolveTurn(filled([6, 6, 2], ['guard', 'guard', 'guard'], { turn: 2 }))
+  assert.equal(blocked.phase, 'assign')
+  assert.equal(blocked.lastExchange.overflow, 0)
+})
+
+test('a finishing attack ends the turn before the enemy hits', () => {
+  const battle = filled([4, 4, 4], ['attack', 'attack', 'attack'], { enemyHp: 12 })
+  const after = resolveTurn(battle)
+  assert.equal(after.phase, 'won')
+  assert.equal(after.playerHp, PLAYER_HP)
+  assert.equal(resolveTurn(after), after)
+})
+
+test('awakening checks crisis, replaces each die with 6, and can happen once per battle', () => {
+  const form = ([seed, extra]) => filled([1, 1, 1], ['guard', 'guard', 'attack'], { seed, ...extra })
+  const seeds = Array.from({ length: 256 }, (_, seed) => seed)
+  const seed = seeds.find((seed) => resolveTurn(form([seed, { playerHp: 10 }])).lastExchange.awakened)
+  assert.notEqual(seed, undefined)
+  const saved = resolveTurn(form([seed, { playerHp: 10 }]))
+  assert.equal(saved.phase, 'counter')
+  assert.deepEqual(saved.dice, [6, 6, 6])
+  assert.equal(saved.playerHp, 10)
+  assert.equal(resolveTurn(form([seed, { playerHp: 10, awakened: true }])).lastExchange.awakened, false)
+  assert.equal(resolveTurn(form([seed, { playerHp: PLAYER_HP }])).lastExchange.awakened, false)
+  const low = form([seed, { playerHp: 6 }])
+  const safeThisTurn = { ...low, dice: [6, 6, 1] }
+  assert.equal(forecast(safeThisTurn).damage, 0)
+  assert.equal(resolveTurn(safeThisTurn).lastExchange.awakened, true)
 })

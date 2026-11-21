@@ -14,16 +14,15 @@ body {
   min-block-size: 100vh;
   min-block-size: 100dvh;
   margin: 0;
-  padding: 12px;
+  padding: 10px;
   place-items: center;
 }
 
 main {
-  width: min(100%, 384px);
-  min-width: 0;
+  width: min(100%, 400px);
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
+  gap: 8px;
   word-break: keep-all;
 }
 
@@ -35,31 +34,29 @@ header {
 
 h1, p { margin: 0; }
 h1 { font-size: 1.375rem; font-weight: 650; }
-#turn, button span { color: #c5c5c5; }
+#turn, .pool p { color: #c5c5c5; }
 
 .encounter {
   border: 1px solid #626262;
   background: #292929;
-  padding-block-start: 10px;
+  padding-block-start: 6px;
   text-align: center;
 }
 
 #intent { min-block-size: 24px; font-weight: 650; }
 
 #arena {
-  height: clamp(104px, 26dvh, 190px);
+  height: clamp(65px, 15dvh, 105px);
   width: 100%;
 }
 
 #arena canvas { display: block; }
 
-.vitals, #actions {
+.vitals, .slots, .controls {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
 }
-
-.vitals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-#actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 label {
   display: flex;
@@ -71,8 +68,8 @@ label {
 meter {
   display: block;
   width: 100%;
-  height: 10px;
-  margin-block-start: 4px;
+  height: 8px;
+  margin-block-start: 3px;
   appearance: none;
   background: #3e3e3e;
 }
@@ -86,36 +83,87 @@ meter::-webkit-meter-bar {
 meter::-webkit-meter-optimum-value { background: #bdbdbd; }
 meter::-moz-meter-bar { background: #bdbdbd; }
 
-#feedback {
+#feedback, #awakening {
   font-size: .875rem;
-  min-block-size: 21px;
-  line-height: 1.5;
+  min-block-size: 20px;
+  line-height: 1.4;
   overflow-wrap: anywhere;
 }
+
+#planning {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.pool {
+  padding: 4px 6px;
+  background: #282828;
+  border: 1px solid #626262;
+}
+
+.pool p { font-size: .8rem; margin-block-end: 4px; }
+
+.slot {
+  padding: 4px;
+  min-width: 0;
+  border: 1px solid #626262;
+}
+
+.dice-row {
+  display: flex;
+  min-block-size: 44px;
+  gap: 3px;
+}
+
+.slot .dice-row { margin-block-start: 4px; gap: 2px; }
 
 button {
   color: inherit;
   font: inherit;
-  font-weight: 650;
-  min-block-size: 56px;
+  min-block-size: 44px;
   background: #303030;
   border: 1px solid #777;
-  padding: 5px 3px;
+  padding: 4px 6px;
   cursor: pointer;
   touch-action: manipulation;
 }
 
-button span {
-  display: block;
-  margin-block-start: 2px;
-  font-size: .75rem;
-  font-weight: 400;
-  line-height: 1.25;
+button:disabled {
+  color: #b7b7b7;
+  background: #282828;
+  border-color: #575757;
+  cursor: default;
 }
+
+.slot-target {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: start;
+}
+
+.die {
+  flex: 0 1 44px;
+  min-inline-size: 0;
+  padding: 2px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: #d5d5d5;
+  color: #222;
+}
+
+.die[aria-pressed='true'] {
+  outline: 2px solid #e8e8e8;
+  outline-offset: 1px;
+  background: #949494;
+}
+
+#counter, #retry { min-block-size: 52px; font-weight: 650; }
 
 @media (hover: hover) {
-  button:hover { background: #424242; }
+  button:not(.die):not(:disabled):hover { background: #424242; }
 }
 
-button:focus-visible { outline: 2px solid #ededed; outline-offset: 2px; }
-button:active { background: #505050; }
+button:focus-visible { outline: 2px solid #ededed; outline-offset: 1px; }

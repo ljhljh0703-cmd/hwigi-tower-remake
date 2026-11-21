@@ -1,100 +1,166 @@
-export const ACTIONS = ['attack', 'guard', 'interrupt'] as const
-export type Action = (typeof ACTIONS)[number]
-export type Intent = 'jab' | 'heavy' | 'rush'
-export type Outcome = 'fighting' | 'won' | 'lost'
+export const PLAYER_HP = 22
+export const ENEMY_HP = 30
+export const DIE_COUNT = 3
+export const IMPACT = 12
+export const COMBO_HITS = [4, 4, 4] as const
+export type Slot = 'attack' | 'guard'
+export type Intent = 'impact' | 'combo'
+export type Phase = 'assign' | 'counter' | 'won' | 'lost'
 
-export const DEFAULT_SEED = 20261121
-export const PLAYER_HP = 15
-export const ENEMY_HP = 23
-
-export const INTENTS = {
-  jab: { label: '견제', damage: 2 },
-  heavy: { label: '강타', damage: 6 },
-  rush: { label: '돌진', damage: 4 },
-} satisfies Record<Intent, { label: string; damage: number }>
-
-const intentOrders = [
-  ['jab', 'heavy', 'rush'],
-  ['jab', 'rush', 'heavy'],
-  ['heavy', 'jab', 'rush'],
-  ['heavy', 'rush', 'jab'],
-  ['rush', 'jab', 'heavy'],
-  ['rush', 'heavy', 'jab'],
-] as const
+export interface Exchange {
+  readonly turn: number
+  readonly dealt: number
+  readonly hitsTaken: readonly number[]
+  readonly overflow: number
+  readonly counter: number | null
+  readonly awakened: boolean
+}
 
 export interface Battle {
   readonly seed: number
   readonly turn: number
-  readonly intent: Intent
   readonly playerHp: number
   readonly enemyHp: number
-  readonly outcome: Outcome
-  readonly lastExchange: {
-    readonly action: Action
-    readonly intent: Intent
-    readonly dealt: number
-    readonly taken: number
-  } | null
+  readonly dice: readonly number[]
+  readonly slots: readonly (Slot | null)[]
+  readonly phase: Phase
+  readonly rerolled: boolean
+  readonly awakened: boolean
+  readonly lastExchange: Exchange | null
 }
 
-export function intentForTurn(seed: number, turn: number): Intent {
-  const cycle = Math.floor((turn - 1) / 3)
-  let mixed = (seed + Math.imul(cycle + 1, 0x9e3779b9)) >>> 0
-  mixed = Math.imul(mixed ^ (mixed >>> 16), 0x21f0aaad)
-  mixed = Math.imul(mixed ^ (mixed >>> 15), 0x735a2d97)
-  mixed = (mixed ^ (mixed >>> 15)) >>> 0
-  return intentOrders[mixed % intentOrders.length][(turn - 1) % 3]
+function draw(seed: number, turn: number, channel: number): number {
+  // Each draw has its own channel so a reroll never changes a later turn's opening dice.
+  let value = seed ^ Math.imul(turn, 0x9e3779b9) ^ Math.imul(channel + 1, 0x85ebca6b)
+  value = Math.imul(value ^ (value >>> 16), 0x21f0aaad)
+  value = Math.imul(value ^ (value >>> 15), 0x735a2d97)
+  return (value ^ (value >>> 15)) >>> 0
+}
+
+function roll(seed: number, turn: number, channel: number): number {
+  return (draw(seed, turn, channel) % 6) + 1
+}
+
+function openTurn(seed: number, turn: number) {
+  return {
+    turn,
+    dice: Array.from({ length: DIE_COUNT }, (_, index) => roll(seed, turn, index)),
+    slots: Array<Slot | null>(DIE_COUNT).fill(null),
+    rerolled: false,
+    phase: 'assign' as const,
+  }
 }
 
 export function startBattle(seed: number): Battle {
   const normalizedSeed = seed >>> 0
   return {
+    ...openTurn(normalizedSeed, 1),
     seed: normalizedSeed,
-    turn: 1,
-    intent: intentForTurn(normalizedSeed, 1),
     playerHp: PLAYER_HP,
     enemyHp: ENEMY_HP,
-    outcome: 'fighting',
+    awakened: false,
     lastExchange: null,
   }
 }
 
-const exchanges = {
-  attack: {
-    jab: { dealt: 5, taken: INTENTS.jab.damage },
-    heavy: { dealt: 4, taken: INTENTS.heavy.damage },
-    rush: { dealt: 4, taken: INTENTS.rush.damage },
-  },
-  guard: {
-    jab: { dealt: 0, taken: 1 },
-    heavy: { dealt: 4, taken: 0 },
-    rush: { dealt: 0, taken: 3 },
-  },
-  interrupt: {
-    jab: { dealt: 1, taken: INTENTS.jab.damage },
-    heavy: { dealt: 1, taken: INTENTS.heavy.damage },
-    rush: { dealt: 6, taken: 0 },
-  },
-} satisfies Record<Action, Record<Intent, { dealt: number; taken: number }>>
+export function intentOf(turn: number): Intent {
+  return turn % 2 === 1 ? 'impact' : 'combo'
+}
 
-export function takeTurn(battle: Battle, action: Action): Battle {
-  if (battle.outcome !== 'fighting') return battle
+function canChangeDie(battle: Battle, index: number): boolean {
+  return battle.phase === 'assign' && Number.isInteger(index) && index >= 0 && index < DIE_COUNT
+}
 
-  const exchange = exchanges[action][battle.intent]
-  const dealt = Math.min(battle.enemyHp, exchange.dealt)
-  const enemyHp = battle.enemyHp - dealt
-  const taken = enemyHp === 0 ? 0 : Math.min(battle.playerHp, exchange.taken)
-  const playerHp = battle.playerHp - taken
-  const outcome = enemyHp === 0 ? 'won' : playerHp === 0 ? 'lost' : 'fighting'
-  const turn = outcome === 'fighting' ? battle.turn + 1 : battle.turn
+export function assignDie(battle: Battle, index: number, slot: Slot): Battle {
+  if (!canChangeDie(battle, index)) return battle
+  return { ...battle, slots: battle.slots.map((current, i) => i === index ? slot : current) }
+}
 
+export function rerollDie(battle: Battle, index: number): Battle {
+  if (battle.rerolled || !canChangeDie(battle, index)) return battle
   return {
     ...battle,
-    turn,
-    outcome,
-    enemyHp,
-    playerHp,
-    intent: intentForTurn(battle.seed, turn),
-    lastExchange: { action, intent: battle.intent, dealt, taken },
+    dice: battle.dice.map((value, i) => i === index ? roll(battle.seed, battle.turn, 3) : value),
+    rerolled: true,
   }
+}
+
+export function totals(dice: readonly number[], slots: readonly (Slot | null)[]) {
+  let attack = 0
+  let guard = 0
+  dice.forEach((value, index) => {
+    if (slots[index] === 'attack') attack += value
+    if (slots[index] === 'guard') guard += value
+  })
+  return { attack, guard }
+}
+
+export function forecast(battle: Battle, slots = battle.slots, dice = battle.dice) {
+  const { attack, guard } = totals(dice, slots)
+  const impact = intentOf(battle.turn) === 'impact'
+  const dealt = Math.min(battle.enemyHp, attack)
+  if (dealt === battle.enemyHp) return { dealt, hits: [], damage: 0, overflow: 0, counter: false }
+
+  let shield = guard
+  const hits = (impact ? [IMPACT] : COMBO_HITS).map((hit) => {
+    const blocked = Math.min(shield, hit)
+    shield -= blocked
+    return hit - blocked
+  })
+  return {
+    dealt,
+    hits,
+    damage: hits.reduce((sum, hit) => sum + hit, 0),
+    overflow: impact ? Math.min(battle.enemyHp - dealt, shield) : 0,
+    counter: impact && guard >= IMPACT,
+  }
+}
+
+function nextTurn(battle: Battle): Battle {
+  return { ...battle, ...openTurn(battle.seed, battle.turn + 1) }
+}
+
+export function resolveTurn(battle: Battle): Battle {
+  if (battle.phase !== 'assign' || battle.slots.includes(null)) return battle
+
+  const planned = forecast(battle)
+  const inCrisis = planned.damage >= battle.playerHp || battle.playerHp * 10 <= PLAYER_HP * 3
+  const awakeningRoll = draw(battle.seed, battle.turn, 5) / 0x100000000
+  const awakened = !battle.awakened && inCrisis && awakeningRoll < 0.1
+  const dice = awakened ? battle.dice.map(() => 6) : battle.dice
+  const result = awakened ? forecast(battle, battle.slots, dice) : planned
+
+  const playerHp = Math.max(0, battle.playerHp - result.damage)
+  const enemyHp = battle.enemyHp - result.dealt - result.overflow
+  const lastExchange: Exchange = {
+    turn: battle.turn,
+    dealt: result.dealt,
+    hitsTaken: result.hits,
+    overflow: result.overflow,
+    counter: null,
+    awakened,
+  }
+  const resolved: Battle = {
+    ...battle,
+    dice,
+    playerHp,
+    enemyHp,
+    awakened: battle.awakened || awakened,
+    lastExchange,
+  }
+
+  if (enemyHp === 0) return { ...resolved, phase: 'won' }
+  if (playerHp === 0) return { ...resolved, phase: 'lost' }
+  if (result.counter) return { ...resolved, phase: 'counter' }
+  return nextTurn(resolved)
+}
+
+export function throwCounter(battle: Battle): Battle {
+  if (battle.phase !== 'counter' || !battle.lastExchange) return battle
+
+  const face = roll(battle.seed, battle.turn, 4)
+  const enemyHp = Math.max(0, battle.enemyHp - face)
+  const thrown = { ...battle, enemyHp, lastExchange: { ...battle.lastExchange, counter: face } }
+  if (enemyHp === 0) return { ...thrown, phase: 'won' }
+  return nextTurn(thrown)
 }

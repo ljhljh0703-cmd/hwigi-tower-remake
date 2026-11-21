@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="적의 다음 수를 보고 내 행동을 고르는 짧은 전투.">
+    <meta name="description" content="적의 다음 수를 보고 주사위를 공격과 방어에 나누는 전투.">
+    <link rel="icon" href="data:,">
     <title>회귀탑</title>
   </head>
   <body>
@@ -21,22 +22,44 @@
       <div class="vitals">
         <div>
           <label for="player-hp">내 체력 <span id="player-total"></span></label>
-          <meter id="player-hp" min="0" max="15" value="15"></meter>
+          <meter id="player-hp" min="0"></meter>
         </div>
         <div>
           <label for="enemy-hp">적 체력 <span id="enemy-total"></span></label>
-          <meter id="enemy-hp" min="0" max="23" value="23"></meter>
+          <meter id="enemy-hp" min="0"></meter>
         </div>
       </div>
 
-      <p id="feedback" role="status">적의 다음 수를 보고 행동을 고르세요.</p>
+      <p id="awakening" role="status" hidden></p>
+      <p id="feedback" role="status"></p>
 
-      <div id="actions" aria-label="행동" role="group">
-        <button id="attack" type="button">공격<span>견제에 5 피해</span></button>
-        <button id="guard" type="button">방어<span>강타를 막고 4 반격</span></button>
-        <button id="interrupt" type="button">끊기<span>돌진을 막고 6 피해</span></button>
-      </div>
-      <button id="retry" type="button" hidden>같은 전투 다시 하기</button>
+      <section id="planning" aria-label="주사위 배치">
+        <div class="pool">
+          <p>아직 안 나눈 주사위</p>
+          <div id="pool-dice" class="dice-row"></div>
+        </div>
+        <div class="slots">
+          <section class="slot" aria-label="공격 칸">
+            <button id="assign-attack" type="button" class="slot-target">
+              공격 <strong id="attack-total">0</strong>
+            </button>
+            <div id="attack-dice" class="dice-row"></div>
+          </section>
+          <section class="slot" aria-label="방어 칸">
+            <button id="assign-guard" type="button" class="slot-target">
+              방어 <strong id="guard-total">0</strong>
+            </button>
+            <div id="guard-dice" class="dice-row"></div>
+          </section>
+        </div>
+
+        <div class="controls">
+          <button id="reroll" type="button">다시 굴리기 (1회)</button>
+          <button id="resolve" type="button">턴 끝내기</button>
+        </div>
+      </section>
+      <button id="counter" type="button" hidden>반격 주사위 던지기</button>
+      <button id="retry" type="button" hidden>다시 싸우기</button>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
