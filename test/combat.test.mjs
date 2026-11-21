@@ -77,17 +77,28 @@ test('a heavy blow deals only the unguarded amount', () => {
   assert.deepEqual(after.lastExchange.hitsTaken, [1])
 })
 
-test('a full single block gives overflow immediately and exactly one counter die on tap', () => {
-  const battle = filled([6, 6, 2], ['guard', 'guard', 'guard'])
+test('an exact single block enables precisely one counter die on tap', () => {
+  const battle = filled([6, 6, 2], ['guard', 'guard', 'attack'])
   const pending = resolveTurn(battle)
   assert.equal(pending.enemyHp, 28)
   assert.equal(pending.playerHp, PLAYER_HP)
   assert.equal(pending.phase, 'counter')
-  assert.equal(pending.lastExchange.overflow, 2)
+  assert.equal(pending.lastExchange.counter, null)
   const after = throwCounter(pending)
   assert.ok(after.lastExchange.counter >= 1 && after.lastExchange.counter <= 6)
   assert.equal(after.enemyHp, 28 - after.lastExchange.counter)
   assert.equal(after.turn, 2)
+  assert.equal(throwCounter(after), after)
+})
+
+test('excess guard blocks the hit without bonus damage or a counter die', () => {
+  const battle = filled([6, 6, 2], ['guard', 'guard', 'guard'])
+  const after = resolveTurn(battle)
+  assert.equal(after.playerHp, PLAYER_HP)
+  assert.equal(after.enemyHp, 30)
+  assert.equal(after.phase, 'assign')
+  assert.equal(after.turn, 2)
+  assert.deepEqual(after.lastExchange.hitsTaken, [0])
   assert.equal(throwCounter(after), after)
 })
 
@@ -97,9 +108,11 @@ test('combo uses the same shield across three hits without opening a counter', (
   assert.deepEqual(after.lastExchange.hitsTaken, [0, 0, 3])
   assert.equal(after.playerHp, PLAYER_HP - 3)
   assert.equal(after.phase, 'assign')
-  const blocked = resolveTurn(filled([6, 6, 2], ['guard', 'guard', 'guard'], { turn: 2 }))
+  const blocked = resolveTurn(filled([6, 6, 2], ['guard', 'guard', 'attack'], { turn: 2 }))
+  assert.deepEqual(blocked.lastExchange.hitsTaken, [0, 0, 0])
   assert.equal(blocked.phase, 'assign')
-  assert.equal(blocked.lastExchange.overflow, 0)
+  assert.equal(blocked.enemyHp, 28)
+  assert.equal(throwCounter(blocked), blocked)
 })
 
 test('a finishing attack ends the turn before the enemy hits', () => {

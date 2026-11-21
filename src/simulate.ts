@@ -19,12 +19,11 @@ export const balanced: Policy = { allocation: () => ['attack', 'guard', 'guard']
 export const adapt: Policy = {
   allocation(battle) {
     const score = (plan: readonly Slot[]) => {
-      const result = forecast(battle, plan)
-      const dealt = result.dealt + result.overflow
+      const { dealt, damage, counter } = forecast(battle, plan)
       if (dealt >= battle.enemyHp) return 1000
-      if (result.damage >= battle.playerHp) return -1000 + dealt
-      const expectedCounter = result.counter ? Math.min(3.5, battle.enemyHp - dealt) : 0
-      return dealt + expectedCounter - result.damage * (battle.playerHp <= 12 ? 1.8 : 0.85)
+      if (damage >= battle.playerHp) return -1000 + dealt
+      const expectedCounter = counter ? Math.min(3.5, battle.enemyHp - dealt) : 0
+      return dealt + expectedCounter - damage * (battle.playerHp <= 12 ? 1.8 : 0.85)
     }
     return allocations.reduce((best, plan) => score(plan) > score(best) ? plan : best)
   },
@@ -42,7 +41,7 @@ export function countTradeoffs(battle: Battle): number {
     const result = forecast(battle, plan)
     return {
       lost: result.damage,
-      dealt: Math.min(battle.enemyHp, result.dealt + result.overflow + (result.counter ? 3.5 : 0)),
+      dealt: Math.min(battle.enemyHp, result.dealt + (result.counter ? 3.5 : 0)),
     }
   })
   const viable = plans.filter((plan) => plan.lost < battle.playerHp)

@@ -11,7 +11,6 @@ export interface Exchange {
   readonly turn: number
   readonly dealt: number
   readonly hitsTaken: readonly number[]
-  readonly overflow: number
   readonly counter: number | null
   readonly awakened: boolean
 }
@@ -107,7 +106,7 @@ export function forecast(battle: Battle, slots = battle.slots, dice = battle.dic
   const { attack, guard } = totals(dice, slots)
   const impact = intentOf(battle.turn) === 'impact'
   const dealt = Math.min(battle.enemyHp, attack)
-  if (dealt === battle.enemyHp) return { dealt, hits: [], damage: 0, overflow: 0, counter: false }
+  if (dealt === battle.enemyHp) return { dealt, hits: [], damage: 0, counter: false }
 
   let shield = guard
   const hits = (impact ? [IMPACT] : COMBO_HITS).map((hit) => {
@@ -119,8 +118,7 @@ export function forecast(battle: Battle, slots = battle.slots, dice = battle.dic
     dealt,
     hits,
     damage: hits.reduce((sum, hit) => sum + hit, 0),
-    overflow: impact ? Math.min(battle.enemyHp - dealt, shield) : 0,
-    counter: impact && guard >= IMPACT,
+    counter: impact && guard === IMPACT,
   }
 }
 
@@ -139,12 +137,11 @@ export function resolveTurn(battle: Battle): Battle {
   const result = awakened ? forecast(battle, battle.slots, dice) : planned
 
   const playerHp = Math.max(0, battle.playerHp - result.damage)
-  const enemyHp = battle.enemyHp - result.dealt - result.overflow
+  const enemyHp = battle.enemyHp - result.dealt
   const lastExchange: Exchange = {
     turn: battle.turn,
     dealt: result.dealt,
     hitsTaken: result.hits,
-    overflow: result.overflow,
     counter: null,
     awakened,
   }

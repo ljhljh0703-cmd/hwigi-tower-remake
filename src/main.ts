@@ -135,11 +135,11 @@ function refreshDice() {
 
 function describeTurn() {
   const { phase, enemyHp, turn } = battle
-  if (phase === 'counter') return '한 방을 막았습니다'
+  if (phase === 'counter') return '한 방을 딱 맞춰 막았습니다'
   if (phase === 'won') return '승리'
   if (phase === 'lost') return `패배 · 적 체력 ${enemyHp} 남음`
   return intentOf(turn) === 'impact'
-    ? `한 방 · ${IMPACT} 피해 · 전부 막으면 반격`
+    ? `한 방 · ${IMPACT} 피해 · 방어가 딱 ${IMPACT}면 반격`
     : '연타 · 4 피해씩 3번'
 }
 
@@ -149,7 +149,6 @@ function describeExchange() {
   const taken = exchange.hitsTaken.reduce((sum, value) => sum + value, 0)
   const parts = [`공격 ${exchange.dealt}`, `받은 피해 ${taken}`]
   if (exchange.hitsTaken.length === 3) parts[1] += ` (${exchange.hitsTaken.join(' + ')})`
-  if (exchange.overflow) parts.push(`넘친 방어 ${exchange.overflow} 반격`)
   if (exchange.counter !== null) parts.push(`반격 주사위 ${exchange.counter}`)
   return parts.join(' · ')
 }
