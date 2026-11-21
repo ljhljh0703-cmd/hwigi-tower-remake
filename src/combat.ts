@@ -44,7 +44,7 @@ export interface Battle {
   readonly lastExchange: Exchange | null
 }
 
-function draw(seed: number, turn: number, channel: number): number {
+export function draw(seed: number, turn: number, channel: number): number {
   // Each draw has its own channel so a reroll never changes a later turn's opening dice.
   let value = seed ^ Math.imul(turn, 0x9e3779b9) ^ Math.imul(channel + 1, 0x85ebca6b)
   value = Math.imul(value ^ (value >>> 16), 0x21f0aaad)
@@ -52,11 +52,11 @@ function draw(seed: number, turn: number, channel: number): number {
   return (value ^ (value >>> 15)) >>> 0
 }
 
-function roll(seed: number, turn: number, channel: number): number {
+export function roll(seed: number, turn: number, channel: number): number {
   return (draw(seed, turn, channel) % 6) + 1
 }
 
-function openTurn(seed: number, turn: number) {
+export function openTurn(seed: number, turn: number) {
   return {
     turn,
     dice: Array.from({ length: DIE_COUNT }, (_, index) => roll(seed, turn, index)),
@@ -92,7 +92,7 @@ export function assignDie(battle: Battle, index: number, slot: Slot | null): Bat
 }
 
 // Preserve the single-die draw and leave counter and awakening draws independent.
-const rerollChannels = [3, 6, 7]
+export const rerollChannels = [3, 6, 7]
 
 export function rerollDice(battle: Battle, indices: readonly number[]): Battle {
   if (battle.rerolled || !indices.length || !indices.every((index) => canChangeDie(battle, index))) {
