@@ -11,68 +11,80 @@
     <main>
       <header>
         <h1>회귀탑</h1>
-        <p id="turn"></p>
+        <div class="run-status">
+          <span id="active-perk" role="img" hidden></span>
+          <span id="fight" role="img" hidden></span>
+          <span id="turn" role="img" hidden></span>
+        </div>
       </header>
 
-      <section class="encounter" aria-label="전장">
-        <p id="intent"></p>
-        <div id="arena" aria-hidden="true"></div>
-      </section>
+      <section id="perks" aria-label="시작 특전 셋 중 하나 고르기"></section>
 
-      <div class="vitals">
-        <div>
-          <label for="player-hp">내 체력 <span id="player-total"></span></label>
-          <meter id="player-hp" min="0"></meter>
-        </div>
-        <div>
-          <label for="enemy-hp">적 체력 <span id="enemy-total"></span></label>
-          <meter id="enemy-hp" min="0"></meter>
-        </div>
-      </div>
+      <div id="battle" hidden>
+        <section class="encounter" aria-label="전장">
+          <p id="intent" role="img"></p>
+          <div id="arena" aria-hidden="true"></div>
+        </section>
 
-      <p id="awakening" role="status" hidden></p>
-      <p id="feedback" role="status"></p>
-
-      <section id="planning" aria-label="주사위 배치">
-        <div class="pool" data-dice-zone="pool">
-          <div class="pool-heading">
-            <p>아직 안 나눈 주사위</p>
-            <button id="assign-pool" type="button">선택 배치 빼기</button>
+        <div class="vitals">
+          <div>
+            <label for="player-hp"><span aria-hidden="true">♥</span><span id="player-total"></span></label>
+            <meter id="player-hp" min="0" aria-label="내 체력"></meter>
           </div>
-          <div id="pool-dice" class="dice-row"></div>
-        </div>
-        <div class="slots">
-          <section class="slot" aria-label="공격 칸" data-dice-zone="attack">
-            <button id="assign-attack" type="button" class="slot-target">
-              공격 <strong id="attack-total">0</strong>
-            </button>
-            <div id="attack-dice" class="dice-row"></div>
-          </section>
-          <section class="slot" aria-label="방어 칸" data-dice-zone="guard">
-            <button id="assign-guard" type="button" class="slot-target">
-              방어 <strong id="guard-total">0</strong>
-            </button>
-            <div id="guard-dice" class="dice-row"></div>
-          </section>
+          <div>
+            <label for="enemy-hp"><span aria-hidden="true">◆</span><span id="enemy-total"></span></label>
+            <meter id="enemy-hp" min="0" aria-label="적 체력"></meter>
+          </div>
         </div>
 
-        <div class="controls">
-          <button id="reroll" type="button">다시 굴리기 (1회)</button>
-          <button id="resolve" type="button">턴 끝내기</button>
-        </div>
-      </section>
-      <section id="counter-panel" aria-label="반격 룰렛" hidden>
-        <div class="roulette-stage" role="img" aria-label="반격 피해 1, 2, 3, 4 또는 마타이오스 합공 피해 6, 8">
-          <span class="roulette-pointer" aria-hidden="true"></span>
-          <div id="counter-wheel" aria-hidden="true"></div>
-        </div>
-        <button id="counter" type="button">반격 룰렛 돌리기</button>
-        <p id="counter-result" role="status" hidden>
-          <strong id="counter-title"></strong>
-          <span id="counter-damage"></span>
-        </p>
-      </section>
-      <button id="retry" type="button" hidden>다시 싸우기</button>
+        <p id="awakening" role="status" hidden></p>
+        <p id="feedback" role="status" hidden></p>
+        <p id="new-unlock" role="status" hidden></p>
+
+        <section id="planning" aria-label="주사위 배치">
+          <div class="pool" data-dice-zone="pool">
+            <div class="pool-heading">
+              <span aria-hidden="true">🎲</span>
+              <button id="assign-pool" type="button">선택 배치 빼기</button>
+            </div>
+            <div id="pool-dice" class="dice-row"></div>
+          </div>
+          <div class="slots">
+            <section class="slot" aria-label="공격 칸" data-dice-zone="attack">
+              <button id="assign-attack" type="button" class="slot-target">
+                공격 <strong id="attack-total">0</strong>
+              </button>
+              <div id="attack-dice" class="dice-row"></div>
+            </section>
+            <section class="slot" aria-label="방어 칸" data-dice-zone="guard">
+              <button id="assign-guard" type="button" class="slot-target">
+                방어 <strong id="guard-total">0</strong>
+              </button>
+              <div id="guard-dice" class="dice-row"></div>
+            </section>
+          </div>
+
+          <div class="controls">
+            <button id="reroll" type="button">다시 굴리기 (1)</button>
+            <button id="extra-reroll" type="button" hidden></button>
+            <button id="resolve" type="button">턴 끝내기</button>
+          </div>
+        </section>
+        <section id="counter-panel" aria-label="반격 룰렛" hidden>
+          <div class="roulette-stage" role="img">
+            <span class="roulette-pointer" aria-hidden="true"></span>
+            <div id="counter-wheel" aria-hidden="true"></div>
+          </div>
+          <button id="counter" type="button">반격 룰렛 돌리기</button>
+          <p id="counter-result" role="status" hidden>
+            <span id="counter-damage"></span>
+          </p>
+        </section>
+        <p id="owned-unlocks" role="img" hidden></p>
+        <p id="result" role="status" hidden></p>
+        <button id="next" type="button" hidden>다음 전투</button>
+        <button id="retry" type="button" hidden>다시</button>
+      </div>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

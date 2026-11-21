@@ -275,6 +275,7 @@ test('an additional enemy intent row plays in its matching turn', () => {
   const secondTurn = resolveTurn({ ...battle, dice: [6, 5, 4], slots: ['guard', 'guard', 'attack'] })
   assert.equal(secondTurn.turn, 2)
   assert.deepEqual(incomingAttack(secondTurn), { name: '시험용 치명 일격', hits: [8], totalDamage: 8 })
+  assert.equal(intentOf(secondTurn), 'test-critical-strike')
 
   const thirdTurn = resolveTurn({ ...secondTurn, dice: [1, 1, 1], slots: ['attack', 'attack', 'attack'] })
   assert.deepEqual(thirdTurn.lastExchange.hitsTaken, [8])

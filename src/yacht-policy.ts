@@ -1,7 +1,7 @@
-import { DIE_COUNT, forecast, incomingAttack } from './combat.ts'
+import { DIE_COUNT, incomingAttack } from './combat.ts'
 import type { Slot } from './combat.ts'
 import { adaptAndReroll, expectedReward } from './simulate.ts'
-import { classifyHand } from './yacht-combat.ts'
+import { classifyHand, forecastYacht, yachtCounterRewards } from './yacht-combat.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 
 export const yachtPolicies = ['adaptive', 'attackHand', 'guardHand'] as const
@@ -24,9 +24,9 @@ function bestAllocation(battle: YachtBattle, plans: readonly Slot[][]): readonly
   let best = plans[0]
   let bestScore = -Infinity
   for (const plan of plans) {
-    const { dealt, damage, counter } = forecast(battle, plan)
+    const { dealt, damage, counter } = forecastYacht(battle, plan)
     if (dealt >= battle.enemyHp) return plan
-    const expectedCounter = counter ? expectedReward(battle.enemyHp - dealt) : 0
+    const expectedCounter = counter ? expectedReward(battle.enemyHp - dealt, yachtCounterRewards(battle, plan)) : 0
     const score = damage >= battle.playerHp
       ? -1000 + dealt
       : dealt + expectedCounter - damage * (battle.playerHp <= 12 ? 1.8 : 0.85)
@@ -41,7 +41,7 @@ function bestAllocation(battle: YachtBattle, plans: readonly Slot[][]): readonly
 function handAllocations(battle: YachtBattle, slot: Slot): Slot[][] {
   return allocationsFor(battle).filter((plan) => {
     const faces = battle.dice.filter((_, index) => plan[index] === slot)
-    return classifyHand(faces) !== null && (slot === 'attack' || forecast(battle, plan).counter)
+    return classifyHand(faces) !== null && (slot === 'attack' || forecastYacht(battle, plan).counter)
   })
 }
 
@@ -51,7 +51,7 @@ const handTargets = [
 ]
 
 function keepForHand(battle: YachtBattle, slot: Slot): readonly number[] {
-  const { totalDamage } = incomingAttack(battle.turn)
+  const { totalDamage } = incomingAttack(battle)
   for (const target of handTargets) {
     if (slot === 'guard' && target.reduce((sum, face) => sum + face, 0) !== totalDamage) continue
     const needed = [...target]
@@ -97,10 +97,10 @@ export function chooseReroll(battle: YachtBattle, policy: YachtPolicy, extra: bo
 
 export function countYachtTradeoffs(battle: YachtBattle): number {
   const viable = allocationsFor(battle).map((plan) => {
-    const { dealt, damage, counter } = forecast(battle, plan)
+    const { dealt, damage, counter } = forecastYacht(battle, plan)
     return {
       lost: damage,
-      dealt: dealt + (counter ? expectedReward(battle.enemyHp - dealt) : 0),
+      dealt: dealt + (counter ? expectedReward(battle.enemyHp - dealt, yachtCounterRewards(battle, plan)) : 0),
     }
   }).filter((plan) => plan.lost < battle.playerHp)
 

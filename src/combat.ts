@@ -28,6 +28,8 @@ export const COUNTER_REWARDS = [
   { damage: 8, joint: true },
 ] as const
 
+export type CounterReward = Pick<CounterResult, 'damage' | 'joint'>
+
 export interface CounterResult {
   readonly slot: number
   readonly damage: number
@@ -41,6 +43,7 @@ export interface Exchange {
   readonly counter: CounterResult | null
   readonly awakened: boolean
   readonly awakenedDice?: readonly number[]
+  readonly pairGuardBonus?: true
 }
 
 export interface Battle {
@@ -100,15 +103,20 @@ function selectEnemyIntent<T extends EnemyIntent>(turn: number, intents: readonl
   return intent
 }
 
-export function intentOf(turn: number): Intent {
-  return selectEnemyIntent(turn, ENEMY_INTENTS).id
+type IntentContext = Pick<Battle, 'turn' | 'enemyIntents'>
+
+export function intentOf(turn: number): Intent
+export function intentOf(battle: IntentContext): string
+export function intentOf(battle: number | IntentContext): string {
+  if (typeof battle === 'number') return selectEnemyIntent(battle, ENEMY_INTENTS).id
+  return selectEnemyIntent(battle.turn, battle.enemyIntents).id
 }
 
 function canChangeDie(battle: Battle, index: number): boolean {
-  return battle.phase === 'assign' && Number.isInteger(index) && index >= 0 && index < DIE_COUNT
+  return battle.phase === 'assign' && Number.isInteger(index) && index >= 0 && index < battle.dice.length
 }
 
-export function assignDie(battle: Battle, index: number, slot: Slot | null): Battle {
+export function assignDie<T extends Battle>(battle: T, index: number, slot: Slot | null): T {
   if (!canChangeDie(battle, index)) return battle
   return { ...battle, slots: battle.slots.map((current, i) => i === index ? slot : current) }
 }
@@ -147,10 +155,10 @@ export function incomingAttack({ turn, enemyAttackBuff = 0, enemyIntents = ENEMY
   return { name, hits, totalDamage }
 }
 
-export function forecast(battle: Battle, slots = battle.slots, dice = battle.dice) {
+export function forecast(battle: Battle, slots = battle.slots, dice = battle.dice, attackBonus = 0) {
   const { attack, guard } = totals(dice, slots)
   const incoming = incomingAttack(battle)
-  const dealt = Math.min(battle.enemyHp, attack)
+  const dealt = Math.min(battle.enemyHp, attack + attackBonus)
   if (dealt === battle.enemyHp) return { dealt, hits: [], damage: 0, counter: false }
 
   let shield = guard
@@ -234,11 +242,11 @@ export function resolveTurn(battle: Battle): Battle {
   return nextTurn(resolved)
 }
 
-export function spinCounter(battle: Battle): Battle {
+export function spinCounter(battle: Battle, rewards: readonly CounterReward[] = COUNTER_REWARDS): Battle {
   if (battle.phase !== 'counter' || !battle.lastExchange) return battle
 
-  const slot = draw(battle.seed, battle.turn, 4) % COUNTER_REWARDS.length
-  const counter = { slot, ...COUNTER_REWARDS[slot] }
+  const slot = draw(battle.seed, battle.turn, 4) % rewards.length
+  const counter = { slot, ...rewards[slot] }
   const enemyHp = Math.max(0, battle.enemyHp - counter.damage)
   const resolved = { ...battle, enemyHp, lastExchange: { ...battle.lastExchange, counter } }
   if (enemyHp === 0) return { ...resolved, phase: 'won' }

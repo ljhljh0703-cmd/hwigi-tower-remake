@@ -34,7 +34,35 @@ header {
 
 h1, p { margin: 0; }
 h1 { font-size: 1.375rem; font-weight: 650; }
-#turn, .pool p { color: #c5c5c5; }
+.run-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 12px;
+  color: #c5c5c5;
+}
+
+#perks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+#perks button {
+  min-block-size: 64px;
+  font-size: 1.125rem;
+  font-weight: 650;
+}
+
+#perks button, #active-perk, #awakening, #new-unlock, #owned-unlocks, .pool-heading span {
+  filter: grayscale(1);
+}
+
+#battle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
 
 .encounter {
   border: 1px solid #626262;
@@ -50,7 +78,12 @@ h1 { font-size: 1.375rem; font-weight: 650; }
   width: 100%;
 }
 
-#arena canvas { display: block; }
+#arena canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 
 .vitals, .slots, .controls {
   display: grid;
@@ -90,6 +123,17 @@ meter::-moz-meter-bar { background: #bdbdbd; }
   overflow-wrap: anywhere;
 }
 
+#new-unlock, #owned-unlocks, #result {
+  text-align: center;
+  font-weight: 700;
+}
+
+#new-unlock {
+  border: 1px solid #999;
+  padding: 6px;
+  font-size: 1.5rem;
+}
+
 #planning {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -110,7 +154,7 @@ meter::-moz-meter-bar { background: #bdbdbd; }
   margin-block-end: 4px;
 }
 
-.pool-heading p, #assign-pool { font-size: .8rem; }
+#assign-pool { font-size: .8rem; }
 
 .slot {
   padding: 4px;
@@ -171,6 +215,8 @@ button:disabled {
   background: #949494;
 }
 
+.die.altered-face { border: 2px dashed #626262; }
+
 .drop-active {
   outline: 2px dashed #dedede;
   outline-offset: -2px;
@@ -198,6 +244,8 @@ button:disabled {
 
 #counter-panel button { width: 100%; }
 
+#extra-reroll { grid-area: 2 / 1 / 3 / -1; }
+
 .roulette-stage {
   position: relative;
   width: min(170px, 48vw);
@@ -210,15 +258,6 @@ button:disabled {
   inset: 0;
   border: 2px solid #c2c2c2;
   border-radius: 50%;
-  background: conic-gradient(
-    from -30deg,
-    #383838 0deg 60deg,
-    #464646 60deg 120deg,
-    #383838 120deg 180deg,
-    #464646 180deg 240deg,
-    #595959 240deg 300deg,
-    #4b4b4b 300deg 360deg
-  );
 }
 
 #counter-wheel::after {
@@ -275,16 +314,16 @@ button:disabled {
   font-size: .875rem;
 }
 
-#counter-result strong { font-size: 1.125rem; }
+#counter-damage { font-size: 1.125rem; font-weight: 750; }
 
 #counter-result.joint {
   color: #232323;
   background: #e6e6e6;
 }
 
-#counter-result.joint strong { font-size: 1.375rem; }
+#counter-result.joint #counter-damage { font-size: 1.375rem; }
 
-#counter, #retry { min-block-size: 52px; font-weight: 650; }
+#counter, #next, #retry { min-block-size: 52px; font-weight: 650; }
 
 @media (hover: hover) {
   button:not(.die):not(:disabled):hover { background: #424242; }

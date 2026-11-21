@@ -1,56 +1,64 @@
-import { COUNTER_REWARDS } from './combat.ts'
-import type { CounterResult } from './combat.ts'
+import type { CounterResult, CounterReward } from './combat.ts'
 
-const degreesPerSlot = 360 / COUNTER_REWARDS.length
+const shades = ['#383838', '#464646', '#383838', '#464646', '#595959', '#4b4b4b', '#464646']
 
 export class CounterRoulette {
   private readonly wheel: HTMLElement
   private readonly result: HTMLElement
-  private readonly title: HTMLElement
   private readonly damage: HTMLElement
-  private readonly labels: HTMLElement[]
+  private readonly stage: HTMLElement
+  private labels: HTMLElement[] = []
+  private degreesPerSlot = 0
 
   constructor(private readonly panel: HTMLElement, private readonly button: HTMLButtonElement) {
     this.wheel = panel.querySelector<HTMLElement>('#counter-wheel')!
     this.result = panel.querySelector<HTMLElement>('#counter-result')!
-    this.title = panel.querySelector<HTMLElement>('#counter-title')!
     this.damage = panel.querySelector<HTMLElement>('#counter-damage')!
+    this.stage = panel.querySelector<HTMLElement>('.roulette-stage')!
+  }
 
-    this.labels = COUNTER_REWARDS.map((reward, index) => {
-      const position = index * degreesPerSlot * Math.PI / 180
+  private setRewards(rewards: readonly CounterReward[]) {
+    this.degreesPerSlot = 360 / rewards.length
+    this.labels = rewards.map((reward, index) => {
+      const position = index * this.degreesPerSlot * Math.PI / 180
       const label = document.createElement('div')
       label.className = 'roulette-label'
       label.style.left = `${50 + Math.sin(position) * 34}%`
       label.style.top = `${50 - Math.cos(position) * 34}%`
 
       const text = document.createElement('span')
-      text.textContent = reward.joint ? `${reward.damage}\n합공` : String(reward.damage)
+      text.textContent = reward.joint ? `${reward.damage}\n⚔︎⚔︎` : String(reward.damage)
       label.append(text)
-      this.wheel.append(label)
       return label
     })
+    this.wheel.replaceChildren(...this.labels)
+    const segments = rewards.map((_, index) =>
+      `${shades[index]} ${index * this.degreesPerSlot}deg ${(index + 1) * this.degreesPerSlot}deg`,
+    )
+    this.wheel.style.background = `conic-gradient(from -${this.degreesPerSlot / 2}deg, ${segments.join(', ')})`
+    const labels = rewards.map(({ damage, joint }) => joint ? `합공 ${damage}` : String(damage))
+    this.stage.setAttribute('aria-label', `반격 피해 ${labels.join(', ')}`)
   }
 
-  setVisible(visible: boolean) {
-    if (visible && this.panel.hidden) {
+  setVisible(rewards: readonly CounterReward[] | null) {
+    if (rewards && this.panel.hidden) {
+      this.setRewards(rewards)
       this.wheel.style.transform = ''
       this.wheel.style.removeProperty('--label-turn')
       this.result.hidden = true
       this.result.classList.remove('joint')
-      this.title.textContent = ''
       this.damage.textContent = ''
-      this.labels.forEach((label) => label.classList.remove('winner'))
       this.button.hidden = false
       this.button.disabled = false
       this.button.textContent = '반격 룰렛 돌리기'
     }
-    this.panel.hidden = !visible
+    this.panel.hidden = !rewards
   }
 
   async reveal(reward: CounterResult, animate: boolean) {
     this.button.disabled = true
     this.button.textContent = '룰렛 도는 중…'
-    const angle = 1080 + (360 - reward.slot * degreesPerSlot) % 360
+    const angle = 1080 + (360 - reward.slot * this.degreesPerSlot) % 360
     const rotate = `rotate(${angle}deg)`
     if (animate) {
       const spin = this.wheel.animate(
@@ -70,7 +78,6 @@ export class CounterRoulette {
     this.button.hidden = true
     this.result.hidden = false
     this.result.classList.toggle('joint', reward.joint)
-    this.title.textContent = reward.joint ? '마타이오스와 합공' : '반격'
-    this.damage.textContent = `${reward.damage} 피해`
+    this.damage.textContent = `${reward.joint ? '⚔︎⚔︎' : '◎'} ${reward.damage}`
   }
 }
