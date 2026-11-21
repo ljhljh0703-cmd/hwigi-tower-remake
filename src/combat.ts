@@ -117,14 +117,20 @@ export function totals(dice: readonly number[], slots: readonly (Slot | null)[])
   return { attack, guard }
 }
 
+export function incomingAttack(turn: number) {
+  const hits = intentOf(turn) === 'impact' ? [IMPACT] : COMBO_HITS
+  const totalDamage = hits.reduce((sum, hit) => sum + hit, 0)
+  return { hits, totalDamage }
+}
+
 export function forecast(battle: Battle, slots = battle.slots, dice = battle.dice) {
   const { attack, guard } = totals(dice, slots)
-  const impact = intentOf(battle.turn) === 'impact'
+  const incoming = incomingAttack(battle.turn)
   const dealt = Math.min(battle.enemyHp, attack)
   if (dealt === battle.enemyHp) return { dealt, hits: [], damage: 0, counter: false }
 
   let shield = guard
-  const hits = (impact ? [IMPACT] : COMBO_HITS).map((hit) => {
+  const hits = incoming.hits.map((hit) => {
     const blocked = Math.min(shield, hit)
     shield -= blocked
     return hit - blocked
@@ -133,7 +139,7 @@ export function forecast(battle: Battle, slots = battle.slots, dice = battle.dic
     dealt,
     hits,
     damage: hits.reduce((sum, hit) => sum + hit, 0),
-    counter: impact && guard === IMPACT,
+    counter: guard === incoming.totalDamage,
   }
 }
 

@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import {
-  assignDie, DIE_COUNT, ENEMY_HP, IMPACT, PLAYER_HP, intentOf, rerollDice,
+  assignDie, DIE_COUNT, ENEMY_HP, PLAYER_HP, incomingAttack, intentOf, rerollDice,
   resolveTurn, spinCounter, startBattle, totals,
 } from './combat.ts'
 import { bindDiceInput } from './dice-drag.ts'
@@ -164,12 +164,12 @@ function refreshDice() {
 
 function describeTurn() {
   const { phase, enemyHp, turn } = battle
-  if (phase === 'counter') return '한 방을 딱 맞춰 막았습니다'
+  if (phase === 'counter') return '완벽 방어'
   if (phase === 'won') return '승리'
   if (phase === 'lost') return `패배 · 적 체력 ${enemyHp} 남음`
-  return intentOf(turn) === 'impact'
-    ? `한 방 · ${IMPACT} 피해 · 방어가 딱 ${IMPACT}면 룰렛`
-    : '연타 · 4 피해씩 3번'
+  const { hits, totalDamage } = incomingAttack(turn)
+  const attack = hits.length === 1 ? `한 방 · ${totalDamage} 피해` : `연타 · ${hits.join('+')} 피해`
+  return `${attack} · 방어 ${totalDamage}면 룰렛`
 }
 
 function describeExchange() {

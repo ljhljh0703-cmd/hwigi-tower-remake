@@ -103,17 +103,25 @@ test('excess guard blocks the hit without bonus damage or roulette', () => {
   assert.equal(spinCounter(after), after)
 })
 
-test('combo uses the same shield across three hits without opening a counter', () => {
+test('combo shares a shield across all hits and rewards only an exact total', () => {
   const battle = filled([5, 4, 4], ['guard', 'guard', 'attack'], { turn: 2 })
   const after = resolveTurn(battle)
   assert.deepEqual(after.lastExchange.hitsTaken, [0, 0, 3])
   assert.equal(after.playerHp, PLAYER_HP - 3)
   assert.equal(after.phase, 'assign')
-  const blocked = resolveTurn(filled([6, 6, 2], ['guard', 'guard', 'attack'], { turn: 2 }))
-  assert.deepEqual(blocked.lastExchange.hitsTaken, [0, 0, 0])
-  assert.equal(blocked.phase, 'assign')
-  assert.equal(blocked.enemyHp, 28)
-  assert.equal(spinCounter(blocked), blocked)
+  const exact = resolveTurn(filled([6, 6, 2], ['guard', 'guard', 'attack'], { turn: 2 }))
+  assert.deepEqual(exact.lastExchange.hitsTaken, [0, 0, 0])
+  assert.equal(exact.phase, 'counter')
+  assert.equal(exact.enemyHp, 28)
+  const afterSpin = spinCounter(exact)
+  assert.equal(afterSpin.enemyHp, 28 - afterSpin.lastExchange.counter.damage)
+  assert.equal(afterSpin.turn, 3)
+
+  const excess = resolveTurn(filled([6, 6, 2], ['guard', 'guard', 'guard'], { turn: 2 }))
+  assert.deepEqual(excess.lastExchange.hitsTaken, [0, 0, 0])
+  assert.equal(excess.phase, 'assign')
+  assert.equal(excess.enemyHp, 30)
+  assert.equal(spinCounter(excess), excess)
 })
 
 test('only the top two roulette slots award a joint attack with Mataios', () => {
