@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import {
-  assignDie, DIE_COUNT, ENEMY_HP, PLAYER_HP, incomingAttack, intentOf, rerollDice,
+  assignDie, DIE_COUNT, ENEMY_HP, PLAYER_HP, incomingAttack, rerollDice,
   resolveTurn, spinCounter, startBattle, totals,
 } from './combat.ts'
 import { bindDiceInput } from './dice-drag.ts'
@@ -66,7 +66,6 @@ class Arena extends Phaser.Scene {
     this.player = this.add.rectangle(105, 67, 29, 40, 0xd1d1d1)
     this.mataios = this.add.rectangle(55, 72, 20, 30, 0xa9a9a9).setVisible(false)
     this.single = this.add.rectangle(252, 24, 42, 4, 0xd1d1d1)
-    this.combo = [238, 252, 266].map((x) => this.add.rectangle(x, 24, 8, 4, 0xd1d1d1))
     this.refresh()
   }
 
@@ -95,12 +94,19 @@ class Arena extends Phaser.Scene {
   }
 
   refresh() {
-    const planning = battle.phase === 'assign'
-    const heavy = intentOf(battle.turn) === 'impact'
+    const hitCount = battle.phase === 'assign' ? incomingAttack(battle).hits.length : 0
+    const comboCount = hitCount > 1 ? hitCount : 0
     this.player?.setVisible(battle.playerHp > 0)
     this.enemy?.setVisible(battle.enemyHp > 0)
-    this.single?.setVisible(planning && heavy)
-    this.combo.forEach((shape) => shape.setVisible(planning && !heavy))
+    this.single?.setVisible(hitCount === 1)
+    if (!this.single) return
+
+    while (this.combo.length < comboCount) {
+      this.combo.push(this.add.rectangle(252, 24, 8, 4, 0xd1d1d1))
+    }
+    this.combo.forEach((shape, index) => {
+      shape.setX(252 + (index - (comboCount - 1) / 2) * 14).setVisible(index < comboCount)
+    })
   }
 }
 
@@ -163,13 +169,12 @@ function refreshDice() {
 }
 
 function describeTurn() {
-  const { phase, enemyHp, turn } = battle
+  const { phase, enemyHp } = battle
   if (phase === 'counter') return '완벽 방어'
   if (phase === 'won') return '승리'
   if (phase === 'lost') return `패배 · 적 체력 ${enemyHp} 남음`
-  const { hits, totalDamage } = incomingAttack(turn)
-  const attack = hits.length === 1 ? `한 방 · ${totalDamage} 피해` : `연타 · ${hits.join('+')} 피해`
-  return `${attack} · 방어 ${totalDamage}면 룰렛`
+  const { name, hits, totalDamage } = incomingAttack(battle)
+  return `${name} · ${hits.join('+')} 피해 · 방어 ${totalDamage}면 룰렛`
 }
 
 function describeExchange() {
@@ -177,7 +182,7 @@ function describeExchange() {
   if (!exchange) return '주사위를 끌어 놓거나, 여러 개를 고른 뒤 칸을 누르세요.'
   const taken = exchange.hitsTaken.reduce((sum, value) => sum + value, 0)
   const parts = [`공격 ${exchange.dealt}`, `받은 피해 ${taken}`]
-  if (exchange.hitsTaken.length === 3) parts[1] += ` (${exchange.hitsTaken.join(' + ')})`
+  if (exchange.hitsTaken.length > 1) parts[1] += ` (${exchange.hitsTaken.join(' + ')})`
   if (exchange.counter) {
     const attack = exchange.counter.joint ? '마타이오스와 합공' : '반격'
     parts.push(`${attack} ${exchange.counter.damage}`)

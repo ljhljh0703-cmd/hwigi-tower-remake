@@ -1,11 +1,23 @@
 export const PLAYER_HP = 22
 export const ENEMY_HP = 30
 export const DIE_COUNT = 3
-export const IMPACT = 12
-export const COMBO_HITS = [4, 4, 4] as const
 export type Slot = 'attack' | 'guard'
-export type Intent = 'impact' | 'combo'
 export type Phase = 'assign' | 'counter' | 'won' | 'lost'
+
+export interface EnemyIntent {
+  readonly id: string
+  readonly name: string
+  readonly hits: readonly number[]
+  readonly matches: (turn: number) => boolean
+}
+
+// The first matching row takes precedence.
+export const ENEMY_INTENTS = [
+  { id: 'impact', name: '한 방', hits: [12], matches: (turn) => turn % 2 === 1 },
+  { id: 'combo', name: '연타', hits: [4, 4, 4], matches: (turn) => turn % 2 !== 1 },
+] as const satisfies readonly EnemyIntent[]
+
+export type Intent = (typeof ENEMY_INTENTS)[number]['id']
 
 export const COUNTER_REWARDS = [
   { damage: 1, joint: false },
@@ -36,6 +48,8 @@ export interface Battle {
   readonly turn: number
   readonly playerHp: number
   readonly enemyHp: number
+  readonly enemyAttackBuff: number
+  readonly enemyIntents: readonly EnemyIntent[]
   readonly dice: readonly number[]
   readonly slots: readonly (Slot | null)[]
   readonly phase: Phase
@@ -66,20 +80,28 @@ function openTurn(seed: number, turn: number) {
   }
 }
 
-export function startBattle(seed: number): Battle {
+export function startBattle(seed: number, enemyIntents: readonly EnemyIntent[] = ENEMY_INTENTS): Battle {
   const normalizedSeed = seed >>> 0
   return {
     ...openTurn(normalizedSeed, 1),
     seed: normalizedSeed,
     playerHp: PLAYER_HP,
     enemyHp: ENEMY_HP,
+    enemyAttackBuff: 0,
+    enemyIntents,
     awakened: false,
     lastExchange: null,
   }
 }
 
+function selectEnemyIntent<T extends EnemyIntent>(turn: number, intents: readonly T[]): T {
+  const intent = intents.find((row) => row.matches(turn))
+  if (!intent) throw new Error(`No enemy intent defined for turn ${turn}`)
+  return intent
+}
+
 export function intentOf(turn: number): Intent {
-  return turn % 2 === 1 ? 'impact' : 'combo'
+  return selectEnemyIntent(turn, ENEMY_INTENTS).id
 }
 
 function canChangeDie(battle: Battle, index: number): boolean {
@@ -118,15 +140,16 @@ export function totals(dice: readonly number[], slots: readonly (Slot | null)[])
   return { attack, guard }
 }
 
-export function incomingAttack(turn: number) {
-  const hits = intentOf(turn) === 'impact' ? [IMPACT] : COMBO_HITS
+export function incomingAttack({ turn, enemyAttackBuff = 0, enemyIntents = ENEMY_INTENTS }: Battle) {
+  const { name, hits: baseHits } = selectEnemyIntent(turn, enemyIntents)
+  const hits = baseHits.map((hit) => hit + enemyAttackBuff)
   const totalDamage = hits.reduce((sum, hit) => sum + hit, 0)
-  return { hits, totalDamage }
+  return { name, hits, totalDamage }
 }
 
 export function forecast(battle: Battle, slots = battle.slots, dice = battle.dice) {
   const { attack, guard } = totals(dice, slots)
-  const incoming = incomingAttack(battle.turn)
+  const incoming = incomingAttack(battle)
   const dealt = Math.min(battle.enemyHp, attack)
   if (dealt === battle.enemyHp) return { dealt, hits: [], damage: 0, counter: false }
 

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
-  assignDie, COUNTER_REWARDS, forecast, intentOf, PLAYER_HP, rerollDice, resolveTurn, spinCounter, startBattle,
+  assignDie, COUNTER_REWARDS, ENEMY_INTENTS, forecast, incomingAttack, intentOf, PLAYER_HP,
+  rerollDice, resolveTurn, spinCounter, startBattle,
 } from '../src/combat.ts'
 import { adaptAndReroll, simulate } from '../src/simulate.ts'
 
@@ -236,4 +237,48 @@ test('a finishing attack after awakening skips an earned roulette', () => {
   assert.equal(after.phase, 'won')
   assert.equal(after.lastExchange.counter, null)
   assert.equal(spinCounter(after), after)
+})
+
+test('a zero enemy attack buff keeps the original odd and even turn attacks', () => {
+  const battle = startBattle(42)
+  assert.equal(battle.enemyAttackBuff, 0)
+
+  const heavy = { name: '한 방', hits: [12], totalDamage: 12 }
+  const combo = { name: '연타', hits: [4, 4, 4], totalDamage: 12 }
+  const attacks = [1, 2, 3, 4].map((turn) => incomingAttack({ ...battle, turn }))
+  assert.deepEqual(attacks, [heavy, combo, heavy, combo])
+})
+
+test('a +1 enemy attack buff adds one damage to every hit', () => {
+  const dice = [6, 6, 1]
+  const slots = ['guard', 'guard', 'attack']
+  const heavy = filled(dice, slots, { enemyAttackBuff: 1 })
+  assert.deepEqual(incomingAttack(heavy), { name: '한 방', hits: [13], totalDamage: 13 })
+  assert.equal(forecast(heavy).counter, false)
+  const afterHeavy = resolveTurn(heavy)
+  assert.deepEqual(afterHeavy.lastExchange.hitsTaken, [1])
+  assert.equal(afterHeavy.turn, 2)
+
+  const combo = { ...afterHeavy, dice, slots }
+  assert.deepEqual(incomingAttack(combo), { name: '연타', hits: [5, 5, 5], totalDamage: 15 })
+  const afterCombo = resolveTurn(combo)
+  assert.deepEqual(afterCombo.lastExchange.hitsTaken, [0, 0, 3])
+  assert.equal(afterCombo.playerHp, PLAYER_HP - 4)
+})
+
+test('an additional enemy intent row plays in its matching turn', () => {
+  const battle = startBattle(42, [
+    { id: 'test-critical-strike', name: '시험용 치명 일격', hits: [8], matches: (turn) => turn === 2 },
+    ...ENEMY_INTENTS,
+  ])
+  assert.equal(incomingAttack(battle).name, '한 방')
+  const secondTurn = resolveTurn({ ...battle, dice: [6, 5, 4], slots: ['guard', 'guard', 'attack'] })
+  assert.equal(secondTurn.turn, 2)
+  assert.deepEqual(incomingAttack(secondTurn), { name: '시험용 치명 일격', hits: [8], totalDamage: 8 })
+
+  const thirdTurn = resolveTurn({ ...secondTurn, dice: [1, 1, 1], slots: ['attack', 'attack', 'attack'] })
+  assert.deepEqual(thirdTurn.lastExchange.hitsTaken, [8])
+  assert.equal(thirdTurn.turn, 3)
+  assert.equal(incomingAttack(thirdTurn).name, '한 방')
+  assert.equal(incomingAttack({ ...startBattle(42), turn: 2 }).name, '연타')
 })
