@@ -91,7 +91,7 @@ const perkDisplay = {
   },
   blade: {
     value: `×${START_PERKS.blade.multiplier}`, detail: `${icon('sword')} ${START_PERKS.blade.threshold}`,
-    label: `공격 눈 합이 ${START_PERKS.blade.threshold} 쌓일 때마다 다음 공격 ${START_PERKS.blade.multiplier}배`,
+    label: `공격에 놓은 눈이 ${START_PERKS.blade.threshold} 쌓이면 다음 공격 ${START_PERKS.blade.multiplier}배, 사용 후 또는 전투가 바뀌면 충전 0`,
   },
   collector: {
     value: '+N', detail: `${icon('die')}=${icon('die')}`,
@@ -496,9 +496,12 @@ function renderActivePerk(battle: YachtBattle) {
   const projected = blade && battle.phase === 'assign' && blade.nextCharge !== blade.charge
     ? `${blade.nextCharge}/${START_PERKS.blade.threshold}` : null
   ui.activePerk.classList.toggle('perk-ready', blade?.ready ?? false)
-  const preview = projected ? `<small class="perk-preview">→${projected}</small>` : ''
+  const pips = blade?.pipsAdded ? `${icon('die')}+${blade.pipsAdded}` : ''
+  const preview = projected ? `<small class="perk-preview">${pips} →${projected}</small>` : ''
+  const previewLabel = projected
+    ? `${blade?.pipsAdded ? `, 공격 눈 합 +${blade.pipsAdded}` : ''}, 배치 후 예상 ${projected}` : ''
   ui.activePerk.innerHTML = `${icon(symbol)}<strong>${value}</strong>${preview}`
-  ui.activePerk.setAttribute('aria-label', `${name} ${value}${projected ? `, 배치 후 예상 ${projected}` : ''}, ${perkDisplay[perk.kind].label}`)
+  ui.activePerk.setAttribute('aria-label', `${name} ${value}${previewLabel}, ${perkDisplay[perk.kind].label}`)
   ui.activePerk.title = name
 }
 

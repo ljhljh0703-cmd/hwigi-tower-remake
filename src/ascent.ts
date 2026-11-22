@@ -45,8 +45,9 @@ export function nextAscentFight(ascent: Ascent): Ascent {
   const fight = ascent.fight + 1
   const fightSeed = (seed ^ Math.imul(fight - 1, 0x9e3779b9)) >>> 0
   const enemy = enemyForFight(seed, fight)
+  const perk = ascent.battle.perk?.kind === 'blade' ? startPerk('blade') : ascent.battle.perk
   const battle = startYachtBattle(
-    fightSeed, ascent.battle.playerHp, unlocks.includes('triple'), unlocks.includes('straight'), ascent.battle.perk,
+    fightSeed, ascent.battle.playerHp, unlocks.includes('triple'), unlocks.includes('straight'), perk,
     enemy, unlocks.length * enemy.attackPerUnlock,
   )
   return { ...ascent, fight, enemy, battle, newUnlock: null }

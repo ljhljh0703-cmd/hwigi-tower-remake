@@ -174,7 +174,7 @@ export function yachtAllocationTotals(battle: YachtBattle, slots = battle.slots,
   } else if (perk?.kind === 'shield' && totals.attack > 0) {
     totals.attack += perk.bonus
   } else if (perk?.kind === 'blade' && perk.charge >= START_PERKS.blade.threshold) {
-    totals.attack *= START_PERKS.blade.multiplier
+    return allocationPower(battle, totals, START_PERKS.blade.multiplier)
   }
   return allocationPower(battle, totals)
 }
@@ -189,8 +189,9 @@ export function bladeChargePreview(battle: YachtBattle, dice = battle.dice) {
   const { threshold } = START_PERKS.blade
   const { attack } = allocationTotals(battle, battle.slots, dice)
   const ready = charge >= threshold
-  const nextCharge = ready && attack > 0 ? charge - threshold + attack : charge + attack
-  return { charge, ready, nextCharge }
+  const pipsAdded = ready ? 0 : attack
+  const nextCharge = ready && attack > 0 ? 0 : charge + pipsAdded
+  return { charge, ready, nextCharge, pipsAdded }
 }
 
 export function yachtCounterRewards(battle: YachtBattle) {

@@ -127,25 +127,57 @@ test('shield savings add attack after exact guards, persist between fights, and 
   assert.equal(missed.battle.perk.bonus, 0)
 })
 
-test('the blade banks attack pips, carries excess, and doubles only the next attack', () => {
+test('blade preview uses raw pips and an armed attack clears all charge', () => {
   const { threshold, multiplier } = START_PERKS.blade
   const start = beginAscent(42, 'blade')
   const previouslyCharged = { ...start.battle.perk, charge: threshold - 2 }
   const approaching = { ...start.battle, perk: previouslyCharged, dice: [1, 1, 1], slots: allAttack }
-  assert.deepEqual(bladeChargePreview(approaching), { charge: threshold - 2, ready: false, nextCharge: threshold + 1 })
+  assert.deepEqual(bladeChargePreview(approaching), {
+    charge: threshold - 2, ready: false, nextCharge: threshold + 1, pipsAdded: 3,
+  })
   assert.equal(bladeChargePreview(assignDie(approaching, 0, 'guard')).nextCharge, threshold)
-  const won = play(start, [1, 1, 1], allAttack, { perk: previouslyCharged, enemyHp: 3 })
-  assert.equal(won.battle.lastExchange.dealt, 3)
-  const next = nextAscentFight(won)
-  assert.equal(next.battle.perk.charge, threshold + 1)
-  const guarded = play(next, [6, 6, 6], allGuard, { enemyIntents: ENEMY_INTENTS, enemyHp: 60 })
+  const charged = play(start, [1, 2, 1], allAttack, {
+    perk: { ...previouslyCharged, charge: threshold - 3 }, enemyIntents: ENEMY_INTENTS, enemyAttackGrowth: 0, enemyHp: 60,
+  })
+  assert.equal(charged.battle.lastExchange.dealt, 4)
+  assert.equal(charged.battle.perk.charge, threshold + 1)
+  const guarded = play(charged, [6, 6, 6], allGuard)
   assert.equal(guarded.battle.perk.charge, threshold + 1)
   const spent = { ...guarded.battle, dice: [3, 6, 6], slots: ['attack', 'guard', 'guard'] }
-  assert.deepEqual(bladeChargePreview(spent), { charge: threshold + 1, ready: true, nextCharge: 4 })
+  assert.deepEqual(bladeChargePreview(spent), { charge: threshold + 1, ready: true, nextCharge: 0, pipsAdded: 0 })
   const attacked = play(guarded, [3, 6, 6], ['attack', 'guard', 'guard'])
   assert.equal(attacked.battle.lastExchange.dealt, 3 * multiplier)
-  assert.equal(attacked.battle.perk.charge, 4)
+  assert.equal(attacked.battle.perk.charge, 0)
   assert.equal(beginAscent(42, 'blade').battle.perk.charge, 0)
+})
+
+test('unused blade charge resets on both floor transitions', () => {
+  const charged = { kind: 'blade', charge: START_PERKS.blade.threshold - 2 }
+  let ascent = beginAscent(42, 'blade')
+  for (const fight of [2, 3]) {
+    const won = play(ascent, [1, 1, 2], allAttack, { perk: charged, enemyHp: 4 })
+    assert.equal(won.battle.phase, 'won')
+    assert.equal(won.battle.perk.charge, charged.charge + 4)
+    ascent = nextAscentFight(won)
+    assert.equal(ascent.fight, fight)
+    assert.deepEqual(ascent.battle.perk, startPerk('blade'))
+  }
+})
+
+test('knockdown shares the blade multiplier and doubles shield savings with regular attack power', () => {
+  const dice = [2, 3, 4]
+  const { threshold } = START_PERKS.blade
+  const blade = { kind: 'blade', charge: threshold }
+  const shield = { kind: 'shield', bonus: START_PERKS.shield.step }
+  for (const [perk, attack] of [[blade, 18], [shield, (9 + shield.bonus) * 2]]) {
+    const start = startYachtBattle(42, PLAYER_HP, false, false, perk, boss)
+    const knockdown = { ...start, turn: 4, dice, slots: allAttack }
+    assert.equal(yachtAllocationTotals(knockdown).attack, attack)
+    assert.equal(forecastYacht(knockdown).dealt, attack)
+    const { battle } = resolveYachtTurn(knockdown)
+    assert.equal(battle.lastExchange.dealt, attack)
+    assert.deepEqual(battle.perk, perk.kind === 'blade' ? startPerk('blade') : shield)
+  }
 })
 
 test('the collector learns each hand once and applies its current bonus to matching slots', () => {

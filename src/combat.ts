@@ -193,8 +193,9 @@ export function allocationTotals(battle: Battle, slots = battle.slots, dice = ba
 
 export type SlotTotals = ReturnType<typeof allocationTotals>
 
-export function allocationPower(battle: Battle, totals = allocationTotals(battle)): SlotTotals {
-  const multiplier = enemyIntentAt(battle).damageTakenMultiplier
+export function allocationPower(battle: Battle, totals = allocationTotals(battle), attackMultiplier?: number): SlotTotals {
+  const enemyMultiplier = enemyIntentAt(battle).damageTakenMultiplier
+  const multiplier = attackMultiplier === undefined ? enemyMultiplier : Math.max(attackMultiplier, enemyMultiplier ?? 1)
   return multiplier === undefined ? totals : { ...totals, attack: Math.floor(totals.attack * multiplier) }
 }
 

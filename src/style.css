@@ -82,7 +82,7 @@ h1, h2, p { margin: 0; }
 .run-status > span { display: inline-flex; align-items: center; gap: 5px; }
 #active-perk strong { color: #f1f0ee; white-space: nowrap; font-variant-numeric: tabular-nums; }
 #active-perk.perk-ready strong { color: #f2ac98; }
-.perk-preview { color: var(--muted); font-size: inherit; white-space: nowrap; }
+.perk-preview { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); font-size: inherit; white-space: nowrap; }
 #fight { padding-inline-start: 14px; border-inline-start: 1px solid var(--stone-edge); }
 
 button {
