@@ -8,82 +8,143 @@
     <title>회귀탑</title>
   </head>
   <body>
-    <main>
-      <header>
+    <svg class="icon-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="icon-sword" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="m6 18-3 3m2-7 5 5m-3-3L19 4l2-1-1 4L9 18"/></symbol>
+      <symbol id="icon-critical" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="m5 18-3 3m2-7 5 5m-3-3L18 4l2-1-1 4L8 18M11 4v3M9.5 5.5h3M19 13v4m-2-2h4"/></symbol>
+      <symbol id="icon-shield" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M12 3c2.5 2 5 3 8 3v6c0 4-3.5 7-8 9-4.5-2-8-5-8-9V6c3 0 5.5-1 8-3Z"/></symbol>
+      <symbol id="icon-parry" viewBox="0 0 24 24"><use href="#icon-shield"/><path vector-effect="non-scaling-stroke" d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+      <symbol id="icon-heart" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M12 20.5 4.7 13.4C-2 7 7 1 12 7c5-6 14 0 7.3 6.4Z"/></symbol>
+      <symbol id="icon-die" viewBox="0 0 24 24">
+        <rect vector-effect="non-scaling-stroke" x="3" y="3" width="18" height="18" rx="2"/>
+        <path fill="currentColor" stroke="none" d="M9 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm4 4a1 1 0 1 1-2 0 1 1 0 0 1 2 0Zm4 4a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/>
+      </symbol>
+      <symbol id="icon-devil-die" viewBox="0 0 24 24">
+        <rect vector-effect="non-scaling-stroke" x="4" y="5.5" width="16" height="16" rx="1.8"/>
+        <path vector-effect="non-scaling-stroke" d="M6 5.5C4.5 5 3.5 3.8 3.5 2c1.4 1 3.5 1.2 5.5 3.5m9 0c1.5-.5 2.5-1.7 2.5-3.5-1.4 1-3.5 1.2-5.5 3.5"/>
+        <g fill="currentColor" stroke="none">
+          <circle cx="8" cy="9.5" r="1.25"/><circle cx="16" cy="9.5" r="1.25"/>
+          <circle cx="12" cy="13.5" r="1.25"/>
+          <circle cx="8" cy="17.5" r="1.25"/><circle cx="16" cy="17.5" r="1.25"/>
+        </g>
+      </symbol>
+      <symbol id="icon-reroll-die" viewBox="0 0 24 24">
+        <rect vector-effect="non-scaling-stroke" x="3" y="3" width="11" height="11" rx="1"/>
+        <path vector-effect="non-scaling-stroke" d="M20 8v7a5 5 0 0 1-5 5H8m3-3-3 3 3 3"/>
+        <circle fill="currentColor" stroke="none" cx="8.5" cy="8.5" r="1.25"/>
+      </symbol>
+      <symbol id="icon-wheel" viewBox="0 0 24 24"><circle vector-effect="non-scaling-stroke" cx="12" cy="12" r="9"/><path vector-effect="non-scaling-stroke" d="M12 3v18M4.2 7.5l15.6 9m0-9-15.6 9"/></symbol>
+      <symbol id="icon-unlock" viewBox="0 0 24 24"><rect vector-effect="non-scaling-stroke" x="5" y="11" width="14" height="10" rx="1"/><path vector-effect="non-scaling-stroke" d="M9 11V7a4 4 0 0 1 7.5-2M12 15v2"/></symbol>
+      <symbol id="icon-reroll" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M20 9a8 8 0 1 0 0 6M20 4v5h-5"/></symbol>
+      <symbol id="icon-return" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="m10 4-5 5 5 5M5 9h9a5 5 0 0 1 0 10h-3"/></symbol>
+      <symbol id="icon-retry" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M3 21h18M5 21V4h8v17M7.5 9h3m-3 4h3m-3 4h3M18 6v11m-3-3 3 3 3-3"/></symbol>
+      <symbol id="icon-turn" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M6 3h12M6 21h12M8 3v4c0 2 2 3 4 5-2 2-4 3-4 5v4m8-18v4c0 2-2 3-4 5 2 2 4 3 4 5v4"/></symbol>
+      <symbol id="icon-next" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M4 12h15m-6-6 6 6-6 6"/></symbol>
+      <symbol id="icon-pair" viewBox="0 0 24 24">
+        <rect vector-effect="non-scaling-stroke" x="2.5" y="6" width="8" height="12" rx="1"/>
+        <rect vector-effect="non-scaling-stroke" x="13.5" y="6" width="8" height="12" rx="1"/>
+        <circle fill="currentColor" stroke="none" cx="6.5" cy="12" r="1.2"/><circle fill="currentColor" stroke="none" cx="17.5" cy="12" r="1.2"/>
+      </symbol>
+      <symbol id="icon-joint" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M3 16 15 4m-5 0h5v5M9 20 21 8m-5 0h5v5"/></symbol>
+    </svg>
+    <main data-screen="perks">
+      <header class="masthead">
         <h1>회귀탑</h1>
         <div class="run-status">
           <span id="active-perk" role="img" hidden></span>
-          <span id="fight" role="img" hidden></span>
+          <span id="fight" hidden></span>
           <span id="turn" role="img" hidden></span>
         </div>
       </header>
 
-      <section id="perks" aria-label="시작 특전 셋 중 하나 고르기"></section>
+      <section id="perks" aria-labelledby="perks-heading">
+        <h2 id="perks-heading">시작 특전</h2>
+        <div id="perk-choices"></div>
+      </section>
 
       <div id="battle" hidden>
         <section class="encounter" aria-label="전장">
-          <p id="intent" role="img"></p>
           <div id="arena" aria-hidden="true"></div>
+          <div class="combatant player">
+            <output id="player-damage" class="damage-float" aria-hidden="true" hidden></output>
+            <div class="vital">
+              <label for="player-hp"><svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="player-total"></span></label>
+              <meter id="player-hp" min="0" aria-label="내 체력"></meter>
+            </div>
+          </div>
+          <div class="combatant enemy">
+            <p id="intent" role="img"></p>
+            <output id="enemy-damage" class="damage-float" aria-hidden="true" hidden></output>
+            <div class="vital">
+              <label for="enemy-hp"><svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="enemy-total"></span></label>
+              <meter id="enemy-hp" min="0" aria-label="적 체력"></meter>
+            </div>
+          </div>
+          <p id="awakening" class="awakening" role="img" hidden></p>
         </section>
-
-        <div class="vitals">
-          <div>
-            <label for="player-hp"><span aria-hidden="true">♥</span><span id="player-total"></span></label>
-            <meter id="player-hp" min="0" aria-label="내 체력"></meter>
-          </div>
-          <div>
-            <label for="enemy-hp"><span aria-hidden="true">◆</span><span id="enemy-total"></span></label>
-            <meter id="enemy-hp" min="0" aria-label="적 체력"></meter>
-          </div>
-        </div>
-
-        <p id="awakening" role="status" hidden></p>
-        <p id="feedback" role="status" hidden></p>
-        <p id="new-unlock" role="status" hidden></p>
+        <p id="feedback" class="sr-only" role="status"></p>
 
         <section id="planning" aria-label="주사위 배치">
           <div class="pool" data-dice-zone="pool">
-            <div class="pool-heading">
-              <span aria-hidden="true">🎲</span>
-              <button id="assign-pool" type="button">선택 배치 빼기</button>
-            </div>
+            <svg class="icon" aria-hidden="true"><use href="#icon-die"/></svg>
             <div id="pool-dice" class="dice-row"></div>
+            <button id="assign-pool" type="button" aria-label="선택 배치 빼기" title="선택 배치 빼기">
+              <svg class="icon" aria-hidden="true"><use href="#icon-return"/></svg>
+            </button>
           </div>
           <div class="slots">
             <section class="slot" aria-label="공격 칸" data-dice-zone="attack">
               <button id="assign-attack" type="button" class="slot-target">
-                공격 <strong id="attack-total">0</strong>
+                <span><svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg>공격</span>
+                <strong id="attack-total">0</strong>
               </button>
               <div id="attack-dice" class="dice-row"></div>
             </section>
             <section class="slot" aria-label="방어 칸" data-dice-zone="guard">
               <button id="assign-guard" type="button" class="slot-target">
-                방어 <strong id="guard-total">0</strong>
+                <span><svg class="icon" aria-hidden="true"><use href="#icon-shield"/></svg>방어</span>
+                <strong id="guard-total">0</strong>
               </button>
               <div id="guard-dice" class="dice-row"></div>
             </section>
           </div>
 
           <div class="controls">
-            <button id="reroll" type="button">다시 굴리기 (1)</button>
+            <button id="reroll" type="button">
+              <svg class="icon" aria-hidden="true"><use href="#icon-reroll"/></svg>
+              <span id="reroll-count"></span>
+            </button>
             <button id="extra-reroll" type="button" hidden></button>
-            <button id="resolve" type="button">턴 끝내기</button>
+            <button id="resolve" class="primary" type="button">턴 끝내기 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
           </div>
         </section>
+
         <section id="counter-panel" aria-label="반격 룰렛" hidden>
           <div class="roulette-stage" role="img">
             <span class="roulette-pointer" aria-hidden="true"></span>
             <div id="counter-wheel" aria-hidden="true"></div>
           </div>
-          <button id="counter" type="button">반격 룰렛 돌리기</button>
+          <button id="counter" class="primary" type="button">
+            <svg class="icon" aria-hidden="true"><use href="#icon-wheel"/></svg>
+            <span id="counter-action">반격 룰렛</span>
+          </button>
           <p id="counter-result" role="status" hidden>
-            <span id="counter-damage"></span>
+            <svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg>
+            <strong id="counter-damage"></strong>
           </p>
         </section>
-        <p id="owned-unlocks" role="img" hidden></p>
-        <p id="result" role="status" hidden></p>
-        <button id="next" type="button" hidden>다음 전투</button>
-        <button id="retry" type="button" hidden>다시</button>
+
+        <section id="new-unlock" class="event-panel" aria-labelledby="unlock-heading" hidden>
+          <h2 id="unlock-heading"><svg class="icon" aria-hidden="true"><use href="#icon-unlock"/></svg>해금</h2>
+          <div id="unlock-reveal" role="img"></div>
+        </section>
+
+        <section id="ascent-event" class="event-panel" aria-label="등반 진행" hidden>
+          <p id="event-floor" role="img"></p>
+          <p id="result" role="status" hidden></p>
+          <p id="owned-unlocks" role="img" hidden></p>
+          <button id="next" class="primary" type="button" hidden>다음 전투 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
+          <button id="retry" class="primary" type="button" hidden>다시 <svg class="icon" aria-hidden="true"><use href="#icon-retry"/></svg></button>
+        </section>
       </div>
     </main>
     <script type="module" src="/src/main.ts"></script>

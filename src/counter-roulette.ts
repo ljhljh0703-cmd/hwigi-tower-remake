@@ -1,12 +1,11 @@
 import type { CounterResult, CounterReward } from './combat.ts'
 
-const shades = ['#383838', '#464646', '#383838', '#464646', '#595959', '#4b4b4b', '#464646']
-
 export class CounterRoulette {
   private readonly wheel: HTMLElement
   private readonly result: HTMLElement
   private readonly damage: HTMLElement
   private readonly stage: HTMLElement
+  private readonly action: HTMLElement
   private labels: HTMLElement[] = []
   private degreesPerSlot = 0
 
@@ -15,6 +14,7 @@ export class CounterRoulette {
     this.result = panel.querySelector<HTMLElement>('#counter-result')!
     this.damage = panel.querySelector<HTMLElement>('#counter-damage')!
     this.stage = panel.querySelector<HTMLElement>('.roulette-stage')!
+    this.action = button.querySelector<HTMLElement>('#counter-action')!
   }
 
   private setRewards(rewards: readonly CounterReward[]) {
@@ -27,17 +27,27 @@ export class CounterRoulette {
       label.style.top = `${50 - Math.cos(position) * 34}%`
 
       const text = document.createElement('span')
-      text.textContent = reward.joint ? `${reward.damage}\n⚔︎⚔︎` : String(reward.damage)
+      text.textContent = String(reward.damage)
+      if (reward.joint) {
+        text.insertAdjacentHTML('beforeend', '<svg class="icon" aria-hidden="true"><use href="#icon-joint"/></svg>')
+      }
       label.append(text)
       return label
     })
     this.wheel.replaceChildren(...this.labels)
-    const segments = rewards.map((_, index) =>
-      `${shades[index % shades.length]} ${index * this.degreesPerSlot}deg ${(index + 1) * this.degreesPerSlot}deg`,
-    )
-    this.wheel.style.background = `conic-gradient(from -${this.degreesPerSlot / 2}deg, ${segments.join(', ')})`
+    this.paintSegments()
     const labels = rewards.map(({ damage, joint }) => joint ? `합공 ${damage}` : String(damage))
     this.stage.setAttribute('aria-label', `반격 피해 ${labels.join(', ')}`)
+  }
+
+  private paintSegments(winner?: number) {
+    const segments = this.labels.map((_, index) => {
+      const start = index * this.degreesPerSlot
+      const end = start + this.degreesPerSlot
+      const shade = index === winner ? 'var(--rust)' : 'var(--stone-bed)'
+      return `var(--stone-edge) ${start - 0.45}deg ${start + 0.45}deg, ${shade} ${start + 0.45}deg ${end - 0.45}deg`
+    })
+    this.wheel.style.background = `conic-gradient(from -${this.degreesPerSlot / 2}deg, ${segments.join(', ')}, var(--stone-edge) 359.55deg)`
   }
 
   setVisible(rewards: readonly CounterReward[] | null) {
@@ -46,18 +56,17 @@ export class CounterRoulette {
       this.wheel.style.transform = ''
       this.wheel.style.removeProperty('--label-turn')
       this.result.hidden = true
-      this.result.classList.remove('joint')
       this.damage.textContent = ''
       this.button.hidden = false
       this.button.disabled = false
-      this.button.textContent = '반격 룰렛 돌리기'
+      this.action.textContent = '반격 룰렛'
     }
     this.panel.hidden = !rewards
   }
 
   async reveal(reward: CounterResult, animate: boolean) {
     this.button.disabled = true
-    this.button.textContent = '룰렛 도는 중…'
+    this.action.textContent = '회전 중'
     const angle = 1080 + (360 - reward.slot * this.degreesPerSlot) % 360
     const rotate = `rotate(${angle}deg)`
     if (animate) {
@@ -75,9 +84,11 @@ export class CounterRoulette {
     this.wheel.style.transform = rotate
     this.wheel.style.setProperty('--label-turn', `${-angle}deg`)
     this.labels[reward.slot].classList.add('winner')
+    this.paintSegments(reward.slot)
     this.button.hidden = true
     this.result.hidden = false
-    this.result.classList.toggle('joint', reward.joint)
-    this.damage.textContent = `${reward.joint ? '⚔︎⚔︎' : '◎'} ${reward.damage}`
+    this.result.querySelector('use')!.setAttribute('href', reward.joint ? '#icon-joint' : '#icon-sword')
+    this.result.setAttribute('aria-label', `${reward.joint ? '합공' : '반격'} 피해 ${reward.damage}`)
+    this.damage.textContent = String(reward.damage)
   }
 }

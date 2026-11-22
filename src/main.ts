@@ -1,7 +1,7 @@
-import Phaser from 'phaser'
 import { ASCENT_ENEMIES, beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import { assignDie, DIE_COUNT, incomingAttack, intentOf, totals } from './combat.ts'
+import type { Exchange } from './combat.ts'
 import { offerPerks, START_PERKS } from './perks.ts'
 import {
   rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtAttackBonus, yachtCounterRewards, yachtRerollCost,
@@ -17,8 +17,11 @@ function element<T extends HTMLElement>(id: string): T {
 }
 
 const ui = {
+  main: document.querySelector('main')!,
   perks: element('perks'),
+  perkChoices: element('perk-choices'),
   battle: element('battle'),
+  encounter: document.querySelector<HTMLElement>('.encounter')!,
   fight: element('fight'),
   activePerk: element('active-perk'),
   turn: element('turn'),
@@ -28,9 +31,14 @@ const ui = {
   playerTotal: element('player-total'),
   enemyTotal: element('enemy-total'),
   feedback: element('feedback'),
+  playerDamage: element('player-damage'),
+  enemyDamage: element('enemy-damage'),
   awakening: element('awakening'),
   newUnlock: element('new-unlock'),
+  unlockReveal: element('unlock-reveal'),
   ownedUnlocks: element('owned-unlocks'),
+  ascentEvent: element('ascent-event'),
+  eventFloor: element('event-floor'),
   result: element('result'),
   planning: element('planning'),
   dice: {
@@ -46,6 +54,7 @@ const ui = {
   attackTotal: element('attack-total'),
   guardTotal: element('guard-total'),
   reroll: element<HTMLButtonElement>('reroll'),
+  rerollCount: element('reroll-count'),
   extraReroll: element<HTMLButtonElement>('extra-reroll'),
   resolve: element<HTMLButtonElement>('resolve'),
   counter: element<HTMLButtonElement>('counter'),
@@ -60,81 +69,150 @@ const fixedSeed = seedParam !== null && /^\d{1,10}$/.test(seedParam) && Number(s
   : null
 
 const unlockInfo = {
-  triple: { icon: '🎲+1', label: '네 번째 주사위' },
-  straight: { icon: '⟳', label: '전투당 재굴림 주사위 1회' },
+  triple: { icon: 'die', value: '+1', label: '네 번째 주사위' },
+  straight: { icon: 'reroll-die', value: '1', label: '전투당 재굴림 주사위 1회' },
 } as const
+
+const firstPaidRerollCost = 1
+
+const perkDisplay = {
+  reroll: {
+    name: '악마의 주사위',
+    icon: 'devil-die',
+    value: `+${START_PERKS.reroll.faceBonus}`,
+    detail: `≤${START_PERKS.reroll.faceCap}<span class="perk-cost">${icon('heart')}−${firstPaidRerollCost}↑</span>`,
+  },
+  face: { name: '첫 주사위', icon: 'die', value: `1 → ${START_PERKS.face.replacement}` },
+  pair: { name: '쌍눈 방어', icon: 'pair', value: `${START_PERKS.pair.reward.damage} × ${START_PERKS.pair.slots}`, detail: icon('parry') + icon('wheel') },
+  attack: { name: '선제 공격', icon: 'sword', value: `+${START_PERKS.attack.damage}`, detail: icon('turn') + '1' },
+  wheel: { name: '룰렛 강화', icon: 'wheel', value: `1 → ${START_PERKS.wheel.reward.damage}` },
+  health: { name: '추가 체력', icon: 'heart', value: `+${START_PERKS.health.bonus}` },
+} as const
+
+function icon(name: string) {
+  return `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`
+}
 
 let ascent: Ascent | null = null
 const selected = new Set<number>()
 const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
 
-class Arena extends Phaser.Scene {
-  private player?: Phaser.GameObjects.Rectangle
-  private enemy?: Phaser.GameObjects.Rectangle
-  private mataios?: Phaser.GameObjects.Rectangle
-  private single?: Phaser.GameObjects.Rectangle
-  private combo: Phaser.GameObjects.Rectangle[] = []
+const player = { x: 94, width: 63, height: 95, fill: '#d1d1d1' }
+const enemy = { x: 262, width: 106, height: 153, fill: '#868686' }
+const mataios = { x: 23, width: 29, height: 67, fill: '#a9a9a9' }
 
-  create() {
-    this.enemy = this.add.rectangle(252, 63, 42, 49, 0x868686).setStrokeStyle(1, 0xc1c1c1)
-    this.player = this.add.rectangle(105, 67, 29, 40, 0xd1d1d1)
-    this.mataios = this.add.rectangle(55, 72, 20, 30, 0xa9a9a9).setVisible(false)
-    this.single = this.add.rectangle(252, 24, 42, 4, 0xd1d1d1)
-    this.refresh()
+function strikeProgress(elapsed: number, oneWay: number) {
+  return Math.max(0, 1 - Math.abs(elapsed / oneWay - 1))
+}
+
+class Arena {
+  private readonly canvas = document.createElement('canvas')
+  private readonly context = this.canvas.getContext('2d')!
+  private density = 1
+  private scale = 0
+  private ground = 0
+  private mataiosHome = mataios.x
+  private playerHome = player.x
+  private battle?: YachtBattle
+  private strike?: { start: number; joint: boolean }
+  private animation = 0
+
+  constructor(private readonly frame: HTMLElement, private readonly encounter: HTMLElement) {
+    frame.append(this.canvas)
+    new ResizeObserver(this.resize).observe(frame)
+    window.addEventListener('resize', this.resize)
+    this.watchDensity()
+  }
+
+  private watchDensity = () => {
+    window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
+      .addEventListener('change', this.watchDensity, { once: true })
+    this.resize()
+  }
+
+  private resize = () => {
+    const { left, right, top, bottom, width, height } = this.frame.getBoundingClientRect()
+    if (!width || !height) return
+
+    const density = window.devicePixelRatio
+    const pxLeft = Math.round(left * density)
+    const pxTop = Math.round(top * density)
+    this.density = density
+    // One canvas pixel per device pixel, including when the stage begins between device pixels.
+    this.canvas.width = Math.round(right * density) - pxLeft
+    this.canvas.height = Math.round(bottom * density) - pxTop
+    this.canvas.style.left = `${pxLeft / density - left}px`
+    this.canvas.style.top = `${pxTop / density - top}px`
+    this.canvas.style.width = `${this.canvas.width / density}px`
+    this.canvas.style.height = `${this.canvas.height / density}px`
+    this.scale = Math.min(width / 240, height / 300)
+    this.ground = height / 2 + 85 * this.scale
+    const unitsPerPixel = 360 / width
+    const mataiosHalfWidth = mataios.width * this.scale / 2
+    const playerHalfWidth = player.width * this.scale / 2
+    this.mataiosHome = Math.max(mataios.x, (12 + mataiosHalfWidth) * unitsPerPixel)
+    this.playerHome = Math.max(player.x, this.mataiosHome + (mataiosHalfWidth + playerHalfWidth + 8) * unitsPerPixel)
+    this.encounter.style.setProperty('--ground', `${this.ground}px`)
+    this.encounter.style.setProperty('--enemy-head', `${this.ground - enemy.height * this.scale}px`)
+    this.encounter.style.setProperty('--player-head', `${this.ground - player.height * this.scale}px`)
+    this.encounter.style.setProperty('--player-x', `${this.playerHome / 3.6}%`)
+    this.draw()
+  }
+
+  private drawActor(actor: typeof player, x: number, fill = actor.fill, outlined = false) {
+    const center = x * this.canvas.width / 360
+    const halfWidth = actor.width * this.scale * this.density / 2
+    const left = Math.round(center - halfWidth)
+    const width = Math.round(center + halfWidth) - left
+    const top = Math.round((this.ground - actor.height * this.scale) * this.density)
+    const height = Math.round(this.ground * this.density) - top
+    const edge = outlined ? Math.max(1, Math.round(this.density)) : 0
+    if (outlined) {
+      this.context.fillStyle = '#c1c1c1'
+      this.context.fillRect(left, top, width, height)
+    }
+    this.context.fillStyle = fill
+    this.context.fillRect(left + edge, top + edge, width - 2 * edge, height - 2 * edge)
+  }
+
+  private draw() {
+    const { strike, battle, canvas, context } = this
+    context.clearRect(0, 0, canvas.width, canvas.height)
+    if (!battle || !this.scale) return
+    const elapsed = strike ? performance.now() - strike.start : Infinity
+    if (strike?.joint) this.drawActor(mataios, this.mataiosHome + (192 - this.mataiosHome) * strikeProgress(elapsed, 144) ** 3)
+    if (battle.playerHp > 0) this.drawActor(player, this.playerHome + (214 - this.playerHome) * strikeProgress(elapsed, 128) ** 3)
+    if (battle.enemyHp > 0) {
+      const stagger = strikeProgress(elapsed - 128, 68)
+      this.drawActor(enemy, enemy.x + (strike?.joint ? 16 : 12) * stagger, stagger > 0 ? '#e9e9e9' : enemy.fill, true)
+    }
+  }
+
+  private animateStrike = () => {
+    this.draw()
+    if (this.strike && performance.now() - this.strike.start < 288) {
+      this.animation = requestAnimationFrame(this.animateStrike)
+    }
   }
 
   counterStrike(joint: boolean) {
-    const { player, enemy, mataios } = this
-    if (!player || !enemy || !mataios) return
-
-    this.tweens.add({ targets: player, x: 214, duration: 128, ease: 'Cubic.In', yoyo: true })
-    if (joint) {
-      mataios.setVisible(true)
-      this.tweens.add({ targets: mataios, x: 192, duration: 144, ease: 'Cubic.In', yoyo: true })
-    }
-    this.tweens.add({
-      targets: enemy, x: joint ? 274 : 264, delay: 128, duration: 68, yoyo: true,
-      onStart: () => { enemy.setFillStyle(0xe9e9e9) },
-      onComplete: () => { enemy.setFillStyle(0x868686) },
-    })
+    this.strike = { start: performance.now(), joint }
+    this.animateStrike()
   }
 
   finishStrike() {
-    if (!this.player || !this.enemy || !this.mataios) return
-    this.tweens.killTweensOf([this.player, this.enemy, this.mataios])
-    this.player.setX(105)
-    this.enemy.setX(252).setFillStyle(0x868686)
-    this.mataios.setX(55).setVisible(false)
+    cancelAnimationFrame(this.animation)
+    this.strike = undefined
+    this.draw()
   }
 
-  refresh(battle = ascent?.battle) {
-    if (!battle) return
-    const hitCount = battle.phase === 'assign' ? incomingAttack(battle).hits.length : 0
-    const comboCount = hitCount > 1 ? hitCount : 0
-    this.player?.setVisible(battle.playerHp > 0)
-    this.enemy?.setVisible(battle.enemyHp > 0)
-    this.single?.setVisible(hitCount === 1)
-    if (!this.single) return
-
-    while (this.combo.length < comboCount) {
-      this.combo.push(this.add.rectangle(252, 24, 8, 4, 0xd1d1d1))
-    }
-    this.combo.forEach((shape, index) => {
-      shape.setX(252 + (index - (comboCount - 1) / 2) * 14).setVisible(index < comboCount)
-    })
+  refresh(battle: YachtBattle) {
+    this.battle = battle
+    this.draw()
   }
 }
 
-const arena = new Arena()
-new Phaser.Game({
-  type: Phaser.CANVAS,
-  backgroundColor: '#292929',
-  parent: 'arena',
-  width: 360,
-  height: 105,
-  scene: arena,
-  audio: { noAudio: true },
-})
+const arena = new Arena(element('arena'), ui.encounter)
 
 const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
   const button = document.createElement('button')
@@ -187,14 +265,20 @@ function refreshDice(battle: YachtBattle) {
   ui.assign.guard.disabled = !canPlace
   const rerollCost = yachtRerollCost(battle)
   ui.reroll.disabled = !canPlace || rerollCost === null || rerollCost >= battle.playerHp
-  ui.reroll.textContent = rerollCost ? `⚄+${faceBonus}≤${faceCap} ♥-${rerollCost}` : `다시 굴리기 (${Number(rerollCost === 0)})`
-  if (rerollCost) ui.reroll.setAttribute('aria-label', `다시 굴리기, 눈 +${faceBonus}, 최대 ${faceCap}, 체력 ${rerollCost} 소모`)
-  else ui.reroll.removeAttribute('aria-label')
+  const freeRolls = Number(rerollCost === 0)
+  ui.rerollCount.innerHTML = rerollCost
+    ? `<span>+${faceBonus} <small>≤${faceCap}</small></span><span>${icon('heart')} −${rerollCost}</span>`
+    : String(freeRolls)
+  ui.reroll.setAttribute('aria-label', rerollCost
+    ? `다시 굴리기, 눈 +${faceBonus}, 최대 ${faceCap}, 체력 ${rerollCost} 소모`
+    : `다시 굴리기 ${freeRolls}회`)
+  ui.reroll.title = '다시 굴리기'
   ui.extraReroll.hidden = !battle.extraRerollAvailable && !battle.extraRerollSpent
   ui.extraReroll.disabled = !planning || selected.size !== 1 || !battle.rerolled || !battle.extraRerollAvailable
   const extra = Number(battle.extraRerollAvailable)
-  ui.extraReroll.textContent = `⟳ (${extra})`
+  ui.extraReroll.innerHTML = `${icon(unlockInfo.straight.icon)}${extra}`
   ui.extraReroll.setAttribute('aria-label', `해금 재굴림 (${extra})`)
+  ui.extraReroll.title = '해금 재굴림'
   ui.resolve.disabled = !planning || battle.slots.includes(null)
 }
 
@@ -202,7 +286,7 @@ function renderIntent(battle: YachtBattle) {
   const { phase } = battle
   ui.intent.hidden = phase === 'won' || phase === 'lost'
   if (phase === 'counter') {
-    ui.intent.textContent = '⛨ ✓'
+    ui.intent.innerHTML = icon('parry')
     ui.intent.setAttribute('aria-label', '정확 방어')
   } else if (phase === 'assign') {
     const { hits } = incomingAttack(battle)
@@ -214,20 +298,37 @@ function renderIntent(battle: YachtBattle) {
     }
     const damage = groups.map(({ damage, count }) => count === 1 ? String(damage) : `${damage}×${count}`).join(' + ')
     const critical = intentOf(battle) === 'critical'
-    ui.intent.textContent = `${critical ? '✸' : '⚔︎'} ${damage}`
+    ui.intent.innerHTML = `${icon(critical ? 'critical' : 'sword')}<strong>${damage}</strong>`
     ui.intent.setAttribute('aria-label', `${critical ? '치명 일격' : '적 공격'} 피해 ${hits.join(', ')}`)
   }
 }
 
-function describeExchange(battle: YachtBattle) {
-  const exchange = battle.lastExchange
-  if (!exchange) return ''
-  const taken = exchange.hitsTaken.reduce((sum, value) => sum + value, 0)
-  const parts = [`⚔︎ ${exchange.dealt}`, `♥ −${taken}`]
-  if (exchange.counter) {
-    parts.push(`${exchange.counter.joint ? '⚔︎⚔︎' : '◎'} ${exchange.counter.damage}`)
+const exchangeDuration = 1200
+let exchangeTimer: number | undefined
+
+function showExchange({ dealt, hitsTaken, awakenedDice }: Exchange) {
+  const taken = hitsTaken.reduce((sum, value) => sum + value, 0)
+  ui.feedback.textContent = `적 피해 ${dealt}, 내 피해 ${taken}${awakenedDice ? `, 각성 ${awakenedDice.join(', ')}` : ''}`
+  for (const [output, damage] of [[ui.playerDamage, taken], [ui.enemyDamage, dealt]] as const) {
+    output.getAnimations().forEach((animation) => animation.cancel())
+    output.textContent = `−${damage}`
+    output.hidden = damage === 0
+    if (damage && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      output.animate(
+        [{ translate: '0 7px', opacity: 0 }, { translate: '0 0', opacity: 1, offset: 0.15 }, { opacity: 1, offset: 0.75 }, { translate: '0 -9px', opacity: 0 }],
+        { duration: exchangeDuration },
+      )
+    }
   }
-  return parts.join(' · ')
+  ui.awakening.hidden = !awakenedDice
+  ui.awakening.innerHTML = awakenedDice ? `${icon('die')}${awakenedDice.map((face) => `<span>${face}</span>`).join('')}` : ''
+  ui.awakening.setAttribute('aria-label', awakenedDice ? `각성 ${awakenedDice.join(', ')}` : '')
+  window.clearTimeout(exchangeTimer)
+  exchangeTimer = window.setTimeout(() => {
+    ui.playerDamage.hidden = true
+    ui.enemyDamage.hidden = true
+    ui.awakening.hidden = true
+  }, exchangeDuration)
 }
 
 function updateEnemyHp(enemyHp: number) {
@@ -239,24 +340,30 @@ function wait(milliseconds: number): Promise<void> {
   return new Promise((finish) => window.setTimeout(finish, milliseconds))
 }
 
-function render() {
+function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   if (!ascent) return
   const { battle, fight, perk, maxHp, unlocks, newUnlock } = ascent
-  const { phase, turn, playerHp, enemyHp, lastExchange } = battle
+  const { phase, turn, playerHp, enemyHp } = battle
   const between = phase === 'won' && fight < FIGHT_COUNT
   const finished = phase === 'lost' || (phase === 'won' && !between)
+  const atEvent = presentation === 'normal' && (between || finished)
+  const atUnlock = presentation === 'unlock' && newUnlock !== null
+  const inCombat = !atEvent && !atUnlock
+  const showActions = presentation === 'normal' && inCombat
+  ui.main.dataset.screen = atEvent ? 'event' : atUnlock ? 'unlock' : 'battle'
   ui.perks.hidden = true
   ui.battle.hidden = false
-  ui.fight.hidden = false
-  ui.fight.textContent = `◇ ${fight}/${FIGHT_COUNT}`
-  ui.fight.setAttribute('aria-label', `${FIGHT_COUNT}전투 중 ${fight}번째`)
+  ui.encounter.hidden = !inCombat
+  ui.fight.hidden = !inCombat
+  ui.fight.textContent = `${fight}/${FIGHT_COUNT} 층`
   ui.activePerk.hidden = !perk
   if (perk) {
-    ui.activePerk.textContent = START_PERKS[perk].icon
+    ui.activePerk.innerHTML = icon(perkDisplay[perk].icon)
     ui.activePerk.setAttribute('aria-label', START_PERKS[perk].label)
+    ui.activePerk.title = perkDisplay[perk].name
   }
-  ui.turn.hidden = phase === 'won' || phase === 'lost'
-  ui.turn.textContent = `◷ ${turn}`
+  ui.turn.hidden = !inCombat
+  ui.turn.innerHTML = `${icon('turn')}${turn}`
   ui.turn.setAttribute('aria-label', `${turn}턴`)
   renderIntent(battle)
   ui.playerHp.max = maxHp
@@ -264,24 +371,33 @@ function render() {
   ui.playerTotal.textContent = `${playerHp}/${maxHp}`
   ui.enemyHp.max = ASCENT_ENEMIES[fight - 1].hp
   updateEnemyHp(enemyHp)
-  ui.feedback.textContent = describeExchange(battle)
-  ui.feedback.hidden = !lastExchange
-  const awakenedDice = lastExchange?.awakenedDice
-  ui.awakening.hidden = !awakenedDice
-  ui.awakening.textContent = awakenedDice ? `✦ 🎲 → ${awakenedDice.join('·')}` : ''
-  ui.newUnlock.hidden = !newUnlock
-  ui.newUnlock.textContent = newUnlock ? unlockInfo[newUnlock].icon : ''
-  ui.newUnlock.setAttribute('aria-label', newUnlock ? `${unlockInfo[newUnlock].label} 해금` : '')
-  ui.planning.hidden = phase !== 'assign'
-  roulette.setVisible(phase === 'counter' ? yachtCounterRewards(battle) : null)
-  const priorUnlocks = unlocks.filter((hand) => hand !== newUnlock)
-  ui.ownedUnlocks.hidden = !between || priorUnlocks.length === 0
-  ui.ownedUnlocks.textContent = priorUnlocks.map((hand) => unlockInfo[hand].icon).join(' · ')
-  ui.ownedUnlocks.setAttribute('aria-label', priorUnlocks.map((hand) => unlockInfo[hand].label).join(', '))
+  ui.newUnlock.hidden = !atUnlock
+  if (atUnlock) {
+    const unlock = unlockInfo[newUnlock]
+    const faces = [2, 4, 1, 3, 6, 5].map((face) => `<span>${face}</span>`).join('')
+    ui.unlockReveal.innerHTML = `<div class="die-net" aria-hidden="true">${faces}</div><span class="unlock-value">${icon(unlock.icon)}<strong>${unlock.value}</strong></span>`
+    ui.unlockReveal.setAttribute('aria-label', `${unlock.label} 해금`)
+    ui.feedback.textContent = `${unlock.label} 해금`
+  }
+  ui.planning.hidden = !showActions || phase !== 'assign'
+  roulette.setVisible(showActions && phase === 'counter' ? yachtCounterRewards(battle) : null)
+  ui.ascentEvent.hidden = !atEvent
+  ui.ownedUnlocks.hidden = !between || unlocks.length === 0
+  ui.ownedUnlocks.innerHTML = unlocks.map((hand) => {
+    const unlock = unlockInfo[hand]
+    return `<span>${icon(unlock.icon)}${unlock.value}</span>`
+  }).join('')
+  ui.ownedUnlocks.setAttribute('aria-label', unlocks.map((hand) => unlockInfo[hand].label).join(', '))
   const wins = phase === 'lost' ? fight - 1 : fight
-  ui.result.hidden = !finished
-  ui.result.textContent = `${phase === 'won' ? '✓' : '×'} ${wins}/${FIGHT_COUNT}`
-  ui.result.setAttribute('aria-label', `등반 ${phase === 'won' ? '완주' : '실패'}, ${wins}승`)
+  ui.eventFloor.innerHTML = between
+    ? `<span>${fight}/${FIGHT_COUNT}</span>${icon('next')}<strong>${fight + 1}/${FIGHT_COUNT}</strong>`
+    : `<strong>${wins}/${FIGHT_COUNT}</strong>`
+  ui.eventFloor.setAttribute('aria-label', between
+    ? `${fight}층에서 ${fight + 1}층으로`
+    : `${FIGHT_COUNT}층 중 ${wins}층 통과`)
+  ui.ascentEvent.classList.toggle('finished', finished)
+  ui.result.hidden = !atEvent || !finished
+  ui.result.textContent = phase === 'won' ? '성공' : '실패'
   ui.next.hidden = !between
   ui.retry.hidden = !finished
   refreshDice(battle)
@@ -292,6 +408,7 @@ function showPerks(focus: boolean) {
   ascent = null
   selected.clear()
   roulette.setVisible(null)
+  ui.main.dataset.screen = 'perks'
   ui.battle.hidden = true
   ui.activePerk.hidden = true
   ui.fight.hidden = true
@@ -299,12 +416,21 @@ function showPerks(focus: boolean) {
   ui.perks.hidden = false
   const seed = fixedSeed ?? crypto.getRandomValues(new Uint32Array(1))[0]
   const buttons = offerPerks(seed).map((perk) => {
-    const { icon, label } = START_PERKS[perk]
+    const { label } = START_PERKS[perk]
+    const display = perkDisplay[perk]
     const button = document.createElement('button')
     button.type = 'button'
-    button.textContent = icon
-    button.setAttribute('aria-label', label)
-    button.title = label
+    button.className = 'perk-choice'
+    button.innerHTML = `
+      <span class="perk-symbol">${icon(display.icon)}</span>
+      <span class="perk-name">${display.name}</span>
+      <strong class="perk-value">${display.value}</strong>
+      <span class="perk-detail">${'detail' in display ? display.detail : ''}</span>
+    `
+    const devil = START_PERKS.reroll
+    button.setAttribute('aria-label', perk === 'reroll'
+      ? `${label}, 무료 재굴림 후 눈 +${devil.faceBonus}, 최대 ${devil.faceCap}. 체력 ${firstPaidRerollCost} 소모, 유료 사용 ${devil.rollsPerCost}회마다 비용 +1.`
+      : `${display.name}, ${label}`)
     button.addEventListener('click', () => {
       ascent = beginAscent(seed, perk)
       render()
@@ -312,7 +438,7 @@ function showPerks(focus: boolean) {
     })
     return button
   })
-  ui.perks.replaceChildren(...buttons)
+  ui.perkChoices.replaceChildren(...buttons)
   if (focus) buttons[0].focus()
 }
 
@@ -351,11 +477,25 @@ function useReroll(extra: boolean) {
 
 ui.reroll.addEventListener('click', () => useReroll(false))
 ui.extraReroll.addEventListener('click', () => useReroll(true))
-ui.resolve.addEventListener('click', () => {
+ui.resolve.addEventListener('click', async () => {
   if (!ascent) return
-  ascent = resolveAscentTurn(ascent)
+  const next = resolveAscentTurn(ascent)
+  if (next === ascent) return
+  ascent = next
   selected.clear()
+  const { phase, lastExchange } = next.battle
+  const pause = next.newUnlock || phase === 'won' || phase === 'lost'
+  if (pause) {
+    render('exchange')
+    if (lastExchange) showExchange(lastExchange)
+    await wait(exchangeDuration)
+  }
+  if (next.newUnlock) {
+    render('unlock')
+    await wait(1650)
+  }
   render()
+  if (!pause && lastExchange) showExchange(lastExchange)
   focusPhase()
 })
 ui.counter.addEventListener('click', async () => {
