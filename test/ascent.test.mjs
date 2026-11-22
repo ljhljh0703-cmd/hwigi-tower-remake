@@ -224,11 +224,10 @@ test('an attack hand can add a die during battle and only the next enemy gains t
   const second = nextAscentFight(play(unlocked, [4, 4, 4, 4], [...allAttack, 'attack'], { enemyHp: 1 }))
   const secondBuff = second.enemy.attackPerUnlock
   assert.equal(second.battle.enemyAttackBuff, secondBuff)
-  const fourthTurn = { ...second.battle, turn: 4 }
-  const fourthIntent = second.enemy.intents.find((row) => row.matches(4))
-  assert.equal(intentOf(fourthTurn), fourthIntent.id)
-  const growth = (second.battle.enemyAttackGrowth ?? 0) * (fourthTurn.turn - 1)
-  assert.deepEqual(incomingAttack(fourthTurn).hits, fourthIntent.hits.map((hit) => hit + secondBuff + growth))
+  const openingIntent = second.enemy.intents.find((row) => row.matches(1))
+  assert.equal(intentOf(second.battle), openingIntent.id)
+  assert.equal(incomingAttack(second.battle).totalDamage, Math.min(PLAYER_HP - 1,
+    openingIntent.hits.reduce((total, hit) => total + hit + secondBuff, 0)))
   const won = play(second, [1, 2, 3, 4], [...allAttack, 'guard'], { enemyHp: 1 })
   assert.equal(won.newUnlock, 'straight')
   assert.equal(won.battle.enemyAttackBuff, secondBuff)
@@ -255,7 +254,7 @@ test('the same seed and perk produce the same ascent and reroll costs', () => {
 test('replaying the same seed reproduces the entire three-fight ascent through boss knockdown', () => {
   function replay() {
     const turns = []
-    const result = playAscent(9, 'wheel', 'devil', (fight, planning, resolved) => {
+    const result = playAscent(1, 'wheel', 'devil', (fight, planning, resolved) => {
       turns.push({ fight, planning, resolved })
     })
     return { result, turns }
@@ -263,7 +262,7 @@ test('replaying the same seed reproduces the entire three-fight ascent through b
 
   const first = replay()
   assert.equal(first.result.wins, FIGHT_COUNT)
-  assert.deepEqual(first.result.fightTurns, [3, 4, 5])
+  assert.deepEqual(first.result.fightTurns, [4, 4, 5])
   const bossTurns = first.turns.filter(({ fight }) => fight === 3)
   assert.deepEqual(bossTurns.map(({ planning }) => intentOf(planning)), ['combo', 'charge', 'critical', 'knockdown', 'impact'])
   assert.equal(bossTurns[1].resolved.battle.lastExchange.chargeBroken, true)

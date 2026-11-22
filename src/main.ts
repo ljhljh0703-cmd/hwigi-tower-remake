@@ -1,7 +1,7 @@
 import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import {
-  allocationTotals, assignDie, attackFor, attackPower, chargedStrikePreview, DIE_COUNT, enemyIntentAt, incomingAttack,
+  allocationTotals, assignDie, attackFor, attackPower, chargedStrikePreview, DIE_COUNT, dieFaceForSlot, enemyIntentAt, incomingAttack,
 } from './combat.ts'
 import type { Exchange } from './combat.ts'
 import { offerPerks, START_PERKS } from './perks.ts'
@@ -245,7 +245,10 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
     },
     lift: () => {
       const indices = selected.has(index) ? [...selected].sort((a, b) => a - b) : [index]
-      return { indices, faces: indices.map((die) => ascent?.battle.dice[die]).join('  ') }
+      const battle = ascent?.battle
+      const mechanic = battle && enemyIntentAt(battle).mechanic
+      const faces = battle ? indices.map((die) => dieFaceForSlot(battle.dice[die], battle.slots[die], mechanic)) : []
+      return { indices, faces: faces.join('  ') }
     },
     drop: (indices, zone) => place(indices, zone),
   })
@@ -271,7 +274,7 @@ function refreshDice(battle: YachtBattle) {
     const fixed = battle.fixedDie?.index === index ? battle.fixedDie.kind : undefined
     const sealed = mechanic?.kind === 'seal' && value === mechanic.value
     const status = fixed ?? (sealed ? 'seal' : undefined)
-    button.innerHTML = `${value}${status ? `<span class="die-status">${icon(status)}</span>` : ''}`
+    button.innerHTML = `${dieFaceForSlot(value, slot, mechanic)}${status ? `<span class="die-status">${icon(status)}</span>` : ''}`
     const replacedFace = battle.perk === 'face' && index === 0
     const boostedFace = battle.devilBoostedDice?.includes(index) ?? false
     button.classList.toggle('altered-face', replacedFace || boostedFace)
@@ -407,7 +410,7 @@ function renderIntent(battle: YachtBattle) {
           }
           break
         case 'escort':
-          primary = `${icon('escort')}<strong>${Number(!battle.escort)}</strong>`
+          if (!battle.escort) detail = `${icon('escort')}1`
           label += battle.escort ? ', 호위 한 마리 생존'
             : `, 호위 체력 ${mechanic.hp}, 호위가 살아 있으면 공격 피해 ${mechanic.bonus} 증가`
           break

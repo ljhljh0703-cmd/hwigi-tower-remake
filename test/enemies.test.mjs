@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { beginAscent, nextAscentFight } from '../src/ascent.ts'
-import { assignDie, chargedStrikePreview, draw, enemyIntentAt, incomingAttack, PLAYER_HP, roll } from '../src/combat.ts'
+import {
+  assignDie, chargedStrikePreview, dieFaceForSlot, draw, enemyIntentAt, incomingAttack, PLAYER_HP, roll,
+} from '../src/combat.ts'
 import { ASCENT_ENEMIES, enemyForFight } from '../src/enemy-roster.ts'
 import {
   forecastYacht, rerollYachtDice, resolveYachtTurn, spendExtraReroll, spinYachtCounter, startYachtBattle,
@@ -39,14 +41,14 @@ test('thorns ignore guard and count attack dice even on a finishing blow', () =>
   const battle = start('thorns', { turn: 2, playerHp: 4, enemyHp: 6 })
   const result = forecastYacht(battle, ['attack', 'attack', 'guard'], [2, 4, 6])
   assert.equal(result.dealt, 6)
-  assert.deepEqual(result.hits, [10])
+  assert.deepEqual(result.hits, [12])
   assert.equal(resolve(battle, [2, 4, 6], ['attack', 'attack', 'guard']).phase, 'lost')
   assert.equal(forecastYacht(battle, guard, [2, 4, 6]).damage, 0)
 })
 
 test('lock marks precisely the lowest opening die after counter and lasts one turn', () => {
   const lockedMove = start('lock', { turn: 2 })
-  const counter = resolve(lockedMove, [2, 3, 3], guard)
+  const counter = resolve(lockedMove, [3, 3, 3], guard)
   assert.equal(counter.phase, 'counter')
   const locked = spinYachtCounter(counter)
   assert.deepEqual(locked.fixedDie, { kind: 'lock', index: locked.dice.indexOf(Math.min(...locked.dice)) })
@@ -76,24 +78,23 @@ test('rage adds two to the attack as a whole on any reroll and resets next turn'
   const paid = rerollYachtDice(first, [0])
   assert.equal(incomingAttack(first).totalDamage, incomingAttack(battle).totalDamage + 2)
   assert.equal(incomingAttack(paid).totalDamage, incomingAttack(first).totalDamage)
-  assert.equal(incomingAttack(resolve(first, [5, 6, 6], guard)).totalDamage, 7)
+  assert.equal(incomingAttack(resolve(first, [5, 6, 6], guard)).totalDamage, 8)
 })
 
 test('reaction swaps the attack at the visible sum, using the new hits for exact guard', () => {
   const battle = start('reaction', { turn: 2, dice: [4, 4, 4] })
   const below = { ...battle, slots: ['attack', 'guard', 'guard'] }
   const atThreshold = { ...battle, slots: ['attack', 'attack', 'guard'] }
-  assert.equal(incomingAttack(below).totalDamage, 10)
+  assert.equal(incomingAttack(below).totalDamage, 11)
   assert.deepEqual(incomingAttack(atThreshold).hits, [2, 2])
   assert.equal(resolveYachtTurn(atThreshold).battle.phase, 'counter')
 })
 
-test('vitality has a minimum of nine and still scales with current health', () => {
-  const battle = start('vitality', { turn: 2, playerHp: 19, enemyAttackBuff: 4 })
-  assert.equal(incomingAttack(battle).totalDamage, 9)
-  assert.equal(incomingAttack({ ...battle, playerHp: 21 }).totalDamage, 10)
-  assert.equal(incomingAttack({ ...battle, playerHp: 24 }).totalDamage, 12)
-  assert.equal(incomingAttack({ ...battle, playerHp: 1 }).totalDamage, 9)
+test('vitality uses half of current health rounded down with a minimum of four', () => {
+  const battle = start('vitality', { turn: 18, enemyAttackBuff: 4 })
+  for (const [playerHp, damage] of [[24, 12], [13, 6], [4, 4], [1, 4]]) {
+    assert.equal(incomingAttack({ ...battle, playerHp }).totalDamage, damage)
+  }
 })
 
 test('seal applies only on the boss turn after knockdown and blocks sums and sealed hands', () => {
@@ -102,36 +103,69 @@ test('seal applies only on the boss turn after knockdown and blocks sums and sea
   const sealed = resolve(battle, [1, 1, 1], attack)
   assert.equal(sealed.turn, 5)
   assert.equal(forecastYacht(sealed, attack, [5, 2, 3]).dealt, 5)
-  assert.equal(forecastYacht(sealed, guard, [5, 6, 6]).damage, incomingAttack(sealed).totalDamage - 12)
+  assert.equal(forecastYacht(sealed, guard, [5, 6, 6]).damage, Math.max(0, incomingAttack(sealed).totalDamage - 12))
   assert.equal(resolveYachtTurn({ ...sealed, dice: [5, 5, 5], slots: attack }).hand, null)
   assert.equal(rerollYachtDice({ ...sealed, dice: [5, 5, 5] }, [0]).rerolled, true)
   assert.equal(enemyIntentAt(resolve(sealed, [4, 3, 4], guard)).mechanic, undefined)
 })
 
+test('a sealed five shows zero only once placed in a slot, matching its contribution', () => {
+  const sealed = enemyIntentAt(start('boss', { turn: 5 })).mechanic
+  assert.equal(dieFaceForSlot(5, null, sealed), 5)
+  for (const slot of ['attack', 'guard', 'escort']) {
+    assert.equal(dieFaceForSlot(5, slot, sealed), 0)
+    assert.equal(dieFaceForSlot(4, slot, sealed), 4)
+    assert.equal(dieFaceForSlot(5, slot), 5)
+  }
+})
+
 test('theft takes a base die and returns it after cumulative attack and counter damage', () => {
-  const counterSeed = Array.from({ length: 20 }, (_, seed) => seed).find((seed) => draw(seed, 6, 4) % 6 === 5)
-  const battle = start('escort', { seed: counterSeed, turn: 2, fourthDieUnlocked: true })
-  const stolen = resolve(battle, [1, 1, 1], attack)
-  assert.equal(stolen.stolenDie.remaining, 10)
-  assert.deepEqual(stolen.dice, [roll(counterSeed, 3, 0), roll(counterSeed, 3, 1), roll(counterSeed, 3, 8)])
-  const critical = resolve(stolen, [3, 3, 2], ['guard', 'guard', 'attack'])
-  const summon = resolve(critical, [6, 6, 6], guard)
-  const nextTheft = resolve(summon, [3, 3, 2], guard)
-  const counter = resolve(nextTheft, [6, 6, 1], guard)
+  const counterSeed = Array.from({ length: 30 }, (_, seed) => seed).find((seed) => draw(seed, 1, 4) % 6 === 5)
+  const battle = start('escort', { seed: counterSeed, fourthDieUnlocked: true })
+  const exactGuard = incomingAttack(battle).totalDamage
+  const block = [0, 1, 2, 3].map((index) => Math.floor((exactGuard + index) / 4))
+  const counter = resolve(battle, block, [...guard, 'guard'])
   assert.equal(counter.phase, 'counter')
-  assert.equal(counter.stolenDie.remaining, 8)
-  const returned = spinYachtCounter(counter)
+  assert.equal(counter.stolenDie.remaining, 10)
+  const stolen = spinYachtCounter(counter)
+  assert.equal(stolen.stolenDie.remaining, 2)
+  assert.deepEqual(stolen.dice, [0, 1, 8].map((channel) => roll(counterSeed, 2, channel)))
+  const returned = resolve(stolen, [2, 6, 6], ['attack', 'guard', 'guard'])
+  assert.equal(returned.lastExchange.dealt, 2)
   assert.equal(returned.stolenDie, undefined)
-  assert.deepEqual(returned.dice, [0, 1, 2, 8].map((channel) => roll(counterSeed, 7, channel)))
-  assert.equal(resolve(battle, [6, 6, 6], attack).stolenDie.remaining, 10)
+  assert.deepEqual(returned.dice, [0, 1, 2, 8].map((channel) => roll(counterSeed, 3, channel)))
+})
+
+test('each charge returns an unrecovered stolen die before rolling, with or without an unlock', () => {
+  for (const fourthDieUnlocked of [false, true]) {
+    const diceCount = fourthDieUnlocked ? 4 : 3
+    let battle = start('escort', { playerHp: 150, fourthDieUnlocked })
+    for (let turn = 1; turn <= 12; turn++) {
+      assert.equal(battle.turn, turn)
+      if (turn % 4 === 2) {
+        assert.equal(battle.stolenDie.remaining, 10)
+        assert.equal(battle.dice.length, diceCount - 1)
+      }
+      if (enemyIntentAt(battle).chargeThreshold !== undefined) {
+        assert.equal(turn % 4, 3)
+        assert.equal(battle.stolenDie, undefined)
+        assert.equal(battle.dice.length, diceCount)
+        assert.equal(chargedStrikePreview(battle).threshold, 12)
+      }
+      const result = resolve(battle, battle.dice.map(() => 1), battle.dice.map(() => 'guard'))
+      battle = result.phase === 'counter' ? spinYachtCounter(result) : result
+    }
+  }
 })
 
 test('escort damage is independent of main damage and removing it cancels its attack bonus immediately', () => {
-  const battle = start('escort')
+  const battle = start('escort', { turn: 2 })
   assert.equal(assignDie(battle, 0, 'escort'), battle)
-  const escorted = resolve(battle, [1, 1, 1], attack)
+  const summoned = resolve(battle, [1, 6, 6], ['attack', 'guard', 'guard'])
+  const escorted = resolve(summoned, [6, 6, 1], attack)
   assert.equal(escorted.escort.hp, 5)
-  assert.equal(incomingAttack(escorted).totalDamage, incomingAttack({ ...escorted, escort: undefined }).totalDamage + 3)
+  assert.equal(incomingAttack(escorted).totalDamage,
+    Math.floor(Math.min(21, enemyIntentAt(escorted).hits[0] + 3) / 2))
   const split = resolve(escorted, [5, 3, 6], ['escort', 'attack', 'guard'])
   assert.equal(split.escort, undefined)
   assert.equal(split.lastExchange.escortDealt, 5)
@@ -141,9 +175,10 @@ test('escort damage is independent of main damage and removing it cancels its at
 })
 
 test('the charging elite and boss halve the next critical at exactly twelve attack', () => {
-  for (const [id, turn, normal] of [['vitality', 3, 24], ['escort', 3, 20], ['boss', 2, 17]]) {
+  for (const [id, turn] of [['vitality', 3], ['escort', 3], ['boss', 2]]) {
     const battle = start(id, { turn, enemyAttackBuff: 1, dice: [6, 5, 1] })
     const almost = assignDie(assignDie(battle, 0, 'attack'), 1, 'attack')
+    const normal = incomingAttack({ ...battle, turn: turn + 1 }).totalDamage
     assert.equal(chargedStrikePreview(almost).totalDamage, normal)
     const broken = assignDie(almost, 2, 'attack')
     assert.equal(chargedStrikePreview(broken).threshold, 12)
@@ -159,11 +194,11 @@ test('an attack of eleven or damage aimed at the escort leaves the next critical
   const boss = start('boss', { turn: 2 })
   const full = resolve(boss, [5, 4, 2], attack)
   assert.equal(full.lastExchange.chargeBroken, undefined)
-  assert.equal(incomingAttack(full).totalDamage, 16)
+  assert.equal(incomingAttack(full).totalDamage, chargedStrikePreview(boss).fullDamage)
   const elite = start('escort', { turn: 3, escort: { hp: 5, bonus: 3 } })
   const split = resolve(elite, [6, 4, 2], ['escort', 'attack', 'attack'])
   assert.equal(split.lastExchange.chargeBroken, undefined)
-  assert.equal(incomingAttack(split).totalDamage, 19)
+  assert.equal(incomingAttack(split).totalDamage, incomingAttack({ ...elite, turn: 4, escort: undefined }).totalDamage)
 })
 
 test('matching the weakened critical exactly opens one roulette and the weakening then expires', () => {
@@ -171,7 +206,8 @@ test('matching the weakened critical exactly opens one roulette and the weakenin
   const critical = resolve(boss, [6, 5, 4], attack)
   const missed = resolve(critical, [6, 6, 5], guard)
   assert.equal(missed.phase, 'assign')
-  const matched = resolve(critical, [3, 3, 2], guard)
+  const damage = incomingAttack(critical).totalDamage
+  const matched = resolve(critical, [3, 3, damage - 6], guard)
   assert.equal(matched.playerHp, boss.playerHp)
   assert.equal(matched.phase, 'counter')
   assert.equal(matched.weakenedStrikeTurn, undefined)
@@ -186,11 +222,43 @@ test('the reaction elite cycles through its alternative attack, then a combo and
   const turns = Array.from({ length: 8 }, (_, index) => ({ ...battle, turn: index + 1 }))
   assert.ok(turns.every((turn) => chargedStrikePreview(turn) === null))
   assert.deepEqual(turns.slice(0, 4).map((turn) => enemyIntentAt(turn).id), ['impact', 'impact', 'combo', 'critical'])
-  assert.equal(incomingAttack(turns[3]).totalDamage, 22)
+  assert.equal(incomingAttack(turns[3]).totalDamage, 21)
+})
+
+test('every enemy damage roll stays below base health across the roster, unlocks and late growth', () => {
+  for (const enemy of ASCENT_ENEMIES.flat()) {
+    for (const unlocks of [0, 1, 2]) {
+      for (const turn of [...Array.from({ length: 30 }, (_, index) => index + 1), 601]) {
+        const battle = start(enemy.id, { turn, enemyAttackBuff: unlocks * enemy.attackPerUnlock, rerolled: true,
+          ...(enemy.id === 'escort' && { escort: { hp: 5, bonus: 3 } }),
+          dice: [6, 6, 6, 6],
+        })
+        for (const slots of [[...attack, 'attack'], [...guard, 'guard']]) {
+          const incoming = incomingAttack({ ...battle, slots })
+          const label = `${enemy.id}, turn ${turn}, unlocks ${unlocks}`
+          assert.equal(incoming.hits.reduce((sum, hit) => sum + hit, 0), incoming.totalDamage, label)
+          assert.ok(incoming.hits.every((hit) => hit > 0), label)
+          assert.ok(incoming.totalDamage < PLAYER_HP && incoming.totalDamage <= 24, label)
+          assert.ok(forecastYacht(battle, slots).damage < PLAYER_HP, label)
+        }
+      }
+    }
+  }
+})
+
+test('bounded growth and the final damage cap preserve a multi-hit exact guard', () => {
+  const late = start('rage', { turn: 601 })
+  assert.deepEqual(incomingAttack(late).hits, incomingAttack({ ...late, turn: 10 }).hits)
+  const battle = start('lock', { turn: 602, enemyAttackBuff: 4 })
+  const dice = [6, 6, 5, 4]
+  const slots = [...guard, 'guard']
+  assert.equal(incomingAttack(battle).totalDamage, 21)
+  assert.equal(forecastYacht(battle, slots, dice).damage, 0)
+  assert.equal(resolve(battle, dice, slots).phase, 'counter')
 })
 
 test('guard-first takes the closest sufficient shield and sends only the remaining dice to attack', () => {
-  const battle = start('lock', { dice: [2, 5, 6] })
+  const battle = start('lock', { dice: [4, 5, 6] })
   assert.deepEqual(chooseAllocation(battle, 'guardFirst'), ['guard', 'guard', 'attack'])
   assert.deepEqual(chooseAllocation({ ...battle, dice: [1, 1, 4] }, 'guardFirst'), guard)
 })

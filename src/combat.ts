@@ -1,4 +1,6 @@
 export const PLAYER_HP = 22
+const MAX_ENEMY_DAMAGE = PLAYER_HP - 1
+const MAX_TURN_ATTACK_BONUS = 6
 export const ENEMY_HP = 30
 export const DIE_COUNT = 3
 export type Slot = 'attack' | 'guard' | 'escort'
@@ -177,9 +179,14 @@ export function totals(dice: readonly number[], slots: readonly (Slot | null)[])
   return { attack, guard }
 }
 
+export function dieFaceForSlot(face: number, slot: Slot | null, mechanic?: EnemyMechanic) {
+  return slot && mechanic?.kind === 'seal' && face === mechanic.value ? 0 : face
+}
+
 export function allocationTotals(battle: Battle, slots = battle.slots, dice = battle.dice) {
   const mechanic = enemyIntentAt(battle).mechanic
-  const effectiveDice = mechanic?.kind === 'seal' ? dice.map((face) => face === mechanic.value ? 0 : face) : dice
+  const effectiveDice = mechanic?.kind === 'seal'
+    ? dice.map((face, index) => dieFaceForSlot(face, slots[index], mechanic)) : dice
   const { attack, guard } = totals(effectiveDice, slots)
   const escort = effectiveDice.reduce((sum, face, index) => slots[index] === 'escort' ? sum + face : sum, 0)
   return { attack, guard, escort }
@@ -194,16 +201,29 @@ export function attackFor(battle: Battle, intent: EnemyIntent, escortSurvives = 
   const { turn, enemyAttackBuff = 0, enemyAttackGrowth = 0, playerHp, rerolled } = battle
   const { name, hits: baseHits, mechanic } = intent
   const rage = mechanic?.kind === 'rage' && rerolled ? mechanic.value : 0
-  const buff = enemyAttackBuff + enemyAttackGrowth * (turn - 1)
-  const hits = mechanic?.kind === 'vitality'
+  const buff = enemyAttackBuff + Math.min(MAX_TURN_ATTACK_BONUS, enemyAttackGrowth * (turn - 1))
+  let hits = mechanic?.kind === 'vitality'
     ? [Math.max(mechanic.minimum, Math.floor(playerHp / mechanic.divisor))]
     : baseHits.map((hit) => hit + buff)
   // These bonuses apply once to the attack as a whole, including a multi-hit attack.
   if (hits.length) hits[0] += rage + (escortSurvives ? battle.escort?.bonus ?? 0 : 0)
-  if (hits.length && intent.id === 'critical' && battle.weakenedStrikeTurn === turn) {
-    hits[0] = Math.floor(hits[0] / 2)
+  const rawDamage = hits.reduce((sum, hit) => sum + hit, 0)
+  let totalDamage = Math.min(MAX_ENEMY_DAMAGE, rawDamage)
+  if (intent.id === 'critical' && battle.weakenedStrikeTurn === turn) {
+    totalDamage = Math.floor(totalDamage / 2)
   }
-  const totalDamage = hits.reduce((sum, hit) => sum + hit, 0)
+  if (totalDamage < rawDamage) {
+    // Scale cumulative damage so rounding preserves the sum and the hit sequence.
+    let rawSoFar = 0
+    let cappedSoFar = 0
+    hits = hits.map((hit) => {
+      rawSoFar += hit
+      const cappedTotal = Math.round(rawSoFar * totalDamage / rawDamage)
+      const cappedHit = cappedTotal - cappedSoFar
+      cappedSoFar = cappedTotal
+      return cappedHit
+    })
+  }
   return { name, hits, totalDamage }
 }
 
@@ -250,14 +270,16 @@ export function forecast(battle: Battle, slots = battle.slots, dice = battle.dic
     shield -= blocked
     return hit - blocked
   })
-  if (thorns) hits.push(thorns)
+  const attackDamage = hits.reduce((sum, hit) => sum + hit, 0)
+  const retaliation = Math.min(thorns, MAX_ENEMY_DAMAGE - attackDamage)
+  if (retaliation) hits.push(retaliation)
   return {
     dealt,
     escortDealt,
     intent,
     chargeBroken: breaksCharge(intent, attack),
     hits,
-    damage: hits.reduce((sum, hit) => sum + hit, 0),
+    damage: attackDamage + retaliation,
     counter: dealt < battle.enemyHp && incoming.totalDamage > 0 && guard === incoming.totalDamage,
   }
 }

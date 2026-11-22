@@ -60,16 +60,18 @@ function addFourthDie(battle: YachtBattle): YachtBattle {
 }
 
 function openYachtDice(battle: YachtBattle): YachtBattle {
-  const { nextInterference: kind, fixedDie: _fixedDie, ...rest } = battle
+  const { nextInterference: kind, fixedDie: _fixedDie, stolenDie, ...rest } = battle
+  const stillStolen = enemyIntentAt(battle).chargeThreshold === undefined ? stolenDie : undefined
   const dice = [...battle.dice]
   if (battle.perk === 'face' && dice[0] === 1) dice[0] = START_PERKS.face.replacement
-  if (battle.stolenDie) dice.splice(DIE_COUNT - 1, 1)
+  if (stillStolen) dice.splice(DIE_COUNT - 1, 1)
   const index = kind === 'lock' ? dice.indexOf(Math.min(...dice)) : 1
   if (kind === 'freeze') dice[index] = 1
   const next = {
     ...rest,
     dice,
     slots: battle.slots.slice(0, dice.length),
+    ...(stillStolen && { stolenDie: stillStolen }),
     ...(kind && { fixedDie: { index, kind } }),
     ...(battle.perk === 'reroll' && { devilRerolls: 0, devilBoostedDice: [] }),
   }
