@@ -7,17 +7,17 @@ import {
 } from '../src/yacht-combat.ts'
 import { chooseAllocation, chooseReroll, countYachtTradeoffs } from '../src/yacht-policy.ts'
 
-const policy = 'adaptive'
 const seeds = Array.from({ length: 512 }, (_, seed) => seed)
 const perks = Object.keys(START_PERKS)
 const hpReserveAfterPayment = 2
+const turnLimit = 120
 
 function wantsReroll(battle) {
   const { dealt, damage, chargeBroken } = forecastYacht(battle, battle.dice.map(() => 'attack'))
   return !chargeBroken && (dealt < battle.enemyHp || damage >= battle.playerHp)
 }
 
-export function playAscent(seed, perk, variant = 'devil', observeTurn) {
+export function playAscent(seed, perk, variant = 'devil', observeTurn, policy = 'adaptive') {
   let ascent = beginAscent(seed, perk)
   let wins = 0
   let extraRolls = 0
@@ -32,9 +32,10 @@ export function playAscent(seed, perk, variant = 'devil', observeTurn) {
   for (let fight = 1; fight <= FIGHT_COUNT; fight++) {
     let usedFreeBatch = false
     fightTurns.push(0)
-    for (let turn = 0; turn < 30 && ascent.battle.phase === 'assign'; turn++) {
+    for (let turn = 0; turn < turnLimit && ascent.battle.phase === 'assign'; turn++) {
       fightTurns[fight - 1]++
-      let battle = ascent.battle
+      const opening = ascent.battle
+      let battle = opening
       if (wantsReroll(battle)) battle = rerollYachtDice(battle, chooseReroll(battle, policy, false))
       if (battle.extraRerollAvailable && battle.rerolled && wantsReroll(battle)) {
         const [index] = chooseReroll(battle, policy, true)
@@ -81,7 +82,7 @@ export function playAscent(seed, perk, variant = 'devil', observeTurn) {
         })
       }
       ascent = { ...resolved, battle: spinYachtCounter(resolved.battle) }
-      observeTurn?.(fight, planning, ascent)
+      observeTurn?.(fight, planning, ascent, opening)
     }
     if (ascent.battle.phase === 'lost') break
     if (ascent.battle.phase !== 'won') throw new Error(`Unfinished fight: ${seed}, ${perk}, ${fight}`)

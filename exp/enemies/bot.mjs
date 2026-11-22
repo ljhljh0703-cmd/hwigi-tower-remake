@@ -1,5 +1,5 @@
 import { playAscent } from '../level.mjs'
-import { enemyIntentAt } from '../../src/combat.ts'
+import { allocationTotals, enemyIntentAt } from '../../src/combat.ts'
 import { ASCENT_ENEMIES, enemyForFight } from '../../src/enemy-roster.ts'
 import { offerPerks, START_PERKS } from '../../src/perks.ts'
 
@@ -58,10 +58,16 @@ function summarizeCharges(runs, fight) {
   const reached = turns.filter((charge) => charge.broken).length
   const threeDice = turns.filter((charge) => charge.dice === 3)
   const qualifyingRuns = runs.filter((run) => run.charges.some((charge) => charge.broken && (!fight || charge.fight === fight)))
+  const ready = threeDice.filter((charge) => charge.opening >= charge.threshold)
+  const short = threeDice.filter((charge) => charge.opening < charge.threshold)
+  const attempts = short.filter((charge) => charge.rerolled)
   return {
     turns: turns.length, reached,
     threeDice: threeDice.length, threeDiceReached: threeDice.filter((charge) => charge.broken).length,
     qualifyingRuns: qualifyingRuns.length, completed: qualifyingRuns.filter((run) => run.wins === 3).length,
+    ready: ready.length, readyRerolled: ready.filter((charge) => charge.rerolled).length,
+    short: short.length, attempts: attempts.length, attemptsReached: attempts.filter((charge) => charge.broken).length,
+    attemptsLower: attempts.filter((charge) => charge.after < charge.opening).length,
   }
 }
 
@@ -72,30 +78,56 @@ function summarizeUnlocks(runs) {
   })
 }
 
-const runs = Array.from({ length: count }, (_, index) => {
-  const seed = firstSeed + index
-  const perk = pickPerk(seed)
-  const key = [enemyForFight(seed, 1).id, enemyForFight(seed, 2).id].join('/')
-  const charges = []
-  const result = playAscent(seed, perk, 'devil', (fight, battle, ascent) => {
-    const id = ascent.enemy.id
-    if (!byEnemy.has(id)) byEnemy.set(id, [])
-    byEnemy.get(id).push(battle)
-    if (enemyIntentAt(battle).chargeThreshold !== undefined) {
-      charges.push({ fight, dice: battle.dice.length, broken: Boolean(ascent.battle.lastExchange?.chargeBroken) })
-    }
-  })
-  const run = { ...result, seed, perk, charges }
-  if (!byPair.has(key)) byPair.set(key, [])
-  byPair.get(key).push(run)
-  return run
-})
+function attackSum(battle) {
+  return allocationTotals(battle, battle.dice.map(() => 'attack')).attack
+}
 
-console.log(JSON.stringify({ firstSeed, count, trainingWins: Object.fromEntries(trainingWins), wins: winCounts(runs) }))
-console.log(JSON.stringify({
-  chargeThreshold: chargeIntents[0]?.chargeThreshold, all: summarizeCharges(runs),
-  elite: summarizeCharges(runs, 2), boss: summarizeCharges(runs, 3),
-}))
+function runPolicy(policy) {
+  const runs = Array.from({ length: count }, (_, index) => {
+    const seed = firstSeed + index
+    const perk = pickPerk(seed)
+    const charges = []
+    let firstWinHp = 0
+    const result = playAscent(seed, perk, 'devil', (fight, battle, ascent, opening) => {
+      if (fight === 1 && ascent.battle.phase === 'won') firstWinHp = ascent.battle.playerHp
+      if (policy === 'adaptive') {
+        const id = ascent.enemy.id
+        if (!byEnemy.has(id)) byEnemy.set(id, [])
+        byEnemy.get(id).push(battle)
+      }
+      const threshold = enemyIntentAt(battle).chargeThreshold
+      if (threshold !== undefined) {
+        charges.push({
+          fight, threshold, dice: battle.dice.length, opening: attackSum(opening), after: attackSum(battle),
+          rerolled: battle.rerolled, broken: Boolean(ascent.battle.lastExchange?.chargeBroken),
+        })
+      }
+    }, policy)
+    const run = { ...result, seed, perk, charges, firstWinHp }
+    if (policy === 'adaptive') {
+      const key = [enemyForFight(seed, 1).id, enemyForFight(seed, 2).id].join('/')
+      if (!byPair.has(key)) byPair.set(key, [])
+      byPair.get(key).push(run)
+    }
+    return run
+  })
+  const survivors = runs.filter((run) => run.wins >= 1).map((run) => run.firstWinHp).sort((a, b) => a - b)
+  const hpSum = survivors.reduce((sum, hp) => sum + hp, 0)
+  const middle = (survivors.length - 1) / 2
+  console.log(JSON.stringify({
+    policy, firstSeed, count, trainingWins: Object.fromEntries(trainingWins), wins: winCounts(runs),
+    firstFightMeanHp: hpSum / count, winnerMeanHp: hpSum / survivors.length,
+    eliteMedianHp: (survivors[Math.floor(middle)] + survivors[Math.ceil(middle)]) / 2,
+  }))
+  console.log(JSON.stringify({
+    policy, chargeThreshold: chargeIntents[0]?.chargeThreshold, all: summarizeCharges(runs),
+    elite: summarizeCharges(runs, 2), boss: summarizeCharges(runs, 3),
+  }))
+  return runs
+}
+
+const runs = runPolicy('adaptive')
+runPolicy('guardFirst')
 console.log(JSON.stringify({ chargeInterruption: true, unlocks: summarizeUnlocks(runs) }))
 if (process.argv.includes('--compare-unlock-gap')) {
   // Keep the same seed, perk and enemy moves in the interruption-off replay.

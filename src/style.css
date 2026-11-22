@@ -254,6 +254,19 @@ button:disabled {
 
 .vital .icon { color: var(--muted); }
 
+.enemy-vital {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  gap: 7px;
+}
+
+#enemy-badge {
+  display: inline-flex;
+  align-self: center;
+  font-size: 1.14rem;
+}
+
 meter {
   appearance: none;
   display: block;
@@ -401,6 +414,12 @@ meter::-moz-meter-bar { background: #b5b2ad; }
   font-size: 1rem;
   cursor: default;
 }
+.recovery-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.recovery-progress .icon { width: .9em; height: .9em; }
 .drop-active { outline: 2px dashed #f5f4f2; outline-offset: 2px; }
 
 .dice-drag-preview {

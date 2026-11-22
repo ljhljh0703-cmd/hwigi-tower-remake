@@ -218,7 +218,8 @@ test('an attack hand can add a die during battle and only the next enemy gains t
   const unlocked = play(start, [4, 4, 4], allAttack)
   assert.equal(unlocked.battle.dice.length, 4)
   assert.equal(unlocked.battle.enemyAttackBuff, 0)
-  assert.deepEqual(incomingAttack(unlocked.battle).hits, start.enemy.intents[1].hits)
+  const nextIntent = start.enemy.intents.find((row) => row.matches(unlocked.battle.turn))
+  assert.deepEqual(incomingAttack(unlocked.battle).hits, nextIntent.hits)
   const second = nextAscentFight(play(unlocked, [4, 4, 4, 4], [...allAttack, 'attack'], { enemyHp: 1 }))
   const secondBuff = second.enemy.attackPerUnlock
   assert.equal(second.battle.enemyAttackBuff, secondBuff)
@@ -252,7 +253,7 @@ test('the same seed and perk produce the same ascent and reroll costs', () => {
 test('replaying the same seed reproduces the entire three-fight ascent through boss knockdown', () => {
   function replay() {
     const turns = []
-    const result = playAscent(0, 'wheel', 'devil', (fight, planning, resolved) => {
+    const result = playAscent(13, 'wheel', 'devil', (fight, planning, resolved) => {
       turns.push({ fight, planning, resolved })
     })
     return { result, turns }
@@ -260,7 +261,7 @@ test('replaying the same seed reproduces the entire three-fight ascent through b
 
   const first = replay()
   assert.equal(first.result.wins, FIGHT_COUNT)
-  assert.deepEqual(first.result.fightTurns, [3, 4, 4])
+  assert.deepEqual(first.result.fightTurns, [4, 4, 4])
   const bossTurns = first.turns.filter(({ fight }) => fight === 3)
   assert.deepEqual(bossTurns.map(({ planning }) => intentOf(planning)), ['combo', 'charge', 'critical', 'knockdown'])
   assert.equal(bossTurns[1].resolved.battle.lastExchange.chargeBroken, true)

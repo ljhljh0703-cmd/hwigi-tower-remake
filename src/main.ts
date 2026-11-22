@@ -30,6 +30,7 @@ const ui = {
   intent: element('intent'),
   playerHp: element<HTMLMeterElement>('player-hp'),
   enemyHp: element<HTMLMeterElement>('enemy-hp'),
+  enemyBadge: element('enemy-badge'),
   playerTotal: element('player-total'),
   enemyTotal: element('enemy-total'),
   feedback: element('feedback'),
@@ -98,6 +99,17 @@ const perkDisplay = {
 
 function icon(name: string) {
   return `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`
+}
+
+const enemyBadges: Record<string, { icon: string; label: string }> = {
+  thorns: { icon: 'thorns', label: '가시' },
+  lock: { icon: 'lock', label: '자물쇠' },
+  freeze: { icon: 'freeze', label: '얼림' },
+  rage: { icon: 'rage', label: '격분' },
+  reaction: { icon: 'reaction', label: '반응' },
+  vitality: { icon: 'vitality', label: '체력 비례 일격' },
+  escort: { icon: 'escort', label: '호위와 주사위 빼앗기' },
+  boss: { icon: 'charge', label: '힘 모으는 보스' },
 }
 
 let ascent: Ascent | null = null
@@ -277,7 +289,7 @@ function refreshDice(battle: YachtBattle) {
   const stolen = battle.stolenDie?.remaining
   stolenPlaceholder.hidden = stolen === undefined
   if (stolen !== undefined) {
-    stolenPlaceholder.innerHTML = `${stolen}<span class="die-status">${icon('steal')}</span>`
+    stolenPlaceholder.innerHTML = `<span class="recovery-progress">${icon('return')}${stolen}</span><span class="die-status">${icon('steal')}</span>`
     stolenPlaceholder.setAttribute('aria-label', `빼앗긴 주사위, 적에게 피해 ${stolen}을 주면 되찾음`)
     ui.dice.pool.append(stolenPlaceholder)
   }
@@ -364,7 +376,7 @@ function renderIntent(battle: YachtBattle) {
           label += ', 다음 턴 주사위 하나를 1로 얼림'
           break
         case 'thorns':
-          detail = `${icon('thorns')}${mechanic.value}`
+          detail = `${icon('thorns')}${icon('die')}${mechanic.value}`
           label += `, 공격 주사위마다 가시 피해 ${mechanic.value}`
           break
         case 'rage':
@@ -477,6 +489,9 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.playerHp.value = playerHp
   ui.playerTotal.textContent = `${playerHp}/${maxHp}`
   ui.enemyHp.max = enemy.hp
+  const badge = enemyBadges[enemy.id]
+  ui.enemyBadge.innerHTML = icon(badge.icon)
+  ui.enemyBadge.setAttribute('aria-label', badge.label)
   updateEnemyHp(enemyHp)
   ui.newUnlock.hidden = !atUnlock
   if (atUnlock) {

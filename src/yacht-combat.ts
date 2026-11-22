@@ -205,8 +205,7 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
   ) : undefined
   const dice = awakenedDice ?? battle.dice
   const result = awakenedDice ? forecastYacht(battle, battle.slots, awakenedDice) : planned
-  const hand = usedHand(battle, dice, 'attack') ?? usedHand(battle, dice, 'escort') ??
-    (result.counter ? usedHand(battle, dice, 'guard') : null)
+  const hand = usedHand(battle, dice, 'attack') ?? (result.counter ? usedHand(battle, dice, 'guard') : null)
   const playerHp = Math.max(0, battle.playerHp - result.damage)
   const enemyHp = battle.enemyHp - result.dealt
   const effect = enemyHp > 0 && playerHp > 0 ? result.intent.mechanic : undefined

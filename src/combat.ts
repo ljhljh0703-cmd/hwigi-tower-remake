@@ -1,14 +1,14 @@
 export const PLAYER_HP = 22
 export const ENEMY_HP = 30
 export const DIE_COUNT = 3
-export const CHARGE_DAMAGE_REDUCTION = 2
 export type Slot = 'attack' | 'guard' | 'escort'
 export type Phase = 'assign' | 'counter' | 'won' | 'lost'
 
 export type DieInterference = 'lock' | 'freeze'
 export type EnemyMechanic =
   | { readonly kind: DieInterference }
-  | { readonly kind: 'thorns' | 'rage' | 'vitality' | 'seal' | 'steal'; readonly value: number }
+  | { readonly kind: 'thorns' | 'rage' | 'seal' | 'steal'; readonly value: number }
+  | { readonly kind: 'vitality'; readonly divisor: number; readonly minimum: number }
   | { readonly kind: 'reaction'; readonly value: number; readonly alternate: EnemyIntent }
   | { readonly kind: 'escort'; readonly hp: number; readonly bonus: number }
 
@@ -196,12 +196,12 @@ export function attackFor(battle: Battle, intent: EnemyIntent, escortSurvives = 
   const rage = mechanic?.kind === 'rage' && rerolled ? mechanic.value : 0
   const buff = enemyAttackBuff + enemyAttackGrowth * (turn - 1)
   const hits = mechanic?.kind === 'vitality'
-    ? [Math.floor(playerHp / mechanic.value)]
+    ? [Math.max(mechanic.minimum, Math.floor(playerHp / mechanic.divisor))]
     : baseHits.map((hit) => hit + buff)
   // These bonuses apply once to the attack as a whole, including a multi-hit attack.
   if (hits.length) hits[0] += rage + (escortSurvives ? battle.escort?.bonus ?? 0 : 0)
   if (hits.length && intent.id === 'critical' && battle.weakenedStrikeTurn === turn) {
-    hits[0] = Math.max(0, hits[0] - CHARGE_DAMAGE_REDUCTION)
+    hits[0] = Math.floor(hits[0] / 2)
   }
   const totalDamage = hits.reduce((sum, hit) => sum + hit, 0)
   return { name, hits, totalDamage }
@@ -222,9 +222,13 @@ export function chargedStrikePreview(battle: Battle) {
   const { attack, escort } = allocationTotals(battle)
   const weakened = breaksCharge(intent, attack)
   const turn = battle.turn + 1
-  const next = { ...battle, turn, weakenedStrikeTurn: weakened ? turn : undefined }
+  const next = { ...battle, turn, weakenedStrikeTurn: undefined }
   const escortSurvives = Boolean(battle.escort && escort < battle.escort.hp)
-  return { ...attackFor(next, enemyIntentAt(next), escortSurvives), threshold: intent.chargeThreshold, weakened }
+  const nextIntent = enemyIntentAt(next)
+  const fullDamage = attackFor(next, nextIntent, escortSurvives).totalDamage
+  const { totalDamage } = weakened ? attackFor({ ...next, weakenedStrikeTurn: turn }, nextIntent, escortSurvives)
+    : { totalDamage: fullDamage }
+  return { fullDamage, totalDamage, threshold: intent.chargeThreshold, weakened }
 }
 
 export function attackPower(intent: EnemyIntent, attack: number): number {
