@@ -157,7 +157,7 @@ button:disabled {
 
 .perk-choice {
   display: grid;
-  grid-template-rows: 1fr auto auto 20px minmax(3.9em, auto);
+  grid-template-rows: auto auto auto 20px 1fr;
   place-items: center;
   align-content: center;
   gap: 5px;
@@ -170,7 +170,8 @@ button:disabled {
 .perk-name { color: var(--muted); font-size: .82rem; }
 .perk-value { font-size: clamp(1.5rem, 3vw, 2.25rem); font-weight: 700; line-height: 1; }
 .perk-detail { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: .8rem; }
-.perk-description { align-self: start; font-size: .82rem; font-weight: 500; line-height: 1.4; }
+.perk-description { align-self: start; font-size: .875rem; font-weight: 500; line-height: 1.5; }
+.perk-description strong { color: #f6c795; font-weight: 700; }
 
 #battle { display: grid; gap: 14px; }
 
@@ -597,7 +598,7 @@ meter::-moz-meter-bar { background: #b5b2ad; }
   .perk-description {
     grid-area: 3 / 1 / 4 / -1;
     justify-self: stretch;
-    min-block-size: 2.8em;
+    min-block-size: 3em;
     text-align: start;
   }
   [data-screen='battle'] #battle {

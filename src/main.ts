@@ -84,34 +84,45 @@ const unlockInfo = {
   straight: { icon: 'reroll-die', value: '1', label: '전투당 재굴림 주사위 1회' },
 } as const
 
-function oathDescription(parity: string) {
-  return `${parity} 눈을 공격에 놓으면 → 주사위마다 +${START_PERKS.oath.bonus}`
+function oathDescription(parity?: Parity) {
+  const damage = `<strong>피해 ${START_PERKS.oath.bonus}</strong>`
+  if (parity) {
+    const eyes = parity === 'odd' ? '홀수 눈' : '짝수 눈'
+    return `이번 등반에서 <strong>${eyes}</strong> 주사위를 공격에 놓으면, 주사위마다 ${damage}을 더합니다.`
+  }
+  return `등반 시작에 <strong>홀수와 짝수</strong> 중 하나를 고릅니다. 고른 쪽 눈의 주사위를 공격에 놓으면, 주사위마다 ${damage}을 더합니다.`
 }
 
 const perkDisplay = {
   shield: {
     value: `+${START_PERKS.shield.step}`, detail: `${icon('parry')}${icon('sword')}`,
     label: `정확히 막을 때마다 → 공격 +${START_PERKS.shield.step} 누적 (놓치면 0)`,
+    description: `방어 합이 적의 공격 피해와 같으면 <strong>정확히 막은 것</strong>이며, 그때마다 공격 피해 보너스가 <strong>${START_PERKS.shield.step}</strong>씩 쌓입니다. 적의 공격을 정확히 막지 못하면 모은 보너스가 사라집니다.`,
   },
   blade: {
     value: `×${START_PERKS.blade.multiplier}`, detail: `${icon('sword')} ${START_PERKS.blade.threshold}`,
     label: `공격에 놓은 눈이 ${START_PERKS.blade.threshold} 쌓이면 → 다음 공격 ${START_PERKS.blade.multiplier}배 (쓰거나 전투가 바뀌면 0)`,
+    description: `공격에 놓은 주사위 눈의 합이 <strong>${START_PERKS.blade.threshold} 이상</strong> 쌓이면 다음 공격의 피해가 <strong>${START_PERKS.blade.multiplier}배</strong>가 됩니다. 두 배 공격을 쓰거나 전투가 바뀌면 <strong>0</strong>부터 다시 모읍니다.`,
   },
   collector: {
     value: `+${START_PERKS.collector.initial}~${START_PERKS.collector.maximum}`, detail: `${icon('die')}=${icon('die')}`,
     label: `같은 눈 2개 이상인 칸에 보너스. 처음 ${START_PERKS.collector.initial}, 새 족보(트리플·스트레이트 등) 첫 사용마다 +${START_PERKS.collector.step} (최대 +${START_PERKS.collector.maximum})`,
+    description: `같은 눈 주사위를 <strong>2개 이상</strong> 한 칸에 놓으면 그 칸에 보너스를 더합니다. 보너스는 <strong>${START_PERKS.collector.initial}</strong>에서 시작하며, 같은 눈 셋이나 연속된 눈 셋 같은 새 <strong>족보</strong>를 처음 쓸 때마다 <strong>${START_PERKS.collector.step}</strong>씩 올라 <strong>최대 ${START_PERKS.collector.maximum}</strong>가 됩니다.`,
   },
   reroll: {
     value: '+1', detail: `${icon('heart')} −${START_PERKS.reroll.cost}`,
     label: `매 턴 기본 재굴림 후 → 1회 더 (체력 −${START_PERKS.reroll.cost})`,
+    description: `매 턴 기본 <strong>재굴림</strong>으로 선택한 주사위를 다시 굴린 뒤 <strong>한 번</strong> 더 굴릴 수 있습니다. 추가로 굴릴 때마다 <strong>체력 ${START_PERKS.reroll.cost}</strong>을 잃습니다.`,
   },
   oath: {
     value: `+${START_PERKS.oath.bonus}`, detail: '홀 / 짝',
-    label: oathDescription('고른 홀·짝'),
+    label: `고른 홀·짝 눈을 공격에 놓으면 → 주사위마다 +${START_PERKS.oath.bonus}`,
+    description: oathDescription(),
   },
   counter: {
     value: `+${START_PERKS.counter.step}`, detail: `${icon('parry')}${icon('wheel')}`,
     label: `정확히 막아 룰렛을 돌릴 때마다 → 아이콘 없는 칸 중 가장 작은 숫자 +${START_PERKS.counter.step} (계속 쌓임)`,
+    description: `방어 합이 적의 공격 피해와 같으면 <strong>정확히 막은 것</strong>이며, 반격 피해를 정하는 <strong>룰렛</strong>을 돌릴 수 있습니다. 돌릴 때마다 아이콘 없는 칸 중 가장 작은 숫자 하나가 <strong>${START_PERKS.counter.step}</strong>씩 커져 등반이 끝날 때까지 쌓입니다.`,
   },
 } as const
 
@@ -591,16 +602,15 @@ function showPerks(focus: boolean) {
   }
   const buttons = offers.map((perk) => {
     const { name, icon: symbol } = START_PERKS[perk]
-    const { label, value, detail } = perkDisplay[perk]
-    const button = perkButton(symbol, name, value, detail, label)
+    const { description, value, detail } = perkDisplay[perk]
+    const button = perkButton(symbol, name, value, detail, description)
     button.addEventListener('click', () => {
       if (perk !== 'oath') {
         begin(perk)
         return
       }
       const parityButtons = (['odd', 'even'] as const).map((parity) => {
-        const label = oathDescription(parity === 'odd' ? '홀수' : '짝수')
-        const choice = perkButton(parityIcons[parity], name, parityLabels[parity], `${icon('sword')} ${value}`, label)
+        const choice = perkButton(parityIcons[parity], name, parityLabels[parity], `${icon('sword')} ${value}`, oathDescription(parity))
         choice.addEventListener('click', () => begin(perk, parity))
         return choice
       })
@@ -621,18 +631,21 @@ function showPerks(focus: boolean) {
   if (focus) buttons[0].focus()
 }
 
-function perkButton(symbol: string, name: string, value: string, detail: string, label: string) {
+function perkButton(symbol: string, name: string, value: string, detail: string, description: string) {
   const button = document.createElement('button')
   button.type = 'button'
   button.className = 'perk-choice'
-  button.setAttribute('aria-label', `${name}, ${label}`)
   button.innerHTML = `
     <span class="perk-symbol">${icon(symbol)}</span>
     <span class="perk-name">${name}</span>
     <strong class="perk-value">${value}</strong>
     <span class="perk-detail">${detail}</span>
-    <span class="perk-description">${label}</span>
   `
+  const explanation = document.createElement('span')
+  explanation.className = 'perk-description'
+  explanation.innerHTML = description
+  button.append(explanation)
+  button.setAttribute('aria-label', `${name}, ${explanation.textContent}`)
   return button
 }
 
