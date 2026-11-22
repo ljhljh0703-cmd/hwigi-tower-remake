@@ -1,7 +1,7 @@
 import { PLAYER_HP } from './combat.ts'
 import { ASCENT_ENEMIES, enemyForFight } from './enemy-roster.ts'
-import { START_PERKS } from './perks.ts'
-import type { StartPerk } from './perks.ts'
+import { startPerk } from './perks.ts'
+import type { Parity, StartPerk } from './perks.ts'
 import { activateYachtHand, resolveYachtTurn, startYachtBattle } from './yacht-combat.ts'
 import type { Hand, YachtBattle } from './yacht-combat.ts'
 
@@ -11,25 +11,22 @@ export interface Ascent {
   readonly seed: number
   readonly fight: number
   readonly enemy: ReturnType<typeof enemyForFight>
-  readonly perk: StartPerk | undefined
   readonly maxHp: number
   readonly unlocks: readonly Hand[]
   readonly newUnlock: Hand | null
   readonly battle: YachtBattle
 }
 
-export function beginAscent(seed: number, perk?: StartPerk): Ascent {
-  const maxHp = PLAYER_HP + (perk === 'health' ? START_PERKS.health.bonus : 0)
+export function beginAscent(seed: number, perk?: StartPerk, parity: Parity = 'odd'): Ascent {
   const enemy = enemyForFight(seed, 1)
   return {
     seed,
     fight: 1,
     enemy,
-    perk,
-    maxHp,
+    maxHp: PLAYER_HP,
     unlocks: [],
     newUnlock: null,
-    battle: startYachtBattle(seed, maxHp, false, false, perk, enemy),
+    battle: startYachtBattle(seed, PLAYER_HP, false, false, startPerk(perk, parity), enemy),
   }
 }
 
@@ -44,12 +41,12 @@ export function resolveAscentTurn(ascent: Ascent): Ascent {
 
 export function nextAscentFight(ascent: Ascent): Ascent {
   if (ascent.battle.phase !== 'won' || ascent.fight === FIGHT_COUNT) return ascent
-  const { seed, perk, unlocks } = ascent
+  const { seed, unlocks } = ascent
   const fight = ascent.fight + 1
   const fightSeed = (seed ^ Math.imul(fight - 1, 0x9e3779b9)) >>> 0
   const enemy = enemyForFight(seed, fight)
   const battle = startYachtBattle(
-    fightSeed, ascent.battle.playerHp, unlocks.includes('triple'), unlocks.includes('straight'), perk,
+    fightSeed, ascent.battle.playerHp, unlocks.includes('triple'), unlocks.includes('straight'), ascent.battle.perk,
     enemy, unlocks.length * enemy.attackPerUnlock,
   )
   return { ...ascent, fight, enemy, battle, newUnlock: null }

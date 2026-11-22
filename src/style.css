@@ -80,6 +80,8 @@ h1, h2, p { margin: 0; }
 }
 
 .run-status > span { display: inline-flex; align-items: center; gap: 5px; }
+#active-perk strong { color: #f1f0ee; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#active-perk.perk-ready strong { color: #f2ac98; }
 #fight { padding-inline-start: 14px; border-inline-start: 1px solid var(--stone-edge); }
 
 button {
@@ -167,15 +169,6 @@ button:disabled {
 .perk-name { color: var(--muted); font-size: .82rem; }
 .perk-value { font-size: clamp(1.5rem, 3vw, 2.25rem); font-weight: 700; line-height: 1; }
 .perk-detail { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: .8rem; }
-.perk-cost {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  border-inline-start: 1px solid var(--stone-edge);
-  padding-inline-start: 5px;
-  color: #f1f0ee;
-  white-space: nowrap;
-}
 
 #battle { display: grid; gap: 14px; }
 

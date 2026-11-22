@@ -1,7 +1,7 @@
 import { playAscent } from '../level.mjs'
 import { allocationTotals, enemyIntentAt } from '../../src/combat.ts'
 import { ASCENT_ENEMIES, enemyForFight } from '../../src/enemy-roster.ts'
-import { offerPerks, START_PERKS } from '../../src/perks.ts'
+import { pickOfferedPerk, START_PERKS } from '../../src/perks.ts'
 
 const [seedArgument, countArgument, thresholdArgument] = process.argv.slice(2).filter((argument) => !argument.startsWith('--'))
 const firstSeed = Number(seedArgument ?? 8192)
@@ -14,13 +14,13 @@ if (thresholdArgument !== undefined) {
   for (const intent of chargeIntents) intent.chargeThreshold = threshold
 }
 const perks = Object.keys(START_PERKS)
-const trainingWins = new Map(perks.map((perk) => [
-  perk, Array.from({ length: 512 }, (_, seed) => playAscent(seed, perk)).filter(({ wins }) => wins === 3).length,
+const trainingWins = Object.fromEntries(perks.map((perk) => [
+  perk, Array.from({ length: 512 }, (_, seed) => playAscent(seed, perk, undefined, 'guardFirst'))
+    .filter(({ wins }) => wins === 3).length,
 ]))
 
 function pickPerk(seed) {
-  const offers = offerPerks(seed)
-  return offers.reduce((best, perk) => trainingWins.get(perk) > trainingWins.get(best) ? perk : best)
+  return pickOfferedPerk(seed, (perk) => trainingWins[perk])
 }
 
 const byPair = new Map()
@@ -102,13 +102,25 @@ function attackSum(battle) {
   return allocationTotals(battle, battle.dice.map(() => 'attack')).attack
 }
 
+function measure(runs) {
+  const wins = winCounts(runs)
+  const survivors = runs.filter((run) => run.wins >= 1).map((run) => run.firstWinHp).sort((a, b) => a - b)
+  const hpSum = survivors.reduce((sum, hp) => sum + hp, 0)
+  const middle = (survivors.length - 1) / 2
+  return {
+    wins, firstFightMeanHp: hpSum / runs.length, winnerMeanHp: hpSum / survivors.length,
+    eliteMedianHp: (survivors[Math.floor(middle)] + survivors[Math.ceil(middle)]) / 2,
+    lengths: summarizeLengths(runs),
+  }
+}
+
 function runPolicy(policy) {
   const runs = Array.from({ length: count }, (_, index) => {
     const seed = firstSeed + index
     const perk = pickPerk(seed)
     const charges = []
     let firstWinHp = 0
-    const result = playAscent(seed, perk, 'devil', (fight, battle, ascent, opening) => {
+    const result = playAscent(seed, perk, (fight, battle, ascent, opening) => {
       if (fight === 1 && ascent.battle.phase === 'won') firstWinHp = ascent.battle.playerHp
       if (policy === 'adaptive') {
         const id = ascent.enemy.id
@@ -131,14 +143,9 @@ function runPolicy(policy) {
     }
     return run
   })
-  const survivors = runs.filter((run) => run.wins >= 1).map((run) => run.firstWinHp).sort((a, b) => a - b)
-  const hpSum = survivors.reduce((sum, hp) => sum + hp, 0)
-  const middle = (survivors.length - 1) / 2
   console.log(JSON.stringify({
-    policy, firstSeed, count, trainingWins: Object.fromEntries(trainingWins), wins: winCounts(runs),
-    firstFightMeanHp: hpSum / count, winnerMeanHp: hpSum / survivors.length,
-    eliteMedianHp: (survivors[Math.floor(middle)] + survivors[Math.ceil(middle)]) / 2,
-    lengths: summarizeLengths(runs),
+    policy, firstSeed, count, trainingWins, ...measure(runs),
+    picked: Object.fromEntries(perks.map((perk) => [perk, runs.filter((run) => run.perk === perk).length])),
     minions: summarizeEnemies(runs, 1), elites: summarizeEnemies(runs, 2),
   }))
   console.log(JSON.stringify({
@@ -146,6 +153,21 @@ function runPolicy(policy) {
     elite: summarizeCharges(runs, 2), boss: summarizeCharges(runs, 3),
   }))
   return runs
+}
+
+if (process.argv.includes('--compare-perks')) {
+  for (const policy of ['guardFirst', 'adaptive']) {
+    for (const perk of [undefined, ...perks]) {
+      const runs = Array.from({ length: count }, (_, index) => {
+        let firstWinHp = 0
+        const result = playAscent(firstSeed + index, perk, (fight, _battle, ascent) => {
+          if (fight === 1 && ascent.battle.phase === 'won') firstWinHp = ascent.battle.playerHp
+        }, policy)
+        return { ...result, firstWinHp }
+      })
+      console.log(JSON.stringify({ policy, perk: perk ?? null, firstSeed, count, ...measure(runs) }))
+    }
+  }
 }
 
 const runs = runPolicy('adaptive')

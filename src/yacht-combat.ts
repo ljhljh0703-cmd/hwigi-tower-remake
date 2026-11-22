@@ -1,10 +1,11 @@
 import {
-  COUNTER_REWARDS, DIE_COUNT, draw, enemyIntentAt, forecast, openTurn, PLAYER_HP, rerollChannels, roll, spinCounter,
+  allocationTotals, COUNTER_REWARDS, DIE_COUNT, dieFaceForSlot, draw, enemyIntentAt, forecast, openTurn, PLAYER_HP,
+  rerollChannels, roll, spinCounter,
   startBattle,
 } from './combat.ts'
-import type { Battle, Enemy, Slot } from './combat.ts'
-import { START_PERKS } from './perks.ts'
-import type { StartPerk } from './perks.ts'
+import type { Battle, Enemy, EnemyMechanic, Slot } from './combat.ts'
+import { collectorBonus, START_PERKS } from './perks.ts'
+import type { CollectedHand, PerkState } from './perks.ts'
 
 export type Hand = 'triple' | 'straight'
 
@@ -16,22 +17,16 @@ export interface UsedHand {
 export interface YachtBattle extends Battle {
   readonly extraRerollAvailable: boolean
   readonly extraRerollSpent?: true
-  readonly perk?: StartPerk
-  readonly devilRerolls?: number
-  readonly devilBoostedDice?: readonly number[]
+  readonly perk?: PerkState
+  readonly paidRerollSpent?: true
   readonly fourthDieUnlocked?: true
 }
 
 const FOURTH_DIE_CHANNEL = 8
 const basicRerollChannels = [...rerollChannels, 9]
 const EXTRA_REROLL_CHANNEL = 10
-const FIRST_DEVIL_CHANNEL = 11
-const pairRewards = [
-  ...COUNTER_REWARDS.slice(0, 4),
-  ...Array.from({ length: START_PERKS.pair.slots }, () => START_PERKS.pair.reward),
-  ...COUNTER_REWARDS.slice(4),
-]
-const upgradedRewards = [START_PERKS.wheel.reward, ...COUNTER_REWARDS.slice(1)]
+const paidRerollChannels = [11, 12, 13, 14]
+const combatSlots = ['attack', 'guard', 'escort'] as const
 
 export function classifyHand(faces: readonly number[]): Hand | null {
   if (faces.length !== DIE_COUNT || faces.some((face) => !Number.isInteger(face) || face < 1 || face > 6)) return null
@@ -41,13 +36,8 @@ export function classifyHand(faces: readonly number[]): Hand | null {
   return null
 }
 
-function rollYachtDie(battle: YachtBattle, index: number, channel: number): number {
-  const face = roll(battle.seed, battle.turn, channel)
-  return battle.perk === 'face' && index === 0 && face === 1 ? START_PERKS.face.replacement : face
-}
-
 function addFourthDie(battle: YachtBattle): YachtBattle {
-  const face = rollYachtDie(battle, DIE_COUNT, FOURTH_DIE_CHANNEL)
+  const face = roll(battle.seed, battle.turn, FOURTH_DIE_CHANNEL)
   const fixed = battle.fixedDie
   return {
     ...battle,
@@ -60,10 +50,9 @@ function addFourthDie(battle: YachtBattle): YachtBattle {
 }
 
 function openYachtDice(battle: YachtBattle): YachtBattle {
-  const { nextInterference: kind, fixedDie: _fixedDie, stolenDie, ...rest } = battle
+  const { nextInterference: kind, fixedDie: _fixedDie, stolenDie, paidRerollSpent: _paidRerollSpent, ...rest } = battle
   const stillStolen = enemyIntentAt(battle).chargeThreshold === undefined ? stolenDie : undefined
   const dice = [...battle.dice]
-  if (battle.perk === 'face' && dice[0] === 1) dice[0] = START_PERKS.face.replacement
   if (stillStolen) dice.splice(DIE_COUNT - 1, 1)
   const index = kind === 'lock' ? dice.indexOf(Math.min(...dice)) : 1
   if (kind === 'freeze') dice[index] = 1
@@ -73,13 +62,12 @@ function openYachtDice(battle: YachtBattle): YachtBattle {
     slots: battle.slots.slice(0, dice.length),
     ...(stillStolen && { stolenDie: stillStolen }),
     ...(kind && { fixedDie: { index, kind } }),
-    ...(battle.perk === 'reroll' && { devilRerolls: 0, devilBoostedDice: [] }),
   }
   return next.fourthDieUnlocked ? addFourthDie(next) : next
 }
 
 export function startYachtBattle(
-  seed: number, playerHp: number, fourthDie: boolean, extraReroll: boolean, perk?: StartPerk,
+  seed: number, playerHp: number, fourthDie: boolean, extraReroll: boolean, perk?: PerkState,
   enemy?: Enemy, enemyAttackBuff = 0,
 ): YachtBattle {
   const battle: YachtBattle = {
@@ -112,45 +100,29 @@ export function rerollYachtDice(battle: YachtBattle, indices: readonly number[])
     return battle
   }
   const chosen = new Set(indices)
-  const paidRolls = battle.devilRerolls ?? 0
-  const boostedDice = cost > 0 ? new Set(battle.devilBoostedDice) : null
-  const { faceBonus, faceCap } = START_PERKS.reroll
+  const channels = cost > 0 ? paidRerollChannels : basicRerollChannels
   let drawIndex = 0
   const dice = battle.dice.map((face, index) => {
     if (!chosen.has(index)) return face
-    const channel = cost === 0
-      ? basicRerollChannels[drawIndex]
-      : FIRST_DEVIL_CHANNEL + paidRolls * basicRerollChannels.length + drawIndex
-    drawIndex++
-    const rolled = rollYachtDie(battle, index, channel)
-    if (!boostedDice) return rolled
-    const value = Math.min(faceCap, rolled + faceBonus)
-    if (value > rolled) boostedDice.add(index)
-    else boostedDice.delete(index)
-    return value
+    return roll(battle.seed, battle.turn, channels[drawIndex++])
   })
   return {
     ...battle, dice, playerHp: battle.playerHp - cost, rerolled: true,
-    ...(boostedDice && { devilRerolls: paidRolls + 1, devilBoostedDice: [...boostedDice] }),
+    ...(cost > 0 && { paidRerollSpent: true }),
   }
 }
 
 export function yachtRerollCost(battle: YachtBattle): number | null {
   if (battle.phase !== 'assign') return null
   if (!battle.rerolled) return 0
-  return battle.perk === 'reroll'
-    ? Math.floor((battle.devilRerolls ?? 0) / START_PERKS.reroll.rollsPerCost) + 1
-    : null
+  return battle.perk?.kind === 'reroll' && !battle.paidRerollSpent ? START_PERKS.reroll.cost : null
 }
 
 export function spendExtraReroll(battle: YachtBattle, index: number): YachtBattle {
   if (!battle.extraRerollAvailable || !battle.rerolled || !canReroll(battle, index)) return battle
   const dice = [...battle.dice]
-  dice[index] = rollYachtDie(battle, index, EXTRA_REROLL_CHANNEL)
-  return {
-    ...battle, dice, extraRerollAvailable: false, extraRerollSpent: true,
-    ...(battle.devilBoostedDice && { devilBoostedDice: battle.devilBoostedDice.filter((die) => die !== index) }),
-  }
+  dice[index] = roll(battle.seed, battle.turn, EXTRA_REROLL_CHANNEL)
+  return { ...battle, dice, extraRerollAvailable: false, extraRerollSpent: true }
 }
 
 function usedHand(battle: YachtBattle, dice: readonly number[], slot: Slot): UsedHand | null {
@@ -165,27 +137,96 @@ export function classifyYachtHand(battle: YachtBattle, faces: readonly number[])
   return mechanic?.kind === 'seal' && faces.includes(mechanic.value) ? null : classifyHand(faces)
 }
 
-export function yachtAttackBonus(battle: YachtBattle, slots = battle.slots): number {
-  return battle.perk === 'attack' && battle.turn === 1 && slots.includes('attack') ? START_PERKS.attack.damage : 0
+function matchingCount(faces: readonly number[]): number {
+  let count = 0
+  for (const [index, face] of faces.entries()) {
+    if (face === 0) continue
+    let matches = 1
+    for (let other = index + 1; other < faces.length; other++) {
+      if (faces[other] === face) matches++
+    }
+    count = Math.max(count, matches)
+  }
+  return count
+}
+
+function facesInSlot(dice: readonly number[], slots: YachtBattle['slots'], slot: Slot, mechanic?: EnemyMechanic) {
+  return dice.flatMap((face, index) => slots[index] === slot ? [dieFaceForSlot(face, slot, mechanic)] : [])
+}
+
+export function yachtSlotBonuses(battle: YachtBattle, slots = battle.slots, dice = battle.dice) {
+  const { perk } = battle
+  if (!perk) return
+  if (perk.kind === 'collector') {
+    const mechanic = enemyIntentAt(battle).mechanic
+    const bonus = collectorBonus(perk.hands)
+    const bonuses: Partial<Record<Slot, number>> = {}
+    for (const slot of combatSlots) {
+      if (matchingCount(facesInSlot(dice, slots, slot, mechanic)) >= 2) bonuses[slot] = bonus
+    }
+    return bonuses
+  }
+  if (perk.kind === 'oath') {
+    const mechanic = enemyIntentAt(battle).mechanic
+    const parity = perk.parity === 'odd' ? 1 : 0
+    let attack = 0
+    for (const [index, face] of dice.entries()) {
+      if (slots[index] === 'attack' && face % 2 === parity && dieFaceForSlot(face, 'attack', mechanic) > 0) {
+        attack += START_PERKS.oath.bonus
+      }
+    }
+    return { attack }
+  }
+  if (perk.kind === 'shield' || perk.kind === 'blade') {
+    if (perk.kind === 'blade' && perk.charge < START_PERKS.blade.threshold) return
+    const { attack } = allocationTotals(battle, slots, dice)
+    if (attack === 0) return
+    return { attack: perk.kind === 'shield' ? perk.bonus : attack * (START_PERKS.blade.multiplier - 1) }
+  }
 }
 
 export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = battle.dice) {
-  return forecast(battle, slots, dice, yachtAttackBonus(battle, slots))
+  return forecast(battle, slots, dice, yachtSlotBonuses(battle, slots, dice))
 }
 
-function hasGuardPair(battle: YachtBattle, slots: readonly (Slot | null)[]): boolean {
-  const guardDice = battle.dice.filter((_, index) => slots[index] === 'guard')
-  return guardDice.length === 2 && guardDice[0] === guardDice[1]
-}
-
-// For an allocation preview, callers ask only when the plan earns a counter.
-export function yachtCounterRewards(battle: YachtBattle, slots = battle.slots) {
-  if (battle.perk === 'wheel') return upgradedRewards
-  if (battle.perk === 'pair') {
-    const pair = battle.phase === 'counter' ? battle.lastExchange?.pairGuardBonus : hasGuardPair(battle, slots)
-    if (pair) return pairRewards
+export function yachtCounterRewards(battle: YachtBattle) {
+  const { perk } = battle
+  if (perk?.kind !== 'counter') return COUNTER_REWARDS
+  const { rewards } = perk
+  let lowest = rewards.findIndex((reward) => !reward.joint)
+  for (const [index, reward] of rewards.entries()) {
+    if (!reward.joint && reward.damage < rewards[lowest].damage) lowest = index
   }
-  return COUNTER_REWARDS
+  return rewards.map((reward, index) => index === lowest
+    ? { ...reward, damage: reward.damage + START_PERKS.counter.step }
+    : reward)
+}
+
+function resolvePerk(battle: YachtBattle, planned: ReturnType<typeof forecastYacht>, dice: readonly number[], enemyHp: number) {
+  const { perk, slots } = battle
+  if (perk?.kind === 'shield' && planned.intent.hits.length > 0 && enemyHp > 0) {
+    return { ...perk, bonus: planned.counter ? perk.bonus + START_PERKS.shield.step : 0 }
+  }
+  if (perk?.kind === 'blade') {
+    const { attack } = allocationTotals(battle, slots, dice)
+    if (attack > 0) {
+      const spend = perk.charge >= START_PERKS.blade.threshold ? START_PERKS.blade.threshold : 0
+      return { ...perk, charge: perk.charge - spend + attack }
+    }
+  }
+  if (perk?.kind === 'collector') {
+    const hands = new Set(perk.hands)
+    const mechanic = enemyIntentAt(battle).mechanic
+    for (const slot of combatSlots) {
+      const faces = facesInSlot(dice, slots, slot, mechanic)
+      const count = matchingCount(faces)
+      const hand: CollectedHand | null = count === 4 ? 'four' : count === 3 ? 'triple' : count === 2 ? 'pair'
+        : classifyHand(faces) === 'straight' ? 'straight' : null
+      if (hand) hands.add(hand)
+    }
+    return { ...perk, hands: [...hands] }
+  }
+  return perk
 }
 
 function damageToStolenDie(battle: YachtBattle, dealt: number) {
@@ -217,11 +258,13 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
     ? { remaining: effect.value } : damageToStolenDie(battle, result.dealt)
   const escort = previousEscort && escortHp > 0 ? { ...previousEscort, hp: escortHp }
     : effect?.kind === 'escort' && !previousEscort ? { hp: effect.hp, bonus: effect.bonus } : undefined
+  const perk = resolvePerk(battle, planned, dice, enemyHp)
   const resolved: YachtBattle = {
     ...rest,
     dice,
     playerHp,
     enemyHp,
+    ...(perk && { perk }),
     ...((effect?.kind === 'lock' || effect?.kind === 'freeze') && { nextInterference: effect.kind }),
     ...(stolenDie && { stolenDie }),
     ...(escort && { escort }),
@@ -236,7 +279,6 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
       ...(awakenedDice && { awakenedDice }),
       ...(result.escortDealt > 0 && { escortDealt: result.escortDealt }),
       ...(result.chargeBroken && { chargeBroken: true }),
-      ...(battle.perk === 'pair' && planned.counter && hasGuardPair(battle, battle.slots) && { pairGuardBonus: true }),
     },
   }
 
@@ -248,10 +290,17 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
 }
 
 export function spinYachtCounter(battle: YachtBattle): YachtBattle {
-  const spun = spinCounter(battle, yachtCounterRewards(battle))
+  if (battle.phase !== 'counter') return battle
+  const rewards = yachtCounterRewards(battle)
+  const spun = spinCounter(battle, rewards)
   if (spun === battle) return battle
   const { stolenDie: _stolenDie, ...rest } = { ...battle, ...spun }
   const stolenDie = damageToStolenDie(battle, battle.enemyHp - spun.enemyHp)
-  const next = { ...rest, ...(stolenDie && { stolenDie }) }
+  const perk = battle.perk
+  const next = {
+    ...rest,
+    ...(stolenDie && { stolenDie }),
+    ...(perk?.kind === 'counter' && { perk: { ...perk, rewards, growth: perk.growth + START_PERKS.counter.step } }),
+  }
   return next.turn > battle.turn ? openYachtDice(next) : next
 }

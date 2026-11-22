@@ -62,7 +62,6 @@ export interface Exchange {
   readonly counter: CounterResult | null
   readonly awakened: boolean
   readonly awakenedDice?: readonly number[]
-  readonly pairGuardBonus?: true
   readonly escortDealt?: number
   readonly chargeBroken?: true
 }
@@ -227,23 +226,23 @@ export function attackFor(battle: Battle, intent: EnemyIntent, escortSurvives = 
   return { name, hits, totalDamage }
 }
 
-export function incomingAttack(battle: Battle) {
+export function incomingAttack(battle: Battle, escortBonus = 0) {
   const { attack, escort } = allocationTotals(battle)
-  return attackFor(battle, respondingIntent(enemyIntentAt(battle), attack), Boolean(battle.escort && escort < battle.escort.hp))
+  return attackFor(battle, respondingIntent(enemyIntentAt(battle), attack), Boolean(battle.escort && escort + escortBonus < battle.escort.hp))
 }
 
 function breaksCharge(intent: EnemyIntent, attack: number) {
   return intent.chargeThreshold !== undefined && attack >= intent.chargeThreshold
 }
 
-export function chargedStrikePreview(battle: Battle) {
+export function chargedStrikePreview(battle: Battle, escortBonus = 0) {
   const intent = enemyIntentAt(battle)
   if (intent.chargeThreshold === undefined) return null
   const { attack, escort } = allocationTotals(battle)
   const weakened = breaksCharge(intent, attack)
   const turn = battle.turn + 1
   const next = { ...battle, turn, weakenedStrikeTurn: undefined }
-  const escortSurvives = Boolean(battle.escort && escort < battle.escort.hp)
+  const escortSurvives = Boolean(battle.escort && escort + escortBonus < battle.escort.hp)
   const nextIntent = enemyIntentAt(next)
   const fullDamage = attackFor(next, nextIntent, escortSurvives).totalDamage
   const { totalDamage } = weakened ? attackFor({ ...next, weakenedStrikeTurn: turn }, nextIntent, escortSurvives)
@@ -255,16 +254,20 @@ export function attackPower(intent: EnemyIntent, attack: number): number {
   return intent.damageTakenMultiplier === undefined ? attack : Math.floor(attack * intent.damageTakenMultiplier)
 }
 
-export function forecast(battle: Battle, slots = battle.slots, dice = battle.dice, attackBonus = 0) {
+export function forecast(
+  battle: Battle, slots = battle.slots, dice = battle.dice, bonuses?: Partial<Record<Slot, number>>,
+) {
   const { attack, guard, escort } = allocationTotals(battle, slots, dice)
+  // Reaction and charge interruption read allocated pips before perk damage bonuses.
   const intent = respondingIntent(enemyIntentAt(battle), attack)
-  const escortDealt = Math.min(battle.escort?.hp ?? 0, escort)
+  const escortDealt = Math.min(battle.escort?.hp ?? 0, escort + (bonuses?.escort ?? 0))
   const incoming = attackFor(battle, intent, escortDealt < (battle.escort?.hp ?? 0))
-  const dealt = Math.min(battle.enemyHp, attackPower(intent, attack + attackBonus))
+  const dealt = Math.min(battle.enemyHp, attackPower(intent, attack + (bonuses?.attack ?? 0)))
   const thorns = intent.mechanic?.kind === 'thorns'
     ? slots.filter((slot) => slot === 'attack').length * intent.mechanic.value : 0
 
-  let shield = guard
+  const guardTotal = guard + (bonuses?.guard ?? 0)
+  let shield = guardTotal
   const hits = (dealt === battle.enemyHp ? [] : incoming.hits).map((hit) => {
     const blocked = Math.min(shield, hit)
     shield -= blocked
@@ -280,7 +283,7 @@ export function forecast(battle: Battle, slots = battle.slots, dice = battle.dic
     chargeBroken: breaksCharge(intent, attack),
     hits,
     damage: attackDamage + retaliation,
-    counter: dealt < battle.enemyHp && incoming.totalDamage > 0 && guard === incoming.totalDamage,
+    counter: dealt < battle.enemyHp && incoming.totalDamage > 0 && guardTotal === incoming.totalDamage,
   }
 }
 

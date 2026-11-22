@@ -1,7 +1,7 @@
 import { pathToFileURL } from 'node:url'
 import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from '../src/ascent.ts'
-import { DIE_COUNT, intentOf } from '../src/combat.ts'
-import { offerPerks, START_PERKS } from '../src/perks.ts'
+import { DIE_COUNT, draw, intentOf } from '../src/combat.ts'
+import { offerPerks, pickOfferedPerk, START_PERKS } from '../src/perks.ts'
 import {
   forecastYacht, rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtRerollCost,
 } from '../src/yacht-combat.ts'
@@ -17,8 +17,9 @@ function wantsReroll(battle) {
   return !chargeBroken && (dealt < battle.enemyHp || damage >= battle.playerHp)
 }
 
-export function playAscent(seed, perk, variant = 'devil', observeTurn, policy = 'adaptive') {
-  let ascent = beginAscent(seed, perk)
+export function playAscent(seed, perk, observeTurn, policy = 'adaptive') {
+  const parity = draw(seed, 0, 21) % 2 ? 'odd' : 'even'
+  let ascent = beginAscent(seed, perk, parity)
   let wins = 0
   let extraRolls = 0
   let paidHp = 0
@@ -30,7 +31,6 @@ export function playAscent(seed, perk, variant = 'devil', observeTurn, policy = 
   const fightTurns = []
 
   for (let fight = 1; fight <= FIGHT_COUNT; fight++) {
-    let usedFreeBatch = false
     fightTurns.push(0)
     for (let turn = 0; turn < turnLimit && ascent.battle.phase === 'assign'; turn++) {
       fightTurns[fight - 1]++
@@ -42,24 +42,13 @@ export function playAscent(seed, perk, variant = 'devil', observeTurn, policy = 
         if (index !== undefined) battle = spendExtraReroll(battle, index)
       }
 
-      if (perk === 'reroll' && battle.rerolled && variant === 'free-per-fight' && !usedFreeBatch && wantsReroll(battle)) {
-        const indices = chooseReroll(battle, policy, false)
-        if (indices.length > 0) {
-          // Waive the first paid batch's HP cost while keeping its dice draws and face bonus.
-          battle = rerollYachtDice({ ...battle, playerHp: battle.playerHp + 1 }, indices)
-          usedFreeBatch = true
-          extraRolls++
-        }
-      }
-      if (perk === 'reroll' && variant === 'devil' && battle.rerolled) {
-        let cost = yachtRerollCost(battle)
-        while (battle.playerHp - cost >= hpReserveAfterPayment && wantsReroll(battle)) {
-          const indices = chooseReroll(battle, policy, false)
-          if (indices.length === 0) break
-          battle = rerollYachtDice(battle, indices)
+      const cost = perk === 'reroll' && battle.rerolled ? yachtRerollCost(battle) : null
+      if (cost !== null && battle.playerHp - cost >= hpReserveAfterPayment && wantsReroll(battle)) {
+        const rerolled = rerollYachtDice(battle, chooseReroll(battle, policy, false))
+        if (rerolled !== battle) {
+          battle = rerolled
           extraRolls++
           paidHp += cost
-          cost = yachtRerollCost(battle)
         }
       }
 
@@ -186,39 +175,31 @@ export function runLevelStudy(sample = seeds) {
   }))
 
   const selected = sample.map((seed, index) => {
-    let best
-    let bestScore = -1
-    for (const perk of offerPerks(seed)) {
-      const result = results.get(perk)
-      result.offered++
-      // Rank by completions on all other seeds, keeping offer order on ties.
-      const score = result.summary.fightWins[2] - Number(result.runs[index].wins === FIGHT_COUNT)
-      if (score > bestScore) {
-        bestScore = score
-        best = result
-      }
-    }
-    best.picked++
-    return best.runs[index]
+    for (const perk of offerPerks(seed)) results.get(perk).offered++
+    const selectedPerk = pickOfferedPerk(seed, (perk) => {
+      const { summary, runs } = results.get(perk)
+      // Estimate completion from the other seeds.
+      return summary.fightWins[2] - Number(runs[index].wins === FIGHT_COUNT)
+    })
+    const result = results.get(selectedPerk)
+    result.picked++
+    return result.runs[index]
   })
 
-  const alternative = sample.map((seed) => playAscent(seed, 'reroll', 'free-per-fight'))
   return {
     baseline: summarize(sample.map((seed) => playAscent(seed))),
     perks: [...results].map(([perk, { summary, offered, picked }]) => ({ perk, ...summary, offered, picked })),
     selected: summarize(selected),
     noTripleDefeats: summarizeNoTripleDefeats(selected),
     afterTriple: summarizeAfterTriple(selected),
-    alternative: summarize(alternative),
   }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const { baseline, perks, selected, noTripleDefeats, afterTriple, alternative } = runLevelStudy()
+  const { baseline, perks, selected, noTripleDefeats, afterTriple } = runLevelStudy()
   console.log(JSON.stringify({ perk: null, ...baseline }))
   for (const perk of perks) console.log(JSON.stringify(perk))
-  console.log(JSON.stringify({ chooser: 'leave-one-seed-out', ...selected }))
+  console.log(JSON.stringify({ chooser: 'weighted-leave-one-seed-out', ...selected }))
   console.log(JSON.stringify({ noTripleDefeats }))
   console.log(JSON.stringify({ afterTriple }))
-  console.log(JSON.stringify({ variant: 'free-per-fight', ...alternative }))
 }

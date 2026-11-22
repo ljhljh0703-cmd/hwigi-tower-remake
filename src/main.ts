@@ -1,12 +1,14 @@
 import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import {
-  allocationTotals, assignDie, attackFor, attackPower, chargedStrikePreview, DIE_COUNT, dieFaceForSlot, enemyIntentAt, incomingAttack,
+  allocationTotals, assignDie, attackFor, attackPower, chargedStrikePreview, DIE_COUNT, dieFaceForSlot, enemyIntentAt,
+  incomingAttack, respondingIntent,
 } from './combat.ts'
 import type { Exchange } from './combat.ts'
-import { offerPerks, START_PERKS } from './perks.ts'
+import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
+import type { Parity } from './perks.ts'
 import {
-  canReroll, rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtAttackBonus, yachtCounterRewards, yachtRerollCost,
+  canReroll, rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtCounterRewards, yachtRerollCost, yachtSlotBonuses,
 } from './yacht-combat.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput } from './dice-drag.ts'
@@ -81,21 +83,34 @@ const unlockInfo = {
   straight: { icon: 'reroll-die', value: '1', label: '전투당 재굴림 주사위 1회' },
 } as const
 
-const firstPaidRerollCost = 1
-
 const perkDisplay = {
-  reroll: {
-    name: '악마의 주사위',
-    icon: 'devil-die',
-    value: `+${START_PERKS.reroll.faceBonus}`,
-    detail: `≤${START_PERKS.reroll.faceCap}<span class="perk-cost">${icon('heart')}−${firstPaidRerollCost}↑</span>`,
+  shield: {
+    value: `+${START_PERKS.shield.step}`, detail: `${icon('parry')}${icon('sword')}`,
+    label: `정확 방어마다 공격 +${START_PERKS.shield.step}, 놓치면 0`,
   },
-  face: { name: '첫 주사위', icon: 'die', value: `1 → ${START_PERKS.face.replacement}` },
-  pair: { name: '쌍눈 방어', icon: 'pair', value: `${START_PERKS.pair.reward.damage} × ${START_PERKS.pair.slots}`, detail: icon('parry') + icon('wheel') },
-  attack: { name: '선제 공격', icon: 'sword', value: `+${START_PERKS.attack.damage}`, detail: icon('turn') + '1' },
-  wheel: { name: '룰렛 강화', icon: 'wheel', value: `1 → ${START_PERKS.wheel.reward.damage}` },
-  health: { name: '추가 체력', icon: 'heart', value: `+${START_PERKS.health.bonus}` },
+  blade: {
+    value: `×${START_PERKS.blade.multiplier}`, detail: `${icon('sword')} ${START_PERKS.blade.threshold}`,
+    label: `공격 눈 합이 ${START_PERKS.blade.threshold} 쌓일 때마다 다음 공격 ${START_PERKS.blade.multiplier}배`,
+  },
+  collector: {
+    value: '+N', detail: `${icon('die')}=${icon('die')}`,
+    label: `같은 눈이 둘 이상인 칸 +N, 처음 쓴 족보마다 N +${START_PERKS.collector.step}`,
+  },
+  reroll: {
+    value: '+1', detail: `${icon('heart')} −${START_PERKS.reroll.cost}`,
+    label: `턴마다 추가 재굴림 1회, 쓸 때 체력 ${START_PERKS.reroll.cost} 소모`,
+  },
+  oath: {
+    value: `+${START_PERKS.oath.bonus}`, detail: '홀 / 짝',
+    label: `선택한 홀수 또는 짝수 눈은 공격에서 +${START_PERKS.oath.bonus}`,
+  },
+  counter: {
+    value: `+${START_PERKS.counter.step}`, detail: `${icon('parry')}${icon('wheel')}`,
+    label: `룰렛을 돌릴 때마다 일반 반격 칸의 최솟값 한 칸 +${START_PERKS.counter.step}`,
+  },
 } as const
+
+const parityLabels = { odd: '홀', even: '짝' } as const
 
 function icon(name: string) {
   return `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`
@@ -261,7 +276,6 @@ stolenPlaceholder.setAttribute('role', 'img')
 
 function refreshDice(battle: YachtBattle) {
   const planning = battle.phase === 'assign'
-  const { faceBonus, faceCap } = START_PERKS.reroll
   const intent = enemyIntentAt(battle)
   const mechanic = intent.mechanic
   diceButtons.forEach((button, index) => {
@@ -275,13 +289,11 @@ function refreshDice(battle: YachtBattle) {
     const sealed = mechanic?.kind === 'seal' && value === mechanic.value
     const status = fixed ?? (sealed ? 'seal' : undefined)
     button.innerHTML = `${dieFaceForSlot(value, slot, mechanic)}${status ? `<span class="die-status">${icon(status)}</span>` : ''}`
-    const replacedFace = battle.perk === 'face' && index === 0
-    const boostedFace = battle.devilBoostedDice?.includes(index) ?? false
-    button.classList.toggle('altered-face', replacedFace || boostedFace)
+    const oathFace = battle.perk?.kind === 'oath' && !sealed && value % 2 === Number(battle.perk.parity === 'odd')
+    button.classList.toggle('altered-face', oathFace)
     const place = slot ? { attack: '공격', guard: '방어', escort: '호위 공격' }[slot] : '미배치'
     let faceLabel = ''
-    if (replacedFace) faceLabel = `, 1면을 ${START_PERKS.face.replacement}로 교체`
-    if (boostedFace) faceLabel = `, 유료 재굴림으로 눈 +${faceBonus}`
+    if (oathFace) faceLabel = `, 공격에 놓으면 +${START_PERKS.oath.bonus}`
     if (fixed) faceLabel += `, ${fixed === 'lock' ? '잠김' : '얼림'}, 재굴림 불가`
     if (sealed) faceLabel += ', 봉인되어 0으로 계산'
     button.setAttribute('aria-label', `주사위 ${index + 1}, ${value}, ${place}${faceLabel}`)
@@ -298,13 +310,14 @@ function refreshDice(battle: YachtBattle) {
   }
 
   const { attack, guard, escort } = allocationTotals(battle)
-  ui.attackTotal.textContent = String(attackPower(intent, attack + yachtAttackBonus(battle)))
-  ui.guardTotal.textContent = String(guard)
+  const bonuses = yachtSlotBonuses(battle)
+  ui.attackTotal.textContent = String(attackPower(respondingIntent(intent, attack), attack + (bonuses?.attack ?? 0)))
+  ui.guardTotal.textContent = String(guard + (bonuses?.guard ?? 0))
   ui.escortSlot.hidden = !battle.escort
   ui.escortSlot.parentElement!.classList.toggle('has-escort', Boolean(battle.escort))
   ui.escortHp.textContent = String(battle.escort?.hp ?? 0)
   ui.assign.escort.setAttribute('aria-label', `호위 공격, 호위 체력 ${battle.escort?.hp ?? 0}`)
-  ui.escortTotal.textContent = String(escort)
+  ui.escortTotal.textContent = String(escort + (bonuses?.escort ?? 0))
   const canPlace = planning && selected.size > 0
   const rerollable = [...selected].filter((index) => canReroll(battle, index))
   ui.assign.pool.disabled = !canPlace || ![...selected].some((index) => battle.slots[index] !== null)
@@ -315,10 +328,10 @@ function refreshDice(battle: YachtBattle) {
   ui.reroll.disabled = !rerollable.length || rerollCost === null || rerollCost >= battle.playerHp
   const freeRolls = Number(rerollCost === 0)
   ui.rerollCount.innerHTML = rerollCost
-    ? `<span>+${faceBonus} <small>≤${faceCap}</small></span><span>${icon('heart')} −${rerollCost}</span>`
+    ? `<span>${icon('heart')} −${rerollCost}</span>`
     : String(freeRolls)
   ui.reroll.setAttribute('aria-label', rerollCost
-    ? `다시 굴리기, 눈 +${faceBonus}, 최대 ${faceCap}, 체력 ${rerollCost} 소모`
+    ? `다시 굴리기, 체력 ${rerollCost} 소모`
     : `다시 굴리기 ${freeRolls}회`)
   ui.reroll.title = '다시 굴리기'
   ui.extraReroll.hidden = !battle.extraRerollAvailable && !battle.extraRerollSpent
@@ -341,6 +354,7 @@ function hitNumbers(hits: readonly number[]) {
 }
 
 function renderIntent(battle: YachtBattle) {
+  const escortBonus = yachtSlotBonuses(battle)?.escort
   const { phase } = battle
   ui.intent.hidden = phase === 'won' || phase === 'lost'
   if (phase === 'counter') {
@@ -348,7 +362,7 @@ function renderIntent(battle: YachtBattle) {
     ui.intent.setAttribute('aria-label', '정확 방어')
   } else if (phase === 'assign') {
     const intent = enemyIntentAt(battle)
-    const charge = chargedStrikePreview(battle)
+    const charge = chargedStrikePreview(battle, escortBonus)
     if (charge) {
       const { threshold, totalDamage, weakened } = charge
       ui.intent.innerHTML = `<span>${icon('charge')}<strong>${totalDamage}</strong></span><span class="intent-detail${weakened ? ' active-intent' : ''}">${icon('break-charge')}${threshold}</span>`
@@ -363,7 +377,7 @@ function renderIntent(battle: YachtBattle) {
       return
     }
     const mechanic = intent.mechanic
-    const { hits } = incomingAttack(battle)
+    const { hits } = incomingAttack(battle, escortBonus)
     let primary = hits.length ? `${icon(intent.id === 'critical' ? 'critical' : 'sword')}<strong>${hitNumbers(hits)}</strong>` : ''
     let label = hits.length ? `${intent.name} 피해 ${hits.join(', ')}` : intent.name
     let detail = ''
@@ -462,9 +476,30 @@ function wait(milliseconds: number): Promise<void> {
   return new Promise((finish) => window.setTimeout(finish, milliseconds))
 }
 
+function renderActivePerk(battle: YachtBattle) {
+  const { perk } = battle
+  ui.activePerk.hidden = !perk
+  if (!perk) return
+  const { name, icon: symbol } = START_PERKS[perk.kind]
+  let value: string
+  switch (perk.kind) {
+    case 'shield': value = `+${perk.bonus}`; break
+    case 'blade': value = `${perk.charge}/${START_PERKS.blade.threshold}`; break
+    case 'collector': value = `+${collectorBonus(perk.hands)}`; break
+    case 'reroll': value = battle.paidRerollSpent ? '0' : '+1'; break
+    case 'oath': value = `${parityLabels[perk.parity]} +${START_PERKS.oath.bonus}`; break
+    case 'counter': value = `+${perk.growth}`; break
+  }
+  const ready = perk.kind === 'blade' && perk.charge >= START_PERKS.blade.threshold
+  ui.activePerk.classList.toggle('perk-ready', ready)
+  ui.activePerk.innerHTML = `${icon(symbol)}<strong>${value}</strong>`
+  ui.activePerk.setAttribute('aria-label', `${name} ${value}, ${perkDisplay[perk.kind].label}`)
+  ui.activePerk.title = name
+}
+
 function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   if (!ascent) return
-  const { battle, fight, enemy, perk, maxHp, unlocks, newUnlock } = ascent
+  const { battle, fight, enemy, maxHp, unlocks, newUnlock } = ascent
   const { phase, turn, playerHp, enemyHp } = battle
   const between = phase === 'won' && fight < FIGHT_COUNT
   const finished = phase === 'lost' || (phase === 'won' && !between)
@@ -478,12 +513,7 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.encounter.hidden = !inCombat
   ui.fight.hidden = !inCombat
   ui.fight.textContent = `${fight}/${FIGHT_COUNT} 층`
-  ui.activePerk.hidden = !perk
-  if (perk) {
-    ui.activePerk.innerHTML = icon(perkDisplay[perk].icon)
-    ui.activePerk.setAttribute('aria-label', START_PERKS[perk].label)
-    ui.activePerk.title = perkDisplay[perk].name
-  }
+  renderActivePerk(battle)
   ui.turn.hidden = !inCombat
   ui.turn.innerHTML = `${icon('turn')}${turn}`
   ui.turn.setAttribute('aria-label', `${turn}턴`)
@@ -540,31 +570,56 @@ function showPerks(focus: boolean) {
   ui.turn.hidden = true
   ui.perks.hidden = false
   const seed = fixedSeed ?? crypto.getRandomValues(new Uint32Array(1))[0]
-  const buttons = offerPerks(seed).map((perk) => {
-    const { label } = START_PERKS[perk]
-    const display = perkDisplay[perk]
-    const button = document.createElement('button')
-    button.type = 'button'
-    button.className = 'perk-choice'
-    button.innerHTML = `
-      <span class="perk-symbol">${icon(display.icon)}</span>
-      <span class="perk-name">${display.name}</span>
-      <strong class="perk-value">${display.value}</strong>
-      <span class="perk-detail">${'detail' in display ? display.detail : ''}</span>
-    `
-    const devil = START_PERKS.reroll
-    button.setAttribute('aria-label', perk === 'reroll'
-      ? `${label}, 무료 재굴림 후 눈 +${devil.faceBonus}, 최대 ${devil.faceCap}. 체력 ${firstPaidRerollCost} 소모, 유료 사용 ${devil.rollsPerCost}회마다 비용 +1.`
-      : `${display.name}, ${label}`)
+  const offers = offerPerks(seed)
+  const begin = (perk: keyof typeof START_PERKS, parity?: Parity) => {
+    ascent = beginAscent(seed, perk, parity)
+    render()
+    focusPhase()
+  }
+  const buttons = offers.map((perk) => {
+    const { name, icon: symbol } = START_PERKS[perk]
+    const { label, value, detail } = perkDisplay[perk]
+    const button = perkButton(symbol, name, value, detail)
+    button.setAttribute('aria-label', `${name}, ${label}`)
     button.addEventListener('click', () => {
-      ascent = beginAscent(seed, perk)
-      render()
-      focusPhase()
+      if (perk !== 'oath') {
+        begin(perk)
+        return
+      }
+      const parityButtons = (['odd', 'even'] as const).map((parity) => {
+        const choice = perkButton(symbol, name, parityLabels[parity], `${icon('sword')} ${value}`)
+        choice.setAttribute('aria-label', `${name}, ${parity === 'odd' ? '홀수' : '짝수'}`)
+        choice.addEventListener('click', () => begin(perk, parity))
+        return choice
+      })
+      const back = document.createElement('button')
+      back.type = 'button'
+      back.innerHTML = icon('return')
+      back.setAttribute('aria-label', '시작 특전으로 돌아가기')
+      back.addEventListener('click', () => {
+        ui.perkChoices.replaceChildren(...buttons)
+        button.focus()
+      })
+      ui.perkChoices.replaceChildren(...parityButtons, back)
+      parityButtons[0].focus()
     })
     return button
   })
   ui.perkChoices.replaceChildren(...buttons)
   if (focus) buttons[0].focus()
+}
+
+function perkButton(symbol: string, name: string, value: string, detail: string) {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'perk-choice'
+  button.innerHTML = `
+    <span class="perk-symbol">${icon(symbol)}</span>
+    <span class="perk-name">${name}</span>
+    <strong class="perk-value">${value}</strong>
+    <span class="perk-detail">${detail}</span>
+  `
+  return button
 }
 
 function place(indices: readonly number[], zone: DropZone) {
@@ -632,6 +687,7 @@ ui.counter.addEventListener('click', async () => {
   if (!reward) return
 
   const animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (next.perk?.kind === 'counter') renderActivePerk(next)
   await roulette.reveal(reward, animate)
   if (animate) {
     arena.counterStrike(reward.joint)

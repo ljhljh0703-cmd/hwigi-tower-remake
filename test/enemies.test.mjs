@@ -5,6 +5,7 @@ import {
   assignDie, chargedStrikePreview, dieFaceForSlot, draw, enemyIntentAt, incomingAttack, PLAYER_HP, roll,
 } from '../src/combat.ts'
 import { ASCENT_ENEMIES, enemyForFight } from '../src/enemy-roster.ts'
+import { startPerk } from '../src/perks.ts'
 import {
   forecastYacht, rerollYachtDice, resolveYachtTurn, spendExtraReroll, spinYachtCounter, startYachtBattle,
 } from '../src/yacht-combat.ts'
@@ -26,8 +27,8 @@ function resolve(battle, dice, slots) {
 test('a seed fixes all three encounters independently of the perk and reaches all twelve roster pairs', () => {
   const pairs = new Set()
   for (let seed = 0; seed < 512; seed++) {
-    const first = beginAscent(seed, 'attack')
-    const second = beginAscent(seed, 'health')
+    const first = beginAscent(seed, 'blade')
+    const second = beginAscent(seed, 'shield')
     const advance = (run) => nextAscentFight({ ...run, battle: { ...run.battle, phase: 'won' } })
     assert.equal(first.enemy, second.enemy)
     assert.equal(advance(first).enemy, advance(second).enemy)
@@ -59,23 +60,23 @@ test('lock marks precisely the lowest opening die after counter and lasts one tu
   assert.equal(next.fixedDie, undefined)
 })
 
-test('freeze fixes a 1 even with the face perk and blocks free, paid and unlocked rerolls', () => {
-  const battle = start('freeze', { turn: 2, perk: 'face', extraRerollAvailable: true })
+test('freeze fixes a 1 and blocks free, paid and unlocked rerolls', () => {
+  const battle = start('freeze', { turn: 2, perk: startPerk('reroll'), extraRerollAvailable: true })
   const frozen = resolve(battle, [4, 4, 4], attack)
   const { index } = frozen.fixedDie
   assert.equal(frozen.dice[index], 1)
   assert.equal(rerollYachtDice(frozen, [index]), frozen)
   const rerolled = rerollYachtDice(frozen, [0])
   assert.equal(spendExtraReroll(rerolled, index), rerolled)
-  const paid = { ...rerolled, perk: 'reroll' }
-  assert.equal(rerollYachtDice(paid, [index]), paid)
+  assert.equal(rerollYachtDice(rerolled, [index]), rerolled)
   assert.equal(forecastYacht(frozen, frozen.dice.map((_, die) => die === index ? 'attack' : 'guard')).dealt, 1)
 })
 
 test('rage adds two to the attack as a whole on any reroll and resets next turn', () => {
-  const battle = start('rage', { turn: 2, perk: 'reroll' })
+  const battle = start('rage', { turn: 2, perk: startPerk('reroll') })
   const first = rerollYachtDice(battle, [0])
   const paid = rerollYachtDice(first, [0])
+  assert.equal(paid.playerHp, first.playerHp - 1)
   assert.equal(incomingAttack(first).totalDamage, incomingAttack(battle).totalDamage + 2)
   assert.equal(incomingAttack(paid).totalDamage, incomingAttack(first).totalDamage)
   assert.equal(incomingAttack(resolve(first, [5, 6, 6], guard)).totalDamage, 8)

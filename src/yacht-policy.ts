@@ -1,7 +1,7 @@
 import { allocationTotals, attackFor, chargedStrikePreview, enemyIntentAt, incomingAttack } from './combat.ts'
 import type { Slot } from './combat.ts'
 import { adaptAndReroll, expectedReward } from './simulate.ts'
-import { canReroll, classifyYachtHand, forecastYacht, yachtCounterRewards } from './yacht-combat.ts'
+import { canReroll, classifyYachtHand, forecastYacht, yachtCounterRewards, yachtSlotBonuses } from './yacht-combat.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 
 export const yachtPolicies = ['adaptive', 'attackHand', 'guardHand'] as const
@@ -26,8 +26,8 @@ function allocationScore(battle: YachtBattle, plan: readonly Slot[], damageWeigh
   const { dealt, damage, counter, escortDealt, chargeBroken } = forecastYacht(battle, plan)
   if (damage >= battle.playerHp) return -1000 + dealt
   if (dealt >= battle.enemyHp) return 1000
-  const expectedCounter = counter ? expectedReward(battle.enemyHp - dealt, yachtCounterRewards(battle, plan)) : 0
-  const charge = chargeBroken ? chargedStrikePreview({ ...battle, slots: plan }) : null
+  const expectedCounter = counter ? expectedReward(battle.enemyHp - dealt, yachtCounterRewards(battle)) : 0
+  const charge = chargeBroken ? chargedStrikePreview({ ...battle, slots: plan }, yachtSlotBonuses(battle, plan)?.escort) : null
   const chargeValue = charge ? charge.fullDamage - charge.totalDamage : 0
   return dealt + escortDealt * 0.85 + expectedCounter + chargeValue - damage * damageWeight
 }
@@ -85,12 +85,16 @@ export function chooseAllocation(battle: YachtBattle, policy: YachtPolicy, damag
     const target = attackFor(battle, enemyIntentAt(battle)).totalDamage
     let best: readonly Slot[] = []
     let bestCost = Infinity
+    let bestBonus = -Infinity
     for (const plan of allocations[battle.dice.length - 2]) {
-      const { guard } = allocationTotals(battle, plan)
+      const bonuses = yachtSlotBonuses(battle, plan)
+      const guard = allocationTotals(battle, plan).guard + (bonuses?.guard ?? 0)
       const cost = guard >= target ? guard - target : 1 + 6 * battle.dice.length + target - guard
-      if (cost < bestCost) {
+      const bonus = bonuses?.attack ?? 0
+      if (cost < bestCost || (cost === bestCost && bonus > bestBonus)) {
         best = plan
         bestCost = cost
+        bestBonus = bonus
       }
     }
     return best
@@ -118,6 +122,13 @@ export function chooseReroll(battle: YachtBattle, policy: YachtPolicy, extra: bo
     indices = [...new Set([...indices, ...battle.dice.flatMap((face, index) => face === mechanic.value ? [index] : [])])]
   }
   indices = indices.filter((index) => canReroll(battle, index))
+  const perk = battle.perk?.kind
+  if (perk === 'shield' || perk === 'counter' || (perk === 'reroll' && battle.rerolled)) {
+    const plan = chooseAllocation(battle, policy)
+    if (forecastYacht(battle, plan).counter) {
+      indices = indices.filter((index) => plan[index] !== 'guard')
+    }
+  }
   if (mechanic?.kind === 'rage' && !battle.rerolled && indices.length) {
     const current = allocationScore(battle, chooseAllocation(battle, policy))
     const improvedDice = battle.dice.map((face, index) => indices.includes(index) ? 4 : face)
@@ -135,7 +146,7 @@ export function countYachtTradeoffs(battle: YachtBattle): number {
     const { dealt, damage, counter } = forecastYacht(battle, plan)
     return {
       lost: damage,
-      dealt: dealt + (counter ? expectedReward(battle.enemyHp - dealt, yachtCounterRewards(battle, plan)) : 0),
+      dealt: dealt + (counter ? expectedReward(battle.enemyHp - dealt, yachtCounterRewards(battle)) : 0),
     }
   }).filter((plan) => plan.lost < battle.playerHp)
 

@@ -1,6 +1,6 @@
 import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from '../src/ascent.ts'
 import { assignDie } from '../src/combat.ts'
-import { offerPerks, START_PERKS } from '../src/perks.ts'
+import { offerPerks, pickOfferedPerk, START_PERKS } from '../src/perks.ts'
 import {
   rerollYachtDice, spendExtraReroll, spinYachtCounter,
 } from '../src/yacht-combat.ts'
@@ -50,23 +50,17 @@ const results = new Map(perks.map((perk) => {
 
 let completed = 0
 for (const seed of seeds) {
-  let best
-  let bestScore = -1
-  for (const perk of offerPerks(seed)) {
-    const result = results.get(perk)
-    result.offered++
-    // Rank by completions on the other 511 seeds. Keep offer order on ties.
-    const score = result.fightWins[2] - Number(result.wins[seed] === FIGHT_COUNT)
-    if (score > bestScore) {
-      bestScore = score
-      best = result
-    }
-  }
-  best.picked++
-  completed += Number(best.wins[seed] === FIGHT_COUNT)
+  for (const perk of offerPerks(seed)) results.get(perk).offered++
+  const perk = pickOfferedPerk(seed, (candidate) => {
+    const { fightWins, wins } = results.get(candidate)
+    return fightWins[2] - Number(wins[seed] === FIGHT_COUNT)
+  })
+  const result = results.get(perk)
+  result.picked++
+  completed += Number(result.wins[seed] === FIGHT_COUNT)
 }
 
 for (const [perk, { fightWins, offered, picked }] of results) {
   console.log(JSON.stringify({ perk, seeds: seeds.length, fightWins, offered, picked }))
 }
-console.log(JSON.stringify({ chooser: 'leave-one-seed-out', seeds: seeds.length, completed }))
+console.log(JSON.stringify({ chooser: 'weighted-leave-one-seed-out', seeds: seeds.length, completed }))

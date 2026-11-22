@@ -1,39 +1,57 @@
-import { draw } from './combat.ts'
-
-const devilFaceBonus = 1
-const faceReplacement = 5
-const pairDamage = 23
-const pairSlots = 4
-const attackDamage = 2
-const wheelDamage = 9
-const healthBonus = 2
+import { COUNTER_REWARDS, draw } from './combat.ts'
+import type { CounterReward } from './combat.ts'
 
 export const START_PERKS = {
-  reroll: {
-    rollsPerCost: 3, faceBonus: devilFaceBonus, faceCap: 6,
-    icon: `⛧+${devilFaceBonus}`, label: '악마의 주사위',
-  },
-  face: {
-    replacement: faceReplacement, icon: `⚀→${'①②③④⑤⑥'[faceReplacement - 1]}`,
-    label: `첫 주사위의 1면을 ${faceReplacement}로`,
-  },
-  pair: {
-    reward: { damage: pairDamage, joint: false }, slots: pairSlots,
-    icon: `⛨⛨ · ◎+${pairSlots}`, label: `같은 눈 둘로 정확 방어하면 룰렛에 피해 ${pairDamage} 칸 ${pairSlots}개 추가`,
-  },
-  attack: { damage: attackDamage, icon: `⚔︎+${attackDamage}`, label: `매 전투 첫 턴에 공격하면 피해 +${attackDamage}` },
-  wheel: {
-    reward: { damage: wheelDamage, joint: false }, icon: `◎ 1→${wheelDamage}`,
-    label: `일반 룰렛의 피해 1 칸을 ${wheelDamage}로`,
-  },
-  health: { bonus: healthBonus, icon: `♥+${healthBonus}`, label: `시작 체력 +${healthBonus}` },
+  shield: { step: 5, name: '방패 저금', icon: 'parry' },
+  blade: { threshold: 15, multiplier: 2, name: '큰 칼', icon: 'sword' },
+  collector: { initial: 0, step: 1, name: '족보 수집가', icon: 'pair' },
+  reroll: { cost: 1, name: '악마의 재굴림', icon: 'devil-die' },
+  oath: { bonus: 3, name: '홀짝 서약', icon: 'die' },
+  counter: { step: 5, name: '역습 표식', icon: 'wheel' },
 } as const
 
 export type StartPerk = keyof typeof START_PERKS
+export type Parity = 'odd' | 'even'
+export type CollectedHand = 'pair' | 'triple' | 'four' | 'straight'
+
+export type PerkState =
+  | { readonly kind: 'shield'; readonly bonus: number }
+  | { readonly kind: 'blade'; readonly charge: number }
+  | { readonly kind: 'collector'; readonly hands: readonly CollectedHand[] }
+  | { readonly kind: 'reroll' }
+  | { readonly kind: 'oath'; readonly parity: Parity }
+  | { readonly kind: 'counter'; readonly rewards: readonly CounterReward[]; readonly growth: number }
+
+export function startPerk(perk: StartPerk | undefined, parity: Parity = 'odd'): PerkState | undefined {
+  switch (perk) {
+    case 'shield': return { kind: perk, bonus: 0 }
+    case 'blade': return { kind: perk, charge: 0 }
+    case 'collector': return { kind: perk, hands: [] }
+    case 'reroll': return { kind: perk }
+    case 'oath': return { kind: perk, parity }
+    case 'counter': return { kind: perk, rewards: COUNTER_REWARDS, growth: 0 }
+  }
+}
+
+export function collectorBonus(hands: readonly CollectedHand[]): number {
+  return START_PERKS.collector.initial + hands.length * START_PERKS.collector.step
+}
 
 export function offerPerks(seed: number): readonly StartPerk[] {
   const remaining = Object.keys(START_PERKS) as StartPerk[]
   return Array.from({ length: 3 }, (_, index) =>
     remaining.splice(draw(seed, 0, index) % remaining.length, 1)[0],
   )
+}
+
+export function pickOfferedPerk(seed: number, completion: (perk: StartPerk) => number): StartPerk {
+  const offers = offerPerks(seed)
+  const weights = offers.map(completion)
+  const total = weights.reduce((sum, weight) => sum + weight, 0)
+  let ticket = draw(seed, 0, 20) / 0x100000000 * (total || offers.length)
+  for (const [index, perk] of offers.entries()) {
+    ticket -= total ? weights[index] : 1
+    if (ticket < 0) return perk
+  }
+  return offers[offers.length - 1]
 }
