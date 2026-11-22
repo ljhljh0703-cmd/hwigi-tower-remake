@@ -98,8 +98,8 @@ const perkDisplay = {
     label: `공격에 놓은 눈이 ${START_PERKS.blade.threshold} 쌓이면 → 다음 공격 ${START_PERKS.blade.multiplier}배 (쓰거나 전투가 바뀌면 0)`,
   },
   collector: {
-    value: '+N', detail: `${icon('die')}=${icon('die')}`,
-    label: `같은 눈 2개 이상인 칸 → +N (새 족보 첫 사용마다 N+${START_PERKS.collector.step}, 최대 ${START_PERKS.collector.maximum})`,
+    value: `+${START_PERKS.collector.initial}~${START_PERKS.collector.maximum}`, detail: `${icon('die')}=${icon('die')}`,
+    label: `같은 눈 2개 이상인 칸에 보너스. 처음 ${START_PERKS.collector.initial}, 새 족보(트리플·스트레이트 등) 첫 사용마다 +${START_PERKS.collector.step} (최대 +${START_PERKS.collector.maximum})`,
   },
   reroll: {
     value: '+1', detail: `${icon('heart')} −${START_PERKS.reroll.cost}`,
@@ -111,7 +111,7 @@ const perkDisplay = {
   },
   counter: {
     value: `+${START_PERKS.counter.step}`, detail: `${icon('parry')}${icon('wheel')}`,
-    label: `정확히 막고 룰렛을 돌릴 때마다 → 가장 낮은 일반 반격 칸 하나 +${START_PERKS.counter.step} (등반 내내 누적)`,
+    label: `정확히 막아 룰렛을 돌릴 때마다 → 아이콘 없는 칸 중 가장 작은 숫자 +${START_PERKS.counter.step} (계속 쌓임)`,
   },
 } as const
 
