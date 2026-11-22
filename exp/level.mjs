@@ -16,7 +16,7 @@ function wantsReroll(battle) {
   return forecastYacht(battle, battle.dice.map(() => 'attack')).dealt < battle.enemyHp
 }
 
-export function playAscent(seed, perk, variant = 'devil') {
+export function playAscent(seed, perk, variant = 'devil', observeTurn) {
   let ascent = beginAscent(seed, perk)
   let wins = 0
   let extraRolls = 0
@@ -71,7 +71,8 @@ export function playAscent(seed, perk, variant = 'devil') {
           nonFinishingFewChoices += Number(!canFinish)
         }
       }
-      const resolved = resolveAscentTurn({ ...ascent, battle: { ...battle, slots } })
+      const planning = { ...battle, slots }
+      const resolved = resolveAscentTurn({ ...ascent, battle: planning })
       const remainingFights = FIGHT_COUNT - fight + Number(resolved.battle.phase !== 'won')
       if (!ascent.unlocks.includes('triple') && resolved.battle.phase !== 'lost' && remainingFights > 0) {
         tripleLandmarks.push({
@@ -79,6 +80,7 @@ export function playAscent(seed, perk, variant = 'devil') {
         })
       }
       ascent = { ...resolved, battle: spinYachtCounter(resolved.battle) }
+      observeTurn?.(fight, planning, ascent)
     }
     if (ascent.battle.phase === 'lost') break
     if (ascent.battle.phase !== 'won') throw new Error(`Unfinished fight: ${seed}, ${perk}, ${fight}`)

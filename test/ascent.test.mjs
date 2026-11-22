@@ -242,6 +242,36 @@ test('the same seed and perk produce the same ascent and reroll costs', () => {
   }
 })
 
+test('replaying the same seed reproduces the entire three-fight ascent through boss knockdown', () => {
+  function replay() {
+    const turns = []
+    const result = playAscent(220, 'health', 'devil', (fight, planning, resolved) => {
+      turns.push({ fight, planning, resolved })
+    })
+    return { result, turns }
+  }
+
+  const first = replay()
+  assert.equal(first.result.wins, FIGHT_COUNT)
+  assert.deepEqual(first.result.fightTurns, [3, 4, 4])
+  assert.deepEqual(first.turns.filter(({ fight }) => fight === 3).map(({ planning }) => intentOf(planning)),
+    ['combo', 'charge', 'critical', 'knockdown'])
+  assert.equal(first.turns.at(-1).resolved.battle.phase, 'won')
+  assert.deepEqual(replay(), first)
+})
+
+test('each charged strike is at least four damage above any other intent after unlock scaling', () => {
+  for (const [enemy, period] of [[ASCENT_ENEMIES[1], 4], [ASCENT_ENEMIES[2], 5]]) {
+    for (const unlocks of [0, 1, 2]) {
+      const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, enemy, unlocks)
+      const turns = Array.from({ length: period }, (_, index) => ({ ...start, turn: index + 1 }))
+      const critical = turns.find((battle) => intentOf(battle) === 'critical')
+      const otherDamage = turns.filter((battle) => battle !== critical).map((battle) => incomingAttack(battle).totalDamage)
+      assert.ok(incomingAttack(critical).totalDamage >= Math.max(...otherDamage) + 4)
+    }
+  }
+})
+
 test('the second enemy and boss charge without dealing damage or opening a roulette', () => {
   for (const [enemy, turn] of [[ASCENT_ENEMIES[1], 3], [ASCENT_ENEMIES[2], 2]]) {
     const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, enemy, 1)
@@ -273,7 +303,7 @@ test('the boss takes multiplied attack damage during knockdown and skips its att
 
 test('exact guard on a boss critical opens the seeded roulette before knockdown', () => {
   const enemy = ASCENT_ENEMIES[2]
-  const start = startYachtBattle(42, PLAYER_HP, true, false, undefined, enemy)
+  const start = startYachtBattle(42, PLAYER_HP, true, false, undefined, enemy, 1)
   const critical = { ...start, turn: 3 }
   const { totalDamage } = incomingAttack(critical)
   const guard = [6, 6, 6, 6].map((face, index) => Math.max(0, Math.min(face, totalDamage - 6 * index)))
