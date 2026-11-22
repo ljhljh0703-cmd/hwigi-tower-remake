@@ -33,7 +33,7 @@ export class CounterRoulette {
     })
     this.wheel.replaceChildren(...this.labels)
     const segments = rewards.map((_, index) =>
-      `${shades[index]} ${index * this.degreesPerSlot}deg ${(index + 1) * this.degreesPerSlot}deg`,
+      `${shades[index % shades.length]} ${index * this.degreesPerSlot}deg ${(index + 1) * this.degreesPerSlot}deg`,
     )
     this.wheel.style.background = `conic-gradient(from -${this.degreesPerSlot / 2}deg, ${segments.join(', ')})`
     const labels = rewards.map(({ damage, joint }) => joint ? `합공 ${damage}` : String(damage))

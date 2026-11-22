@@ -56,7 +56,9 @@ function fightEnemy(start: YachtBattle, policy: YachtPolicy): YachtFight {
   return { start, end: battle, turns }
 }
 
-export function simulateYacht(seed: number, enabled: readonly Hand[], policy: YachtPolicy) {
+// The legacy two-fight experiment applies unlocks between fights to preserve its original comparison.
+// The live ascent applies unlocks during the fight in resolveAscentTurn.
+export function simulateLegacyYacht(seed: number, enabled: readonly Hand[], policy: YachtPolicy) {
   const first = fightEnemy(startYachtBattle(seed, PLAYER_HP, false, false), policy)
   const unlocks = new Map<Hand, Unlock>()
   const recordUnlocks = (fight: 1 | 2, battle: YachtFight) => {

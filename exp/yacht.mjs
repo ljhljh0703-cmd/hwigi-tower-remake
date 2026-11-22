@@ -1,5 +1,5 @@
 import { yachtPolicies } from '../src/yacht-policy.ts'
-import { simulateYacht, yachtVariants } from '../src/yacht-simulate.ts'
+import { simulateLegacyYacht, yachtVariants } from '../src/yacht-simulate.ts'
 
 const seeds = 512
 const emptyTurnCounts = () => ({ total: 0, guardThree: 0, atMostOneChoice: 0 })
@@ -18,7 +18,7 @@ for (const [variant, enabled] of Object.entries(yachtVariants)) {
       rouletteSpins: 0,
     }
     for (let seed = 0; seed < seeds; seed += 1) {
-      const { first, second, unlocks } = simulateYacht(seed, enabled, policy)
+      const { first, second, unlocks } = simulateLegacyYacht(seed, enabled, policy)
       if (first.end.phase === 'won') counts.firstWins += 1
       if (second) {
         counts.secondEntered += 1

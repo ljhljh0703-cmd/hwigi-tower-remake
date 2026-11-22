@@ -1,7 +1,8 @@
 import {
   COUNTER_REWARDS, DIE_COUNT, draw, forecast, openTurn, PLAYER_HP, rerollChannels, roll, spinCounter, startBattle,
 } from './combat.ts'
-import type { Battle, Slot } from './combat.ts'
+import type { Battle, Enemy, Slot } from './combat.ts'
+import { START_PERKS } from './perks.ts'
 import type { StartPerk } from './perks.ts'
 
 export type Hand = 'triple' | 'straight'
@@ -15,16 +16,21 @@ export interface YachtBattle extends Battle {
   readonly extraRerollAvailable: boolean
   readonly extraRerollSpent?: true
   readonly perk?: StartPerk
-  readonly perkRerolled?: boolean
+  readonly devilRerolls?: number
+  readonly devilBoostedDice?: readonly number[]
+  readonly fourthDieUnlocked?: true
 }
 
 const FOURTH_DIE_CHANNEL = 8
 const basicRerollChannels = [...rerollChannels, 9]
 const EXTRA_REROLL_CHANNEL = 10
-const perkRerollChannels = [11, 12, 13, 14]
-const upgradedSlot = { damage: 5, joint: false }
-const pairRewards = [...COUNTER_REWARDS.slice(0, 4), upgradedSlot, ...COUNTER_REWARDS.slice(4)]
-const upgradedRewards = [upgradedSlot, ...COUNTER_REWARDS.slice(1)]
+const FIRST_DEVIL_CHANNEL = 11
+const pairRewards = [
+  ...COUNTER_REWARDS.slice(0, 4),
+  ...Array.from({ length: START_PERKS.pair.slots }, () => START_PERKS.pair.reward),
+  ...COUNTER_REWARDS.slice(4),
+]
+const upgradedRewards = [START_PERKS.wheel.reward, ...COUNTER_REWARDS.slice(1)]
 
 export function classifyHand(faces: readonly number[]): Hand | null {
   if (faces.length !== DIE_COUNT || faces.some((face) => !Number.isInteger(face) || face < 1 || face > 6)) return null
@@ -36,26 +42,49 @@ export function classifyHand(faces: readonly number[]): Hand | null {
 
 function rollYachtDie(battle: YachtBattle, index: number, channel: number): number {
   const face = roll(battle.seed, battle.turn, channel)
-  return battle.perk === 'face' && index === 0 && face === 1 ? 4 : face
+  return battle.perk === 'face' && index === 0 && face === 1 ? START_PERKS.face.replacement : face
 }
 
-function openYachtDice(battle: YachtBattle, fourthDie: boolean): YachtBattle {
-  const dice = [...battle.dice]
-  if (battle.perk === 'face' && dice[0] === 1) dice[0] = 4
-  if (fourthDie) dice.push(rollYachtDie(battle, DIE_COUNT, FOURTH_DIE_CHANNEL))
+function addFourthDie(battle: YachtBattle): YachtBattle {
   return {
     ...battle,
-    dice,
-    slots: fourthDie ? [...battle.slots, null] : battle.slots,
-    ...(battle.perk === 'reroll' && { perkRerolled: false }),
+    dice: [...battle.dice, rollYachtDie(battle, DIE_COUNT, FOURTH_DIE_CHANNEL)],
+    slots: [...battle.slots, null],
   }
+}
+
+function openYachtDice(battle: YachtBattle): YachtBattle {
+  const dice = [...battle.dice]
+  if (battle.perk === 'face' && dice[0] === 1) dice[0] = START_PERKS.face.replacement
+  const next = {
+    ...battle,
+    dice,
+    ...(battle.perk === 'reroll' && { devilRerolls: 0, devilBoostedDice: [] }),
+  }
+  return next.fourthDieUnlocked ? addFourthDie(next) : next
 }
 
 export function startYachtBattle(
   seed: number, playerHp: number, fourthDie: boolean, extraReroll: boolean, perk?: StartPerk,
+  enemy?: Enemy, enemyAttackBuff = 0,
 ): YachtBattle {
-  const battle = { ...startBattle(seed), playerHp, extraRerollAvailable: extraReroll, ...(perk && { perk }) }
-  return openYachtDice(battle, fourthDie)
+  const battle: YachtBattle = {
+    ...startBattle(seed, enemy?.intents),
+    playerHp,
+    ...(enemy && { enemyHp: enemy.hp, enemyAttackGrowth: enemy.attackGrowth }),
+    enemyAttackBuff,
+    extraRerollAvailable: extraReroll,
+    ...(perk && { perk }),
+    ...(fourthDie && { fourthDieUnlocked: true }),
+  }
+  return openYachtDice(battle)
+}
+
+export function activateYachtHand(battle: YachtBattle, hand: Hand): YachtBattle {
+  if (battle.phase === 'won' || battle.phase === 'lost') return battle
+  if (hand === 'straight') return { ...battle, extraRerollAvailable: true }
+  const unlocked = { ...battle, fourthDieUnlocked: true } as const
+  return battle.phase === 'assign' ? addFourthDie(unlocked) : unlocked
 }
 
 function canReroll(battle: YachtBattle, index: number): boolean {
@@ -63,27 +92,50 @@ function canReroll(battle: YachtBattle, index: number): boolean {
 }
 
 export function rerollYachtDice(battle: YachtBattle, indices: readonly number[]): YachtBattle {
-  if (!remainingYachtRerolls(battle) || !indices.length || !indices.every((index) => canReroll(battle, index))) {
+  const cost = yachtRerollCost(battle)
+  if (cost === null || cost >= battle.playerHp || !indices.length || !indices.every((index) => canReroll(battle, index))) {
     return battle
   }
   const chosen = new Set(indices)
-  const channels = battle.rerolled ? perkRerollChannels : basicRerollChannels
+  const paidRolls = battle.devilRerolls ?? 0
+  const boostedDice = cost > 0 ? new Set(battle.devilBoostedDice) : null
+  const { faceBonus, faceCap } = START_PERKS.reroll
   let drawIndex = 0
-  const dice = battle.dice.map((face, index) => chosen.has(index)
-    ? rollYachtDie(battle, index, channels[drawIndex++])
-    : face)
-  return { ...battle, dice, rerolled: true, ...(battle.rerolled && { perkRerolled: true }) }
+  const dice = battle.dice.map((face, index) => {
+    if (!chosen.has(index)) return face
+    const channel = cost === 0
+      ? basicRerollChannels[drawIndex]
+      : FIRST_DEVIL_CHANNEL + paidRolls * basicRerollChannels.length + drawIndex
+    drawIndex++
+    const rolled = rollYachtDie(battle, index, channel)
+    if (!boostedDice) return rolled
+    const value = Math.min(faceCap, rolled + faceBonus)
+    if (value > rolled) boostedDice.add(index)
+    else boostedDice.delete(index)
+    return value
+  })
+  return {
+    ...battle, dice, playerHp: battle.playerHp - cost, rerolled: true,
+    ...(boostedDice && { devilRerolls: paidRolls + 1, devilBoostedDice: [...boostedDice] }),
+  }
 }
 
-export function remainingYachtRerolls(battle: YachtBattle): number {
-  return Number(!battle.rerolled) + Number(battle.perk === 'reroll' && !battle.perkRerolled)
+export function yachtRerollCost(battle: YachtBattle): number | null {
+  if (battle.phase !== 'assign') return null
+  if (!battle.rerolled) return 0
+  return battle.perk === 'reroll'
+    ? Math.floor((battle.devilRerolls ?? 0) / START_PERKS.reroll.rollsPerCost) + 1
+    : null
 }
 
 export function spendExtraReroll(battle: YachtBattle, index: number): YachtBattle {
   if (!battle.extraRerollAvailable || !battle.rerolled || !canReroll(battle, index)) return battle
   const dice = [...battle.dice]
   dice[index] = rollYachtDie(battle, index, EXTRA_REROLL_CHANNEL)
-  return { ...battle, dice, extraRerollAvailable: false, extraRerollSpent: true }
+  return {
+    ...battle, dice, extraRerollAvailable: false, extraRerollSpent: true,
+    ...(battle.devilBoostedDice && { devilBoostedDice: battle.devilBoostedDice.filter((die) => die !== index) }),
+  }
 }
 
 function usedHand(battle: YachtBattle, dice: readonly number[], slot: Slot): UsedHand | null {
@@ -94,7 +146,7 @@ function usedHand(battle: YachtBattle, dice: readonly number[], slot: Slot): Use
 }
 
 export function yachtAttackBonus(battle: YachtBattle, slots = battle.slots): number {
-  return battle.perk === 'attack' && battle.turn === 1 && slots.includes('attack') ? 4 : 0
+  return battle.perk === 'attack' && battle.turn === 1 && slots.includes('attack') ? START_PERKS.attack.damage : 0
 }
 
 export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = battle.dice) {
@@ -152,12 +204,12 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
   if (playerHp === 0) return { battle: { ...resolved, phase: 'lost' }, hand }
   if (planned.counter) return { battle: { ...resolved, phase: 'counter' }, hand }
   const next = { ...resolved, ...openTurn(battle.seed, battle.turn + 1) }
-  return { battle: openYachtDice(next, battle.dice.length > DIE_COUNT), hand }
+  return { battle: openYachtDice(next), hand }
 }
 
 export function spinYachtCounter(battle: YachtBattle): YachtBattle {
   const spun = spinCounter(battle, yachtCounterRewards(battle))
   if (spun === battle) return battle
   const next = { ...battle, ...spun }
-  return next.turn > battle.turn ? openYachtDice(next, battle.dice.length > DIE_COUNT) : next
+  return next.turn > battle.turn ? openYachtDice(next) : next
 }

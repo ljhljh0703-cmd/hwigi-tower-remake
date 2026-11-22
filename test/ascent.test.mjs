@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from '../src/ascent.ts'
-import { assignDie, COUNTER_REWARDS, draw, ENEMY_HP, PLAYER_HP, roll } from '../src/combat.ts'
+import { ASCENT_ENEMIES, beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from '../src/ascent.ts'
+import { assignDie, COUNTER_REWARDS, draw, incomingAttack, intentOf, PLAYER_HP, roll } from '../src/combat.ts'
 import { offerPerks, START_PERKS } from '../src/perks.ts'
 import {
-  forecastYacht, remainingYachtRerolls, rerollYachtDice, resolveYachtTurn,
-  spendExtraReroll, spinYachtCounter, startYachtBattle, yachtCounterRewards,
+  forecastYacht, rerollYachtDice, resolveYachtTurn, spendExtraReroll, spinYachtCounter,
+  startYachtBattle, yachtCounterRewards, yachtRerollCost,
 } from '../src/yacht-combat.ts'
+import { playAscent } from '../exp/level.mjs'
 
 const seeds = Array.from({ length: 512 }, (_, seed) => seed)
 const allAttack = ['attack', 'attack', 'attack']
@@ -31,22 +32,71 @@ test('a seed offers three distinct perks and all six appear across the sample', 
   assert.deepEqual([...seen].sort(), Object.keys(START_PERKS).sort())
 })
 
-test('the reroll perk grants two regular batches each turn, independently of the unlocked reroll', () => {
+test('devil rolls repeat each cost three times, boost paid batches, and reset each turn', () => {
   let battle = startYachtBattle(42, PLAYER_HP, true, true, 'reroll')
-  assert.equal(remainingYachtRerolls(battle), 2)
+  assert.equal(yachtRerollCost(battle), 0)
   battle = rerollYachtDice(battle, [0, 1, 2, 3])
   assert.deepEqual(battle.dice, [3, 6, 7, 9].map((channel) => roll(42, 1, channel)))
-  assert.equal(remainingYachtRerolls(battle), 1)
-  battle = rerollYachtDice(battle, [0, 1, 2, 3])
-  assert.deepEqual(battle.dice, [11, 12, 13, 14].map((channel) => roll(42, 1, channel)))
-  assert.equal(remainingYachtRerolls(battle), 0)
-  assert.equal(rerollYachtDice(battle, [0]), battle)
+  assert.deepEqual(battle.devilBoostedDice, [])
+  assert.equal(battle.playerHp, PLAYER_HP)
+  const partial = rerollYachtDice(rerollYachtDice(battle, [0, 1]), [1])
+  assert.deepEqual(partial.devilBoostedDice, [0, 1])
+  assert.deepEqual(spendExtraReroll(partial, 0).devilBoostedDice, [1])
+  for (const [paidIndex, cost] of [1, 1, 1, 2, 2, 2].entries()) {
+    const hp = battle.playerHp
+    assert.equal(yachtRerollCost(battle), cost)
+    battle = rerollYachtDice(battle, [0, 1, 2, 3])
+    const firstChannel = 11 + 4 * paidIndex
+    const rolls = [0, 1, 2, 3].map((index) => roll(42, 1, firstChannel + index))
+    assert.deepEqual(battle.dice, rolls.map((face) => Math.min(6, face + 1)))
+    assert.deepEqual([...battle.devilBoostedDice].sort(), rolls.flatMap((face, index) => face < 6 ? [index] : []))
+    assert.equal(battle.playerHp, hp - cost)
+  }
   battle = spendExtraReroll(battle, 3)
   assert.equal(battle.dice[3], roll(42, 1, 10))
-  assert.equal(battle.extraRerollAvailable, false)
-  const next = resolveYachtTurn({ ...battle, slots: [...allAttack, 'attack'] }).battle
-  assert.equal(remainingYachtRerolls(next), 2)
+  assert.equal(battle.playerHp, PLAYER_HP - 9)
+  assert.equal(yachtRerollCost(battle), 3)
+  const next = resolveYachtTurn({ ...battle, dice: [1, 1, 1, 1], slots: [...allAttack, 'attack'] }).battle
+  assert.equal(next.turn, 2)
+  assert.deepEqual(next.devilBoostedDice, [])
+  assert.equal(yachtRerollCost(next), 0)
+  assert.equal(yachtRerollCost(rerollYachtDice(next, [0])), 1)
   assert.equal(next.extraRerollAvailable, false)
+  const guarding = resolveYachtTurn({ ...battle, dice: [6, 6, 1, 1], slots: ['guard', 'guard', 'attack', 'attack'] }).battle
+  assert.equal(guarding.phase, 'counter')
+  const afterCounter = spinYachtCounter(guarding)
+  assert.equal(yachtRerollCost(afterCounter), 0)
+  assert.deepEqual(afterCounter.devilBoostedDice, [])
+})
+
+test('a paid reroll requires more HP than its cost and the other perks have one free batch', () => {
+  const start = startYachtBattle(42, 6, false, false, 'reroll')
+  const basic = rerollYachtDice(start, [0])
+  let paid = basic
+  for (let roll = 0; roll < 3; roll++) paid = rerollYachtDice(paid, [0])
+  for (const hp of [1, 2]) {
+    const low = { ...paid, playerHp: hp }
+    assert.equal(yachtRerollCost(low), 2)
+    assert.equal(rerollYachtDice(low, [0]), low)
+  }
+  assert.equal(rerollYachtDice(paid, [0]).playerHp, 1)
+  for (const indices of [[], [-1], [3], [0.5]]) assert.equal(rerollYachtDice(paid, indices), paid)
+  const ordinary = rerollYachtDice(startYachtBattle(42, 1, false, false, 'face'), [0])
+  assert.equal(ordinary.playerHp, 1)
+  assert.equal(yachtRerollCost(ordinary), null)
+  assert.equal(rerollYachtDice(ordinary, [0]), ordinary)
+})
+
+test('a no-perk ascent starts at base health and carries no perk into the next fight', () => {
+  const ascent = beginAscent(42)
+  assert.equal(ascent.maxHp, PLAYER_HP)
+  assert.equal(ascent.battle.playerHp, PLAYER_HP)
+  const won = play(ascent, [1, 2, 2], allAttack, { enemyHp: 5, playerHp: PLAYER_HP - 3 })
+  const next = nextAscentFight(won)
+  assert.equal(next.fight, 2)
+  assert.equal(next.battle.playerHp, PLAYER_HP - 3)
+  assert.equal(next.battle.perk, undefined)
+  assert.equal(yachtRerollCost(rerollYachtDice(next.battle, [0])), null)
 })
 
 test('the face perk replaces rolled ones only on the first die', () => {
@@ -54,17 +104,17 @@ test('the face perk replaces rolled ones only on the first die', () => {
   const normal = startYachtBattle(seed, PLAYER_HP, false, false)
   const marked = startYachtBattle(seed, PLAYER_HP, false, false, 'face')
   assert.deepEqual(normal.dice.slice(0, 2), [1, 1])
-  assert.deepEqual(marked.dice, [4, 1, normal.dice[2]])
-  assert.deepEqual(rerollYachtDice(marked, [0, 1]).dice, [4, 1, normal.dice[2]])
+  assert.deepEqual(marked.dice, [5, 1, normal.dice[2]])
+  assert.deepEqual(rerollYachtDice(marked, [0, 1]).dice, [5, 1, normal.dice[2]])
 })
 
-test('the exact pair guard perk adds a seventh roulette segment worth five', () => {
-  const seed = seeds.find((value) => draw(value, 1, 4) % 7 === 4)
+test('the exact pair guard perk adds four roulette segments worth 23 each', () => {
+  const seed = seeds.find((value) => draw(value, 1, 4) % 10 === 7)
   const start = startYachtBattle(seed, PLAYER_HP, false, false, 'pair')
   const paired = resolveYachtTurn({ ...start, dice: [6, 6, 1], slots: ['guard', 'guard', 'attack'] }).battle
   assert.equal(paired.phase, 'counter')
-  assert.deepEqual(yachtCounterRewards(paired).map(({ damage }) => damage), [1, 2, 3, 4, 5, 6, 8])
-  assert.deepEqual(spinYachtCounter(paired).lastExchange.counter, { slot: 4, damage: 5, joint: false })
+  assert.deepEqual(yachtCounterRewards(paired).map(({ damage }) => damage), [1, 2, 3, 4, 23, 23, 23, 23, 6, 8])
+  assert.deepEqual(spinYachtCounter(paired).lastExchange.counter, { slot: 7, damage: 23, joint: false })
   const tripleGuard = resolveYachtTurn({ ...start, dice: [4, 4, 4], slots: allGuard }).battle
   assert.equal(tripleGuard.phase, 'counter')
   assert.equal(yachtCounterRewards(tripleGuard), COUNTER_REWARDS)
@@ -73,48 +123,48 @@ test('the exact pair guard perk adds a seventh roulette segment worth five', () 
   assert.equal(yachtCounterRewards(undershot), COUNTER_REWARDS)
 })
 
-test('the attack perk adds four only to an attack on the first turn of each fight', () => {
+test('the attack perk adds two only to an attack on the first turn of each fight', () => {
   const ascent = beginAscent(42, 'attack')
   assert.equal(forecastYacht(ascent.battle, allGuard).dealt, 0)
   const first = play(ascent, [1, 2, 3], ['attack', 'guard', 'guard'])
-  assert.equal(first.battle.lastExchange.dealt, 5)
+  assert.equal(first.battle.lastExchange.dealt, 3)
   const secondTurn = play(first, [1, 2, 3], ['attack', 'guard', 'guard'])
   assert.equal(secondTurn.battle.lastExchange.dealt, 1)
-  const next = nextAscentFight(play(ascent, [1, 2, 3], allAttack, { enemyHp: 10 }))
+  const next = nextAscentFight(play(ascent, [1, 2, 3], allAttack, { enemyHp: 7 }))
   assert.equal(next.fight, 2)
-  assert.equal(play(next, [1, 2, 3], ['attack', 'guard', 'guard']).battle.lastExchange.dealt, 5)
+  assert.equal(play(next, [1, 2, 3], ['attack', 'guard', 'guard']).battle.lastExchange.dealt, 3)
 })
 
-test('the wheel perk replaces the one-damage regular segment with five', () => {
+test('the wheel perk replaces the one-damage regular segment with nine', () => {
   const seed = seeds.find((value) => draw(value, 1, 4) % 6 === 0)
   const start = startYachtBattle(seed, PLAYER_HP, false, false, 'wheel')
   const counter = resolveYachtTurn({ ...start, dice: [4, 4, 4], slots: allGuard }).battle
-  assert.deepEqual(yachtCounterRewards(counter), [{ damage: 5, joint: false }, ...COUNTER_REWARDS.slice(1)])
-  assert.deepEqual(spinYachtCounter(counter).lastExchange.counter, { slot: 0, damage: 5, joint: false })
+  assert.deepEqual(yachtCounterRewards(counter), [{ damage: 9, joint: false }, ...COUNTER_REWARDS.slice(1)])
+  assert.deepEqual(spinYachtCounter(counter).lastExchange.counter, { slot: 0, damage: 9, joint: false })
 })
 
-test('the health perk adds six once and the next fight starts with the carried health', () => {
+test('the health perk adds two once and the next fight starts with the carried health', () => {
   const start = beginAscent(42, 'health')
-  assert.equal(start.maxHp, PLAYER_HP + 6)
+  assert.equal(start.maxHp, PLAYER_HP + 2)
   assert.equal(start.battle.playerHp, start.maxHp)
   const damaged = play(start, [1, 4, 5], ['attack', 'guard', 'guard'])
   const won = play(damaged, [1, 1, 1], allAttack, { enemyHp: 3 })
   const next = nextAscentFight(won)
-  assert.equal(next.battle.playerHp, PLAYER_HP + 3)
+  assert.equal(next.battle.playerHp, PLAYER_HP - 1)
   assert.equal(next.maxHp, start.maxHp)
   assert.equal(next.perk, 'health')
 })
 
-test('three fights use the same enemy and carry health without recovery', () => {
+test('three fights use their own enemy table and carry health without recovery', () => {
   let ascent = beginAscent(42, 'wheel')
   for (let fight = 1; fight <= FIGHT_COUNT; fight++) {
     assert.equal(ascent.fight, fight)
     assert.equal(ascent.battle.playerHp, PLAYER_HP - (fight - 1) * 3)
-    assert.equal(ascent.battle.enemyHp, ENEMY_HP)
-    assert.equal(ascent.battle.enemyIntents, beginAscent(42, 'wheel').battle.enemyIntents)
+    assert.equal(ascent.battle.enemyHp, ASCENT_ENEMIES[fight - 1].hp)
+    assert.equal(ascent.battle.enemyIntents, ASCENT_ENEMIES[fight - 1].intents)
+    assert.equal(ascent.battle.enemyAttackBuff, 0)
     assert.equal(nextAscentFight(ascent), ascent)
-    const damaged = play(ascent, [1, 4, 5], ['attack', 'guard', 'guard'])
-    const won = play(damaged, [1, 2, 2], allAttack, { enemyHp: 5 })
+    const won = play(ascent, [1, 2, 2], allAttack, { enemyHp: 5, playerHp: ascent.battle.playerHp - 3 })
     assert.equal(won.battle.phase, 'won')
     assert.equal(won.battle.playerHp, PLAYER_HP - fight * 3)
     ascent = nextAscentFight(won)
@@ -122,33 +172,78 @@ test('three fights use the same enemy and carry health without recovery', () => 
   }
 })
 
-test('exact-defense hands unlock once and activate only from the next fight', () => {
+test('exact-defense hands take effect on the next planning turn without buffing the current enemy', () => {
   const start = beginAscent(42, 'wheel')
   const triple = play(start, [4, 4, 4], allGuard)
   assert.equal(triple.newUnlock, 'triple')
   assert.equal(triple.battle.phase, 'counter')
-  const straight = play(spin(triple), [3, 4, 5], allGuard)
+  assert.equal(triple.battle.dice.length, 3)
+  assert.equal(triple.battle.enemyAttackBuff, 0)
+  const fourth = spin(triple)
+  assert.equal(fourth.battle.dice.length, 4)
+  assert.equal(fourth.battle.dice[3], roll(42, 2, 8))
+  assert.equal(fourth.battle.slots[3], null)
+  const straight = play(fourth, [3, 4, 5, 1], [...allGuard, 'attack'])
   assert.equal(straight.newUnlock, 'straight')
-  assert.equal(straight.battle.dice.length, 3)
-  assert.equal(straight.battle.extraRerollAvailable, false)
-  const won = play(spin(straight), [4, 4, 4], allAttack, { enemyHp: 12 })
+  assert.equal(straight.battle.extraRerollAvailable, true)
+  assert.deepEqual(incomingAttack(straight.battle).hits, [4, 4, 4])
+  const planning = spin(straight)
+  const spent = spendExtraReroll(rerollYachtDice(planning.battle, [0]), 0)
+  const won = play({ ...planning, battle: spent }, [4, 4, 4, 1], [...allAttack, 'guard'], { enemyHp: 12 })
   assert.equal(won.newUnlock, null)
+  assert.equal(won.battle.extraRerollAvailable, false)
   const next = nextAscentFight(won)
   assert.deepEqual(next.unlocks, ['triple', 'straight'])
   assert.equal(next.battle.dice.length, 4)
   assert.equal(next.battle.extraRerollAvailable, true)
+  assert.equal(next.battle.enemyAttackBuff, 2)
   assert.equal(assignDie(next.battle, 3, 'guard').slots[3], 'guard')
   const used = spendExtraReroll(rerollYachtDice(next.battle, [3]), 3)
   const final = nextAscentFight(play({ ...next, battle: used }, [6, 6, 6, 6], [...allAttack, 'attack'], { enemyHp: 24 }))
   assert.equal(final.fight, 3)
   assert.equal(final.battle.dice.length, 4)
   assert.equal(final.battle.extraRerollAvailable, true)
+  assert.equal(final.battle.enemyAttackBuff, 2)
+})
+
+test('an attack hand can add a die during battle and only the next enemy gains the unlock buff', () => {
+  const start = beginAscent(42, 'wheel')
+  const unlocked = play(start, [4, 4, 4], allAttack)
+  assert.equal(unlocked.battle.dice.length, 4)
+  assert.equal(unlocked.battle.enemyAttackBuff, 0)
+  assert.deepEqual(incomingAttack(unlocked.battle).hits, [4, 4, 4])
+  const second = nextAscentFight(play(unlocked, [4, 4, 4, 4], [...allAttack, 'attack'], { enemyHp: 1 }))
+  assert.equal(second.battle.enemyAttackBuff, 1)
+  const thirdTurn = { ...second.battle, turn: 3 }
+  const critical = ASCENT_ENEMIES[1].intents.find((row) => row.id === 'critical')
+  assert.equal(intentOf(thirdTurn), critical.id)
+  assert.deepEqual(incomingAttack(thirdTurn).hits, critical.hits.map((hit) => hit + 1))
+  const won = play(second, [1, 2, 3, 4], [...allAttack, 'guard'], { enemyHp: 1 })
+  assert.equal(won.newUnlock, 'straight')
+  assert.equal(won.battle.enemyAttackBuff, 1)
+  const boss = nextAscentFight(won).battle
+  assert.equal(boss.enemyAttackBuff, 2)
+  const { intents, attackGrowth } = ASCENT_ENEMIES[2]
+  for (const turn of [1, 2, 3, 4, 5, 6]) {
+    const battle = { ...boss, turn }
+    const row = intents.find((entry) => entry.matches(turn))
+    assert.equal(intentOf(battle), row.id)
+    assert.deepEqual(incomingAttack(battle).hits, row.hits.map((hit) => hit + 2 + (turn - 1) * attackGrowth))
+  }
+})
+
+test('the same seed and perk produce the same ascent and reroll costs', () => {
+  for (const seed of [0, 42, 511]) {
+    for (const variant of ['devil', 'free-per-fight']) {
+      assert.deepEqual(playAscent(seed, 'reroll', variant), playAscent(seed, 'reroll', variant))
+    }
+  }
 })
 
 test('a fresh ascent after victory or defeat starts with only the new perk', () => {
   const start = beginAscent(42, 'health')
   const unlocked = play(start, [4, 4, 4], allAttack)
-  const lost = play(unlocked, [1, 1, 2], allAttack, { playerHp: 1, awakened: true })
+  const lost = play(unlocked, [1, 1, 2, 1], [...allAttack, 'attack'], { playerHp: 1, awakened: true })
   assert.equal(lost.battle.phase, 'lost')
   assert.equal(nextAscentFight(lost), lost)
   assert.deepEqual(lost.unlocks, ['triple'])

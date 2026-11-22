@@ -19,6 +19,12 @@ export const ENEMY_INTENTS = [
 
 export type Intent = (typeof ENEMY_INTENTS)[number]['id']
 
+export interface Enemy {
+  readonly hp: number
+  readonly intents: readonly EnemyIntent[]
+  readonly attackGrowth?: number
+}
+
 export const COUNTER_REWARDS = [
   { damage: 1, joint: false },
   { damage: 2, joint: false },
@@ -52,6 +58,7 @@ export interface Battle {
   readonly playerHp: number
   readonly enemyHp: number
   readonly enemyAttackBuff: number
+  readonly enemyAttackGrowth?: number
   readonly enemyIntents: readonly EnemyIntent[]
   readonly dice: readonly number[]
   readonly slots: readonly (Slot | null)[]
@@ -148,9 +155,10 @@ export function totals(dice: readonly number[], slots: readonly (Slot | null)[])
   return { attack, guard }
 }
 
-export function incomingAttack({ turn, enemyAttackBuff = 0, enemyIntents = ENEMY_INTENTS }: Battle) {
+export function incomingAttack({ turn, enemyAttackBuff = 0, enemyAttackGrowth = 0, enemyIntents = ENEMY_INTENTS }: Battle) {
   const { name, hits: baseHits } = selectEnemyIntent(turn, enemyIntents)
-  const hits = baseHits.map((hit) => hit + enemyAttackBuff)
+  const buff = enemyAttackBuff + enemyAttackGrowth * (turn - 1)
+  const hits = baseHits.map((hit) => hit + buff)
   const totalDamage = hits.reduce((sum, hit) => sum + hit, 0)
   return { name, hits, totalDamage }
 }

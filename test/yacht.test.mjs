@@ -6,7 +6,7 @@ import {
   classifyHand, rerollYachtDice, resolveYachtTurn, spendExtraReroll, spinYachtCounter, startYachtBattle,
 } from '../src/yacht-combat.ts'
 import { chooseAllocation, chooseReroll } from '../src/yacht-policy.ts'
-import { simulateYacht, yachtVariants } from '../src/yacht-simulate.ts'
+import { simulateLegacyYacht, yachtVariants } from '../src/yacht-simulate.ts'
 
 const filled = (dice, slots, extra = {}) => ({
   ...startYachtBattle(42, PLAYER_HP, dice.length === 4, false), dice, slots, ...extra,
@@ -109,10 +109,10 @@ test('attack and guard bots keep matching pairs and guard falls back on an unrea
   assert.deepEqual(chooseAllocation(exact, 'guardHand'), ['guard', 'attack', 'guard', 'guard'])
 })
 
-test('the adaptive first fight matches the original bot on seeds 0 through 511', () => {
+test('the legacy adaptive first fight matches the original bot on seeds 0 through 511', () => {
   for (let seed = 0; seed < 512; seed += 1) {
     const original = simulate(seed, adaptAndReroll)
-    const { first } = simulateYacht(seed, yachtVariants.baseline, 'adaptive')
+    const { first } = simulateLegacyYacht(seed, yachtVariants.baseline, 'adaptive')
     const { extraRerollAvailable, ...end } = first.end
     assert.equal(extraRerollAvailable, false)
     assert.deepEqual(end, original.at(-1), `seed ${seed}`)
@@ -121,9 +121,9 @@ test('the adaptive first fight matches the original bot on seeds 0 through 511',
   }
 })
 
-test('unlocks activate in fight two with carried HP and each unlock is recorded once', () => {
+test('the legacy two-fight experiment activates each recorded unlock after fight one', () => {
   const seeds = Array.from({ length: 128 }, (_, seed) => seed)
-  const runs = seeds.map((seed) => simulateYacht(seed, yachtVariants.both, 'attackHand'))
+  const runs = seeds.map((seed) => simulateLegacyYacht(seed, yachtVariants.both, 'attackHand'))
   const index = runs.findIndex(({ second }) => second?.start.dice.length === 4 && second.start.extraRerollAvailable)
   assert.notEqual(index, -1)
   const { first, second, unlocks } = runs[index]
@@ -135,6 +135,6 @@ test('unlocks activate in fight two with carried HP and each unlock is recorded 
   assert.equal(second.start.awakened, false)
   assert.deepEqual(unlocks.map(({ hand, fight }) => [hand, fight]).sort(), [['straight', 1], ['triple', 1]])
   for (const enabled of Object.values(yachtVariants)) {
-    assert.deepEqual(simulateYacht(seeds[index], enabled, 'attackHand').first, first)
+    assert.deepEqual(simulateLegacyYacht(seeds[index], enabled, 'attackHand').first, first)
   }
 })

@@ -1,0 +1,189 @@
+import { pathToFileURL } from 'node:url'
+import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from '../src/ascent.ts'
+import { DIE_COUNT } from '../src/combat.ts'
+import { offerPerks, START_PERKS } from '../src/perks.ts'
+import {
+  forecastYacht, rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtRerollCost,
+} from '../src/yacht-combat.ts'
+import { chooseAllocation, chooseReroll, countYachtTradeoffs } from '../src/yacht-policy.ts'
+
+const policy = 'adaptive'
+const seeds = Array.from({ length: 512 }, (_, seed) => seed)
+const perks = Object.keys(START_PERKS)
+const hpReserveAfterPayment = 2
+
+function wantsReroll(battle) {
+  return forecastYacht(battle, battle.dice.map(() => 'attack')).dealt < battle.enemyHp
+}
+
+export function playAscent(seed, perk, variant = 'devil') {
+  let ascent = beginAscent(seed, perk)
+  let wins = 0
+  let extraRolls = 0
+  let paidHp = 0
+  let fourDieTurns = 0
+  let fewChoices = 0
+  let finishingTurns = 0
+  let nonFinishingFewChoices = 0
+  const tripleLandmarks = []
+
+  for (let fight = 1; fight <= FIGHT_COUNT; fight++) {
+    let usedFreeBatch = false
+    for (let turn = 0; turn < 30 && ascent.battle.phase === 'assign'; turn++) {
+      let battle = ascent.battle
+      if (wantsReroll(battle)) battle = rerollYachtDice(battle, chooseReroll(battle, policy, false))
+      if (battle.extraRerollAvailable && battle.rerolled && wantsReroll(battle)) {
+        const [index] = chooseReroll(battle, policy, true)
+        if (index !== undefined) battle = spendExtraReroll(battle, index)
+      }
+
+      if (perk === 'reroll' && battle.rerolled && variant === 'free-per-fight' && !usedFreeBatch && wantsReroll(battle)) {
+        const indices = chooseReroll(battle, policy, false)
+        if (indices.length > 0) {
+          // Waive the first paid batch's HP cost while keeping its dice draws and face bonus.
+          battle = rerollYachtDice({ ...battle, playerHp: battle.playerHp + 1 }, indices)
+          usedFreeBatch = true
+          extraRolls++
+        }
+      }
+      if (perk === 'reroll' && variant === 'devil' && battle.rerolled) {
+        let cost = yachtRerollCost(battle)
+        while (battle.playerHp - cost >= hpReserveAfterPayment && wantsReroll(battle)) {
+          const indices = chooseReroll(battle, policy, false)
+          if (indices.length === 0) break
+          battle = rerollYachtDice(battle, indices)
+          extraRolls++
+          paidHp += cost
+          cost = yachtRerollCost(battle)
+        }
+      }
+
+      const slots = chooseAllocation(battle, policy)
+      if (battle.dice.length > DIE_COUNT) {
+        const canFinish = forecastYacht(battle, slots).dealt === battle.enemyHp
+        fourDieTurns++
+        finishingTurns += Number(canFinish)
+        if (countYachtTradeoffs(battle) <= 1) {
+          fewChoices++
+          nonFinishingFewChoices += Number(!canFinish)
+        }
+      }
+      const resolved = resolveAscentTurn({ ...ascent, battle: { ...battle, slots } })
+      const remainingFights = FIGHT_COUNT - fight + Number(resolved.battle.phase !== 'won')
+      if (!ascent.unlocks.includes('triple') && resolved.battle.phase !== 'lost' && remainingFights > 0) {
+        tripleLandmarks.push({
+          fight, turn: battle.turn, remainingFights, acquired: resolved.newUnlock === 'triple',
+        })
+      }
+      ascent = { ...resolved, battle: spinYachtCounter(resolved.battle) }
+    }
+    if (ascent.battle.phase === 'lost') break
+    if (ascent.battle.phase !== 'won') throw new Error(`Unfinished fight: ${seed}, ${perk}, ${fight}`)
+    wins++
+    ascent = nextAscentFight(ascent)
+  }
+  return {
+    wins, triple: ascent.unlocks.includes('triple'), tripleLandmarks,
+    extraRolls, paidHp, fourDieTurns, fewChoices, finishingTurns, nonFinishingFewChoices,
+  }
+}
+
+function summarize(runs) {
+  const fightWins = [1, 2, 3].map((fight) => runs.filter(({ wins }) => wins >= fight).length)
+  const cohorts = [true, false].map((triple) => {
+    const group = runs.filter((run) => run.triple === triple)
+    return { triple, runs: group.length, completed: group.filter(({ wins }) => wins === FIGHT_COUNT).length }
+  })
+  const sum = (field) => runs.reduce((total, run) => total + run[field], 0)
+  return {
+    runs: runs.length, fightWins, cohorts,
+    extraRolls: sum('extraRolls'), paidHp: sum('paidHp'),
+    fourDieTurns: sum('fourDieTurns'), fewChoices: sum('fewChoices'), finishingTurns: sum('finishingTurns'),
+    nonFinishingFewChoices: sum('nonFinishingFewChoices'),
+  }
+}
+
+function summarizeAfterTriple(runs) {
+  const landmarks = new Map()
+  for (const { tripleLandmarks, wins } of runs) {
+    const completed = Number(wins === FIGHT_COUNT)
+    for (const { fight, turn, remainingFights, acquired } of tripleLandmarks) {
+      const key = `${fight}/${turn}/${remainingFights}`
+      if (!landmarks.has(key)) {
+        landmarks.set(key, {
+          remainingFights, acquired: 0, acquiredCompleted: 0, controls: 0, controlsCompleted: 0,
+        })
+      }
+      const counts = landmarks.get(key)
+      if (acquired) {
+        counts.acquired++
+        counts.acquiredCompleted += completed
+      } else {
+        counts.controls++
+        counts.controlsCompleted += completed
+      }
+    }
+  }
+  return Array.from({ length: FIGHT_COUNT }, (_, index) => {
+    const remainingFights = FIGHT_COUNT - index
+    const summary = {
+      remainingFights, acquired: 0, acquiredCompleted: 0, controls: 0, controlsCompleted: 0,
+      weightedControlsCompleted: 0, unmatchedAcquired: 0,
+    }
+    for (const counts of landmarks.values()) {
+      if (counts.remainingFights !== remainingFights || !counts.acquired) continue
+      if (!counts.controls) {
+        summary.unmatchedAcquired += counts.acquired
+        continue
+      }
+      for (const field of ['acquired', 'acquiredCompleted', 'controls', 'controlsCompleted']) {
+        summary[field] += counts[field]
+      }
+      // A control can appear at more than one landmark. Weight each landmark by its number of unlocks.
+      summary.weightedControlsCompleted += counts.acquired * counts.controlsCompleted / counts.controls
+    }
+    return summary
+  })
+}
+
+export function runLevelStudy(sample = seeds) {
+  const results = new Map(perks.map((perk) => {
+    const runs = sample.map((seed) => playAscent(seed, perk))
+    return [perk, { runs, summary: summarize(runs), offered: 0, picked: 0 }]
+  }))
+
+  const selected = sample.map((seed, index) => {
+    let best
+    let bestScore = -1
+    for (const perk of offerPerks(seed)) {
+      const result = results.get(perk)
+      result.offered++
+      // Rank by completions on all other seeds, keeping offer order on ties.
+      const score = result.summary.fightWins[2] - Number(result.runs[index].wins === FIGHT_COUNT)
+      if (score > bestScore) {
+        bestScore = score
+        best = result
+      }
+    }
+    best.picked++
+    return best.runs[index]
+  })
+
+  const alternative = sample.map((seed) => playAscent(seed, 'reroll', 'free-per-fight'))
+  return {
+    baseline: summarize(sample.map((seed) => playAscent(seed))),
+    perks: [...results].map(([perk, { summary, offered, picked }]) => ({ perk, ...summary, offered, picked })),
+    selected: summarize(selected),
+    afterTriple: summarizeAfterTriple(selected),
+    alternative: summarize(alternative),
+  }
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const { baseline, perks, selected, afterTriple, alternative } = runLevelStudy()
+  console.log(JSON.stringify({ perk: null, ...baseline }))
+  for (const perk of perks) console.log(JSON.stringify(perk))
+  console.log(JSON.stringify({ chooser: 'leave-one-seed-out', ...selected }))
+  console.log(JSON.stringify({ afterTriple }))
+  console.log(JSON.stringify({ variant: 'free-per-fight', ...alternative }))
+}

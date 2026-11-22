@@ -1,10 +1,10 @@
 import Phaser from 'phaser'
-import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
+import { ASCENT_ENEMIES, beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
-import { assignDie, DIE_COUNT, ENEMY_HP, incomingAttack, totals } from './combat.ts'
+import { assignDie, DIE_COUNT, incomingAttack, intentOf, totals } from './combat.ts'
 import { offerPerks, START_PERKS } from './perks.ts'
 import {
-  remainingYachtRerolls, rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtAttackBonus, yachtCounterRewards,
+  rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtAttackBonus, yachtCounterRewards, yachtRerollCost,
 } from './yacht-combat.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput } from './dice-drag.ts'
@@ -157,6 +157,7 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
 
 function refreshDice(battle: YachtBattle) {
   const planning = battle.phase === 'assign'
+  const { faceBonus, faceCap } = START_PERKS.reroll
   diceButtons.forEach((button, index) => {
     const value = battle.dice[index]
     button.hidden = value === undefined
@@ -165,10 +166,14 @@ function refreshDice(battle: YachtBattle) {
     const slot = battle.slots[index]
     const parent = ui.dice[slot ?? 'pool']
     button.textContent = String(value)
-    const alteredFace = battle.perk === 'face' && index === 0
-    button.classList.toggle('altered-face', alteredFace)
+    const replacedFace = battle.perk === 'face' && index === 0
+    const boostedFace = battle.devilBoostedDice?.includes(index) ?? false
+    button.classList.toggle('altered-face', replacedFace || boostedFace)
     const place = slot === 'attack' ? '공격' : slot === 'guard' ? '방어' : '미배치'
-    button.setAttribute('aria-label', `주사위 ${index + 1}, ${value}, ${place}${alteredFace ? ', 1면을 4로 교체' : ''}`)
+    let faceLabel = ''
+    if (replacedFace) faceLabel = `, 1면을 ${START_PERKS.face.replacement}로 교체`
+    if (boostedFace) faceLabel = `, 유료 재굴림으로 눈 +${faceBonus}`
+    button.setAttribute('aria-label', `주사위 ${index + 1}, ${value}, ${place}${faceLabel}`)
     button.setAttribute('aria-pressed', String(selected.has(index)))
     if (parent !== button.parentElement) parent.append(button)
   })
@@ -180,9 +185,11 @@ function refreshDice(battle: YachtBattle) {
   ui.assign.pool.disabled = !canPlace || ![...selected].some((index) => battle.slots[index] !== null)
   ui.assign.attack.disabled = !canPlace
   ui.assign.guard.disabled = !canPlace
-  const rerolls = remainingYachtRerolls(battle)
-  ui.reroll.disabled = !canPlace || rerolls === 0
-  ui.reroll.textContent = `다시 굴리기 (${rerolls})`
+  const rerollCost = yachtRerollCost(battle)
+  ui.reroll.disabled = !canPlace || rerollCost === null || rerollCost >= battle.playerHp
+  ui.reroll.textContent = rerollCost ? `⚄+${faceBonus}≤${faceCap} ♥-${rerollCost}` : `다시 굴리기 (${Number(rerollCost === 0)})`
+  if (rerollCost) ui.reroll.setAttribute('aria-label', `다시 굴리기, 눈 +${faceBonus}, 최대 ${faceCap}, 체력 ${rerollCost} 소모`)
+  else ui.reroll.removeAttribute('aria-label')
   ui.extraReroll.hidden = !battle.extraRerollAvailable && !battle.extraRerollSpent
   ui.extraReroll.disabled = !planning || selected.size !== 1 || !battle.rerolled || !battle.extraRerollAvailable
   const extra = Number(battle.extraRerollAvailable)
@@ -206,8 +213,9 @@ function renderIntent(battle: YachtBattle) {
       else groups.push({ damage: hit, count: 1 })
     }
     const damage = groups.map(({ damage, count }) => count === 1 ? String(damage) : `${damage}×${count}`).join(' + ')
-    ui.intent.textContent = `⚔︎ ${damage}`
-    ui.intent.setAttribute('aria-label', `적 공격 피해 ${hits.join(', ')}`)
+    const critical = intentOf(battle) === 'critical'
+    ui.intent.textContent = `${critical ? '✸' : '⚔︎'} ${damage}`
+    ui.intent.setAttribute('aria-label', `${critical ? '치명 일격' : '적 공격'} 피해 ${hits.join(', ')}`)
   }
 }
 
@@ -242,9 +250,11 @@ function render() {
   ui.fight.hidden = false
   ui.fight.textContent = `◇ ${fight}/${FIGHT_COUNT}`
   ui.fight.setAttribute('aria-label', `${FIGHT_COUNT}전투 중 ${fight}번째`)
-  ui.activePerk.hidden = false
-  ui.activePerk.textContent = START_PERKS[perk].icon
-  ui.activePerk.setAttribute('aria-label', START_PERKS[perk].label)
+  ui.activePerk.hidden = !perk
+  if (perk) {
+    ui.activePerk.textContent = START_PERKS[perk].icon
+    ui.activePerk.setAttribute('aria-label', START_PERKS[perk].label)
+  }
   ui.turn.hidden = phase === 'won' || phase === 'lost'
   ui.turn.textContent = `◷ ${turn}`
   ui.turn.setAttribute('aria-label', `${turn}턴`)
@@ -252,6 +262,7 @@ function render() {
   ui.playerHp.max = maxHp
   ui.playerHp.value = playerHp
   ui.playerTotal.textContent = `${playerHp}/${maxHp}`
+  ui.enemyHp.max = ASCENT_ENEMIES[fight - 1].hp
   updateEnemyHp(enemyHp)
   ui.feedback.textContent = describeExchange(battle)
   ui.feedback.hidden = !lastExchange
@@ -326,7 +337,6 @@ function focusPhase() {
   else ui.retry.focus()
 }
 
-ui.enemyHp.max = ENEMY_HP
 for (const zone of ['pool', 'attack', 'guard'] as const) {
   ui.assign[zone].addEventListener('click', () => place([...selected], zone))
 }

@@ -2,7 +2,7 @@ import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from '..
 import { assignDie } from '../src/combat.ts'
 import { offerPerks, START_PERKS } from '../src/perks.ts'
 import {
-  remainingYachtRerolls, rerollYachtDice, spendExtraReroll, spinYachtCounter,
+  rerollYachtDice, spendExtraReroll, spinYachtCounter,
 } from '../src/yacht-combat.ts'
 import { chooseAllocation, chooseReroll } from '../src/yacht-policy.ts'
 
@@ -12,10 +12,11 @@ const perks = Object.keys(START_PERKS)
 
 function playTurn(ascent) {
   let { battle } = ascent
-  for (let chance = remainingYachtRerolls(battle); chance > 0; chance--) {
+  while (true) {
     const indices = chooseReroll(battle, policy, false)
-    if (indices.length === 0) break
-    battle = rerollYachtDice(battle, indices)
+    const rerolled = rerollYachtDice(battle, indices)
+    if (rerolled === battle) break
+    battle = rerolled
   }
   if (battle.extraRerollAvailable && battle.rerolled) {
     const [index] = chooseReroll(battle, policy, true)
