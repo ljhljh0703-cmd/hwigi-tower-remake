@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { beginAscent, nextAscentFight } from '../src/ascent.ts'
-import { assignDie, draw, enemyIntentAt, incomingAttack, PLAYER_HP, roll } from '../src/combat.ts'
+import { assignDie, chargedStrikePreview, draw, enemyIntentAt, incomingAttack, PLAYER_HP, roll } from '../src/combat.ts'
 import { ASCENT_ENEMIES, enemyForFight } from '../src/enemy-roster.ts'
 import {
   forecastYacht, rerollYachtDice, resolveYachtTurn, spendExtraReroll, spinYachtCounter, startYachtBattle,
@@ -107,17 +107,18 @@ test('seal applies only on the boss turn after knockdown and blocks sums and sea
 })
 
 test('theft takes a base die and returns it after cumulative attack and counter damage', () => {
-  const counterSeed = Array.from({ length: 20 }, (_, seed) => seed).find((seed) => draw(seed, 3, 4) % 6 === 5)
+  const counterSeed = Array.from({ length: 20 }, (_, seed) => seed).find((seed) => draw(seed, 4, 4) % 6 === 5)
   const battle = start('escort', { seed: counterSeed, turn: 2, fourthDieUnlocked: true })
   const stolen = resolve(battle, [1, 1, 1], attack)
   assert.equal(stolen.stolenDie.remaining, 10)
   assert.deepEqual(stolen.dice, [roll(counterSeed, 3, 0), roll(counterSeed, 3, 1), roll(counterSeed, 3, 8)])
-  const counter = resolve(stolen, [3, 3, 2], ['guard', 'guard', 'attack'])
+  const critical = resolve(stolen, [3, 3, 2], ['guard', 'guard', 'attack'])
+  const counter = resolve(critical, [6, 5, 3], guard)
   assert.equal(counter.phase, 'counter')
   assert.equal(counter.stolenDie.remaining, 8)
   const returned = spinYachtCounter(counter)
   assert.equal(returned.stolenDie, undefined)
-  assert.deepEqual(returned.dice, [0, 1, 2, 8].map((channel) => roll(counterSeed, 4, channel)))
+  assert.deepEqual(returned.dice, [0, 1, 2, 8].map((channel) => roll(counterSeed, 5, channel)))
   assert.equal(resolve(battle, [6, 6, 6], attack).stolenDie.remaining, 10)
 })
 
@@ -131,5 +132,48 @@ test('escort damage is independent of main damage and removing it cancels its at
   assert.equal(split.escort, undefined)
   assert.equal(split.lastExchange.escortDealt, 5)
   assert.equal(split.lastExchange.dealt, 3)
-  assert.equal(split.lastExchange.hitsTaken[0], incomingAttack({ ...escorted, escort: undefined }).totalDamage - 6)
+  const damage = split.lastExchange.hitsTaken.reduce((sum, hit) => sum + hit, 0)
+  assert.equal(damage, incomingAttack({ ...escorted, escort: undefined }).totalDamage - 6)
+})
+
+test('every elite and the boss reduce their next critical by two at exactly fifteen attack', () => {
+  for (const enemy of [...ASCENT_ENEMIES[1], ...ASCENT_ENEMIES[2]]) {
+    const battle = start(enemy.id, { turn: enemy.id === 'boss' ? 2 : 3, enemyAttackBuff: 1, dice: [6, 5, 4] })
+    const normal = enemy.id === 'boss' ? 17 : 15
+    const almost = assignDie(assignDie(battle, 0, 'attack'), 1, 'attack')
+    assert.equal(chargedStrikePreview(almost).totalDamage, normal)
+    const broken = assignDie(almost, 2, 'attack')
+    assert.equal(chargedStrikePreview(broken).threshold, 15)
+    assert.equal(chargedStrikePreview(broken).totalDamage, normal - 2)
+    assert.equal(chargedStrikePreview(assignDie(broken, 2, null)).totalDamage, normal)
+    const { battle: critical } = resolveYachtTurn(broken)
+    assert.equal(critical.lastExchange.chargeBroken, true)
+    assert.equal(incomingAttack(critical).totalDamage, normal - 2)
+  }
+})
+
+test('an attack of fourteen or damage aimed at the escort leaves the next critical at full strength', () => {
+  const boss = start('boss', { turn: 2 })
+  const full = resolve(boss, [6, 5, 3], attack)
+  assert.equal(full.lastExchange.chargeBroken, undefined)
+  assert.equal(incomingAttack(full).totalDamage, 16)
+  const elite = start('escort', { turn: 3, escort: { hp: 5, bonus: 3 } })
+  const split = resolve(elite, [6, 5, 4], ['escort', 'attack', 'attack'])
+  assert.equal(split.lastExchange.chargeBroken, undefined)
+  assert.equal(incomingAttack(split).totalDamage, 14)
+})
+
+test('matching the weakened critical exactly opens one roulette and the weakening then expires', () => {
+  const boss = start('boss', { turn: 2, enemyAttackBuff: 1 })
+  const critical = resolve(boss, [6, 5, 4], attack)
+  const missed = resolve(critical, [6, 6, 5], guard)
+  assert.equal(missed.phase, 'assign')
+  const matched = resolve(critical, [6, 5, 4], guard)
+  assert.equal(matched.playerHp, boss.playerHp)
+  assert.equal(matched.phase, 'counter')
+  assert.equal(matched.weakenedStrikeTurn, undefined)
+  const next = spinYachtCounter(matched)
+  assert.equal(enemyIntentAt(next).id, 'knockdown')
+  assert.ok(next.lastExchange.counter)
+  assert.equal(spinYachtCounter(next), next)
 })

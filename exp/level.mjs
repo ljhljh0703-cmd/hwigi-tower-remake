@@ -13,8 +13,8 @@ const perks = Object.keys(START_PERKS)
 const hpReserveAfterPayment = 2
 
 function wantsReroll(battle) {
-  const { dealt, damage } = forecastYacht(battle, battle.dice.map(() => 'attack'))
-  return dealt < battle.enemyHp || damage >= battle.playerHp
+  const { dealt, damage, chargeBroken } = forecastYacht(battle, battle.dice.map(() => 'attack'))
+  return !chargeBroken && (dealt < battle.enemyHp || damage >= battle.playerHp)
 }
 
 export function playAscent(seed, perk, variant = 'devil', observeTurn) {

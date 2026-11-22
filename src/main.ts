@@ -1,6 +1,8 @@
 import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
-import { allocationTotals, assignDie, attackFor, attackPower, DIE_COUNT, enemyIntentAt, incomingAttack } from './combat.ts'
+import {
+  allocationTotals, assignDie, attackFor, attackPower, chargedStrikePreview, DIE_COUNT, enemyIntentAt, incomingAttack,
+} from './combat.ts'
 import type { Exchange } from './combat.ts'
 import { offerPerks, START_PERKS } from './perks.ts'
 import {
@@ -331,10 +333,12 @@ function renderIntent(battle: YachtBattle) {
     ui.intent.setAttribute('aria-label', '정확 방어')
   } else if (phase === 'assign') {
     const intent = enemyIntentAt(battle)
-    if (intent.previewNextAttack) {
-      const { totalDamage } = incomingAttack({ ...battle, turn: battle.turn + 1 })
-      ui.intent.innerHTML = `${icon('charge')}<strong>${totalDamage}</strong>`
-      ui.intent.setAttribute('aria-label', `${intent.name}, 다음 공격 피해 ${totalDamage}`)
+    const charge = chargedStrikePreview(battle)
+    if (charge) {
+      const { threshold, totalDamage, weakened } = charge
+      ui.intent.innerHTML = `<span>${icon('charge')}<strong>${totalDamage}</strong></span><span class="intent-detail${weakened ? ' active-intent' : ''}">${icon('break-charge')}${threshold}</span>`
+      ui.intent.setAttribute('aria-label',
+        `${intent.name}, 공격 합 ${threshold} 이상이면 약화, 다음 치명 일격 피해 ${totalDamage}${weakened ? ', 약화 예고' : ''}`)
       return
     }
     if (intent.damageTakenMultiplier !== undefined) {

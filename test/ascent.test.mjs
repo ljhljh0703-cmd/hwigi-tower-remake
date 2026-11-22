@@ -252,7 +252,7 @@ test('the same seed and perk produce the same ascent and reroll costs', () => {
 test('replaying the same seed reproduces the entire three-fight ascent through boss knockdown', () => {
   function replay() {
     const turns = []
-    const result = playAscent(6, 'wheel', 'devil', (fight, planning, resolved) => {
+    const result = playAscent(0, 'wheel', 'devil', (fight, planning, resolved) => {
       turns.push({ fight, planning, resolved })
     })
     return { result, turns }
@@ -260,9 +260,10 @@ test('replaying the same seed reproduces the entire three-fight ascent through b
 
   const first = replay()
   assert.equal(first.result.wins, FIGHT_COUNT)
-  assert.deepEqual(first.result.fightTurns, [4, 4, 4])
+  assert.deepEqual(first.result.fightTurns, [3, 4, 4])
   const bossTurns = first.turns.filter(({ fight }) => fight === 3)
   assert.deepEqual(bossTurns.map(({ planning }) => intentOf(planning)), ['combo', 'charge', 'critical', 'knockdown'])
+  assert.equal(bossTurns[1].resolved.battle.lastExchange.chargeBroken, true)
   assert.ok(bossTurns[2].resolved.battle.lastExchange.counter)
   assert.equal(first.turns.at(-1).resolved.battle.phase, 'won')
   assert.deepEqual(replay(), first)

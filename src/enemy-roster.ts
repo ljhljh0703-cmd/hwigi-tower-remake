@@ -14,6 +14,12 @@ function combo(hits: readonly number[], mechanic?: EnemyMechanic) {
   return { id: 'combo', name: '연타', hits, mechanic }
 }
 
+const charge = { id: 'charge', name: '힘 모으기', hits: [], chargeThreshold: 15 }
+
+function critical(damage: number) {
+  return { id: 'critical', name: '치명 일격', hits: [damage] }
+}
+
 function cycle(...rows: Omit<EnemyIntent, 'matches'>[]): EnemyIntent[] {
   return rows.map((row, index) => ({
     ...row, matches: (turn) => (turn - 1) % rows.length === index,
@@ -36,27 +42,27 @@ export const ASCENT_ENEMIES = [
     ) },
   ],
   [
-    { id: 'reaction', hp: 43, attackPerUnlock: 2, intents: cycle(
-      combo([1, 1, 2]),
+    { id: 'reaction', hp: 54, attackPerUnlock: 2, intents: cycle(
+      combo([3, 1, 2]),
       impact(13, { kind: 'reaction', value: 8, alternate: { ...combo([3, 3]), matches: () => true } }),
-      combo([2, 2]),
-      impact(14),
+      charge,
+      critical(14),
     ) },
-    { id: 'vitality', hp: 46, attackPerUnlock: 2, intents: cycle(
-      combo([1, 1, 2]), impact(0, { kind: 'vitality', value: 5 }), impact(13), combo([3, 3, 3]),
+    { id: 'vitality', hp: 57, attackPerUnlock: 2, intents: cycle(
+      combo([3, 1, 2]), impact(0, { kind: 'vitality', value: 5 }), charge, critical(14),
     ) },
-    { id: 'escort', hp: 38, attackPerUnlock: 2, intents: cycle(
+    { id: 'escort', hp: 49, attackPerUnlock: 2, intents: cycle(
       { id: 'escort', name: '호위 소환', hits: [], mechanic: { kind: 'escort', hp: 5, bonus: 3 } },
-      impact(6, { kind: 'steal', value: 10 }),
-      combo([3, 3]),
-      impact(12),
+      combo([5, 3], { kind: 'steal', value: 10 }),
+      charge,
+      critical(14),
     ) },
   ],
   [
     { id: 'boss', hp: 58, attackPerUnlock: 1, attackGrowth: 0, intents: cycle(
       combo([2, 2]),
-      { id: 'charge', name: '힘 모으기', hits: [], previewNextAttack: true },
-      { id: 'critical', name: '치명 일격', hits: [16] },
+      charge,
+      critical(16),
       { id: 'knockdown', name: '넉다운', hits: [], damageTakenMultiplier: 3 },
       impact(12, { kind: 'seal', value: 5 }),
     ) },

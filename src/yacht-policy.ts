@@ -1,4 +1,4 @@
-import { DIE_COUNT, enemyIntentAt, incomingAttack } from './combat.ts'
+import { CHARGE_DAMAGE_REDUCTION, enemyIntentAt, incomingAttack } from './combat.ts'
 import type { Slot } from './combat.ts'
 import { adaptAndReroll, expectedReward } from './simulate.ts'
 import { canReroll, classifyYachtHand, forecastYacht, yachtCounterRewards } from './yacht-combat.ts'
@@ -21,11 +21,12 @@ function allocationsFor(battle: YachtBattle): readonly Slot[][] {
 }
 
 function allocationScore(battle: YachtBattle, plan: readonly Slot[]) {
-  const { dealt, damage, counter, escortDealt } = forecastYacht(battle, plan)
+  const { dealt, damage, counter, escortDealt, chargeBroken } = forecastYacht(battle, plan)
   if (damage >= battle.playerHp) return -1000 + dealt
   if (dealt >= battle.enemyHp) return 1000
   const expectedCounter = counter ? expectedReward(battle.enemyHp - dealt, yachtCounterRewards(battle, plan)) : 0
-  return dealt + escortDealt * 0.85 + expectedCounter - damage * (battle.playerHp <= 12 ? 1.8 : 0.85)
+  return dealt + escortDealt * 0.85 + expectedCounter + (chargeBroken ? CHARGE_DAMAGE_REDUCTION : 0) -
+    damage * (battle.playerHp <= 12 ? 1.8 : 0.85)
 }
 
 function bestAllocation(battle: YachtBattle, plans: readonly Slot[][]): readonly Slot[] {

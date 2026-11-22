@@ -211,7 +211,7 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
   const enemyHp = battle.enemyHp - result.dealt
   const effect = enemyHp > 0 && playerHp > 0 ? result.intent.mechanic : undefined
   const escortHp = (battle.escort?.hp ?? 0) - result.escortDealt
-  const { stolenDie: previousTheft, escort: previousEscort, ...rest } = battle
+  const { stolenDie: previousTheft, escort: previousEscort, weakenedStrikeTurn: _weakenedStrikeTurn, ...rest } = battle
   const stolenDie = effect?.kind === 'steal' && !previousTheft
     ? { remaining: effect.value } : damageToStolenDie(battle, result.dealt)
   const escort = previousEscort && escortHp > 0 ? { ...previousEscort, hp: escortHp }
@@ -224,6 +224,7 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
     ...((effect?.kind === 'lock' || effect?.kind === 'freeze') && { nextInterference: effect.kind }),
     ...(stolenDie && { stolenDie }),
     ...(escort && { escort }),
+    ...(result.chargeBroken && enemyHp > 0 && playerHp > 0 && { weakenedStrikeTurn: battle.turn + 1 }),
     awakened: battle.awakened || awakened,
     lastExchange: {
       turn: battle.turn,
@@ -233,6 +234,7 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
       awakened,
       ...(awakenedDice && { awakenedDice }),
       ...(result.escortDealt > 0 && { escortDealt: result.escortDealt }),
+      ...(result.chargeBroken && { chargeBroken: true }),
       ...(battle.perk === 'pair' && planned.counter && hasGuardPair(battle, battle.slots) && { pairGuardBonus: true }),
     },
   }

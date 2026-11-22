@@ -1,6 +1,7 @@
 export const PLAYER_HP = 22
 export const ENEMY_HP = 30
 export const DIE_COUNT = 3
+export const CHARGE_DAMAGE_REDUCTION = 2
 export type Slot = 'attack' | 'guard' | 'escort'
 export type Phase = 'assign' | 'counter' | 'won' | 'lost'
 
@@ -16,7 +17,7 @@ export interface EnemyIntent {
   readonly name: string
   readonly hits: readonly number[]
   readonly matches: (turn: number) => boolean
-  readonly previewNextAttack?: true
+  readonly chargeThreshold?: number
   readonly damageTakenMultiplier?: number
   readonly mechanic?: EnemyMechanic
 }
@@ -61,6 +62,7 @@ export interface Exchange {
   readonly awakenedDice?: readonly number[]
   readonly pairGuardBonus?: true
   readonly escortDealt?: number
+  readonly chargeBroken?: true
 }
 
 export interface Battle {
@@ -81,6 +83,7 @@ export interface Battle {
   readonly fixedDie?: { readonly index: number; readonly kind: DieInterference }
   readonly stolenDie?: { readonly remaining: number }
   readonly escort?: { readonly hp: number; readonly bonus: number }
+  readonly weakenedStrikeTurn?: number
 }
 
 export function draw(seed: number, turn: number, channel: number): number {
@@ -197,6 +200,9 @@ export function attackFor(battle: Battle, intent: EnemyIntent, escortSurvives = 
     : baseHits.map((hit) => hit + buff)
   // These bonuses apply once to the attack as a whole, including a multi-hit attack.
   if (hits.length) hits[0] += rage + (escortSurvives ? battle.escort?.bonus ?? 0 : 0)
+  if (hits.length && intent.id === 'critical' && battle.weakenedStrikeTurn === turn) {
+    hits[0] = Math.max(0, hits[0] - CHARGE_DAMAGE_REDUCTION)
+  }
   const totalDamage = hits.reduce((sum, hit) => sum + hit, 0)
   return { name, hits, totalDamage }
 }
@@ -204,6 +210,21 @@ export function attackFor(battle: Battle, intent: EnemyIntent, escortSurvives = 
 export function incomingAttack(battle: Battle) {
   const { attack, escort } = allocationTotals(battle)
   return attackFor(battle, respondingIntent(enemyIntentAt(battle), attack), Boolean(battle.escort && escort < battle.escort.hp))
+}
+
+function breaksCharge(intent: EnemyIntent, attack: number) {
+  return intent.chargeThreshold !== undefined && attack >= intent.chargeThreshold
+}
+
+export function chargedStrikePreview(battle: Battle) {
+  const intent = enemyIntentAt(battle)
+  if (intent.chargeThreshold === undefined) return null
+  const { attack, escort } = allocationTotals(battle)
+  const weakened = breaksCharge(intent, attack)
+  const turn = battle.turn + 1
+  const next = { ...battle, turn, weakenedStrikeTurn: weakened ? turn : undefined }
+  const escortSurvives = Boolean(battle.escort && escort < battle.escort.hp)
+  return { ...attackFor(next, enemyIntentAt(next), escortSurvives), threshold: intent.chargeThreshold, weakened }
 }
 
 export function attackPower(intent: EnemyIntent, attack: number): number {
@@ -230,6 +251,7 @@ export function forecast(battle: Battle, slots = battle.slots, dice = battle.dic
     dealt,
     escortDealt,
     intent,
+    chargeBroken: breaksCharge(intent, attack),
     hits,
     damage: hits.reduce((sum, hit) => sum + hit, 0),
     counter: dealt < battle.enemyHp && incoming.totalDamage > 0 && guard === incoming.totalDamage,
