@@ -1,6 +1,6 @@
 import { pathToFileURL } from 'node:url'
 import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from '../src/ascent.ts'
-import { DIE_COUNT } from '../src/combat.ts'
+import { DIE_COUNT, intentOf } from '../src/combat.ts'
 import { offerPerks, START_PERKS } from '../src/perks.ts'
 import {
   forecastYacht, rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtRerollCost,
@@ -87,9 +87,15 @@ export function playAscent(seed, perk, variant = 'devil', observeTurn) {
     wins++
     ascent = nextAscentFight(ascent)
   }
+  const defeat = ascent.battle.phase === 'lost'
+    ? {
+      fight: ascent.fight, turn: ascent.battle.turn, intent: intentOf(ascent.battle),
+      buffed: ascent.battle.enemyAttackBuff > 0,
+    }
+    : null
   return {
     wins, fightTurns, triple: ascent.unlocks.includes('triple'), tripleLandmarks,
-    extraRolls, paidHp, fourDieTurns, fewChoices, finishingTurns, nonFinishingFewChoices,
+    extraRolls, paidHp, fourDieTurns, fewChoices, finishingTurns, nonFinishingFewChoices, defeat,
   }
 }
 
@@ -112,6 +118,20 @@ function summarize(runs) {
     fourDieTurns: sum('fourDieTurns'), fewChoices: sum('fewChoices'), finishingTurns: sum('finishingTurns'),
     nonFinishingFewChoices: sum('nonFinishingFewChoices'),
   }
+}
+
+function summarizeNoTripleDefeats(runs) {
+  const counts = new Map()
+  for (const { triple, defeat } of runs) {
+    if (triple || !defeat) continue
+    const { fight, turn, intent, buffed } = defeat
+    const key = `${fight}/${turn}/${intent}`
+    const row = counts.get(key) ?? { fight, turn, intent, losses: 0, buffedLosses: 0 }
+    row.losses++
+    row.buffedLosses += Number(buffed)
+    counts.set(key, row)
+  }
+  return [...counts.values()].sort((a, b) => a.fight - b.fight || a.turn - b.turn)
 }
 
 function summarizeAfterTriple(runs) {
@@ -185,16 +205,18 @@ export function runLevelStudy(sample = seeds) {
     baseline: summarize(sample.map((seed) => playAscent(seed))),
     perks: [...results].map(([perk, { summary, offered, picked }]) => ({ perk, ...summary, offered, picked })),
     selected: summarize(selected),
+    noTripleDefeats: summarizeNoTripleDefeats(selected),
     afterTriple: summarizeAfterTriple(selected),
     alternative: summarize(alternative),
   }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const { baseline, perks, selected, afterTriple, alternative } = runLevelStudy()
+  const { baseline, perks, selected, noTripleDefeats, afterTriple, alternative } = runLevelStudy()
   console.log(JSON.stringify({ perk: null, ...baseline }))
   for (const perk of perks) console.log(JSON.stringify(perk))
   console.log(JSON.stringify({ chooser: 'leave-one-seed-out', ...selected }))
+  console.log(JSON.stringify({ noTripleDefeats }))
   console.log(JSON.stringify({ afterTriple }))
   console.log(JSON.stringify({ variant: 'free-per-fight', ...alternative }))
 }

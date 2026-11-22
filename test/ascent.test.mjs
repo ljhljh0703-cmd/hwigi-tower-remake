@@ -174,8 +174,10 @@ test('three fights use their own enemy table and carry health without recovery',
 
 test('exact-defense hands take effect on the next planning turn without buffing the current enemy', () => {
   const start = beginAscent(42, 'wheel')
+  const combo = ASCENT_ENEMIES[0].intents[1].hits
+  const [face] = combo
   const comboTurn = play(start, [5, 6, 6], allGuard)
-  const triple = play(comboTurn, [4, 4, 4], allGuard)
+  const triple = play(comboTurn, combo, allGuard)
   assert.equal(triple.newUnlock, 'triple')
   assert.equal(triple.battle.phase, 'counter')
   assert.equal(triple.battle.dice.length, 3)
@@ -185,10 +187,10 @@ test('exact-defense hands take effect on the next planning turn without buffing 
   assert.equal(fourth.battle.dice[3], roll(42, 3, 8))
   assert.equal(fourth.battle.slots[3], null)
   const nextComboTurn = play(fourth, [4, 5, 5, 6], [...allGuard, 'guard'])
-  const straight = play(nextComboTurn, [3, 4, 5, 1], [...allGuard, 'attack'])
+  const straight = play(nextComboTurn, [face - 1, face, face + 1, 1], [...allGuard, 'attack'])
   assert.equal(straight.newUnlock, 'straight')
   assert.equal(straight.battle.extraRerollAvailable, true)
-  assert.deepEqual(incomingAttack(straight.battle).hits, [4, 4, 4])
+  assert.deepEqual(incomingAttack(straight.battle).hits, combo)
   const planning = spin(straight)
   const spent = spendExtraReroll(rerollYachtDice(planning.battle, [0]), 0)
   const won = play({ ...planning, battle: spent }, [4, 4, 4, 1], [...allAttack, 'guard'], { enemyHp: 12 })
@@ -198,14 +200,14 @@ test('exact-defense hands take effect on the next planning turn without buffing 
   assert.deepEqual(next.unlocks, ['triple', 'straight'])
   assert.equal(next.battle.dice.length, 4)
   assert.equal(next.battle.extraRerollAvailable, true)
-  assert.equal(next.battle.enemyAttackBuff, 2)
+  assert.equal(next.battle.enemyAttackBuff, 2 * ASCENT_ENEMIES[1].attackPerUnlock)
   assert.equal(assignDie(next.battle, 3, 'guard').slots[3], 'guard')
   const used = spendExtraReroll(rerollYachtDice(next.battle, [3]), 3)
   const final = nextAscentFight(play({ ...next, battle: used }, [6, 6, 6, 6], [...allAttack, 'attack'], { enemyHp: 24 }))
   assert.equal(final.fight, 3)
   assert.equal(final.battle.dice.length, 4)
   assert.equal(final.battle.extraRerollAvailable, true)
-  assert.equal(final.battle.enemyAttackBuff, 2)
+  assert.equal(final.battle.enemyAttackBuff, 2 * ASCENT_ENEMIES[2].attackPerUnlock)
 })
 
 test('an attack hand can add a die during battle and only the next enemy gains the unlock buff', () => {
@@ -213,24 +215,26 @@ test('an attack hand can add a die during battle and only the next enemy gains t
   const unlocked = play(start, [4, 4, 4], allAttack)
   assert.equal(unlocked.battle.dice.length, 4)
   assert.equal(unlocked.battle.enemyAttackBuff, 0)
-  assert.deepEqual(incomingAttack(unlocked.battle).hits, [4, 4, 4])
+  assert.deepEqual(incomingAttack(unlocked.battle).hits, ASCENT_ENEMIES[0].intents[1].hits)
   const second = nextAscentFight(play(unlocked, [4, 4, 4, 4], [...allAttack, 'attack'], { enemyHp: 1 }))
-  assert.equal(second.battle.enemyAttackBuff, 1)
+  const secondBuff = ASCENT_ENEMIES[1].attackPerUnlock
+  assert.equal(second.battle.enemyAttackBuff, secondBuff)
   const fourthTurn = { ...second.battle, turn: 4 }
   const critical = ASCENT_ENEMIES[1].intents.find((row) => row.id === 'critical')
   assert.equal(intentOf(fourthTurn), critical.id)
-  assert.deepEqual(incomingAttack(fourthTurn).hits, critical.hits.map((hit) => hit + 1))
+  assert.deepEqual(incomingAttack(fourthTurn).hits, critical.hits.map((hit) => hit + secondBuff))
   const won = play(second, [1, 2, 3, 4], [...allAttack, 'guard'], { enemyHp: 1 })
   assert.equal(won.newUnlock, 'straight')
-  assert.equal(won.battle.enemyAttackBuff, 1)
+  assert.equal(won.battle.enemyAttackBuff, secondBuff)
   const boss = nextAscentFight(won).battle
-  assert.equal(boss.enemyAttackBuff, 2)
+  const bossBuff = 2 * ASCENT_ENEMIES[2].attackPerUnlock
+  assert.equal(boss.enemyAttackBuff, bossBuff)
   const { intents, attackGrowth } = ASCENT_ENEMIES[2]
   for (const turn of [1, 2, 3, 4, 5, 6]) {
     const battle = { ...boss, turn }
     const row = intents.find((entry) => entry.matches(turn))
     assert.equal(intentOf(battle), row.id)
-    assert.deepEqual(incomingAttack(battle).hits, row.hits.map((hit) => hit + 2 + (turn - 1) * attackGrowth))
+    assert.deepEqual(incomingAttack(battle).hits, row.hits.map((hit) => hit + bossBuff + (turn - 1) * attackGrowth))
   }
 })
 
@@ -245,7 +249,7 @@ test('the same seed and perk produce the same ascent and reroll costs', () => {
 test('replaying the same seed reproduces the entire three-fight ascent through boss knockdown', () => {
   function replay() {
     const turns = []
-    const result = playAscent(249, 'health', 'devil', (fight, planning, resolved) => {
+    const result = playAscent(245, 'wheel', 'devil', (fight, planning, resolved) => {
       turns.push({ fight, planning, resolved })
     })
     return { result, turns }
@@ -261,14 +265,14 @@ test('replaying the same seed reproduces the entire three-fight ascent through b
   assert.deepEqual(replay(), first)
 })
 
-test('each charged strike is at least three damage above any other intent after unlock scaling', () => {
+test('each charged strike is at least two damage above any other intent after unlock scaling', () => {
   for (const [enemy, period] of [[ASCENT_ENEMIES[1], 4], [ASCENT_ENEMIES[2], 5]]) {
     for (const unlocks of [0, 1, 2]) {
-      const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, enemy, unlocks)
+      const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, enemy, unlocks * enemy.attackPerUnlock)
       const turns = Array.from({ length: period }, (_, index) => ({ ...start, turn: index + 1 }))
       const critical = turns.find((battle) => intentOf(battle) === 'critical')
       const otherDamage = turns.filter((battle) => battle !== critical).map((battle) => incomingAttack(battle).totalDamage)
-      assert.ok(incomingAttack(critical).totalDamage >= Math.max(...otherDamage) + 3)
+      assert.ok(incomingAttack(critical).totalDamage >= Math.max(...otherDamage) + 2)
     }
   }
 })
@@ -278,7 +282,7 @@ test('both charged strikes remain exactly guardable with three dice at every unl
   const rolls = faces.flatMap((first) => faces.flatMap((second) => faces.map((third) => [first, second, third])))
   for (const [enemy, turn] of [[ASCENT_ENEMIES[1], 4], [ASCENT_ENEMIES[2], 3]]) {
     for (const unlocks of [0, 1, 2]) {
-      const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, enemy, unlocks)
+      const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, enemy, unlocks * enemy.attackPerUnlock)
       const critical = { ...start, turn }
       assert.equal(intentOf(critical), 'critical')
       const { totalDamage } = incomingAttack(critical)

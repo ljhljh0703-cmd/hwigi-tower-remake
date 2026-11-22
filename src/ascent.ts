@@ -8,32 +8,35 @@ import type { Hand, YachtBattle } from './yacht-combat.ts'
 export const ASCENT_ENEMIES = [
   {
     hp: 30,
+    attackPerUnlock: 0,
     intents: [
-      { ...ENEMY_INTENTS[0], hits: [13] },
-      ENEMY_INTENTS[1],
+      { ...ENEMY_INTENTS[0], hits: [15] },
+      { ...ENEMY_INTENTS[1], hits: [3, 3, 3] },
     ],
   },
   {
-    hp: 52,
+    hp: 45,
+    attackPerUnlock: 2,
     intents: [
-      { id: 'combo', name: '연타', hits: [3, 3, 3], matches: (turn) => turn % 4 === 1 },
-      { id: 'impact', name: '한 방', hits: [3], matches: (turn) => turn % 4 === 2 },
+      { id: 'combo', name: '연타', hits: [1, 1, 2], matches: (turn) => turn % 4 === 1 },
+      { id: 'impact', name: '한 방', hits: [12], matches: (turn) => turn % 4 === 2 },
       { id: 'charge', name: '힘 모으기', hits: [], previewNextAttack: true, matches: (turn) => turn % 4 === 3 },
-      { id: 'critical', name: '치명 일격', hits: [16], matches: (turn) => turn % 4 === 0 },
+      { id: 'critical', name: '치명 일격', hits: [14], matches: (turn) => turn % 4 === 0 },
     ],
   },
   {
-    hp: 54,
+    hp: 58,
+    attackPerUnlock: 1,
     attackGrowth: 0,
     intents: [
-      { id: 'combo', name: '연타', hits: [1, 1, 1, 1], matches: (turn) => turn % 5 === 1 },
+      { id: 'combo', name: '연타', hits: [2, 2], matches: (turn) => turn % 5 === 1 },
       { id: 'charge', name: '힘 모으기', hits: [], previewNextAttack: true, matches: (turn) => turn % 5 === 2 },
       { id: 'critical', name: '치명 일격', hits: [16], matches: (turn) => turn % 5 === 3 },
-      { id: 'knockdown', name: '넉다운', hits: [], damageTakenMultiplier: 1.5, matches: (turn) => turn % 5 === 4 },
-      { id: 'impact', name: '한 방', hits: [7], matches: (turn) => turn % 5 === 0 },
+      { id: 'knockdown', name: '넉다운', hits: [], damageTakenMultiplier: 3, matches: (turn) => turn % 5 === 4 },
+      { id: 'impact', name: '한 방', hits: [12], matches: (turn) => turn % 5 === 0 },
     ],
   },
-] as const satisfies readonly Enemy[]
+] as const satisfies readonly (Enemy & { readonly attackPerUnlock: number })[]
 
 export const FIGHT_COUNT = ASCENT_ENEMIES.length
 
@@ -74,9 +77,10 @@ export function nextAscentFight(ascent: Ascent): Ascent {
   const { seed, perk, unlocks } = ascent
   const fight = ascent.fight + 1
   const fightSeed = (seed ^ Math.imul(fight - 1, 0x9e3779b9)) >>> 0
+  const enemy = ASCENT_ENEMIES[fight - 1]
   const battle = startYachtBattle(
     fightSeed, ascent.battle.playerHp, unlocks.includes('triple'), unlocks.includes('straight'), perk,
-    ASCENT_ENEMIES[fight - 1], unlocks.length,
+    enemy, unlocks.length * enemy.attackPerUnlock,
   )
   return { ...ascent, fight, battle, newUnlock: null }
 }
