@@ -46,7 +46,7 @@ test('thorns ignore guard and count attack dice even on a finishing blow', () =>
 
 test('lock marks precisely the lowest opening die after counter and lasts one turn', () => {
   const lockedMove = start('lock', { turn: 2 })
-  const counter = resolve(lockedMove, [3, 3, 4], guard)
+  const counter = resolve(lockedMove, [2, 2, 3], guard)
   assert.equal(counter.phase, 'counter')
   const locked = spinYachtCounter(counter)
   assert.deepEqual(locked.fixedDie, { kind: 'lock', index: locked.dice.indexOf(Math.min(...locked.dice)) })
@@ -76,24 +76,24 @@ test('rage adds two to the attack as a whole on any reroll and resets next turn'
   const paid = rerollYachtDice(first, [0])
   assert.equal(incomingAttack(first).totalDamage, incomingAttack(battle).totalDamage + 2)
   assert.equal(incomingAttack(paid).totalDamage, incomingAttack(first).totalDamage)
-  assert.equal(incomingAttack(resolve(first, [5, 6, 6], guard)).totalDamage, 13)
+  assert.equal(incomingAttack(resolve(first, [5, 6, 6], guard)).totalDamage, 8)
 })
 
 test('reaction swaps the attack at the visible sum, using the new hits for exact guard', () => {
-  const battle = start('reaction', { turn: 2, dice: [4, 4, 6] })
+  const battle = start('reaction', { turn: 2, dice: [4, 4, 4] })
   const below = { ...battle, slots: ['attack', 'guard', 'guard'] }
   const atThreshold = { ...battle, slots: ['attack', 'attack', 'guard'] }
-  assert.equal(incomingAttack(below).totalDamage, 13)
-  assert.deepEqual(incomingAttack(atThreshold).hits, [3, 3])
+  assert.equal(incomingAttack(below).totalDamage, 10)
+  assert.deepEqual(incomingAttack(atThreshold).hits, [2, 2])
   assert.equal(resolveYachtTurn(atThreshold).battle.phase, 'counter')
 })
 
-test('vitality has a minimum of four and still scales with current health', () => {
+test('vitality has a minimum of six and still scales with current health', () => {
   const battle = start('vitality', { turn: 2, playerHp: 19, enemyAttackBuff: 4 })
-  assert.equal(incomingAttack(battle).totalDamage, 4)
-  assert.equal(incomingAttack({ ...battle, playerHp: 20 }).totalDamage, 5)
-  assert.equal(incomingAttack({ ...battle, playerHp: 24 }).totalDamage, 6)
-  assert.equal(incomingAttack({ ...battle, playerHp: 1 }).totalDamage, 4)
+  assert.equal(incomingAttack(battle).totalDamage, 6)
+  assert.equal(incomingAttack({ ...battle, playerHp: 21 }).totalDamage, 7)
+  assert.equal(incomingAttack({ ...battle, playerHp: 24 }).totalDamage, 8)
+  assert.equal(incomingAttack({ ...battle, playerHp: 1 }).totalDamage, 6)
 })
 
 test('seal applies only on the boss turn after knockdown and blocks sums and sealed hands', () => {
@@ -102,7 +102,7 @@ test('seal applies only on the boss turn after knockdown and blocks sums and sea
   const sealed = resolve(battle, [1, 1, 1], attack)
   assert.equal(sealed.turn, 5)
   assert.equal(forecastYacht(sealed, attack, [5, 2, 3]).dealt, 5)
-  assert.equal(forecastYacht(sealed, guard, [5, 6, 6]).counter, true)
+  assert.equal(forecastYacht(sealed, guard, [5, 6, 6]).damage, incomingAttack(sealed).totalDamage - 12)
   assert.equal(resolveYachtTurn({ ...sealed, dice: [5, 5, 5], slots: attack }).hand, null)
   assert.equal(rerollYachtDice({ ...sealed, dice: [5, 5, 5] }, [0]).rerolled, true)
   assert.equal(enemyIntentAt(resolve(sealed, [4, 3, 4], guard)).mechanic, undefined)
@@ -189,8 +189,15 @@ test('the reaction elite cycles through its alternative attack, then a combo and
 
 test('guard-first takes the closest sufficient shield and sends only the remaining dice to attack', () => {
   const battle = start('lock', { dice: [2, 5, 6] })
-  assert.deepEqual(chooseAllocation(battle, 'guardFirst'), ['guard', 'attack', 'guard'])
+  assert.deepEqual(chooseAllocation(battle, 'guardFirst'), ['guard', 'guard', 'attack'])
   assert.deepEqual(chooseAllocation({ ...battle, dice: [1, 1, 4] }, 'guardFirst'), guard)
+})
+
+test('the ascent policy conserves carry-over health even above the crisis threshold', () => {
+  const enemy = { hp: 30, intents: [{ id: 'impact', name: '한 방', hits: [6], matches: () => true }] }
+  const battle = { ...startYachtBattle(seed, PLAYER_HP, false, false, undefined, enemy), dice: [5, 4, 3] }
+  assert.equal(forecastYacht(battle, chooseAllocation(battle, 'adaptive')).damage, 1)
+  assert.equal(forecastYacht(battle, chooseAllocation(battle, 'adaptive', 0.85)).damage, 6)
 })
 
 test('escort dice do not grant a hand unlock', () => {

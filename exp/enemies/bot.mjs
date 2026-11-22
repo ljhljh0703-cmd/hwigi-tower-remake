@@ -53,6 +53,26 @@ function winCounts(results) {
   return [0, 1, 2, 3].map((fight) => results.filter(({ wins }) => wins >= fight).length)
 }
 
+function summarizeLengths(runs) {
+  return [0, 1, 2].map((index) => {
+    const turns = runs.filter((run) => run.fightTurns.length > index)
+      .map((run) => run.fightTurns[index]).sort((a, b) => a - b)
+    const wins = runs.filter((run) => run.wins > index)
+    return {
+      entered: turns.length, mean: turns.reduce((sum, turn) => sum + turn, 0) / turns.length,
+      p95: turns[Math.ceil(turns.length * 0.95) - 1], max: turns.at(-1),
+      winMean: wins.reduce((sum, run) => sum + run.fightTurns[index], 0) / wins.length,
+    }
+  })
+}
+
+function summarizeElites(runs) {
+  return ASCENT_ENEMIES[1].map(({ id }) => {
+    const group = runs.filter((run) => run.wins >= 1 && enemyForFight(run.seed, 2).id === id)
+    return { id, entered: group.length, wins: group.filter((run) => run.wins >= 2).length }
+  })
+}
+
 function summarizeCharges(runs, fight) {
   const turns = runs.flatMap((run) => run.charges.filter((charge) => !fight || charge.fight === fight))
   const reached = turns.filter((charge) => charge.broken).length
@@ -118,6 +138,7 @@ function runPolicy(policy) {
     policy, firstSeed, count, trainingWins: Object.fromEntries(trainingWins), wins: winCounts(runs),
     firstFightMeanHp: hpSum / count, winnerMeanHp: hpSum / survivors.length,
     eliteMedianHp: (survivors[Math.floor(middle)] + survivors[Math.ceil(middle)]) / 2,
+    lengths: summarizeLengths(runs), elites: summarizeElites(runs),
   }))
   console.log(JSON.stringify({
     policy, chargeThreshold: chargeIntents[0]?.chargeThreshold, all: summarizeCharges(runs),

@@ -40,7 +40,8 @@ function fightEnemy(start: YachtBattle, policy: YachtPolicy): YachtFight {
       const [index] = chooseReroll(battle, policy, true)
       if (index !== undefined) battle = spendExtraReroll(battle, index)
     }
-    const slots = chooseAllocation(battle, policy)
+    // Keep the original experiment comparable to its single-battle baseline.
+    const slots = chooseAllocation(battle, policy, battle.playerHp <= 12 ? 1.8 : 0.85)
     const tradeoffs = countYachtTradeoffs(battle)
     const resolved = resolveYachtTurn({ ...battle, slots })
     const roulette = resolved.battle.phase === 'counter'

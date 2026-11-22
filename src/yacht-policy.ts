@@ -20,22 +20,23 @@ function allocationsFor(battle: YachtBattle): readonly Slot[][] {
   return (battle.escort ? escortAllocations : allocations)[battle.dice.length - 2]
 }
 
-function allocationScore(battle: YachtBattle, plan: readonly Slot[]) {
+const carriedHealthWeight = 1.8
+
+function allocationScore(battle: YachtBattle, plan: readonly Slot[], damageWeight = carriedHealthWeight) {
   const { dealt, damage, counter, escortDealt, chargeBroken } = forecastYacht(battle, plan)
   if (damage >= battle.playerHp) return -1000 + dealt
   if (dealt >= battle.enemyHp) return 1000
   const expectedCounter = counter ? expectedReward(battle.enemyHp - dealt, yachtCounterRewards(battle, plan)) : 0
   const charge = chargeBroken ? chargedStrikePreview({ ...battle, slots: plan }) : null
   const chargeValue = charge ? charge.fullDamage - charge.totalDamage : 0
-  return dealt + escortDealt * 0.85 + expectedCounter + chargeValue -
-    damage * (battle.playerHp <= 12 ? 1.8 : 0.85)
+  return dealt + escortDealt * 0.85 + expectedCounter + chargeValue - damage * damageWeight
 }
 
-function bestAllocation(battle: YachtBattle, plans: readonly Slot[][]): readonly Slot[] {
+function bestAllocation(battle: YachtBattle, plans: readonly Slot[][], damageWeight: number): readonly Slot[] {
   let best = plans[0]
   let bestScore = -Infinity
   for (const plan of plans) {
-    const score = allocationScore(battle, plan)
+    const score = allocationScore(battle, plan, damageWeight)
     if (score >= 1000) return plan
     if (score > bestScore) {
       best = plan
@@ -79,7 +80,7 @@ function lowestDie(battle: YachtBattle, indices: readonly number[]): number | un
     lowest === undefined || battle.dice[index] < battle.dice[lowest] ? index : lowest, undefined)
 }
 
-export function chooseAllocation(battle: YachtBattle, policy: YachtPolicy): readonly Slot[] {
+export function chooseAllocation(battle: YachtBattle, policy: YachtPolicy, damageWeight = carriedHealthWeight): readonly Slot[] {
   if (policy === 'guardFirst') {
     const target = attackFor(battle, enemyIntentAt(battle)).totalDamage
     let best: readonly Slot[] = []
@@ -96,9 +97,9 @@ export function chooseAllocation(battle: YachtBattle, policy: YachtPolicy): read
   }
   if (policy === 'attackHand' || policy === 'guardHand') {
     const plans = handAllocations(battle, policy === 'attackHand' ? 'attack' : 'guard')
-    if (plans.length > 0) return bestAllocation(battle, plans)
+    if (plans.length > 0) return bestAllocation(battle, plans, damageWeight)
   }
-  return bestAllocation(battle, allocationsFor(battle))
+  return bestAllocation(battle, allocationsFor(battle), damageWeight)
 }
 
 export function chooseReroll(battle: YachtBattle, policy: YachtPolicy, extra: boolean): readonly number[] {

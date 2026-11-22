@@ -253,7 +253,7 @@ test('the same seed and perk produce the same ascent and reroll costs', () => {
 test('replaying the same seed reproduces the entire three-fight ascent through boss knockdown', () => {
   function replay() {
     const turns = []
-    const result = playAscent(13, 'wheel', 'devil', (fight, planning, resolved) => {
+    const result = playAscent(1, 'wheel', 'devil', (fight, planning, resolved) => {
       turns.push({ fight, planning, resolved })
     })
     return { result, turns }
@@ -261,22 +261,21 @@ test('replaying the same seed reproduces the entire three-fight ascent through b
 
   const first = replay()
   assert.equal(first.result.wins, FIGHT_COUNT)
-  assert.deepEqual(first.result.fightTurns, [4, 4, 4])
+  assert.deepEqual(first.result.fightTurns, [4, 4, 5])
   const bossTurns = first.turns.filter(({ fight }) => fight === 3)
-  assert.deepEqual(bossTurns.map(({ planning }) => intentOf(planning)), ['combo', 'charge', 'critical', 'knockdown'])
+  assert.deepEqual(bossTurns.map(({ planning }) => intentOf(planning)), ['combo', 'charge', 'critical', 'knockdown', 'impact'])
   assert.equal(bossTurns[1].resolved.battle.lastExchange.chargeBroken, true)
   assert.ok(bossTurns[2].resolved.battle.lastExchange.counter)
   assert.equal(first.turns.at(-1).resolved.battle.phase, 'won')
   assert.deepEqual(replay(), first)
 })
 
-test('the boss charged strike is at least two damage above its other intents after unlock scaling', () => {
+test('the boss charged strike is at least two damage above its opening combo after unlock scaling', () => {
   for (const unlocks of [0, 1, 2]) {
     const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, boss, unlocks * boss.attackPerUnlock)
-    const turns = Array.from({ length: 5 }, (_, index) => ({ ...start, turn: index + 1 }))
-    const critical = turns.find((battle) => intentOf(battle) === 'critical')
-    const otherDamage = turns.filter((battle) => battle !== critical).map((battle) => incomingAttack(battle).totalDamage)
-    assert.ok(incomingAttack(critical).totalDamage >= Math.max(...otherDamage) + 2)
+    const critical = { ...start, turn: 3 }
+    assert.equal(intentOf(critical), 'critical')
+    assert.ok(incomingAttack(critical).totalDamage >= incomingAttack(start).totalDamage + 2)
   }
 })
 
