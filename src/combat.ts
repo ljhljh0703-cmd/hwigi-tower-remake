@@ -9,6 +9,8 @@ export interface EnemyIntent {
   readonly name: string
   readonly hits: readonly number[]
   readonly matches: (turn: number) => boolean
+  readonly previewNextAttack?: true
+  readonly damageTakenMultiplier?: number
 }
 
 // The first matching row takes precedence.
@@ -112,11 +114,15 @@ function selectEnemyIntent<T extends EnemyIntent>(turn: number, intents: readonl
 
 type IntentContext = Pick<Battle, 'turn' | 'enemyIntents'>
 
+export function enemyIntentAt({ turn, enemyIntents = ENEMY_INTENTS }: IntentContext): EnemyIntent {
+  return selectEnemyIntent(turn, enemyIntents)
+}
+
 export function intentOf(turn: number): Intent
 export function intentOf(battle: IntentContext): string
 export function intentOf(battle: number | IntentContext): string {
   if (typeof battle === 'number') return selectEnemyIntent(battle, ENEMY_INTENTS).id
-  return selectEnemyIntent(battle.turn, battle.enemyIntents).id
+  return enemyIntentAt(battle).id
 }
 
 function canChangeDie(battle: Battle, index: number): boolean {
@@ -155,18 +161,29 @@ export function totals(dice: readonly number[], slots: readonly (Slot | null)[])
   return { attack, guard }
 }
 
-export function incomingAttack({ turn, enemyAttackBuff = 0, enemyAttackGrowth = 0, enemyIntents = ENEMY_INTENTS }: Battle) {
-  const { name, hits: baseHits } = selectEnemyIntent(turn, enemyIntents)
+function attackFor(
+  { turn, enemyAttackBuff = 0, enemyAttackGrowth = 0 }: Battle,
+  { name, hits: baseHits }: EnemyIntent,
+) {
   const buff = enemyAttackBuff + enemyAttackGrowth * (turn - 1)
   const hits = baseHits.map((hit) => hit + buff)
   const totalDamage = hits.reduce((sum, hit) => sum + hit, 0)
   return { name, hits, totalDamage }
 }
 
+export function incomingAttack(battle: Battle) {
+  return attackFor(battle, enemyIntentAt(battle))
+}
+
+export function attackPower(intent: EnemyIntent, attack: number): number {
+  return intent.damageTakenMultiplier === undefined ? attack : Math.floor(attack * intent.damageTakenMultiplier)
+}
+
 export function forecast(battle: Battle, slots = battle.slots, dice = battle.dice, attackBonus = 0) {
   const { attack, guard } = totals(dice, slots)
-  const incoming = incomingAttack(battle)
-  const dealt = Math.min(battle.enemyHp, attack + attackBonus)
+  const intent = enemyIntentAt(battle)
+  const incoming = attackFor(battle, intent)
+  const dealt = Math.min(battle.enemyHp, attackPower(intent, attack + attackBonus))
   if (dealt === battle.enemyHp) return { dealt, hits: [], damage: 0, counter: false }
 
   let shield = guard
@@ -179,7 +196,7 @@ export function forecast(battle: Battle, slots = battle.slots, dice = battle.dic
     dealt,
     hits,
     damage: hits.reduce((sum, hit) => sum + hit, 0),
-    counter: guard === incoming.totalDamage,
+    counter: incoming.totalDamage > 0 && guard === incoming.totalDamage,
   }
 }
 

@@ -26,10 +26,13 @@ export function playAscent(seed, perk, variant = 'devil') {
   let finishingTurns = 0
   let nonFinishingFewChoices = 0
   const tripleLandmarks = []
+  const fightTurns = []
 
   for (let fight = 1; fight <= FIGHT_COUNT; fight++) {
     let usedFreeBatch = false
+    fightTurns.push(0)
     for (let turn = 0; turn < 30 && ascent.battle.phase === 'assign'; turn++) {
+      fightTurns[fight - 1]++
       let battle = ascent.battle
       if (wantsReroll(battle)) battle = rerollYachtDice(battle, chooseReroll(battle, policy, false))
       if (battle.extraRerollAvailable && battle.rerolled && wantsReroll(battle)) {
@@ -83,20 +86,26 @@ export function playAscent(seed, perk, variant = 'devil') {
     ascent = nextAscentFight(ascent)
   }
   return {
-    wins, triple: ascent.unlocks.includes('triple'), tripleLandmarks,
+    wins, fightTurns, triple: ascent.unlocks.includes('triple'), tripleLandmarks,
     extraRolls, paidHp, fourDieTurns, fewChoices, finishingTurns, nonFinishingFewChoices,
   }
 }
 
 function summarize(runs) {
   const fightWins = [1, 2, 3].map((fight) => runs.filter(({ wins }) => wins >= fight).length)
+  const fightLengths = fightWins.map((won, index) => {
+    const entered = runs.filter(({ fightTurns }) => fightTurns.length > index)
+    const winningTurns = entered.reduce((sum, run) => sum + (run.wins > index ? run.fightTurns[index] : 0), 0)
+    const totalTurns = entered.reduce((sum, run) => sum + run.fightTurns[index], 0)
+    return { entered: entered.length, won, winningTurns, totalTurns }
+  })
   const cohorts = [true, false].map((triple) => {
     const group = runs.filter((run) => run.triple === triple)
     return { triple, runs: group.length, completed: group.filter(({ wins }) => wins === FIGHT_COUNT).length }
   })
   const sum = (field) => runs.reduce((total, run) => total + run[field], 0)
   return {
-    runs: runs.length, fightWins, cohorts,
+    runs: runs.length, fightWins, fightLengths, cohorts,
     extraRolls: sum('extraRolls'), paidHp: sum('paidHp'),
     fourDieTurns: sum('fourDieTurns'), fewChoices: sum('fewChoices'), finishingTurns: sum('finishingTurns'),
     nonFinishingFewChoices: sum('nonFinishingFewChoices'),

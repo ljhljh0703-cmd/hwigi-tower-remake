@@ -1,6 +1,6 @@
 import { ASCENT_ENEMIES, beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
-import { assignDie, DIE_COUNT, incomingAttack, intentOf, totals } from './combat.ts'
+import { assignDie, attackPower, DIE_COUNT, enemyIntentAt, incomingAttack, totals } from './combat.ts'
 import type { Exchange } from './combat.ts'
 import { offerPerks, START_PERKS } from './perks.ts'
 import {
@@ -257,7 +257,7 @@ function refreshDice(battle: YachtBattle) {
   })
 
   const { attack, guard } = totals(battle.dice, battle.slots)
-  ui.attackTotal.textContent = String(attack + yachtAttackBonus(battle))
+  ui.attackTotal.textContent = String(attackPower(enemyIntentAt(battle), attack + yachtAttackBonus(battle)))
   ui.guardTotal.textContent = String(guard)
   const canPlace = planning && selected.size > 0
   ui.assign.pool.disabled = !canPlace || ![...selected].some((index) => battle.slots[index] !== null)
@@ -289,6 +289,19 @@ function renderIntent(battle: YachtBattle) {
     ui.intent.innerHTML = icon('parry')
     ui.intent.setAttribute('aria-label', '정확 방어')
   } else if (phase === 'assign') {
+    const intent = enemyIntentAt(battle)
+    if (intent.previewNextAttack) {
+      const { totalDamage } = incomingAttack({ ...battle, turn: battle.turn + 1 })
+      ui.intent.innerHTML = `${icon('charge')}<strong>${totalDamage}</strong>`
+      ui.intent.setAttribute('aria-label', `${intent.name}, 다음 공격 피해 ${totalDamage}`)
+      return
+    }
+    if (intent.damageTakenMultiplier !== undefined) {
+      const multiplier = intent.damageTakenMultiplier
+      ui.intent.innerHTML = `${icon('knockdown')}<strong>×${multiplier}</strong>`
+      ui.intent.setAttribute('aria-label', `${intent.name}, 적이 받는 피해 ${multiplier}배`)
+      return
+    }
     const { hits } = incomingAttack(battle)
     const groups: { damage: number; count: number }[] = []
     for (const hit of hits) {
@@ -297,7 +310,7 @@ function renderIntent(battle: YachtBattle) {
       else groups.push({ damage: hit, count: 1 })
     }
     const damage = groups.map(({ damage, count }) => count === 1 ? String(damage) : `${damage}×${count}`).join(' + ')
-    const critical = intentOf(battle) === 'critical'
+    const critical = intent.id === 'critical'
     ui.intent.innerHTML = `${icon(critical ? 'critical' : 'sword')}<strong>${damage}</strong>`
     ui.intent.setAttribute('aria-label', `${critical ? '치명 일격' : '적 공격'} 피해 ${hits.join(', ')}`)
   }
