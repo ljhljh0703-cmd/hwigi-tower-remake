@@ -66,10 +66,10 @@ function summarizeLengths(runs) {
   })
 }
 
-function summarizeElites(runs) {
-  return ASCENT_ENEMIES[1].map(({ id }) => {
-    const group = runs.filter((run) => run.wins >= 1 && enemyForFight(run.seed, 2).id === id)
-    return { id, entered: group.length, wins: group.filter((run) => run.wins >= 2).length }
+function summarizeEnemies(runs, fight) {
+  return ASCENT_ENEMIES[fight - 1].map(({ id }) => {
+    const group = runs.filter((run) => run.wins >= fight - 1 && enemyForFight(run.seed, fight).id === id)
+    return { id, entered: group.length, wins: group.filter((run) => run.wins >= fight).length }
   })
 }
 
@@ -138,7 +138,8 @@ function runPolicy(policy) {
     policy, firstSeed, count, trainingWins: Object.fromEntries(trainingWins), wins: winCounts(runs),
     firstFightMeanHp: hpSum / count, winnerMeanHp: hpSum / survivors.length,
     eliteMedianHp: (survivors[Math.floor(middle)] + survivors[Math.ceil(middle)]) / 2,
-    lengths: summarizeLengths(runs), elites: summarizeElites(runs),
+    lengths: summarizeLengths(runs),
+    minions: summarizeEnemies(runs, 1), elites: summarizeEnemies(runs, 2),
   }))
   console.log(JSON.stringify({
     policy, chargeThreshold: chargeIntents[0]?.chargeThreshold, all: summarizeCharges(runs),

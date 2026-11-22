@@ -179,7 +179,7 @@ test('exact-defense hands take effect on the next planning turn without buffing 
   const start = beginAscent(42, 'wheel')
   const combo = ENEMY_INTENTS[1].hits
   const [face] = combo
-  const comboTurn = play(start, [5, 6, 6], allGuard, { enemyIntents: ENEMY_INTENTS })
+  const comboTurn = play(start, [5, 6, 6], allGuard, { enemyIntents: ENEMY_INTENTS, enemyAttackGrowth: 0 })
   const triple = play(comboTurn, combo, allGuard)
   assert.equal(triple.newUnlock, 'triple')
   assert.equal(triple.battle.phase, 'counter')
@@ -219,14 +219,16 @@ test('an attack hand can add a die during battle and only the next enemy gains t
   assert.equal(unlocked.battle.dice.length, 4)
   assert.equal(unlocked.battle.enemyAttackBuff, 0)
   const nextIntent = start.enemy.intents.find((row) => row.matches(unlocked.battle.turn))
-  assert.deepEqual(incomingAttack(unlocked.battle).hits, nextIntent.hits)
+  const minionGrowth = (unlocked.battle.enemyAttackGrowth ?? 0) * (unlocked.battle.turn - 1)
+  assert.deepEqual(incomingAttack(unlocked.battle).hits, nextIntent.hits.map((hit) => hit + minionGrowth))
   const second = nextAscentFight(play(unlocked, [4, 4, 4, 4], [...allAttack, 'attack'], { enemyHp: 1 }))
   const secondBuff = second.enemy.attackPerUnlock
   assert.equal(second.battle.enemyAttackBuff, secondBuff)
   const fourthTurn = { ...second.battle, turn: 4 }
   const fourthIntent = second.enemy.intents.find((row) => row.matches(4))
   assert.equal(intentOf(fourthTurn), fourthIntent.id)
-  assert.deepEqual(incomingAttack(fourthTurn).hits, fourthIntent.hits.map((hit) => hit + secondBuff))
+  const growth = (second.battle.enemyAttackGrowth ?? 0) * (fourthTurn.turn - 1)
+  assert.deepEqual(incomingAttack(fourthTurn).hits, fourthIntent.hits.map((hit) => hit + secondBuff + growth))
   const won = play(second, [1, 2, 3, 4], [...allAttack, 'guard'], { enemyHp: 1 })
   assert.equal(won.newUnlock, 'straight')
   assert.equal(won.battle.enemyAttackBuff, secondBuff)
@@ -253,7 +255,7 @@ test('the same seed and perk produce the same ascent and reroll costs', () => {
 test('replaying the same seed reproduces the entire three-fight ascent through boss knockdown', () => {
   function replay() {
     const turns = []
-    const result = playAscent(1, 'wheel', 'devil', (fight, planning, resolved) => {
+    const result = playAscent(9, 'wheel', 'devil', (fight, planning, resolved) => {
       turns.push({ fight, planning, resolved })
     })
     return { result, turns }
@@ -261,7 +263,7 @@ test('replaying the same seed reproduces the entire three-fight ascent through b
 
   const first = replay()
   assert.equal(first.result.wins, FIGHT_COUNT)
-  assert.deepEqual(first.result.fightTurns, [4, 4, 5])
+  assert.deepEqual(first.result.fightTurns, [3, 4, 5])
   const bossTurns = first.turns.filter(({ fight }) => fight === 3)
   assert.deepEqual(bossTurns.map(({ planning }) => intentOf(planning)), ['combo', 'charge', 'critical', 'knockdown', 'impact'])
   assert.equal(bossTurns[1].resolved.battle.lastExchange.chargeBroken, true)
@@ -270,12 +272,15 @@ test('replaying the same seed reproduces the entire three-fight ascent through b
   assert.deepEqual(replay(), first)
 })
 
-test('the boss charged strike is at least two damage above its opening combo after unlock scaling', () => {
+test('the boss keeps its rhythm with lower hit damage after the first cycle', () => {
   for (const unlocks of [0, 1, 2]) {
     const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, boss, unlocks * boss.attackPerUnlock)
-    const critical = { ...start, turn: 3 }
-    assert.equal(intentOf(critical), 'critical')
-    assert.ok(incomingAttack(critical).totalDamage >= incomingAttack(start).totalDamage + 2)
+    for (const turn of [1, 3, 5]) {
+      const first = { ...start, turn }
+      const repeat = { ...start, turn: turn + 5 }
+      assert.equal(intentOf(first), intentOf(repeat))
+      assert.ok(incomingAttack(repeat).totalDamage < incomingAttack(first).totalDamage)
+    }
   }
 })
 

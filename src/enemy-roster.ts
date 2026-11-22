@@ -30,46 +30,58 @@ function cycle(...rows: Omit<EnemyIntent, 'matches'>[]): EnemyIntent[] {
   }))
 }
 
+function bossCycle(openingHits: readonly number[], criticalDamage: number, sealedDamage: number) {
+  return cycle(
+    combo(openingHits),
+    charge,
+    critical(criticalDamage),
+    { id: 'knockdown', name: '넉다운', hits: [], damageTakenMultiplier: 2 },
+    impact(sealedDamage, { kind: 'seal', value: 5 }),
+  )
+}
+
+const bossOpening = bossCycle([8, 7], 16, 19)
+
 export const ASCENT_ENEMIES = [
   [
-    { id: 'thorns', hp: 22, attackPerUnlock: 0, intents: cycle(
-      impact(7), combo([3, 2, 2], { kind: 'thorns', value: 2 }), impact(7),
-    ) },
-    { id: 'lock', hp: 23, attackPerUnlock: 0, intents: cycle(
-      impact(7), combo([3, 2, 2], { kind: 'lock' }), impact(8),
-    ) },
-    { id: 'freeze', hp: 24, attackPerUnlock: 0, intents: [openingImpact(6), ...cycle(
-      impact(7), combo([3, 2, 2], { kind: 'freeze' }), impact(8),
+    { id: 'thorns', hp: 22, attackPerUnlock: 0, attackGrowth: 1, intents: [openingImpact(7), ...cycle(
+      impact(2), combo([2, 1, 1], { kind: 'thorns', value: 5 }), impact(4),
     )] },
-    { id: 'rage', hp: 23, attackPerUnlock: 0, intents: cycle(
-      impact(7), combo([3, 2, 2], { kind: 'rage', value: 2 }), impact(8),
-    ) },
+    { id: 'lock', hp: 23, attackPerUnlock: 0, attackGrowth: 1, intents: [openingImpact(7), ...cycle(
+      impact(2), combo([1, 2, 2], { kind: 'lock' }), impact(5),
+    )] },
+    { id: 'freeze', hp: 24, attackPerUnlock: 0, attackGrowth: 1, intents: [openingImpact(7), ...cycle(
+      impact(2), combo([2, 2, 2], { kind: 'freeze' }), impact(4),
+    )] },
+    { id: 'rage', hp: 23, attackPerUnlock: 0, attackGrowth: 1, intents: [openingImpact(7), ...cycle(
+      impact(2), combo([2, 2, 2], { kind: 'rage', value: 2 }), impact(5),
+    )] },
   ],
   [
     { id: 'reaction', hp: 35, attackPerUnlock: 2, intents: cycle(
       impact(6),
       impact(10, { kind: 'reaction', value: 8, alternate: { ...combo([2, 2]), matches: () => true } }),
       combo([2, 2]),
-      critical(14),
+      critical(22),
     ) },
-    { id: 'vitality', hp: 42, attackPerUnlock: 2, intents: cycle(
-      impact(8), impact(0, { kind: 'vitality', divisor: 3, minimum: 6 }), charge, critical(14),
+    { id: 'vitality', hp: 42, attackPerUnlock: 2, attackGrowth: 2, intents: cycle(
+      impact(8), impact(0, { kind: 'vitality', divisor: 2, minimum: 9 }), charge, critical(17),
     ) },
     { id: 'escort', hp: 34, attackPerUnlock: 2, intents: cycle(
       { id: 'escort', name: '호위 소환', hits: [], mechanic: { kind: 'escort', hp: 5, bonus: 3 } },
-      combo([5, 3], { kind: 'steal', value: 10 }),
+      combo([8, 2], { kind: 'steal', value: 10 }),
       charge,
-      critical(14),
+      critical(19),
     ) },
   ],
   [
-    { id: 'boss', hp: 72, attackPerUnlock: 1, attackGrowth: 1, intents: cycle(
-      combo([6, 6]),
-      charge,
-      critical(14),
-      { id: 'knockdown', name: '넉다운', hits: [], damageTakenMultiplier: 2 },
-      impact(16, { kind: 'seal', value: 5 }),
-    ) },
+    { id: 'boss', hp: 80, attackPerUnlock: 1, attackGrowth: 0, intents: [
+      ...bossOpening.map((intent) => ({
+        ...intent,
+        matches: (turn: number) => turn <= bossOpening.length && intent.matches(turn),
+      })),
+      ...bossCycle([4, 4], 14, 14),
+    ] },
   ],
 ] as const satisfies readonly (readonly AscentEnemy[])[]
 
