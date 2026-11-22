@@ -229,6 +229,11 @@ button:disabled {
 }
 
 #intent .icon { width: .88em; height: .88em; }
+#intent:has(.intent-detail) { flex-direction: column-reverse; gap: .18em; }
+#intent span { display: inline-flex; align-items: center; gap: .28em; }
+#intent .intent-detail { font-size: .57em; color: var(--muted); }
+#intent .inactive-intent { color: var(--muted); text-decoration: line-through; }
+#intent .active-intent { color: #f5f4f2; }
 
 .vital {
   position: absolute;
@@ -315,6 +320,7 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 #assign-pool:disabled { border-color: transparent; }
 
 .slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.slots.has-escort { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 .slot {
   min-inline-size: 0;
@@ -354,6 +360,7 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 }
 
 .die {
+  position: relative;
   flex: 0 1 47px;
   min-inline-size: 0;
   min-block-size: 44px;
@@ -371,6 +378,29 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 
 .die[aria-pressed='true'] { outline: 2px solid #f5f4f2; outline-offset: 1px; background: #aaa7a2; }
 .die.altered-face { border-inline: 2px dashed #696662; }
+.die-status {
+  position: absolute;
+  inset: -7px -3px auto auto;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #b5b2ad;
+  border-radius: 50%;
+  background: var(--stone-bed);
+  color: #f5f4f2;
+  font-size: .75rem;
+  pointer-events: none;
+}
+.stolen-die {
+  display: grid;
+  place-items: center;
+  border: 1px dashed #aaa7a2;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1rem;
+  cursor: default;
+}
 .drop-active { outline: 2px dashed #f5f4f2; outline-offset: 2px; }
 
 .dice-drag-preview {
@@ -555,6 +585,8 @@ meter::-moz-meter-bar { background: #b5b2ad; }
   }
   .encounter { height: auto; }
   .dice-row { gap: 4px; }
+  .slots.has-escort { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #escort-slot { grid-column: 1 / -1; }
   .slot { padding-inline: 6px; }
   #counter-panel { min-block-size: 238px; }
 }

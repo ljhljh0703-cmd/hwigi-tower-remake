@@ -1,8 +1,15 @@
 export const PLAYER_HP = 22
 export const ENEMY_HP = 30
 export const DIE_COUNT = 3
-export type Slot = 'attack' | 'guard'
+export type Slot = 'attack' | 'guard' | 'escort'
 export type Phase = 'assign' | 'counter' | 'won' | 'lost'
+
+export type DieInterference = 'lock' | 'freeze'
+export type EnemyMechanic =
+  | { readonly kind: DieInterference }
+  | { readonly kind: 'thorns' | 'rage' | 'vitality' | 'seal' | 'steal'; readonly value: number }
+  | { readonly kind: 'reaction'; readonly value: number; readonly alternate: EnemyIntent }
+  | { readonly kind: 'escort'; readonly hp: number; readonly bonus: number }
 
 export interface EnemyIntent {
   readonly id: string
@@ -11,6 +18,7 @@ export interface EnemyIntent {
   readonly matches: (turn: number) => boolean
   readonly previewNextAttack?: true
   readonly damageTakenMultiplier?: number
+  readonly mechanic?: EnemyMechanic
 }
 
 // The first matching row takes precedence.
@@ -52,6 +60,7 @@ export interface Exchange {
   readonly awakened: boolean
   readonly awakenedDice?: readonly number[]
   readonly pairGuardBonus?: true
+  readonly escortDealt?: number
 }
 
 export interface Battle {
@@ -68,6 +77,10 @@ export interface Battle {
   readonly rerolled: boolean
   readonly awakened: boolean
   readonly lastExchange: Exchange | null
+  readonly nextInterference?: DieInterference
+  readonly fixedDie?: { readonly index: number; readonly kind: DieInterference }
+  readonly stolenDie?: { readonly remaining: number }
+  readonly escort?: { readonly hp: number; readonly bonus: number }
 }
 
 export function draw(seed: number, turn: number, channel: number): number {
@@ -130,7 +143,7 @@ function canChangeDie(battle: Battle, index: number): boolean {
 }
 
 export function assignDie<T extends Battle>(battle: T, index: number, slot: Slot | null): T {
-  if (!canChangeDie(battle, index)) return battle
+  if (!canChangeDie(battle, index) || (slot === 'escort' && !battle.escort)) return battle
   return { ...battle, slots: battle.slots.map((current, i) => i === index ? slot : current) }
 }
 
@@ -161,18 +174,36 @@ export function totals(dice: readonly number[], slots: readonly (Slot | null)[])
   return { attack, guard }
 }
 
-function attackFor(
-  { turn, enemyAttackBuff = 0, enemyAttackGrowth = 0 }: Battle,
-  { name, hits: baseHits }: EnemyIntent,
-) {
+export function allocationTotals(battle: Battle, slots = battle.slots, dice = battle.dice) {
+  const mechanic = enemyIntentAt(battle).mechanic
+  const effectiveDice = mechanic?.kind === 'seal' ? dice.map((face) => face === mechanic.value ? 0 : face) : dice
+  const { attack, guard } = totals(effectiveDice, slots)
+  const escort = effectiveDice.reduce((sum, face, index) => slots[index] === 'escort' ? sum + face : sum, 0)
+  return { attack, guard, escort }
+}
+
+export function respondingIntent(intent: EnemyIntent, attack: number): EnemyIntent {
+  const mechanic = intent.mechanic
+  return mechanic?.kind === 'reaction' && attack >= mechanic.value ? mechanic.alternate : intent
+}
+
+export function attackFor(battle: Battle, intent: EnemyIntent, escortSurvives = Boolean(battle.escort)) {
+  const { turn, enemyAttackBuff = 0, enemyAttackGrowth = 0, playerHp, rerolled } = battle
+  const { name, hits: baseHits, mechanic } = intent
+  const rage = mechanic?.kind === 'rage' && rerolled ? mechanic.value : 0
   const buff = enemyAttackBuff + enemyAttackGrowth * (turn - 1)
-  const hits = baseHits.map((hit) => hit + buff)
+  const hits = mechanic?.kind === 'vitality'
+    ? [Math.floor(playerHp / mechanic.value)]
+    : baseHits.map((hit) => hit + buff)
+  // These bonuses apply once to the attack as a whole, including a multi-hit attack.
+  if (hits.length) hits[0] += rage + (escortSurvives ? battle.escort?.bonus ?? 0 : 0)
   const totalDamage = hits.reduce((sum, hit) => sum + hit, 0)
   return { name, hits, totalDamage }
 }
 
 export function incomingAttack(battle: Battle) {
-  return attackFor(battle, enemyIntentAt(battle))
+  const { attack, escort } = allocationTotals(battle)
+  return attackFor(battle, respondingIntent(enemyIntentAt(battle), attack), Boolean(battle.escort && escort < battle.escort.hp))
 }
 
 export function attackPower(intent: EnemyIntent, attack: number): number {
@@ -180,23 +211,28 @@ export function attackPower(intent: EnemyIntent, attack: number): number {
 }
 
 export function forecast(battle: Battle, slots = battle.slots, dice = battle.dice, attackBonus = 0) {
-  const { attack, guard } = totals(dice, slots)
-  const intent = enemyIntentAt(battle)
-  const incoming = attackFor(battle, intent)
+  const { attack, guard, escort } = allocationTotals(battle, slots, dice)
+  const intent = respondingIntent(enemyIntentAt(battle), attack)
+  const escortDealt = Math.min(battle.escort?.hp ?? 0, escort)
+  const incoming = attackFor(battle, intent, escortDealt < (battle.escort?.hp ?? 0))
   const dealt = Math.min(battle.enemyHp, attackPower(intent, attack + attackBonus))
-  if (dealt === battle.enemyHp) return { dealt, hits: [], damage: 0, counter: false }
+  const thorns = intent.mechanic?.kind === 'thorns'
+    ? slots.filter((slot) => slot === 'attack').length * intent.mechanic.value : 0
 
   let shield = guard
-  const hits = incoming.hits.map((hit) => {
+  const hits = (dealt === battle.enemyHp ? [] : incoming.hits).map((hit) => {
     const blocked = Math.min(shield, hit)
     shield -= blocked
     return hit - blocked
   })
+  if (thorns) hits.push(thorns)
   return {
     dealt,
+    escortDealt,
+    intent,
     hits,
     damage: hits.reduce((sum, hit) => sum + hit, 0),
-    counter: incoming.totalDamage > 0 && guard === incoming.totalDamage,
+    counter: dealt < battle.enemyHp && incoming.totalDamage > 0 && guard === incoming.totalDamage,
   }
 }
 

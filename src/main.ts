@@ -1,10 +1,10 @@
-import { ASCENT_ENEMIES, beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
+import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
-import { assignDie, attackPower, DIE_COUNT, enemyIntentAt, incomingAttack, totals } from './combat.ts'
+import { allocationTotals, assignDie, attackFor, attackPower, DIE_COUNT, enemyIntentAt, incomingAttack } from './combat.ts'
 import type { Exchange } from './combat.ts'
 import { offerPerks, START_PERKS } from './perks.ts'
 import {
-  rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtAttackBonus, yachtCounterRewards, yachtRerollCost,
+  canReroll, rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtAttackBonus, yachtCounterRewards, yachtRerollCost,
 } from './yacht-combat.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput } from './dice-drag.ts'
@@ -45,14 +45,19 @@ const ui = {
     pool: element('pool-dice'),
     attack: element('attack-dice'),
     guard: element('guard-dice'),
+    escort: element('escort-dice'),
   },
   assign: {
     pool: element<HTMLButtonElement>('assign-pool'),
     attack: element<HTMLButtonElement>('assign-attack'),
     guard: element<HTMLButtonElement>('assign-guard'),
+    escort: element<HTMLButtonElement>('assign-escort'),
   },
   attackTotal: element('attack-total'),
   guardTotal: element('guard-total'),
+  escortSlot: element('escort-slot'),
+  escortHp: element('escort-hp'),
+  escortTotal: element('escort-total'),
   reroll: element<HTMLButtonElement>('reroll'),
   rerollCount: element('reroll-count'),
   extraReroll: element<HTMLButtonElement>('extra-reroll'),
@@ -233,9 +238,15 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
   return button
 })
 
+const stolenPlaceholder = document.createElement('span')
+stolenPlaceholder.className = 'die stolen-die'
+stolenPlaceholder.setAttribute('role', 'img')
+
 function refreshDice(battle: YachtBattle) {
   const planning = battle.phase === 'assign'
   const { faceBonus, faceCap } = START_PERKS.reroll
+  const intent = enemyIntentAt(battle)
+  const mechanic = intent.mechanic
   diceButtons.forEach((button, index) => {
     const value = battle.dice[index]
     button.hidden = value === undefined
@@ -243,28 +254,48 @@ function refreshDice(battle: YachtBattle) {
     button.disabled = !planning
     const slot = battle.slots[index]
     const parent = ui.dice[slot ?? 'pool']
-    button.textContent = String(value)
+    const fixed = battle.fixedDie?.index === index ? battle.fixedDie.kind : undefined
+    const sealed = mechanic?.kind === 'seal' && value === mechanic.value
+    const status = fixed ?? (sealed ? 'seal' : undefined)
+    button.innerHTML = `${value}${status ? `<span class="die-status">${icon(status)}</span>` : ''}`
     const replacedFace = battle.perk === 'face' && index === 0
     const boostedFace = battle.devilBoostedDice?.includes(index) ?? false
     button.classList.toggle('altered-face', replacedFace || boostedFace)
-    const place = slot === 'attack' ? '공격' : slot === 'guard' ? '방어' : '미배치'
+    const place = slot ? { attack: '공격', guard: '방어', escort: '호위 공격' }[slot] : '미배치'
     let faceLabel = ''
     if (replacedFace) faceLabel = `, 1면을 ${START_PERKS.face.replacement}로 교체`
     if (boostedFace) faceLabel = `, 유료 재굴림으로 눈 +${faceBonus}`
+    if (fixed) faceLabel += `, ${fixed === 'lock' ? '잠김' : '얼림'}, 재굴림 불가`
+    if (sealed) faceLabel += ', 봉인되어 0으로 계산'
     button.setAttribute('aria-label', `주사위 ${index + 1}, ${value}, ${place}${faceLabel}`)
     button.setAttribute('aria-pressed', String(selected.has(index)))
     if (parent !== button.parentElement) parent.append(button)
   })
 
-  const { attack, guard } = totals(battle.dice, battle.slots)
-  ui.attackTotal.textContent = String(attackPower(enemyIntentAt(battle), attack + yachtAttackBonus(battle)))
+  const stolen = battle.stolenDie?.remaining
+  stolenPlaceholder.hidden = stolen === undefined
+  if (stolen !== undefined) {
+    stolenPlaceholder.innerHTML = `${stolen}<span class="die-status">${icon('steal')}</span>`
+    stolenPlaceholder.setAttribute('aria-label', `빼앗긴 주사위, 적에게 피해 ${stolen}을 주면 되찾음`)
+    ui.dice.pool.append(stolenPlaceholder)
+  }
+
+  const { attack, guard, escort } = allocationTotals(battle)
+  ui.attackTotal.textContent = String(attackPower(intent, attack + yachtAttackBonus(battle)))
   ui.guardTotal.textContent = String(guard)
+  ui.escortSlot.hidden = !battle.escort
+  ui.escortSlot.parentElement!.classList.toggle('has-escort', Boolean(battle.escort))
+  ui.escortHp.textContent = String(battle.escort?.hp ?? 0)
+  ui.assign.escort.setAttribute('aria-label', `호위 공격, 호위 체력 ${battle.escort?.hp ?? 0}`)
+  ui.escortTotal.textContent = String(escort)
   const canPlace = planning && selected.size > 0
+  const rerollable = [...selected].filter((index) => canReroll(battle, index))
   ui.assign.pool.disabled = !canPlace || ![...selected].some((index) => battle.slots[index] !== null)
   ui.assign.attack.disabled = !canPlace
   ui.assign.guard.disabled = !canPlace
+  ui.assign.escort.disabled = !canPlace
   const rerollCost = yachtRerollCost(battle)
-  ui.reroll.disabled = !canPlace || rerollCost === null || rerollCost >= battle.playerHp
+  ui.reroll.disabled = !rerollable.length || rerollCost === null || rerollCost >= battle.playerHp
   const freeRolls = Number(rerollCost === 0)
   ui.rerollCount.innerHTML = rerollCost
     ? `<span>+${faceBonus} <small>≤${faceCap}</small></span><span>${icon('heart')} −${rerollCost}</span>`
@@ -274,12 +305,22 @@ function refreshDice(battle: YachtBattle) {
     : `다시 굴리기 ${freeRolls}회`)
   ui.reroll.title = '다시 굴리기'
   ui.extraReroll.hidden = !battle.extraRerollAvailable && !battle.extraRerollSpent
-  ui.extraReroll.disabled = !planning || selected.size !== 1 || !battle.rerolled || !battle.extraRerollAvailable
+  ui.extraReroll.disabled = selected.size !== 1 || rerollable.length !== 1 || !battle.rerolled || !battle.extraRerollAvailable
   const extra = Number(battle.extraRerollAvailable)
   ui.extraReroll.innerHTML = `${icon(unlockInfo.straight.icon)}${extra}`
   ui.extraReroll.setAttribute('aria-label', `해금 재굴림 (${extra})`)
   ui.extraReroll.title = '해금 재굴림'
   ui.resolve.disabled = !planning || battle.slots.includes(null)
+}
+
+function hitNumbers(hits: readonly number[]) {
+  const groups: { damage: number; count: number }[] = []
+  for (const hit of hits) {
+    const group = groups.at(-1)
+    if (group?.damage === hit) group.count++
+    else groups.push({ damage: hit, count: 1 })
+  }
+  return groups.map(({ damage, count }) => count === 1 ? String(damage) : `${damage}×${count}`).join(' + ')
 }
 
 function renderIntent(battle: YachtBattle) {
@@ -302,26 +343,75 @@ function renderIntent(battle: YachtBattle) {
       ui.intent.setAttribute('aria-label', `${intent.name}, 적이 받는 피해 ${multiplier}배`)
       return
     }
+    const mechanic = intent.mechanic
     const { hits } = incomingAttack(battle)
-    const groups: { damage: number; count: number }[] = []
-    for (const hit of hits) {
-      const group = groups.at(-1)
-      if (group?.damage === hit) group.count++
-      else groups.push({ damage: hit, count: 1 })
+    let primary = hits.length ? `${icon(intent.id === 'critical' ? 'critical' : 'sword')}<strong>${hitNumbers(hits)}</strong>` : ''
+    let label = hits.length ? `${intent.name} 피해 ${hits.join(', ')}` : intent.name
+    let detail = ''
+    if (mechanic) {
+      const { kind } = mechanic
+      switch (kind) {
+        case 'lock':
+          detail = `${icon('lock')}${icon('die')}1`
+          label += ', 다음 턴 가장 낮은 주사위 하나 잠금'
+          break
+        case 'freeze':
+          detail = `${icon('freeze')}1`
+          label += ', 다음 턴 주사위 하나를 1로 얼림'
+          break
+        case 'thorns':
+          detail = `${icon('thorns')}${mechanic.value}`
+          label += `, 공격 주사위마다 가시 피해 ${mechanic.value}`
+          break
+        case 'rage':
+          detail = `${icon('rage')}+${mechanic.value}`
+          label += `, 재굴림 시 공격 피해 ${mechanic.value} 증가`
+          break
+        case 'reaction': {
+          const changed = allocationTotals(battle).attack >= mechanic.value
+          const base = hitNumbers(attackFor(battle, intent).hits)
+          const alternate = hitNumbers(attackFor(battle, mechanic.alternate).hits)
+          primary = `${icon('sword')}<strong${changed ? ' class="inactive-intent"' : ''}>${base}</strong>`
+          detail = `${icon('reaction')}${mechanic.value} <span${changed ? ' class="active-intent"' : ''}>${icon('sword')}${alternate}</span>`
+          label = `기본 공격 ${base}, 공격 합 ${mechanic.value} 이상이면 ${alternate}, 현재 피해 ${hits.join(', ')}`
+          break
+        }
+        case 'vitality':
+          primary = icon('heart') + primary
+          label += ', 내 현재 체력에 비례'
+          break
+        case 'seal':
+          detail = `${icon('seal')}${mechanic.value}`
+          label += `, 이번 턴 ${mechanic.value} 주사위 봉인`
+          break
+        case 'steal':
+          if (!battle.stolenDie) {
+            detail = `${icon('steal')}${icon('die')}1`
+            label += ', 다음 턴부터 주사위 하나 빼앗김'
+          }
+          break
+        case 'escort':
+          primary = `${icon('escort')}<strong>${Number(!battle.escort)}</strong>`
+          label += battle.escort ? ', 호위 한 마리 생존'
+            : `, 호위 체력 ${mechanic.hp}, 호위가 살아 있으면 공격 피해 ${mechanic.bonus} 증가`
+          break
+      }
     }
-    const damage = groups.map(({ damage, count }) => count === 1 ? String(damage) : `${damage}×${count}`).join(' + ')
-    const critical = intent.id === 'critical'
-    ui.intent.innerHTML = `${icon(critical ? 'critical' : 'sword')}<strong>${damage}</strong>`
-    ui.intent.setAttribute('aria-label', `${critical ? '치명 일격' : '적 공격'} 피해 ${hits.join(', ')}`)
+    if (battle.escort && hits.length) {
+      detail += `${icon('escort')}+${battle.escort.bonus}`
+      label += `, 호위 생존 시 공격 피해 ${battle.escort.bonus} 증가`
+    }
+    ui.intent.innerHTML = detail ? `<span>${primary}</span><span class="intent-detail">${detail}</span>` : primary
+    ui.intent.setAttribute('aria-label', label)
   }
 }
 
 const exchangeDuration = 1200
 let exchangeTimer: number | undefined
 
-function showExchange({ dealt, hitsTaken, awakenedDice }: Exchange) {
+function showExchange({ dealt, hitsTaken, awakenedDice, escortDealt }: Exchange) {
   const taken = hitsTaken.reduce((sum, value) => sum + value, 0)
-  ui.feedback.textContent = `적 피해 ${dealt}, 내 피해 ${taken}${awakenedDice ? `, 각성 ${awakenedDice.join(', ')}` : ''}`
+  ui.feedback.textContent = `적 피해 ${dealt}, 내 피해 ${taken}${escortDealt ? `, 호위 피해 ${escortDealt}` : ''}${awakenedDice ? `, 각성 ${awakenedDice.join(', ')}` : ''}`
   for (const [output, damage] of [[ui.playerDamage, taken], [ui.enemyDamage, dealt]] as const) {
     output.getAnimations().forEach((animation) => animation.cancel())
     output.textContent = `−${damage}`
@@ -355,7 +445,7 @@ function wait(milliseconds: number): Promise<void> {
 
 function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   if (!ascent) return
-  const { battle, fight, perk, maxHp, unlocks, newUnlock } = ascent
+  const { battle, fight, enemy, perk, maxHp, unlocks, newUnlock } = ascent
   const { phase, turn, playerHp, enemyHp } = battle
   const between = phase === 'won' && fight < FIGHT_COUNT
   const finished = phase === 'lost' || (phase === 'won' && !between)
@@ -382,7 +472,7 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.playerHp.max = maxHp
   ui.playerHp.value = playerHp
   ui.playerTotal.textContent = `${playerHp}/${maxHp}`
-  ui.enemyHp.max = ASCENT_ENEMIES[fight - 1].hp
+  ui.enemyHp.max = enemy.hp
   updateEnemyHp(enemyHp)
   ui.newUnlock.hidden = !atUnlock
   if (atUnlock) {
@@ -476,13 +566,15 @@ function focusPhase() {
   else ui.retry.focus()
 }
 
-for (const zone of ['pool', 'attack', 'guard'] as const) {
+for (const zone of ['pool', 'attack', 'guard', 'escort'] as const) {
   ui.assign[zone].addEventListener('click', () => place([...selected], zone))
 }
 function useReroll(extra: boolean) {
-  const indices = [...selected]
-  if (!ascent || indices.length === 0) return
-  const battle = extra ? spendExtraReroll(ascent.battle, indices[0]) : rerollYachtDice(ascent.battle, indices)
+  if (!ascent) return
+  const current = ascent.battle
+  const indices = [...selected].filter((index) => canReroll(current, index))
+  if (indices.length === 0) return
+  const battle = extra ? spendExtraReroll(current, indices[0]) : rerollYachtDice(current, indices)
   ascent = { ...ascent, battle }
   render()
   diceButtons[indices[0]].focus()

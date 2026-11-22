@@ -1,35 +1,39 @@
-import { DIE_COUNT, incomingAttack } from './combat.ts'
+import { DIE_COUNT, enemyIntentAt, incomingAttack } from './combat.ts'
 import type { Slot } from './combat.ts'
 import { adaptAndReroll, expectedReward } from './simulate.ts'
-import { classifyHand, forecastYacht, yachtCounterRewards } from './yacht-combat.ts'
+import { canReroll, classifyYachtHand, forecastYacht, yachtCounterRewards } from './yacht-combat.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 
 export const yachtPolicies = ['adaptive', 'attackHand', 'guardHand'] as const
 export type YachtPolicy = (typeof yachtPolicies)[number]
 
-function enumerateAllocations(diceCount: number): Slot[][] {
-  return Array.from({ length: 1 << diceCount }, (_, mask) =>
-    Array.from({ length: diceCount }, (_, index) => (mask & (1 << index)) === 0 ? 'attack' : 'guard'),
+function enumerateAllocations(diceCount: number, slots: readonly Slot[]): Slot[][] {
+  return Array.from({ length: slots.length ** diceCount }, (_, mask) =>
+    Array.from({ length: diceCount }, (_, index) => slots[Math.floor(mask / slots.length ** index) % slots.length]),
   )
 }
 
-const threeDieAllocations = enumerateAllocations(DIE_COUNT)
-const fourDieAllocations = enumerateAllocations(DIE_COUNT + 1)
+const allocations = [2, 3, 4].map((count) => enumerateAllocations(count, ['attack', 'guard']))
+const escortAllocations = [2, 3, 4].map((count) => enumerateAllocations(count, ['attack', 'guard', 'escort']))
 
 function allocationsFor(battle: YachtBattle): readonly Slot[][] {
-  return battle.dice.length === DIE_COUNT ? threeDieAllocations : fourDieAllocations
+  return (battle.escort ? escortAllocations : allocations)[battle.dice.length - 2]
+}
+
+function allocationScore(battle: YachtBattle, plan: readonly Slot[]) {
+  const { dealt, damage, counter, escortDealt } = forecastYacht(battle, plan)
+  if (damage >= battle.playerHp) return -1000 + dealt
+  if (dealt >= battle.enemyHp) return 1000
+  const expectedCounter = counter ? expectedReward(battle.enemyHp - dealt, yachtCounterRewards(battle, plan)) : 0
+  return dealt + escortDealt * 0.85 + expectedCounter - damage * (battle.playerHp <= 12 ? 1.8 : 0.85)
 }
 
 function bestAllocation(battle: YachtBattle, plans: readonly Slot[][]): readonly Slot[] {
   let best = plans[0]
   let bestScore = -Infinity
   for (const plan of plans) {
-    const { dealt, damage, counter } = forecastYacht(battle, plan)
-    if (dealt >= battle.enemyHp) return plan
-    const expectedCounter = counter ? expectedReward(battle.enemyHp - dealt, yachtCounterRewards(battle, plan)) : 0
-    const score = damage >= battle.playerHp
-      ? -1000 + dealt
-      : dealt + expectedCounter - damage * (battle.playerHp <= 12 ? 1.8 : 0.85)
+    const score = allocationScore(battle, plan)
+    if (score >= 1000) return plan
     if (score > bestScore) {
       best = plan
       bestScore = score
@@ -41,7 +45,7 @@ function bestAllocation(battle: YachtBattle, plans: readonly Slot[][]): readonly
 function handAllocations(battle: YachtBattle, slot: Slot): Slot[][] {
   return allocationsFor(battle).filter((plan) => {
     const faces = battle.dice.filter((_, index) => plan[index] === slot)
-    return classifyHand(faces) !== null && (slot === 'attack' || forecastYacht(battle, plan).counter)
+    return classifyYachtHand(battle, faces) !== null && (slot === 'attack' || forecastYacht(battle, plan).counter)
   })
 }
 
@@ -53,6 +57,7 @@ const handTargets = [
 function keepForHand(battle: YachtBattle, slot: Slot): readonly number[] {
   const { totalDamage } = incomingAttack(battle)
   for (const target of handTargets) {
+    if (!classifyYachtHand(battle, target)) continue
     if (slot === 'guard' && target.reduce((sum, face) => sum + face, 0) !== totalDamage) continue
     const needed = [...target]
     const matching = battle.dice.flatMap((face, index) => {
@@ -90,8 +95,20 @@ export function chooseReroll(battle: YachtBattle, policy: YachtPolicy, extra: bo
     }
   }
   indices ??= adaptAndReroll.reroll?.(battle) ?? []
+  const mechanic = enemyIntentAt(battle).mechanic
+  if (mechanic?.kind === 'seal') {
+    indices = [...new Set([...indices, ...battle.dice.flatMap((face, index) => face === mechanic.value ? [index] : [])])]
+  }
+  indices = indices.filter((index) => canReroll(battle, index))
+  if (mechanic?.kind === 'rage' && !battle.rerolled && indices.length) {
+    const current = allocationScore(battle, chooseAllocation(battle, policy))
+    const improvedDice = battle.dice.map((face, index) => indices.includes(index) ? 4 : face)
+    const after = { ...battle, dice: improvedDice, rerolled: true }
+    if (allocationScore(after, chooseAllocation(after, policy)) <= current) return []
+  }
   if (!extra) return indices
-  const lowest = lowestDie(battle, indices)
+  const sealed = mechanic?.kind === 'seal' ? indices.find((index) => battle.dice[index] === mechanic.value) : undefined
+  const lowest = sealed ?? lowestDie(battle, indices)
   return lowest === undefined ? [] : [lowest]
 }
 

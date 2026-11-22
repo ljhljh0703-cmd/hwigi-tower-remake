@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { ASCENT_ENEMIES, beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from '../src/ascent.ts'
-import { assignDie, COUNTER_REWARDS, draw, incomingAttack, intentOf, PLAYER_HP, roll } from '../src/combat.ts'
+import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from '../src/ascent.ts'
+import { ASCENT_ENEMIES, enemyForFight } from '../src/enemy-roster.ts'
+import { assignDie, COUNTER_REWARDS, draw, ENEMY_INTENTS, incomingAttack, intentOf, PLAYER_HP, roll } from '../src/combat.ts'
 import { offerPerks, START_PERKS } from '../src/perks.ts'
 import {
   forecastYacht, rerollYachtDice, resolveYachtTurn, spendExtraReroll, spinYachtCounter,
@@ -12,6 +13,7 @@ import { playAscent } from '../exp/level.mjs'
 const seeds = Array.from({ length: 512 }, (_, seed) => seed)
 const allAttack = ['attack', 'attack', 'attack']
 const allGuard = ['guard', 'guard', 'guard']
+const [boss] = ASCENT_ENEMIES[2]
 
 function play(ascent, dice, slots, changes = {}) {
   return resolveAscentTurn({ ...ascent, battle: { ...ascent.battle, dice, slots, ...changes } })
@@ -155,13 +157,14 @@ test('the health perk adds two once and the next fight starts with the carried h
   assert.equal(next.perk, 'health')
 })
 
-test('three fights use their own enemy table and carry health without recovery', () => {
+test('three fights use their seeded enemy table and carry health without recovery', () => {
   let ascent = beginAscent(42, 'wheel')
   for (let fight = 1; fight <= FIGHT_COUNT; fight++) {
     assert.equal(ascent.fight, fight)
     assert.equal(ascent.battle.playerHp, PLAYER_HP - (fight - 1) * 3)
-    assert.equal(ascent.battle.enemyHp, ASCENT_ENEMIES[fight - 1].hp)
-    assert.equal(ascent.battle.enemyIntents, ASCENT_ENEMIES[fight - 1].intents)
+    const enemy = enemyForFight(ascent.seed, fight)
+    assert.equal(ascent.battle.enemyHp, enemy.hp)
+    assert.equal(ascent.battle.enemyIntents, enemy.intents)
     assert.equal(ascent.battle.enemyAttackBuff, 0)
     assert.equal(nextAscentFight(ascent), ascent)
     const won = play(ascent, [1, 2, 2], allAttack, { enemyHp: 5, playerHp: ascent.battle.playerHp - 3 })
@@ -174,9 +177,9 @@ test('three fights use their own enemy table and carry health without recovery',
 
 test('exact-defense hands take effect on the next planning turn without buffing the current enemy', () => {
   const start = beginAscent(42, 'wheel')
-  const combo = ASCENT_ENEMIES[0].intents[1].hits
+  const combo = ENEMY_INTENTS[1].hits
   const [face] = combo
-  const comboTurn = play(start, [5, 6, 6], allGuard)
+  const comboTurn = play(start, [5, 6, 6], allGuard, { enemyIntents: ENEMY_INTENTS })
   const triple = play(comboTurn, combo, allGuard)
   assert.equal(triple.newUnlock, 'triple')
   assert.equal(triple.battle.phase, 'counter')
@@ -200,14 +203,14 @@ test('exact-defense hands take effect on the next planning turn without buffing 
   assert.deepEqual(next.unlocks, ['triple', 'straight'])
   assert.equal(next.battle.dice.length, 4)
   assert.equal(next.battle.extraRerollAvailable, true)
-  assert.equal(next.battle.enemyAttackBuff, 2 * ASCENT_ENEMIES[1].attackPerUnlock)
+  assert.equal(next.battle.enemyAttackBuff, 2 * next.enemy.attackPerUnlock)
   assert.equal(assignDie(next.battle, 3, 'guard').slots[3], 'guard')
   const used = spendExtraReroll(rerollYachtDice(next.battle, [3]), 3)
   const final = nextAscentFight(play({ ...next, battle: used }, [6, 6, 6, 6], [...allAttack, 'attack'], { enemyHp: 24 }))
   assert.equal(final.fight, 3)
   assert.equal(final.battle.dice.length, 4)
   assert.equal(final.battle.extraRerollAvailable, true)
-  assert.equal(final.battle.enemyAttackBuff, 2 * ASCENT_ENEMIES[2].attackPerUnlock)
+  assert.equal(final.battle.enemyAttackBuff, 2 * boss.attackPerUnlock)
 })
 
 test('an attack hand can add a die during battle and only the next enemy gains the unlock buff', () => {
@@ -215,23 +218,23 @@ test('an attack hand can add a die during battle and only the next enemy gains t
   const unlocked = play(start, [4, 4, 4], allAttack)
   assert.equal(unlocked.battle.dice.length, 4)
   assert.equal(unlocked.battle.enemyAttackBuff, 0)
-  assert.deepEqual(incomingAttack(unlocked.battle).hits, ASCENT_ENEMIES[0].intents[1].hits)
+  assert.deepEqual(incomingAttack(unlocked.battle).hits, start.enemy.intents[1].hits)
   const second = nextAscentFight(play(unlocked, [4, 4, 4, 4], [...allAttack, 'attack'], { enemyHp: 1 }))
-  const secondBuff = ASCENT_ENEMIES[1].attackPerUnlock
+  const secondBuff = second.enemy.attackPerUnlock
   assert.equal(second.battle.enemyAttackBuff, secondBuff)
   const fourthTurn = { ...second.battle, turn: 4 }
-  const critical = ASCENT_ENEMIES[1].intents.find((row) => row.id === 'critical')
-  assert.equal(intentOf(fourthTurn), critical.id)
-  assert.deepEqual(incomingAttack(fourthTurn).hits, critical.hits.map((hit) => hit + secondBuff))
+  const fourthIntent = second.enemy.intents.find((row) => row.matches(4))
+  assert.equal(intentOf(fourthTurn), fourthIntent.id)
+  assert.deepEqual(incomingAttack(fourthTurn).hits, fourthIntent.hits.map((hit) => hit + secondBuff))
   const won = play(second, [1, 2, 3, 4], [...allAttack, 'guard'], { enemyHp: 1 })
   assert.equal(won.newUnlock, 'straight')
   assert.equal(won.battle.enemyAttackBuff, secondBuff)
-  const boss = nextAscentFight(won).battle
-  const bossBuff = 2 * ASCENT_ENEMIES[2].attackPerUnlock
-  assert.equal(boss.enemyAttackBuff, bossBuff)
-  const { intents, attackGrowth } = ASCENT_ENEMIES[2]
+  const bossBattle = nextAscentFight(won).battle
+  const bossBuff = 2 * boss.attackPerUnlock
+  assert.equal(bossBattle.enemyAttackBuff, bossBuff)
+  const { intents, attackGrowth } = boss
   for (const turn of [1, 2, 3, 4, 5, 6]) {
-    const battle = { ...boss, turn }
+    const battle = { ...bossBattle, turn }
     const row = intents.find((entry) => entry.matches(turn))
     assert.equal(intentOf(battle), row.id)
     assert.deepEqual(incomingAttack(battle).hits, row.hits.map((hit) => hit + bossBuff + (turn - 1) * attackGrowth))
@@ -249,7 +252,7 @@ test('the same seed and perk produce the same ascent and reroll costs', () => {
 test('replaying the same seed reproduces the entire three-fight ascent through boss knockdown', () => {
   function replay() {
     const turns = []
-    const result = playAscent(245, 'wheel', 'devil', (fight, planning, resolved) => {
+    const result = playAscent(6, 'wheel', 'devil', (fight, planning, resolved) => {
       turns.push({ fight, planning, resolved })
     })
     return { result, turns }
@@ -257,7 +260,7 @@ test('replaying the same seed reproduces the entire three-fight ascent through b
 
   const first = replay()
   assert.equal(first.result.wins, FIGHT_COUNT)
-  assert.deepEqual(first.result.fightTurns, [2, 4, 4])
+  assert.deepEqual(first.result.fightTurns, [4, 4, 4])
   const bossTurns = first.turns.filter(({ fight }) => fight === 3)
   assert.deepEqual(bossTurns.map(({ planning }) => intentOf(planning)), ['combo', 'charge', 'critical', 'knockdown'])
   assert.ok(bossTurns[2].resolved.battle.lastExchange.counter)
@@ -265,55 +268,49 @@ test('replaying the same seed reproduces the entire three-fight ascent through b
   assert.deepEqual(replay(), first)
 })
 
-test('each charged strike is at least two damage above any other intent after unlock scaling', () => {
-  for (const [enemy, period] of [[ASCENT_ENEMIES[1], 4], [ASCENT_ENEMIES[2], 5]]) {
-    for (const unlocks of [0, 1, 2]) {
-      const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, enemy, unlocks * enemy.attackPerUnlock)
-      const turns = Array.from({ length: period }, (_, index) => ({ ...start, turn: index + 1 }))
-      const critical = turns.find((battle) => intentOf(battle) === 'critical')
-      const otherDamage = turns.filter((battle) => battle !== critical).map((battle) => incomingAttack(battle).totalDamage)
-      assert.ok(incomingAttack(critical).totalDamage >= Math.max(...otherDamage) + 2)
-    }
+test('the boss charged strike is at least two damage above its other intents after unlock scaling', () => {
+  for (const unlocks of [0, 1, 2]) {
+    const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, boss, unlocks * boss.attackPerUnlock)
+    const turns = Array.from({ length: 5 }, (_, index) => ({ ...start, turn: index + 1 }))
+    const critical = turns.find((battle) => intentOf(battle) === 'critical')
+    const otherDamage = turns.filter((battle) => battle !== critical).map((battle) => incomingAttack(battle).totalDamage)
+    assert.ok(incomingAttack(critical).totalDamage >= Math.max(...otherDamage) + 2)
   }
 })
 
-test('both charged strikes remain exactly guardable with three dice at every unlock count', () => {
+test('the boss charged strike remains exactly guardable with three dice at every unlock count', () => {
   const faces = [1, 2, 3, 4, 5, 6]
   const rolls = faces.flatMap((first) => faces.flatMap((second) => faces.map((third) => [first, second, third])))
-  for (const [enemy, turn] of [[ASCENT_ENEMIES[1], 4], [ASCENT_ENEMIES[2], 3]]) {
-    for (const unlocks of [0, 1, 2]) {
-      const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, enemy, unlocks * enemy.attackPerUnlock)
-      const critical = { ...start, turn }
-      assert.equal(intentOf(critical), 'critical')
-      const { totalDamage } = incomingAttack(critical)
-      assert.ok(totalDamage <= 24 && totalDamage < PLAYER_HP)
-      const dice = rolls.find((roll) => roll[0] + roll[1] + roll[2] === totalDamage)
-      assert.ok(dice, `No three-die exact guard for ${totalDamage} damage with ${unlocks} unlocks`)
-      const { battle } = resolveYachtTurn({ ...critical, dice, slots: allGuard })
-      assert.equal(battle.phase, 'counter')
-      assert.equal(battle.playerHp, PLAYER_HP)
-    }
+  for (const unlocks of [0, 1, 2]) {
+    const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, boss, unlocks * boss.attackPerUnlock)
+    const critical = { ...start, turn: 3 }
+    assert.equal(intentOf(critical), 'critical')
+    const { totalDamage } = incomingAttack(critical)
+    assert.ok(totalDamage < PLAYER_HP)
+    const dice = rolls.find((roll) => roll[0] + roll[1] + roll[2] === totalDamage)
+    assert.ok(dice, `No three-die exact guard for ${totalDamage} damage with ${unlocks} unlocks`)
+    const { battle } = resolveYachtTurn({ ...critical, dice, slots: allGuard })
+    assert.equal(battle.phase, 'counter')
+    assert.equal(battle.playerHp, PLAYER_HP)
   }
 })
 
-test('the second enemy and boss charge without dealing damage or opening a roulette', () => {
-  for (const [enemy, turn] of [[ASCENT_ENEMIES[1], 3], [ASCENT_ENEMIES[2], 2]]) {
-    const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, enemy, 1)
-    const charge = { ...start, turn, dice: [2, 3, 4], slots: allAttack }
-    assert.equal(intentOf(charge), 'charge')
-    assert.deepEqual(incomingAttack(charge).hits, [])
-    assert.equal(intentOf({ ...charge, turn: turn + 1 }), 'critical')
-    const { battle } = resolveYachtTurn(charge)
-    assert.equal(battle.phase, 'assign')
-    assert.equal(battle.turn, turn + 1)
-    assert.equal(battle.playerHp, PLAYER_HP)
-    assert.equal(battle.lastExchange.dealt, 9)
-    assert.deepEqual(battle.lastExchange.hitsTaken, [])
-  }
+test('the boss charges without dealing damage or opening a roulette', () => {
+  const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, boss, 1)
+  const charge = { ...start, turn: 2, dice: [2, 3, 4], slots: allAttack }
+  assert.equal(intentOf(charge), 'charge')
+  assert.deepEqual(incomingAttack(charge).hits, [])
+  const { battle } = resolveYachtTurn(charge)
+  assert.equal(battle.phase, 'assign')
+  assert.equal(battle.turn, 3)
+  assert.equal(intentOf(battle), 'critical')
+  assert.equal(battle.playerHp, PLAYER_HP)
+  assert.equal(battle.lastExchange.dealt, 9)
+  assert.deepEqual(battle.lastExchange.hitsTaken, [])
 })
 
 test('the boss takes multiplied attack damage during knockdown and skips its attack', () => {
-  const enemy = ASCENT_ENEMIES[2]
+  const enemy = boss
   const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, enemy, 1)
   const knockdown = { ...start, turn: 4, dice: [2, 3, 4], slots: allAttack }
   assert.equal(intentOf(knockdown), 'knockdown')
@@ -326,7 +323,7 @@ test('the boss takes multiplied attack damage during knockdown and skips its att
 })
 
 test('exact guard on a boss critical opens the seeded roulette before knockdown', () => {
-  const enemy = ASCENT_ENEMIES[2]
+  const enemy = boss
   const start = startYachtBattle(42, PLAYER_HP, true, false, undefined, enemy, 1)
   const critical = { ...start, turn: 3 }
   const { totalDamage } = incomingAttack(critical)

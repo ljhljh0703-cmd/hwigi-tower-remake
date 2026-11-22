@@ -47,6 +47,14 @@
         <circle fill="currentColor" stroke="none" cx="6.5" cy="12" r="1.2"/><circle fill="currentColor" stroke="none" cx="17.5" cy="12" r="1.2"/>
       </symbol>
       <symbol id="icon-joint" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M3 16 15 4m-5 0h5v5M9 20 21 8m-5 0h5v5"/></symbol>
+      <symbol id="icon-lock" viewBox="0 0 24 24"><rect vector-effect="non-scaling-stroke" x="5" y="11" width="14" height="10" rx="1"/><path vector-effect="non-scaling-stroke" d="M8 11V7a4 4 0 0 1 8 0v4m-4 4v2"/></symbol>
+      <symbol id="icon-freeze" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M9 4l3 3 3-3m-6 16 3-3 3 3M3 10l4-1-1-4m15 9-4 1 1 4m-15-5 4 1-1 4m15-9-4-1 1-4"/></symbol>
+      <symbol id="icon-thorns" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="m3 18 3-8 3 4 3-11 3 11 3-4 3 8ZM6 21h12"/></symbol>
+      <symbol id="icon-rage" viewBox="0 0 24 24"><rect vector-effect="non-scaling-stroke" x="3" y="5" width="10" height="10" rx="1"/><circle fill="currentColor" stroke="none" cx="8" cy="10" r="1.3"/><path vector-effect="non-scaling-stroke" d="M20 10v9a2 2 0 0 1-2 2h-7m6-8 3-3 2 3"/></symbol>
+      <symbol id="icon-reaction" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M3 8h18m-4-4 4 4-4 4m4 4H3m4-4-4 4 4 4"/></symbol>
+      <symbol id="icon-seal" viewBox="0 0 24 24"><rect vector-effect="non-scaling-stroke" x="3" y="3" width="18" height="18" rx="2"/><path vector-effect="non-scaling-stroke" d="m8 8 8 8m0-8-8 8"/></symbol>
+      <symbol id="icon-steal" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M8 21v-3l-4-5c-1-1.5.7-3.1 2-2l3 2V5a1.5 1.5 0 0 1 3 0v4l1-1 2 1 2-1 3 2v4l-3 4v3Z"/></symbol>
+      <symbol id="icon-escort" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M12 3a4 4 0 0 1 4 4v3H8V7a4 4 0 0 1 4-4Zm-4 8-4 3v7h16v-7l-4-3m-7 3v4m6-4v4"/></symbol>
     </svg>
     <main data-screen="perks">
       <header class="masthead">
@@ -107,6 +115,13 @@
                 <strong id="guard-total">0</strong>
               </button>
               <div id="guard-dice" class="dice-row"></div>
+            </section>
+            <section id="escort-slot" class="slot" aria-label="호위 공격 칸" data-dice-zone="escort" hidden>
+              <button id="assign-escort" type="button" class="slot-target" aria-label="호위 공격">
+                <span><svg class="icon" aria-hidden="true"><use href="#icon-escort"/></svg><span id="escort-hp"></span></span>
+                <strong id="escort-total">0</strong>
+              </button>
+              <div id="escort-dice" class="dice-row"></div>
             </section>
           </div>
 

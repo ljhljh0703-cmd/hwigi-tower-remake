@@ -1,5 +1,6 @@
 import {
-  COUNTER_REWARDS, DIE_COUNT, draw, forecast, openTurn, PLAYER_HP, rerollChannels, roll, spinCounter, startBattle,
+  COUNTER_REWARDS, DIE_COUNT, draw, enemyIntentAt, forecast, openTurn, PLAYER_HP, rerollChannels, roll, spinCounter,
+  startBattle,
 } from './combat.ts'
 import type { Battle, Enemy, Slot } from './combat.ts'
 import { START_PERKS } from './perks.ts'
@@ -46,19 +47,30 @@ function rollYachtDie(battle: YachtBattle, index: number, channel: number): numb
 }
 
 function addFourthDie(battle: YachtBattle): YachtBattle {
+  const face = rollYachtDie(battle, DIE_COUNT, FOURTH_DIE_CHANNEL)
+  const fixed = battle.fixedDie
   return {
     ...battle,
-    dice: [...battle.dice, rollYachtDie(battle, DIE_COUNT, FOURTH_DIE_CHANNEL)],
+    dice: [...battle.dice, face],
     slots: [...battle.slots, null],
+    ...(fixed?.kind === 'lock' && face < battle.dice[fixed.index] && {
+      fixedDie: { kind: 'lock', index: battle.dice.length },
+    }),
   }
 }
 
 function openYachtDice(battle: YachtBattle): YachtBattle {
+  const { nextInterference: kind, fixedDie: _fixedDie, ...rest } = battle
   const dice = [...battle.dice]
   if (battle.perk === 'face' && dice[0] === 1) dice[0] = START_PERKS.face.replacement
+  if (battle.stolenDie) dice.splice(DIE_COUNT - 1, 1)
+  const index = kind === 'lock' ? dice.indexOf(Math.min(...dice)) : 1
+  if (kind === 'freeze') dice[index] = 1
   const next = {
-    ...battle,
+    ...rest,
     dice,
+    slots: battle.slots.slice(0, dice.length),
+    ...(kind && { fixedDie: { index, kind } }),
     ...(battle.perk === 'reroll' && { devilRerolls: 0, devilBoostedDice: [] }),
   }
   return next.fourthDieUnlocked ? addFourthDie(next) : next
@@ -87,8 +99,9 @@ export function activateYachtHand(battle: YachtBattle, hand: Hand): YachtBattle 
   return battle.phase === 'assign' ? addFourthDie(unlocked) : unlocked
 }
 
-function canReroll(battle: YachtBattle, index: number): boolean {
-  return battle.phase === 'assign' && Number.isInteger(index) && index >= 0 && index < battle.dice.length
+export function canReroll(battle: YachtBattle, index: number): boolean {
+  return battle.phase === 'assign' && Number.isInteger(index) && index >= 0 && index < battle.dice.length &&
+    battle.fixedDie?.index !== index
 }
 
 export function rerollYachtDice(battle: YachtBattle, indices: readonly number[]): YachtBattle {
@@ -141,8 +154,13 @@ export function spendExtraReroll(battle: YachtBattle, index: number): YachtBattl
 function usedHand(battle: YachtBattle, dice: readonly number[], slot: Slot): UsedHand | null {
   const indices = battle.slots.flatMap((assigned, index) => assigned === slot ? [index] : [])
   if (indices.length !== DIE_COUNT || indices.some((index) => dice[index] !== battle.dice[index])) return null
-  const hand = classifyHand(indices.map((index) => dice[index]))
+  const hand = classifyYachtHand(battle, indices.map((index) => dice[index]))
   return hand && { hand, slot }
+}
+
+export function classifyYachtHand(battle: YachtBattle, faces: readonly number[]): Hand | null {
+  const mechanic = enemyIntentAt(battle).mechanic
+  return mechanic?.kind === 'seal' && faces.includes(mechanic.value) ? null : classifyHand(faces)
 }
 
 export function yachtAttackBonus(battle: YachtBattle, slots = battle.slots): number {
@@ -168,6 +186,11 @@ export function yachtCounterRewards(battle: YachtBattle, slots = battle.slots) {
   return COUNTER_REWARDS
 }
 
+function damageToStolenDie(battle: YachtBattle, dealt: number) {
+  if (!battle.stolenDie || dealt >= battle.stolenDie.remaining) return undefined
+  return { remaining: battle.stolenDie.remaining - dealt }
+}
+
 export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; hand: UsedHand | null } {
   if (battle.phase !== 'assign' || battle.slots.length !== battle.dice.length || battle.slots.includes(null)) {
     return { battle, hand: null }
@@ -176,18 +199,31 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
   const planned = forecastYacht(battle)
   const inCrisis = planned.damage >= battle.playerHp || battle.playerHp * 10 <= PLAYER_HP * 3
   const awakened = !battle.awakened && inCrisis && draw(battle.seed, battle.turn, 5) / 0x100000000 < 0.1
-  // Higher faces can only improve the fixed allocation. The original awakening breaks ties toward six.
-  const awakenedDice = awakened ? battle.dice.map(() => 6) : undefined
+  const mechanic = enemyIntentAt(battle).mechanic
+  const awakenedDice = awakened ? battle.dice.map((face, index) =>
+    battle.fixedDie?.index === index || (mechanic?.kind === 'seal' && face === mechanic.value) ? face : 6,
+  ) : undefined
   const dice = awakenedDice ?? battle.dice
   const result = awakenedDice ? forecastYacht(battle, battle.slots, awakenedDice) : planned
-  const hand = usedHand(battle, dice, 'attack') ?? (result.counter ? usedHand(battle, dice, 'guard') : null)
+  const hand = usedHand(battle, dice, 'attack') ?? usedHand(battle, dice, 'escort') ??
+    (result.counter ? usedHand(battle, dice, 'guard') : null)
   const playerHp = Math.max(0, battle.playerHp - result.damage)
   const enemyHp = battle.enemyHp - result.dealt
+  const effect = enemyHp > 0 && playerHp > 0 ? result.intent.mechanic : undefined
+  const escortHp = (battle.escort?.hp ?? 0) - result.escortDealt
+  const { stolenDie: previousTheft, escort: previousEscort, ...rest } = battle
+  const stolenDie = effect?.kind === 'steal' && !previousTheft
+    ? { remaining: effect.value } : damageToStolenDie(battle, result.dealt)
+  const escort = previousEscort && escortHp > 0 ? { ...previousEscort, hp: escortHp }
+    : effect?.kind === 'escort' && !previousEscort ? { hp: effect.hp, bonus: effect.bonus } : undefined
   const resolved: YachtBattle = {
-    ...battle,
+    ...rest,
     dice,
     playerHp,
     enemyHp,
+    ...((effect?.kind === 'lock' || effect?.kind === 'freeze') && { nextInterference: effect.kind }),
+    ...(stolenDie && { stolenDie }),
+    ...(escort && { escort }),
     awakened: battle.awakened || awakened,
     lastExchange: {
       turn: battle.turn,
@@ -196,12 +232,13 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
       counter: null,
       awakened,
       ...(awakenedDice && { awakenedDice }),
+      ...(result.escortDealt > 0 && { escortDealt: result.escortDealt }),
       ...(battle.perk === 'pair' && planned.counter && hasGuardPair(battle, battle.slots) && { pairGuardBonus: true }),
     },
   }
 
-  if (enemyHp === 0) return { battle: { ...resolved, phase: 'won' }, hand }
   if (playerHp === 0) return { battle: { ...resolved, phase: 'lost' }, hand }
+  if (enemyHp === 0) return { battle: { ...resolved, phase: 'won' }, hand }
   if (planned.counter) return { battle: { ...resolved, phase: 'counter' }, hand }
   const next = { ...resolved, ...openTurn(battle.seed, battle.turn + 1) }
   return { battle: openYachtDice(next), hand }
@@ -210,6 +247,8 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
 export function spinYachtCounter(battle: YachtBattle): YachtBattle {
   const spun = spinCounter(battle, yachtCounterRewards(battle))
   if (spun === battle) return battle
-  const next = { ...battle, ...spun }
+  const { stolenDie: _stolenDie, ...rest } = { ...battle, ...spun }
+  const stolenDie = damageToStolenDie(battle, battle.enemyHp - spun.enemyHp)
+  const next = { ...rest, ...(stolenDie && { stolenDie }) }
   return next.turn > battle.turn ? openYachtDice(next) : next
 }
