@@ -245,7 +245,7 @@ test('the same seed and perk produce the same ascent and reroll costs', () => {
 test('replaying the same seed reproduces the entire three-fight ascent through boss knockdown', () => {
   function replay() {
     const turns = []
-    const result = playAscent(220, 'health', 'devil', (fight, planning, resolved) => {
+    const result = playAscent(249, 'health', 'devil', (fight, planning, resolved) => {
       turns.push({ fight, planning, resolved })
     })
     return { result, turns }
@@ -253,21 +253,41 @@ test('replaying the same seed reproduces the entire three-fight ascent through b
 
   const first = replay()
   assert.equal(first.result.wins, FIGHT_COUNT)
-  assert.deepEqual(first.result.fightTurns, [3, 4, 4])
-  assert.deepEqual(first.turns.filter(({ fight }) => fight === 3).map(({ planning }) => intentOf(planning)),
-    ['combo', 'charge', 'critical', 'knockdown'])
+  assert.deepEqual(first.result.fightTurns, [2, 4, 4])
+  const bossTurns = first.turns.filter(({ fight }) => fight === 3)
+  assert.deepEqual(bossTurns.map(({ planning }) => intentOf(planning)), ['combo', 'charge', 'critical', 'knockdown'])
+  assert.ok(bossTurns[2].resolved.battle.lastExchange.counter)
   assert.equal(first.turns.at(-1).resolved.battle.phase, 'won')
   assert.deepEqual(replay(), first)
 })
 
-test('each charged strike is at least four damage above any other intent after unlock scaling', () => {
+test('each charged strike is at least three damage above any other intent after unlock scaling', () => {
   for (const [enemy, period] of [[ASCENT_ENEMIES[1], 4], [ASCENT_ENEMIES[2], 5]]) {
     for (const unlocks of [0, 1, 2]) {
       const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, enemy, unlocks)
       const turns = Array.from({ length: period }, (_, index) => ({ ...start, turn: index + 1 }))
       const critical = turns.find((battle) => intentOf(battle) === 'critical')
       const otherDamage = turns.filter((battle) => battle !== critical).map((battle) => incomingAttack(battle).totalDamage)
-      assert.ok(incomingAttack(critical).totalDamage >= Math.max(...otherDamage) + 4)
+      assert.ok(incomingAttack(critical).totalDamage >= Math.max(...otherDamage) + 3)
+    }
+  }
+})
+
+test('both charged strikes remain exactly guardable with three dice at every unlock count', () => {
+  const faces = [1, 2, 3, 4, 5, 6]
+  const rolls = faces.flatMap((first) => faces.flatMap((second) => faces.map((third) => [first, second, third])))
+  for (const [enemy, turn] of [[ASCENT_ENEMIES[1], 4], [ASCENT_ENEMIES[2], 3]]) {
+    for (const unlocks of [0, 1, 2]) {
+      const start = startYachtBattle(42, PLAYER_HP, false, false, undefined, enemy, unlocks)
+      const critical = { ...start, turn }
+      assert.equal(intentOf(critical), 'critical')
+      const { totalDamage } = incomingAttack(critical)
+      assert.ok(totalDamage <= 24 && totalDamage < PLAYER_HP)
+      const dice = rolls.find((roll) => roll[0] + roll[1] + roll[2] === totalDamage)
+      assert.ok(dice, `No three-die exact guard for ${totalDamage} damage with ${unlocks} unlocks`)
+      const { battle } = resolveYachtTurn({ ...critical, dice, slots: allGuard })
+      assert.equal(battle.phase, 'counter')
+      assert.equal(battle.playerHp, PLAYER_HP)
     }
   }
 })

@@ -14,23 +14,23 @@ export const ASCENT_ENEMIES = [
     ],
   },
   {
-    hp: 27,
+    hp: 52,
     intents: [
-      { id: 'combo', name: '연타', hits: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], matches: (turn) => turn % 4 === 1 },
-      { id: 'impact', name: '한 방', hits: [4], matches: (turn) => turn % 4 === 2 },
+      { id: 'combo', name: '연타', hits: [3, 3, 3], matches: (turn) => turn % 4 === 1 },
+      { id: 'impact', name: '한 방', hits: [3], matches: (turn) => turn % 4 === 2 },
       { id: 'charge', name: '힘 모으기', hits: [], previewNextAttack: true, matches: (turn) => turn % 4 === 3 },
-      { id: 'critical', name: '치명 일격', hits: [35], matches: (turn) => turn % 4 === 0 },
+      { id: 'critical', name: '치명 일격', hits: [16], matches: (turn) => turn % 4 === 0 },
     ],
   },
   {
-    hp: 33,
+    hp: 54,
     attackGrowth: 0,
     intents: [
-      { id: 'combo', name: '연타', hits: [1, 1, 1, 1, 1, 1, 1], matches: (turn) => turn % 5 === 1 },
+      { id: 'combo', name: '연타', hits: [1, 1, 1, 1], matches: (turn) => turn % 5 === 1 },
       { id: 'charge', name: '힘 모으기', hits: [], previewNextAttack: true, matches: (turn) => turn % 5 === 2 },
-      { id: 'critical', name: '치명 일격', hits: [23], matches: (turn) => turn % 5 === 3 },
+      { id: 'critical', name: '치명 일격', hits: [16], matches: (turn) => turn % 5 === 3 },
       { id: 'knockdown', name: '넉다운', hits: [], damageTakenMultiplier: 1.5, matches: (turn) => turn % 5 === 4 },
-      { id: 'impact', name: '한 방', hits: [8], matches: (turn) => turn % 5 === 0 },
+      { id: 'impact', name: '한 방', hits: [7], matches: (turn) => turn % 5 === 0 },
     ],
   },
 ] as const satisfies readonly Enemy[]
