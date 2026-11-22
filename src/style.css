@@ -82,6 +82,7 @@ h1, h2, p { margin: 0; }
 .run-status > span { display: inline-flex; align-items: center; gap: 5px; }
 #active-perk strong { color: #f1f0ee; white-space: nowrap; font-variant-numeric: tabular-nums; }
 #active-perk.perk-ready strong { color: #f2ac98; }
+.perk-preview { color: var(--muted); font-size: inherit; white-space: nowrap; }
 #fight { padding-inline-start: 14px; border-inline-start: 1px solid var(--stone-edge); }
 
 button {
@@ -348,6 +349,7 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 
 .slot-target:not(:disabled):hover { background: var(--stone-face); }
 .slot-target span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: .85rem; }
+.slot-target #attack-multiplier { color: #f2ac98; }
 .slot-target strong { font-size: 2rem; line-height: 1; }
 
 .dice-row {

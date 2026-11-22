@@ -1,14 +1,14 @@
 import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import {
-  allocationTotals, assignDie, attackFor, attackPower, chargedStrikePreview, DIE_COUNT, dieFaceForSlot, enemyIntentAt,
-  incomingAttack, respondingIntent,
+  assignDie, attackFor, chargedStrikePreview, DIE_COUNT, dieFaceForSlot, enemyIntentAt, incomingAttack,
 } from './combat.ts'
-import type { Exchange } from './combat.ts'
+import type { Exchange, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
 import type { Parity } from './perks.ts'
 import {
-  canReroll, rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtCounterRewards, yachtRerollCost, yachtSlotBonuses,
+  bladeChargePreview, canReroll, rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtAllocationTotals,
+  yachtCounterRewards, yachtRerollCost,
 } from './yacht-combat.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput } from './dice-drag.ts'
@@ -59,6 +59,7 @@ const ui = {
     escort: element<HTMLButtonElement>('assign-escort'),
   },
   attackTotal: element('attack-total'),
+  attackMultiplier: element('attack-multiplier'),
   guardTotal: element('guard-total'),
   escortSlot: element('escort-slot'),
   escortHp: element('escort-hp'),
@@ -94,7 +95,7 @@ const perkDisplay = {
   },
   collector: {
     value: '+N', detail: `${icon('die')}=${icon('die')}`,
-    label: `같은 눈이 둘 이상인 칸 +N, 처음 쓴 족보마다 N +${START_PERKS.collector.step}`,
+    label: `같은 눈이 둘 이상인 칸 +N, 처음 쓴 족보마다 N +${START_PERKS.collector.step}, 최대 ${START_PERKS.collector.maximum}`,
   },
   reroll: {
     value: '+1', detail: `${icon('heart')} −${START_PERKS.reroll.cost}`,
@@ -111,6 +112,7 @@ const perkDisplay = {
 } as const
 
 const parityLabels = { odd: '홀', even: '짝' } as const
+const parityIcons = { odd: 'die', even: 'die-even' } as const
 
 function icon(name: string) {
   return `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`
@@ -274,7 +276,7 @@ const stolenPlaceholder = document.createElement('span')
 stolenPlaceholder.className = 'die stolen-die'
 stolenPlaceholder.setAttribute('role', 'img')
 
-function refreshDice(battle: YachtBattle) {
+function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals) {
   const planning = battle.phase === 'assign'
   const intent = enemyIntentAt(battle)
   const mechanic = intent.mechanic
@@ -309,15 +311,15 @@ function refreshDice(battle: YachtBattle) {
     ui.dice.pool.append(stolenPlaceholder)
   }
 
-  const { attack, guard, escort } = allocationTotals(battle)
-  const bonuses = yachtSlotBonuses(battle)
-  ui.attackTotal.textContent = String(attackPower(respondingIntent(intent, attack), attack + (bonuses?.attack ?? 0)))
-  ui.guardTotal.textContent = String(guard + (bonuses?.guard ?? 0))
+  ui.attackTotal.textContent = String(attack)
+  ui.attackMultiplier.hidden = !planning || !bladeChargePreview(battle)?.ready
+  ui.attackMultiplier.textContent = `×${START_PERKS.blade.multiplier}`
+  ui.guardTotal.textContent = String(guard)
   ui.escortSlot.hidden = !battle.escort
   ui.escortSlot.parentElement!.classList.toggle('has-escort', Boolean(battle.escort))
   ui.escortHp.textContent = String(battle.escort?.hp ?? 0)
   ui.assign.escort.setAttribute('aria-label', `호위 공격, 호위 체력 ${battle.escort?.hp ?? 0}`)
-  ui.escortTotal.textContent = String(escort + (bonuses?.escort ?? 0))
+  ui.escortTotal.textContent = String(escort)
   const canPlace = planning && selected.size > 0
   const rerollable = [...selected].filter((index) => canReroll(battle, index))
   ui.assign.pool.disabled = !canPlace || ![...selected].some((index) => battle.slots[index] !== null)
@@ -353,8 +355,7 @@ function hitNumbers(hits: readonly number[]) {
   return groups.map(({ damage, count }) => count === 1 ? String(damage) : `${damage}×${count}`).join(' + ')
 }
 
-function renderIntent(battle: YachtBattle) {
-  const escortBonus = yachtSlotBonuses(battle)?.escort
+function renderIntent(battle: YachtBattle, totals: SlotTotals) {
   const { phase } = battle
   ui.intent.hidden = phase === 'won' || phase === 'lost'
   if (phase === 'counter') {
@@ -362,7 +363,7 @@ function renderIntent(battle: YachtBattle) {
     ui.intent.setAttribute('aria-label', '정확 방어')
   } else if (phase === 'assign') {
     const intent = enemyIntentAt(battle)
-    const charge = chargedStrikePreview(battle, escortBonus)
+    const charge = chargedStrikePreview(battle, totals)
     if (charge) {
       const { threshold, totalDamage, weakened } = charge
       ui.intent.innerHTML = `<span>${icon('charge')}<strong>${totalDamage}</strong></span><span class="intent-detail${weakened ? ' active-intent' : ''}">${icon('break-charge')}${threshold}</span>`
@@ -377,7 +378,7 @@ function renderIntent(battle: YachtBattle) {
       return
     }
     const mechanic = intent.mechanic
-    const { hits } = incomingAttack(battle, escortBonus)
+    const { hits } = incomingAttack(battle, totals)
     let primary = hits.length ? `${icon(intent.id === 'critical' ? 'critical' : 'sword')}<strong>${hitNumbers(hits)}</strong>` : ''
     let label = hits.length ? `${intent.name} 피해 ${hits.join(', ')}` : intent.name
     let detail = ''
@@ -401,7 +402,7 @@ function renderIntent(battle: YachtBattle) {
           label += `, 재굴림 시 공격 피해 ${mechanic.value} 증가`
           break
         case 'reaction': {
-          const changed = allocationTotals(battle).attack >= mechanic.value
+          const changed = totals.attack >= mechanic.value
           const base = hitNumbers(attackFor(battle, intent).hits)
           const alternate = hitNumbers(attackFor(battle, mechanic.alternate).hits)
           primary = `${icon('sword')}<strong${changed ? ' class="inactive-intent"' : ''}>${base}</strong>`
@@ -480,7 +481,9 @@ function renderActivePerk(battle: YachtBattle) {
   const { perk } = battle
   ui.activePerk.hidden = !perk
   if (!perk) return
-  const { name, icon: symbol } = START_PERKS[perk.kind]
+  const { name, icon: defaultSymbol } = START_PERKS[perk.kind]
+  const symbol = perk.kind === 'oath' ? parityIcons[perk.parity] : defaultSymbol
+  const blade = bladeChargePreview(battle)
   let value: string
   switch (perk.kind) {
     case 'shield': value = `+${perk.bonus}`; break
@@ -490,10 +493,12 @@ function renderActivePerk(battle: YachtBattle) {
     case 'oath': value = `${parityLabels[perk.parity]} +${START_PERKS.oath.bonus}`; break
     case 'counter': value = `+${perk.growth}`; break
   }
-  const ready = perk.kind === 'blade' && perk.charge >= START_PERKS.blade.threshold
-  ui.activePerk.classList.toggle('perk-ready', ready)
-  ui.activePerk.innerHTML = `${icon(symbol)}<strong>${value}</strong>`
-  ui.activePerk.setAttribute('aria-label', `${name} ${value}, ${perkDisplay[perk.kind].label}`)
+  const projected = blade && battle.phase === 'assign' && blade.nextCharge !== blade.charge
+    ? `${blade.nextCharge}/${START_PERKS.blade.threshold}` : null
+  ui.activePerk.classList.toggle('perk-ready', blade?.ready ?? false)
+  const preview = projected ? `<small class="perk-preview">→${projected}</small>` : ''
+  ui.activePerk.innerHTML = `${icon(symbol)}<strong>${value}</strong>${preview}`
+  ui.activePerk.setAttribute('aria-label', `${name} ${value}${projected ? `, 배치 후 예상 ${projected}` : ''}, ${perkDisplay[perk.kind].label}`)
   ui.activePerk.title = name
 }
 
@@ -517,7 +522,8 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.turn.hidden = !inCombat
   ui.turn.innerHTML = `${icon('turn')}${turn}`
   ui.turn.setAttribute('aria-label', `${turn}턴`)
-  renderIntent(battle)
+  const totals = yachtAllocationTotals(battle)
+  renderIntent(battle, totals)
   ui.playerHp.max = maxHp
   ui.playerHp.value = playerHp
   ui.playerTotal.textContent = `${playerHp}/${maxHp}`
@@ -555,7 +561,7 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.result.textContent = phase === 'won' ? '성공' : '실패'
   ui.next.hidden = !between
   ui.retry.hidden = !finished
-  refreshDice(battle)
+  refreshDice(battle, totals)
   arena.refresh(battle)
 }
 
@@ -587,7 +593,7 @@ function showPerks(focus: boolean) {
         return
       }
       const parityButtons = (['odd', 'even'] as const).map((parity) => {
-        const choice = perkButton(symbol, name, parityLabels[parity], `${icon('sword')} ${value}`)
+        const choice = perkButton(parityIcons[parity], name, parityLabels[parity], `${icon('sword')} ${value}`)
         choice.setAttribute('aria-label', `${name}, ${parity === 'odd' ? '홀수' : '짝수'}`)
         choice.addEventListener('click', () => begin(perk, parity))
         return choice

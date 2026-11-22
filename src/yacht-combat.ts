@@ -1,5 +1,5 @@
 import {
-  allocationTotals, COUNTER_REWARDS, DIE_COUNT, dieFaceForSlot, draw, enemyIntentAt, forecast, openTurn, PLAYER_HP,
+  allocationPower, allocationTotals, COUNTER_REWARDS, DIE_COUNT, dieFaceForSlot, draw, enemyIntentAt, forecast, openTurn, PLAYER_HP,
   rerollChannels, roll, spinCounter,
   startBattle,
 } from './combat.ts'
@@ -154,39 +154,43 @@ function facesInSlot(dice: readonly number[], slots: YachtBattle['slots'], slot:
   return dice.flatMap((face, index) => slots[index] === slot ? [dieFaceForSlot(face, slot, mechanic)] : [])
 }
 
-export function yachtSlotBonuses(battle: YachtBattle, slots = battle.slots, dice = battle.dice) {
+export function yachtAllocationTotals(battle: YachtBattle, slots = battle.slots, dice = battle.dice) {
+  const totals = allocationTotals(battle, slots, dice)
   const { perk } = battle
-  if (!perk) return
-  if (perk.kind === 'collector') {
+  if (perk?.kind === 'collector') {
     const mechanic = enemyIntentAt(battle).mechanic
     const bonus = collectorBonus(perk.hands)
-    const bonuses: Partial<Record<Slot, number>> = {}
     for (const slot of combatSlots) {
-      if (matchingCount(facesInSlot(dice, slots, slot, mechanic)) >= 2) bonuses[slot] = bonus
+      if (matchingCount(facesInSlot(dice, slots, slot, mechanic)) >= 2) totals[slot] += bonus
     }
-    return bonuses
-  }
-  if (perk.kind === 'oath') {
+  } else if (perk?.kind === 'oath') {
     const mechanic = enemyIntentAt(battle).mechanic
     const parity = perk.parity === 'odd' ? 1 : 0
-    let attack = 0
     for (const [index, face] of dice.entries()) {
       if (slots[index] === 'attack' && face % 2 === parity && dieFaceForSlot(face, 'attack', mechanic) > 0) {
-        attack += START_PERKS.oath.bonus
+        totals.attack += START_PERKS.oath.bonus
       }
     }
-    return { attack }
+  } else if (perk?.kind === 'shield' && totals.attack > 0) {
+    totals.attack += perk.bonus
+  } else if (perk?.kind === 'blade' && perk.charge >= START_PERKS.blade.threshold) {
+    totals.attack *= START_PERKS.blade.multiplier
   }
-  if (perk.kind === 'shield' || perk.kind === 'blade') {
-    if (perk.kind === 'blade' && perk.charge < START_PERKS.blade.threshold) return
-    const { attack } = allocationTotals(battle, slots, dice)
-    if (attack === 0) return
-    return { attack: perk.kind === 'shield' ? perk.bonus : attack * (START_PERKS.blade.multiplier - 1) }
-  }
+  return allocationPower(battle, totals)
 }
 
 export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = battle.dice) {
-  return forecast(battle, slots, dice, yachtSlotBonuses(battle, slots, dice))
+  return forecast(battle, slots, dice, yachtAllocationTotals(battle, slots, dice))
+}
+
+export function bladeChargePreview(battle: YachtBattle, dice = battle.dice) {
+  if (battle.perk?.kind !== 'blade') return null
+  const { charge } = battle.perk
+  const { threshold } = START_PERKS.blade
+  const { attack } = allocationTotals(battle, battle.slots, dice)
+  const ready = charge >= threshold
+  const nextCharge = ready && attack > 0 ? charge - threshold + attack : charge + attack
+  return { charge, ready, nextCharge }
 }
 
 export function yachtCounterRewards(battle: YachtBattle) {
@@ -207,13 +211,8 @@ function resolvePerk(battle: YachtBattle, planned: ReturnType<typeof forecastYac
   if (perk?.kind === 'shield' && planned.intent.hits.length > 0 && enemyHp > 0) {
     return { ...perk, bonus: planned.counter ? perk.bonus + START_PERKS.shield.step : 0 }
   }
-  if (perk?.kind === 'blade') {
-    const { attack } = allocationTotals(battle, slots, dice)
-    if (attack > 0) {
-      const spend = perk.charge >= START_PERKS.blade.threshold ? START_PERKS.blade.threshold : 0
-      return { ...perk, charge: perk.charge - spend + attack }
-    }
-  }
+  const blade = bladeChargePreview(battle, dice)
+  if (blade) return { kind: 'blade' as const, charge: blade.nextCharge }
   if (perk?.kind === 'collector') {
     const hands = new Set(perk.hands)
     const mechanic = enemyIntentAt(battle).mechanic

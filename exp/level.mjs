@@ -17,7 +17,7 @@ function wantsReroll(battle) {
   return !chargeBroken && (dealt < battle.enemyHp || damage >= battle.playerHp)
 }
 
-export function playAscent(seed, perk, observeTurn, policy = 'adaptive') {
+export function playAscent(seed, perk, observeTurn, policy = 'adaptive', perkAware = true) {
   const parity = draw(seed, 0, 21) % 2 ? 'odd' : 'even'
   let ascent = beginAscent(seed, perk, parity)
   let wins = 0
@@ -36,15 +36,15 @@ export function playAscent(seed, perk, observeTurn, policy = 'adaptive') {
       fightTurns[fight - 1]++
       const opening = ascent.battle
       let battle = opening
-      if (wantsReroll(battle)) battle = rerollYachtDice(battle, chooseReroll(battle, policy, false))
+      if (wantsReroll(battle)) battle = rerollYachtDice(battle, chooseReroll(battle, policy, false, perkAware))
       if (battle.extraRerollAvailable && battle.rerolled && wantsReroll(battle)) {
-        const [index] = chooseReroll(battle, policy, true)
+        const [index] = chooseReroll(battle, policy, true, perkAware)
         if (index !== undefined) battle = spendExtraReroll(battle, index)
       }
 
       const cost = perk === 'reroll' && battle.rerolled ? yachtRerollCost(battle) : null
       if (cost !== null && battle.playerHp - cost >= hpReserveAfterPayment && wantsReroll(battle)) {
-        const rerolled = rerollYachtDice(battle, chooseReroll(battle, policy, false))
+        const rerolled = rerollYachtDice(battle, chooseReroll(battle, policy, false, perkAware))
         if (rerolled !== battle) {
           battle = rerolled
           extraRolls++
@@ -52,7 +52,7 @@ export function playAscent(seed, perk, observeTurn, policy = 'adaptive') {
         }
       }
 
-      const slots = chooseAllocation(battle, policy)
+      const slots = chooseAllocation(battle, policy, undefined, perkAware)
       if (battle.dice.length > DIE_COUNT) {
         const canFinish = forecastYacht(battle, slots).dealt === battle.enemyHp
         fourDieTurns++

@@ -1,7 +1,7 @@
 import { allocationTotals, attackFor, chargedStrikePreview, enemyIntentAt, incomingAttack } from './combat.ts'
 import type { Slot } from './combat.ts'
 import { adaptAndReroll, expectedReward } from './simulate.ts'
-import { canReroll, classifyYachtHand, forecastYacht, yachtCounterRewards, yachtSlotBonuses } from './yacht-combat.ts'
+import { canReroll, classifyYachtHand, forecastYacht, yachtAllocationTotals, yachtCounterRewards } from './yacht-combat.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 
 export const yachtPolicies = ['adaptive', 'attackHand', 'guardHand'] as const
@@ -27,7 +27,7 @@ function allocationScore(battle: YachtBattle, plan: readonly Slot[], damageWeigh
   if (damage >= battle.playerHp) return -1000 + dealt
   if (dealt >= battle.enemyHp) return 1000
   const expectedCounter = counter ? expectedReward(battle.enemyHp - dealt, yachtCounterRewards(battle)) : 0
-  const charge = chargeBroken ? chargedStrikePreview({ ...battle, slots: plan }, yachtSlotBonuses(battle, plan)?.escort) : null
+  const charge = chargeBroken ? chargedStrikePreview(battle, yachtAllocationTotals(battle, plan)) : null
   const chargeValue = charge ? charge.fullDamage - charge.totalDamage : 0
   return dealt + escortDealt * 0.85 + expectedCounter + chargeValue - damage * damageWeight
 }
@@ -80,17 +80,19 @@ function lowestDie(battle: YachtBattle, indices: readonly number[]): number | un
     lowest === undefined || battle.dice[index] < battle.dice[lowest] ? index : lowest, undefined)
 }
 
-export function chooseAllocation(battle: YachtBattle, policy: YachtPolicy, damageWeight = carriedHealthWeight): readonly Slot[] {
+export function chooseAllocation(
+  battle: YachtBattle, policy: YachtPolicy, damageWeight = carriedHealthWeight, perkAware = true,
+): readonly Slot[] {
   if (policy === 'guardFirst') {
     const target = attackFor(battle, enemyIntentAt(battle)).totalDamage
     let best: readonly Slot[] = []
     let bestCost = Infinity
     let bestBonus = -Infinity
     for (const plan of allocations[battle.dice.length - 2]) {
-      const bonuses = yachtSlotBonuses(battle, plan)
-      const guard = allocationTotals(battle, plan).guard + (bonuses?.guard ?? 0)
+      const raw = allocationTotals(battle, plan)
+      const { attack, guard } = perkAware && battle.perk ? yachtAllocationTotals(battle, plan) : raw
       const cost = guard >= target ? guard - target : 1 + 6 * battle.dice.length + target - guard
-      const bonus = bonuses?.attack ?? 0
+      const bonus = attack - raw.attack
       if (cost < bestCost || (cost === bestCost && bonus > bestBonus)) {
         best = plan
         bestCost = cost
@@ -106,7 +108,7 @@ export function chooseAllocation(battle: YachtBattle, policy: YachtPolicy, damag
   return bestAllocation(battle, allocationsFor(battle), damageWeight)
 }
 
-export function chooseReroll(battle: YachtBattle, policy: YachtPolicy, extra: boolean): readonly number[] {
+export function chooseReroll(battle: YachtBattle, policy: YachtPolicy, extra: boolean, perkAware = true): readonly number[] {
   let indices: readonly number[] | undefined
   if (policy === 'attackHand' || policy === 'guardHand') {
     const slot = policy === 'attackHand' ? 'attack' : 'guard'
@@ -123,17 +125,17 @@ export function chooseReroll(battle: YachtBattle, policy: YachtPolicy, extra: bo
   }
   indices = indices.filter((index) => canReroll(battle, index))
   const perk = battle.perk?.kind
-  if (perk === 'shield' || perk === 'counter' || (perk === 'reroll' && battle.rerolled)) {
+  if (perkAware && (perk === 'shield' || perk === 'counter' || (perk === 'reroll' && battle.rerolled))) {
     const plan = chooseAllocation(battle, policy)
     if (forecastYacht(battle, plan).counter) {
       indices = indices.filter((index) => plan[index] !== 'guard')
     }
   }
   if (mechanic?.kind === 'rage' && !battle.rerolled && indices.length) {
-    const current = allocationScore(battle, chooseAllocation(battle, policy))
+    const current = allocationScore(battle, chooseAllocation(battle, policy, undefined, perkAware))
     const improvedDice = battle.dice.map((face, index) => indices.includes(index) ? 4 : face)
     const after = { ...battle, dice: improvedDice, rerolled: true }
-    if (allocationScore(after, chooseAllocation(after, policy)) <= current) return []
+    if (allocationScore(after, chooseAllocation(after, policy, undefined, perkAware)) <= current) return []
   }
   if (!extra) return indices
   const sealed = mechanic?.kind === 'seal' ? indices.find((index) => battle.dice[index] === mechanic.value) : undefined

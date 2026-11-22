@@ -1,7 +1,8 @@
 import { playAscent } from '../level.mjs'
-import { allocationTotals, enemyIntentAt } from '../../src/combat.ts'
+import { enemyIntentAt } from '../../src/combat.ts'
 import { ASCENT_ENEMIES, enemyForFight } from '../../src/enemy-roster.ts'
 import { pickOfferedPerk, START_PERKS } from '../../src/perks.ts'
+import { yachtAllocationTotals } from '../../src/yacht-combat.ts'
 
 const [seedArgument, countArgument, thresholdArgument] = process.argv.slice(2).filter((argument) => !argument.startsWith('--'))
 const firstSeed = Number(seedArgument ?? 8192)
@@ -99,7 +100,7 @@ function summarizeUnlocks(runs) {
 }
 
 function attackSum(battle) {
-  return allocationTotals(battle, battle.dice.map(() => 'attack')).attack
+  return yachtAllocationTotals(battle, battle.dice.map(() => 'attack')).attack
 }
 
 function measure(runs) {
@@ -114,7 +115,7 @@ function measure(runs) {
   }
 }
 
-function runPolicy(policy) {
+function runPolicy(policy, perkAware = true) {
   const runs = Array.from({ length: count }, (_, index) => {
     const seed = firstSeed + index
     const perk = pickPerk(seed)
@@ -134,7 +135,7 @@ function runPolicy(policy) {
           rerolled: battle.rerolled, broken: Boolean(ascent.battle.lastExchange?.chargeBroken),
         })
       }
-    }, policy)
+    }, policy, perkAware)
     const run = { ...result, seed, perk, charges, firstWinHp }
     if (policy === 'adaptive') {
       const key = [enemyForFight(seed, 1).id, enemyForFight(seed, 2).id].join('/')
@@ -144,34 +145,35 @@ function runPolicy(policy) {
     return run
   })
   console.log(JSON.stringify({
-    policy, firstSeed, count, trainingWins, ...measure(runs),
+    policy, perkAware, firstSeed, count, trainingWins, ...measure(runs),
     picked: Object.fromEntries(perks.map((perk) => [perk, runs.filter((run) => run.perk === perk).length])),
     minions: summarizeEnemies(runs, 1), elites: summarizeEnemies(runs, 2),
   }))
   console.log(JSON.stringify({
-    policy, chargeThreshold: chargeIntents[0]?.chargeThreshold, all: summarizeCharges(runs),
+    policy, perkAware, chargeThreshold: chargeIntents[0]?.chargeThreshold, all: summarizeCharges(runs),
     elite: summarizeCharges(runs, 2), boss: summarizeCharges(runs, 3),
   }))
   return runs
 }
 
 if (process.argv.includes('--compare-perks')) {
-  for (const policy of ['guardFirst', 'adaptive']) {
+  for (const [policy, perkAware] of [['guardFirst', false], ['guardFirst', true], ['adaptive', true]]) {
     for (const perk of [undefined, ...perks]) {
       const runs = Array.from({ length: count }, (_, index) => {
         let firstWinHp = 0
         const result = playAscent(firstSeed + index, perk, (fight, _battle, ascent) => {
           if (fight === 1 && ascent.battle.phase === 'won') firstWinHp = ascent.battle.playerHp
-        }, policy)
+        }, policy, perkAware)
         return { ...result, firstWinHp }
       })
-      console.log(JSON.stringify({ policy, perk: perk ?? null, firstSeed, count, ...measure(runs) }))
+      console.log(JSON.stringify({ policy, perkAware, perk: perk ?? null, firstSeed, count, ...measure(runs) }))
     }
   }
 }
 
 const runs = runPolicy('adaptive')
 runPolicy('guardFirst')
+if (process.argv.includes('--compare-perks')) runPolicy('guardFirst', false)
 console.log(JSON.stringify({ chargeInterruption: true, unlocks: summarizeUnlocks(runs) }))
 if (process.argv.includes('--compare-unlock-gap')) {
   // Keep the same seed, perk and enemy moves in the interruption-off replay.

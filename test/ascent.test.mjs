@@ -2,13 +2,16 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from '../src/ascent.ts'
 import { ASCENT_ENEMIES, enemyForFight } from '../src/enemy-roster.ts'
-import { assignDie, COUNTER_REWARDS, draw, ENEMY_INTENTS, incomingAttack, intentOf, PLAYER_HP, roll } from '../src/combat.ts'
+import {
+  assignDie, chargedStrikePreview, COUNTER_REWARDS, draw, ENEMY_INTENTS, incomingAttack, intentOf, PLAYER_HP, roll,
+} from '../src/combat.ts'
 import { collectorBonus, offerPerks, pickOfferedPerk, startPerk, START_PERKS } from '../src/perks.ts'
 import {
-  forecastYacht, rerollYachtDice, resolveYachtTurn, spendExtraReroll, spinYachtCounter,
-  startYachtBattle, yachtCounterRewards, yachtRerollCost,
+  bladeChargePreview, forecastYacht, rerollYachtDice, resolveYachtTurn, spendExtraReroll, spinYachtCounter,
+  startYachtBattle, yachtAllocationTotals, yachtCounterRewards, yachtRerollCost,
 } from '../src/yacht-combat.ts'
 import { playAscent } from '../exp/level.mjs'
+import { chooseAllocation } from '../src/yacht-policy.ts'
 
 const seeds = Array.from({ length: 512 }, (_, seed) => seed)
 const allAttack = ['attack', 'attack', 'attack']
@@ -128,12 +131,17 @@ test('the blade banks attack pips, carries excess, and doubles only the next att
   const { threshold, multiplier } = START_PERKS.blade
   const start = beginAscent(42, 'blade')
   const previouslyCharged = { ...start.battle.perk, charge: threshold - 2 }
+  const approaching = { ...start.battle, perk: previouslyCharged, dice: [1, 1, 1], slots: allAttack }
+  assert.deepEqual(bladeChargePreview(approaching), { charge: threshold - 2, ready: false, nextCharge: threshold + 1 })
+  assert.equal(bladeChargePreview(assignDie(approaching, 0, 'guard')).nextCharge, threshold)
   const won = play(start, [1, 1, 1], allAttack, { perk: previouslyCharged, enemyHp: 3 })
   assert.equal(won.battle.lastExchange.dealt, 3)
   const next = nextAscentFight(won)
   assert.equal(next.battle.perk.charge, threshold + 1)
   const guarded = play(next, [6, 6, 6], allGuard, { enemyIntents: ENEMY_INTENTS, enemyHp: 60 })
   assert.equal(guarded.battle.perk.charge, threshold + 1)
+  const spent = { ...guarded.battle, dice: [3, 6, 6], slots: ['attack', 'guard', 'guard'] }
+  assert.deepEqual(bladeChargePreview(spent), { charge: threshold + 1, ready: true, nextCharge: 4 })
   const attacked = play(guarded, [3, 6, 6], ['attack', 'guard', 'guard'])
   assert.equal(attacked.battle.lastExchange.dealt, 3 * multiplier)
   assert.equal(attacked.battle.perk.charge, 4)
@@ -160,6 +168,7 @@ test('the collector learns each hand once and applies its current bonus to match
   assert.equal(won.battle.phase, 'won')
   const next = nextAscentFight(won)
   assert.deepEqual(next.battle.perk.hands, ['pair', 'triple', 'straight'])
+  assert.equal(collectorBonus(['pair', 'triple', 'straight', 'four']), START_PERKS.collector.maximum)
   assert.deepEqual(beginAscent(42, 'collector').battle.perk.hands, [])
 })
 
@@ -177,11 +186,49 @@ test('the oath buffs only the chosen parity in the attack slot and carries that 
   }
 
   const start = startYachtBattle(42, PLAYER_HP, false, false, startPerk('oath'), boss)
-  const charge = forecastYacht({ ...start, turn: 2 }, allAttack, [1, 3, 5])
-  assert.equal(charge.dealt, 9 + 3 * START_PERKS.oath.bonus)
-  assert.equal(charge.chargeBroken, false)
   const sealed = forecastYacht({ ...start, turn: 5 }, allAttack, [5, 2, 4])
   assert.equal(sealed.dealt, 6)
+})
+
+test('all four attack perks use the shown total to preview and interrupt a charge', () => {
+  const { threshold } = START_PERKS.blade
+  const cases = [
+    [{ kind: 'shield', bonus: 5 }, [4, 3, 4], 16],
+    [{ kind: 'collector', hands: ['pair'] }, [5, 5, 1], 11 + collectorBonus(['pair'])],
+    [startPerk('oath', 'odd'), [3, 3, 3], 9 + 3 * START_PERKS.oath.bonus],
+    [{ kind: 'blade', charge: threshold }, [1, 1, 4], 12],
+  ]
+  for (const [perk, dice, attack] of cases) {
+    const start = startYachtBattle(42, PLAYER_HP, false, false, perk, boss)
+    const charge = { ...start, turn: 2, dice, slots: allAttack }
+    const totals = yachtAllocationTotals(charge)
+    const preview = chargedStrikePreview(charge, totals)
+    assert.equal(totals.attack, attack, perk.kind)
+    assert.equal(forecastYacht(charge).dealt, attack, perk.kind)
+    assert.equal(preview.weakened, true, perk.kind)
+    const { battle } = resolveYachtTurn(charge)
+    assert.equal(battle.lastExchange.chargeBroken, true, perk.kind)
+    assert.equal(incomingAttack(battle).totalDamage, preview.totalDamage, perk.kind)
+    const below = assignDie(assignDie(charge, 0, 'guard'), 1, 'guard')
+    assert.equal(chargedStrikePreview(below, yachtAllocationTotals(below)).weakened, false, perk.kind)
+    assert.equal(forecastYacht(below).chargeBroken, false, perk.kind)
+  }
+})
+
+test('the displayed guard total awards an exact block and attack perks can trigger a reactive attack', () => {
+  const start = startYachtBattle(42, PLAYER_HP, false, false, { kind: 'collector', hands: ['pair', 'triple'] })
+  const guarding = { ...start, dice: [5, 5, 1], slots: ['guard', 'guard', 'attack'] }
+  assert.equal(yachtAllocationTotals(guarding).guard, 12)
+  assert.equal(resolveYachtTurn(guarding).battle.phase, 'counter')
+  assert.deepEqual(chooseAllocation(guarding, 'guardFirst', undefined, false), allGuard)
+  assert.deepEqual(chooseAllocation(guarding, 'guardFirst'), guarding.slots)
+  const reaction = ASCENT_ENEMIES[1].find(({ id }) => id === 'reaction')
+  const reactive = startYachtBattle(42, PLAYER_HP, false, false, { kind: 'shield', bonus: 5 }, reaction)
+  const planning = { ...reactive, turn: 2, dice: [3, 2, 2], slots: ['attack', 'guard', 'guard'] }
+  const totals = yachtAllocationTotals(planning)
+  assert.equal(totals.attack, 8)
+  assert.equal(totals.guard, incomingAttack(planning, totals).totalDamage)
+  assert.equal(resolveYachtTurn(planning).battle.phase, 'counter')
 })
 
 test('the counter mark boosts the lowest regular segment once per spin and carries it between fights', () => {

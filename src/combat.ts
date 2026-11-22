@@ -191,6 +191,13 @@ export function allocationTotals(battle: Battle, slots = battle.slots, dice = ba
   return { attack, guard, escort }
 }
 
+export type SlotTotals = ReturnType<typeof allocationTotals>
+
+export function allocationPower(battle: Battle, totals = allocationTotals(battle)): SlotTotals {
+  const multiplier = enemyIntentAt(battle).damageTakenMultiplier
+  return multiplier === undefined ? totals : { ...totals, attack: Math.floor(totals.attack * multiplier) }
+}
+
 export function respondingIntent(intent: EnemyIntent, attack: number): EnemyIntent {
   const mechanic = intent.mechanic
   return mechanic?.kind === 'reaction' && attack >= mechanic.value ? mechanic.alternate : intent
@@ -226,23 +233,21 @@ export function attackFor(battle: Battle, intent: EnemyIntent, escortSurvives = 
   return { name, hits, totalDamage }
 }
 
-export function incomingAttack(battle: Battle, escortBonus = 0) {
-  const { attack, escort } = allocationTotals(battle)
-  return attackFor(battle, respondingIntent(enemyIntentAt(battle), attack), Boolean(battle.escort && escort + escortBonus < battle.escort.hp))
+export function incomingAttack(battle: Battle, { attack, escort } = allocationPower(battle)) {
+  return attackFor(battle, respondingIntent(enemyIntentAt(battle), attack), Boolean(battle.escort && escort < battle.escort.hp))
 }
 
 function breaksCharge(intent: EnemyIntent, attack: number) {
   return intent.chargeThreshold !== undefined && attack >= intent.chargeThreshold
 }
 
-export function chargedStrikePreview(battle: Battle, escortBonus = 0) {
+export function chargedStrikePreview(battle: Battle, { attack, escort } = allocationPower(battle)) {
   const intent = enemyIntentAt(battle)
   if (intent.chargeThreshold === undefined) return null
-  const { attack, escort } = allocationTotals(battle)
   const weakened = breaksCharge(intent, attack)
   const turn = battle.turn + 1
   const next = { ...battle, turn, weakenedStrikeTurn: undefined }
-  const escortSurvives = Boolean(battle.escort && escort + escortBonus < battle.escort.hp)
+  const escortSurvives = Boolean(battle.escort && escort < battle.escort.hp)
   const nextIntent = enemyIntentAt(next)
   const fullDamage = attackFor(next, nextIntent, escortSurvives).totalDamage
   const { totalDamage } = weakened ? attackFor({ ...next, weakenedStrikeTurn: turn }, nextIntent, escortSurvives)
@@ -250,24 +255,18 @@ export function chargedStrikePreview(battle: Battle, escortBonus = 0) {
   return { fullDamage, totalDamage, threshold: intent.chargeThreshold, weakened }
 }
 
-export function attackPower(intent: EnemyIntent, attack: number): number {
-  return intent.damageTakenMultiplier === undefined ? attack : Math.floor(attack * intent.damageTakenMultiplier)
-}
-
 export function forecast(
-  battle: Battle, slots = battle.slots, dice = battle.dice, bonuses?: Partial<Record<Slot, number>>,
+  battle: Battle, slots = battle.slots, dice = battle.dice,
+  { attack, guard, escort } = allocationPower(battle, allocationTotals(battle, slots, dice)),
 ) {
-  const { attack, guard, escort } = allocationTotals(battle, slots, dice)
-  // Reaction and charge interruption read allocated pips before perk damage bonuses.
   const intent = respondingIntent(enemyIntentAt(battle), attack)
-  const escortDealt = Math.min(battle.escort?.hp ?? 0, escort + (bonuses?.escort ?? 0))
+  const escortDealt = Math.min(battle.escort?.hp ?? 0, escort)
   const incoming = attackFor(battle, intent, escortDealt < (battle.escort?.hp ?? 0))
-  const dealt = Math.min(battle.enemyHp, attackPower(intent, attack + (bonuses?.attack ?? 0)))
+  const dealt = Math.min(battle.enemyHp, attack)
   const thorns = intent.mechanic?.kind === 'thorns'
     ? slots.filter((slot) => slot === 'attack').length * intent.mechanic.value : 0
 
-  const guardTotal = guard + (bonuses?.guard ?? 0)
-  let shield = guardTotal
+  let shield = guard
   const hits = (dealt === battle.enemyHp ? [] : incoming.hits).map((hit) => {
     const blocked = Math.min(shield, hit)
     shield -= blocked
@@ -283,7 +282,7 @@ export function forecast(
     chargeBroken: breaksCharge(intent, attack),
     hits,
     damage: attackDamage + retaliation,
-    counter: dealt < battle.enemyHp && incoming.totalDamage > 0 && guardTotal === incoming.totalDamage,
+    counter: dealt < battle.enemyHp && incoming.totalDamage > 0 && guard === incoming.totalDamage,
   }
 }
 

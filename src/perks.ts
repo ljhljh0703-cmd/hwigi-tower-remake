@@ -2,12 +2,12 @@ import { COUNTER_REWARDS, draw } from './combat.ts'
 import type { CounterReward } from './combat.ts'
 
 export const START_PERKS = {
-  shield: { step: 5, name: '방패 저금', icon: 'parry' },
-  blade: { threshold: 15, multiplier: 2, name: '큰 칼', icon: 'sword' },
-  collector: { initial: 0, step: 1, name: '족보 수집가', icon: 'pair' },
+  shield: { step: 8, name: '방패 저금', icon: 'parry' },
+  blade: { threshold: 12, multiplier: 2, name: '큰 칼', icon: 'sword' },
+  collector: { initial: 0, step: 1, maximum: 2, name: '족보 수집가', icon: 'pair' },
   reroll: { cost: 1, name: '악마의 재굴림', icon: 'devil-die' },
-  oath: { bonus: 3, name: '홀짝 서약', icon: 'die' },
-  counter: { step: 5, name: '역습 표식', icon: 'wheel' },
+  oath: { bonus: 1, name: '홀짝 서약', icon: 'die' },
+  counter: { step: 7, name: '역습 표식', icon: 'wheel' },
 } as const
 
 export type StartPerk = keyof typeof START_PERKS
@@ -34,7 +34,8 @@ export function startPerk(perk: StartPerk | undefined, parity: Parity = 'odd'): 
 }
 
 export function collectorBonus(hands: readonly CollectedHand[]): number {
-  return START_PERKS.collector.initial + hands.length * START_PERKS.collector.step
+  const { initial, step, maximum } = START_PERKS.collector
+  return Math.min(maximum, initial + hands.length * step)
 }
 
 export function offerPerks(seed: number): readonly StartPerk[] {
