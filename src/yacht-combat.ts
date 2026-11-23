@@ -183,6 +183,14 @@ export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = 
   return forecast(battle, slots, dice, yachtAllocationTotals(battle, slots, dice))
 }
 
+function turnHand(battle: YachtBattle, dice: readonly number[], counter: boolean): UsedHand | null {
+  return usedHand(battle, dice, 'attack') ?? (counter ? usedHand(battle, dice, 'guard') : null)
+}
+
+export function previewYachtHand(battle: YachtBattle): UsedHand | null {
+  return battle.phase === 'assign' ? turnHand(battle, battle.dice, forecastYacht(battle).counter) : null
+}
+
 export function bladeChargePreview(battle: YachtBattle, dice = battle.dice) {
   if (battle.perk?.kind !== 'blade') return null
   const { charge } = battle.perk
@@ -248,7 +256,7 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
   ) : undefined
   const dice = awakenedDice ?? battle.dice
   const result = awakenedDice ? forecastYacht(battle, battle.slots, awakenedDice) : planned
-  const hand = usedHand(battle, dice, 'attack') ?? (result.counter ? usedHand(battle, dice, 'guard') : null)
+  const hand = turnHand(battle, dice, result.counter)
   const playerHp = Math.max(0, battle.playerHp - result.damage)
   const enemyHp = battle.enemyHp - result.dealt
   const effect = enemyHp > 0 && playerHp > 0 ? result.intent.mechanic : undefined

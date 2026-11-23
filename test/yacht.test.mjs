@@ -3,13 +3,33 @@ import { test } from 'node:test'
 import { PLAYER_HP, roll } from '../src/combat.ts'
 import { adaptAndReroll, countTradeoffs, simulate } from '../src/simulate.ts'
 import {
-  classifyHand, rerollYachtDice, resolveYachtTurn, spendExtraReroll, spinYachtCounter, startYachtBattle,
+  classifyHand, previewYachtHand, rerollYachtDice, resolveYachtTurn, spendExtraReroll, spinYachtCounter, startYachtBattle,
 } from '../src/yacht-combat.ts'
 import { chooseAllocation, chooseReroll } from '../src/yacht-policy.ts'
 import { simulateLegacyYacht, yachtVariants } from '../src/yacht-simulate.ts'
 
 const filled = (dice, slots, extra = {}) => ({
   ...startYachtBattle(42, PLAYER_HP, dice.length === 4, false), dice, slots, ...extra,
+})
+
+test('unlock previews follow the same attack and exact guard conditions as turn resolution', () => {
+  const attack = ['attack', 'attack', 'attack']
+  const guard = ['guard', 'guard', 'guard']
+  for (const [battle, hand] of [
+    [filled([5, 3, 4], attack), { hand: 'straight', slot: 'attack' }],
+    [filled([4, 4, 4], guard), { hand: 'triple', slot: 'guard' }],
+    [filled([5, 5, 5], guard), null],
+    [filled([3, 3, 3], guard), null],
+    [filled([4, 4, 4, 6], [...guard, 'attack'], { enemyHp: 6 }), null],
+    [filled([2, 2, 2], ['escort', 'escort', 'escort']), null],
+  ]) {
+    assert.deepEqual(previewYachtHand(battle), hand)
+    assert.deepEqual(resolveYachtTurn(battle).hand, hand)
+  }
+  assert.deepEqual(previewYachtHand(filled([2, 2, 2, 5], [...attack, null])), { hand: 'triple', slot: 'attack' })
+  assert.equal(previewYachtHand(filled([2, 2, 2, 5], [...attack, 'attack'])), null)
+  const sealed = { id: 'seal', name: '봉인', hits: [7], mechanic: { kind: 'seal', value: 2 }, matches: () => true }
+  assert.equal(previewYachtHand(filled([2, 2, 2], attack, { enemyIntents: [sealed] })), null)
 })
 
 test('three guards unlock a triple only on an exact block', () => {

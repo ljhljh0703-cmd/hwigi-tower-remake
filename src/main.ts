@@ -1,5 +1,6 @@
 import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
+import { BATTLE_GUIDE } from './battle-guide.ts'
 import {
   assignDie, attackFor, chargedStrikePreview, DIE_COUNT, dieFaceForSlot, enemyIntentAt, incomingAttack,
 } from './combat.ts'
@@ -7,10 +8,10 @@ import type { Exchange, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
 import type { Parity } from './perks.ts'
 import {
-  bladeChargePreview, canReroll, rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtAllocationTotals,
+  bladeChargePreview, canReroll, previewYachtHand, rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtAllocationTotals,
   yachtCounterRewards, yachtRerollCost,
 } from './yacht-combat.ts'
-import type { YachtBattle } from './yacht-combat.ts'
+import type { Hand, YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput } from './dice-drag.ts'
 import { CounterRoulette } from './counter-roulette.ts'
 import type { DropZone } from './dice-drag.ts'
@@ -29,6 +30,9 @@ const ui = {
   fight: element('fight'),
   activePerk: element('active-perk'),
   turn: element('turn'),
+  help: element<HTMLButtonElement>('help'),
+  guide: element<HTMLDialogElement>('battle-guide'),
+  guideEntries: element('guide-entries'),
   intent: element('intent'),
   playerHp: element<HTMLMeterElement>('player-hp'),
   enemyHp: element<HTMLMeterElement>('enemy-hp'),
@@ -67,6 +71,7 @@ const ui = {
   reroll: element<HTMLButtonElement>('reroll'),
   rerollCount: element('reroll-count'),
   extraReroll: element<HTMLButtonElement>('extra-reroll'),
+  lockedDie: element('locked-die'),
   resolve: element<HTMLButtonElement>('resolve'),
   counter: element<HTMLButtonElement>('counter'),
   counterPanel: element('counter-panel'),
@@ -132,6 +137,28 @@ const parityIcons = { odd: 'die', even: 'die-even' } as const
 function icon(name: string) {
   return `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`
 }
+
+ui.guideEntries.innerHTML = BATTLE_GUIDE.map(({ title, entries }) => `
+  <section class="guide-section">
+    <h3>${title}</h3>
+    <dl>${entries.map(([symbol, name, description]) => `
+      <div class="guide-entry">
+        <dt>${icon(symbol)}<strong>${name}</strong></dt>
+        <dd>${description}</dd>
+      </div>
+    `).join('')}</dl>
+  </section>
+`).join('')
+
+ui.help.addEventListener('click', () => {
+  if (ui.help.disabled || ui.guide.open) return
+  ui.guide.showModal()
+  ui.guideEntries.scrollTop = 0
+})
+ui.guide.addEventListener('click', (event) => {
+  if (event.target === ui.guide) ui.guide.close()
+})
+ui.guide.addEventListener('close', () => ui.help.focus())
 
 const enemyBadges: Record<string, { icon: string; label: string }> = {
   thorns: { icon: 'thorns', label: '가시' },
@@ -272,6 +299,7 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
   button.id = `die-${index}`
   bindDiceInput(button, {
     select: () => {
+      if (ui.guide.open) return
       if (!selected.delete(index)) selected.add(index)
       render()
     },
@@ -291,8 +319,9 @@ const stolenPlaceholder = document.createElement('span')
 stolenPlaceholder.className = 'die stolen-die'
 stolenPlaceholder.setAttribute('role', 'img')
 
-function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals) {
+function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals, unlocks: readonly Hand[]) {
   const planning = battle.phase === 'assign'
+  const pendingUnlock = planning && unlocks.length < 2 ? previewYachtHand(battle)?.hand : undefined
   const intent = enemyIntentAt(battle)
   const mechanic = intent.mechanic
   diceButtons.forEach((button, index) => {
@@ -325,6 +354,8 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals)
     stolenPlaceholder.setAttribute('aria-label', `빼앗긴 주사위, 적에게 피해 ${stolen}을 주면 되찾음`)
     ui.dice.pool.append(stolenPlaceholder)
   }
+  ui.lockedDie.hidden = unlocks.includes('triple')
+  ui.lockedDie.classList.toggle('unlock-ready', !ui.lockedDie.hidden && pendingUnlock === 'triple')
 
   ui.attackTotal.textContent = String(attack)
   ui.attackMultiplier.hidden = !planning || !bladeChargePreview(battle)?.ready
@@ -351,11 +382,13 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals)
     ? `다시 굴리기, 체력 ${rerollCost} 소모`
     : `다시 굴리기 ${freeRolls}회`)
   ui.reroll.title = '다시 굴리기'
-  ui.extraReroll.hidden = !battle.extraRerollAvailable && !battle.extraRerollSpent
+  const rerollLocked = !unlocks.includes('straight')
+  ui.extraReroll.classList.toggle('unlock-hint', rerollLocked)
+  ui.extraReroll.classList.toggle('unlock-ready', rerollLocked && pendingUnlock === 'straight')
   ui.extraReroll.disabled = selected.size !== 1 || rerollable.length !== 1 || !battle.rerolled || !battle.extraRerollAvailable
   const extra = Number(battle.extraRerollAvailable)
-  ui.extraReroll.innerHTML = `${icon(unlockInfo.straight.icon)}${extra}`
-  ui.extraReroll.setAttribute('aria-label', `해금 재굴림 (${extra})`)
+  ui.extraReroll.innerHTML = `${icon(unlockInfo.straight.icon)}${rerollLocked ? icon('straight') : extra}`
+  ui.extraReroll.setAttribute('aria-label', rerollLocked ? '잠긴 재굴림 주사위, 이어지는 눈 셋' : `해금 재굴림 (${extra})`)
   ui.extraReroll.title = '해금 재굴림'
   ui.resolve.disabled = !planning || battle.slots.includes(null)
 }
@@ -456,6 +489,7 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals) {
 }
 
 const exchangeDuration = 1200
+const unlockDuration = 650
 let exchangeTimer: number | undefined
 
 function showExchange({ dealt, hitsTaken, awakenedDice, escortDealt }: Exchange) {
@@ -538,6 +572,8 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.fight.textContent = `${fight}/${FIGHT_COUNT} 층`
   renderActivePerk(battle)
   ui.turn.hidden = !inCombat
+  ui.help.hidden = !inCombat
+  ui.help.disabled = !showActions
   ui.turn.innerHTML = `${icon('turn')}${turn}`
   ui.turn.setAttribute('aria-label', `${turn}턴`)
   const totals = yachtAllocationTotals(battle)
@@ -579,7 +615,7 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.result.textContent = phase === 'won' ? '성공' : '실패'
   ui.next.hidden = !between
   ui.retry.hidden = !finished
-  refreshDice(battle, totals)
+  refreshDice(battle, totals, unlocks)
   arena.refresh(battle)
 }
 
@@ -592,6 +628,7 @@ function showPerks(focus: boolean) {
   ui.activePerk.hidden = true
   ui.fight.hidden = true
   ui.turn.hidden = true
+  ui.help.hidden = true
   ui.perks.hidden = false
   const seed = fixedSeed ?? crypto.getRandomValues(new Uint32Array(1))[0]
   const offers = offerPerks(seed)
@@ -650,7 +687,7 @@ function perkButton(symbol: string, name: string, value: string, detail: string,
 }
 
 function place(indices: readonly number[], zone: DropZone) {
-  if (!ascent || !indices.length || ascent.battle.phase !== 'assign') return
+  if (ui.guide.open || !ascent || !indices.length || ascent.battle.phase !== 'assign') return
   const slot = zone === 'pool' ? null : zone
   let { battle } = ascent
   for (const index of indices) battle = assignDie(battle, index, slot)
@@ -674,7 +711,7 @@ for (const zone of ['pool', 'attack', 'guard', 'escort'] as const) {
   ui.assign[zone].addEventListener('click', () => place([...selected], zone))
 }
 function useReroll(extra: boolean) {
-  if (!ascent) return
+  if (ui.guide.open || !ascent) return
   const current = ascent.battle
   const indices = [...selected].filter((index) => canReroll(current, index))
   if (indices.length === 0) return
@@ -687,7 +724,7 @@ function useReroll(extra: boolean) {
 ui.reroll.addEventListener('click', () => useReroll(false))
 ui.extraReroll.addEventListener('click', () => useReroll(true))
 ui.resolve.addEventListener('click', async () => {
-  if (!ascent) return
+  if (ui.guide.open || !ascent) return
   const next = resolveAscentTurn(ascent)
   if (next === ascent) return
   ascent = next
@@ -697,21 +734,22 @@ ui.resolve.addEventListener('click', async () => {
   if (pause) {
     render('exchange')
     if (lastExchange) showExchange(lastExchange)
-    await wait(exchangeDuration)
+    await wait(next.newUnlock ? 180 : exchangeDuration)
   }
   if (next.newUnlock) {
     render('unlock')
-    await wait(1650)
+    await wait(unlockDuration)
   }
   render()
   if (!pause && lastExchange) showExchange(lastExchange)
   focusPhase()
 })
 ui.counter.addEventListener('click', async () => {
-  if (!ascent || ascent.battle.phase !== 'counter' || ui.counter.disabled) return
+  if (ui.guide.open || !ascent || ascent.battle.phase !== 'counter' || ui.counter.disabled) return
   const next = spinYachtCounter(ascent.battle)
   const reward = next.lastExchange?.counter
   if (!reward) return
+  ui.help.disabled = true
 
   const animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (next.perk?.kind === 'counter') renderActivePerk(next)

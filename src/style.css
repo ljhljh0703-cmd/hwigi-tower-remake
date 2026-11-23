@@ -84,6 +84,44 @@ h1, h2, p { margin: 0; }
 #active-perk.perk-ready strong { color: #f2ac98; }
 .perk-preview { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); font-size: inherit; white-space: nowrap; }
 #fight { padding-inline-start: 14px; border-inline-start: 1px solid var(--stone-edge); }
+#help { width: 44px; padding: 0; font-size: 1.1rem; }
+
+body:has(#battle-guide[open]) { overflow: hidden; }
+
+#battle-guide {
+  position: fixed;
+  width: min(100% - 24px, 540px);
+  max-block-size: calc(100dvh - 24px);
+  border: 1px solid var(--stone-edge);
+  border-block-start: 2px solid #99968f;
+  padding: 0;
+  background: var(--stone-bed);
+  color: inherit;
+}
+
+#battle-guide[open] { display: flex; flex-direction: column; }
+#battle-guide::backdrop { background: #1d1b19ba; }
+
+.guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-block-end: 1px solid var(--stone-edge);
+  background: var(--stone-face);
+}
+
+.guide-header h2 { font-size: 1.1rem; }
+#guide-entries { overflow: auto; overscroll-behavior: contain; padding: 16px; word-break: keep-all; }
+#guide-entries:focus-visible { outline: 2px solid #f1f0ee; outline-offset: -2px; }
+.guide-section + .guide-section { margin-block-start: 22px; }
+.guide-section h3 { margin: 0 0 8px; color: #f6c795; font-size: .92rem; }
+.guide-section dl, .guide-entry dd { margin: 0; }
+.guide-entry { padding: 9px 0; border-block-start: 1px solid #55534f; }
+.guide-entry dt { display: flex; align-items: center; gap: 8px; font-size: .88rem; }
+.guide-entry dt .icon { font-size: 1.05rem; }
+.guide-entry dd { padding-inline-start: 28px; color: #ddd9d2; font-size: .84rem; line-height: 1.5; }
 
 button {
   display: inline-flex;
@@ -388,6 +426,26 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 
 .die[aria-pressed='true'] { outline: 2px solid #f5f4f2; outline-offset: 1px; background: #aaa7a2; }
 .die.altered-face { border-inline: 2px dashed #696662; }
+#locked-die { display: grid; place-items: center; order: 1; pointer-events: none; }
+#locked-die > .icon { width: 1.65em; }
+.unlock-hint, .unlock-hint:disabled {
+  border: 1px dashed var(--stone-edge);
+  background: var(--stone-bed);
+  color: var(--muted);
+  opacity: .63;
+}
+.unlock-ready, .unlock-ready:disabled {
+  border-color: #f6c795;
+  background: #5e4635;
+  color: #ffdeb2;
+  opacity: 1;
+  box-shadow: 0 0 8px #f6c79570;
+  animation: unlock-ready 650ms ease-out;
+}
+
+@keyframes unlock-ready {
+  45% { box-shadow: 0 0 18px #f6c795d0; }
+}
 .die-status {
   position: absolute;
   inset: -7px -3px auto auto;
@@ -443,6 +501,7 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 #reroll { grid-column: 1; min-width: 70px; }
 #extra-reroll { grid-column: 2; }
 #extra-reroll .icon { width: 1.45em; height: 1.45em; }
+#extra-reroll.unlock-hint .icon:last-child { width: 1.95em; }
 #resolve { grid-column: 3; justify-self: end; width: min(100%, 215px); }
 #reroll-count, #reroll-count > span { display: inline-flex; align-items: center; gap: 4px; }
 #reroll-count > span + span { margin-inline-start: 4px; }
@@ -530,7 +589,19 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 
 #new-unlock h2 { margin: 0; color: var(--muted); }
 
-#unlock-reveal { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: clamp(12px, 4vw, 32px); }
+#unlock-reveal {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(12px, 4vw, 32px);
+  animation: unlock-reveal 480ms ease-out;
+}
+
+@keyframes unlock-reveal {
+  from { opacity: .45; scale: .91; }
+  55% { scale: 1.04; }
+}
 
 .die-net {
   display: grid;
@@ -581,6 +652,8 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 
 @media (max-width: 560px) {
   .masthead { min-block-size: 51px; }
+  .run-status { gap: 8px; }
+  #fight { padding-inline-start: 8px; }
   [data-screen='perks'] .masthead { min-block-size: 70px; }
   .event-panel { min-block-size: 360px; }
   #perk-choices { grid-template-columns: minmax(0, 1fr); }
@@ -615,4 +688,5 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 
 @media (prefers-reduced-motion: reduce) {
   button { transition: none; }
+  .unlock-ready, #unlock-reveal { animation: none; }
 }
