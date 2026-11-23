@@ -84,7 +84,7 @@ h1, h2, p { margin: 0; }
 #active-perk.perk-ready strong { color: #f2ac98; }
 .perk-preview { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); font-size: inherit; white-space: nowrap; }
 #fight { padding-inline-start: 14px; border-inline-start: 1px solid var(--stone-edge); }
-#help { width: 44px; padding: 0; font-size: 1.1rem; }
+#help, #sound-toggle { width: 44px; padding: 0; font-size: 1.1rem; flex: none; }
 
 body:has(#battle-guide[open]) { overflow: hidden; }
 
@@ -236,7 +236,7 @@ button:disabled {
 }
 
 #arena { position: absolute; inset: 0; overflow: clip; }
-#arena canvas { position: absolute; display: block; object-fit: contain; }
+#arena canvas { position: absolute; display: block; image-rendering: pixelated; }
 
 .combatant {
   position: absolute;
@@ -251,7 +251,10 @@ button:disabled {
 
 #intent {
   position: absolute;
-  inset: auto 0 calc(100% - var(--enemy-head, 25%) + 14px);
+  inset: auto auto calc(100% - var(--enemy-head, 25%) + 14px) 50%;
+  translate: -50% 0;
+  width: max-content;
+  z-index: 2;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -260,6 +263,10 @@ button:disabled {
   font-size: clamp(1.95rem, 5vw, 3.2rem);
   line-height: 1;
   white-space: nowrap;
+  padding: .19em .3em;
+  background: #201d1b;
+  border: 1px solid #776a5b;
+  border-radius: 5px;
 }
 
 #intent .icon { width: .88em; height: .88em; }
@@ -275,6 +282,11 @@ button:disabled {
   inset-inline: 11%;
   margin-inline: auto;
   max-inline-size: 200px;
+  padding: 4px 7px 6px;
+  color: #f5f4f2;
+  background: #201d1b;
+  border: 1px solid #776a5b;
+  border-radius: 5px;
 }
 
 .vital label {

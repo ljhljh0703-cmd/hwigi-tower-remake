@@ -58,6 +58,13 @@ export const BATTLE_GUIDE: readonly GuideSection[] = [
     ],
   },
   {
+    title: '소리',
+    entries: [
+      ['sound-on', '소리 켜짐', '배경음과 전투 효과음을 작은 음량으로 재생합니다. 처음 게임을 시작하거나 직접 소리를 켰을 때부터 재생합니다.'],
+      ['sound-off', '소리 꺼짐', '배경음과 전투 효과음을 모두 끕니다. 화면 상단의 스피커 버튼을 다시 눌러 소리를 켭니다.'],
+    ],
+  },
+  {
     title: '상단 특전 표시',
     entries: [
       ['parry', '방패 저금', `정확히 막을 때마다 모은 공격 보너스가 ${START_PERKS.shield.step}씩 오릅니다. 공격받는 턴에 정확히 막지 못하면 0으로 돌아갑니다.`],

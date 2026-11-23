@@ -1,5 +1,7 @@
 import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
+import { Arena } from './arena.ts'
+import { BattleAudio } from './battle-audio.ts'
 import { BATTLE_GUIDE } from './battle-guide.ts'
 import {
   allocationPower, assignDie, attackFor, chargedStrikePreview, DIE_COUNT, dieFaceForSlot, enemyIntentAt, incomingAttack,
@@ -31,6 +33,7 @@ const ui = {
   activePerk: element('active-perk'),
   turn: element('turn'),
   help: element<HTMLButtonElement>('help'),
+  soundToggle: element<HTMLButtonElement>('sound-toggle'),
   guide: element<HTMLDialogElement>('battle-guide'),
   guideEntries: element('guide-entries'),
   intent: element('intent'),
@@ -178,121 +181,14 @@ const enemyBadges: Record<string, { icon: string; label: string }> = {
 let ascent: Ascent | null = null
 const selected = new Set<number>()
 const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
+const sound = new BattleAudio()
 
-const player = { x: 94, width: 63, height: 95, fill: '#d1d1d1' }
-const enemy = { x: 262, width: 106, height: 153, fill: '#868686' }
-const mataios = { x: 23, width: 29, height: 67, fill: '#a9a9a9' }
-
-function strikeProgress(elapsed: number, oneWay: number) {
-  return Math.max(0, 1 - Math.abs(elapsed / oneWay - 1))
-}
-
-class Arena {
-  private readonly canvas = document.createElement('canvas')
-  private readonly context = this.canvas.getContext('2d')!
-  private density = 1
-  private scale = 0
-  private ground = 0
-  private mataiosHome = mataios.x
-  private playerHome = player.x
-  private battle?: YachtBattle
-  private strike?: { start: number; joint: boolean }
-  private animation = 0
-
-  constructor(private readonly frame: HTMLElement, private readonly encounter: HTMLElement) {
-    frame.append(this.canvas)
-    new ResizeObserver(this.resize).observe(frame)
-    window.addEventListener('resize', this.resize)
-    this.watchDensity()
-  }
-
-  private watchDensity = () => {
-    window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`)
-      .addEventListener('change', this.watchDensity, { once: true })
-    this.resize()
-  }
-
-  private resize = () => {
-    const { left, right, top, bottom, width, height } = this.frame.getBoundingClientRect()
-    if (!width || !height) return
-
-    const density = window.devicePixelRatio
-    const pxLeft = Math.round(left * density)
-    const pxTop = Math.round(top * density)
-    this.density = density
-    // One canvas pixel per device pixel, including when the stage begins between device pixels.
-    this.canvas.width = Math.round(right * density) - pxLeft
-    this.canvas.height = Math.round(bottom * density) - pxTop
-    this.canvas.style.left = `${pxLeft / density - left}px`
-    this.canvas.style.top = `${pxTop / density - top}px`
-    this.canvas.style.width = `${this.canvas.width / density}px`
-    this.canvas.style.height = `${this.canvas.height / density}px`
-    this.scale = Math.min(width / 240, height / 300)
-    this.ground = height / 2 + 85 * this.scale
-    const unitsPerPixel = 360 / width
-    const mataiosHalfWidth = mataios.width * this.scale / 2
-    const playerHalfWidth = player.width * this.scale / 2
-    this.mataiosHome = Math.max(mataios.x, (12 + mataiosHalfWidth) * unitsPerPixel)
-    this.playerHome = Math.max(player.x, this.mataiosHome + (mataiosHalfWidth + playerHalfWidth + 8) * unitsPerPixel)
-    this.encounter.style.setProperty('--ground', `${this.ground}px`)
-    this.encounter.style.setProperty('--enemy-head', `${this.ground - enemy.height * this.scale}px`)
-    this.encounter.style.setProperty('--player-head', `${this.ground - player.height * this.scale}px`)
-    this.encounter.style.setProperty('--player-x', `${this.playerHome / 3.6}%`)
-    this.draw()
-  }
-
-  private drawActor(actor: typeof player, x: number, fill = actor.fill, outlined = false) {
-    const center = x * this.canvas.width / 360
-    const halfWidth = actor.width * this.scale * this.density / 2
-    const left = Math.round(center - halfWidth)
-    const width = Math.round(center + halfWidth) - left
-    const top = Math.round((this.ground - actor.height * this.scale) * this.density)
-    const height = Math.round(this.ground * this.density) - top
-    const edge = outlined ? Math.max(1, Math.round(this.density)) : 0
-    if (outlined) {
-      this.context.fillStyle = '#c1c1c1'
-      this.context.fillRect(left, top, width, height)
-    }
-    this.context.fillStyle = fill
-    this.context.fillRect(left + edge, top + edge, width - 2 * edge, height - 2 * edge)
-  }
-
-  private draw() {
-    const { strike, battle, canvas, context } = this
-    context.clearRect(0, 0, canvas.width, canvas.height)
-    if (!battle || !this.scale) return
-    const elapsed = strike ? performance.now() - strike.start : Infinity
-    if (strike?.joint) this.drawActor(mataios, this.mataiosHome + (192 - this.mataiosHome) * strikeProgress(elapsed, 144) ** 3)
-    if (battle.playerHp > 0) this.drawActor(player, this.playerHome + (214 - this.playerHome) * strikeProgress(elapsed, 128) ** 3)
-    if (battle.enemyHp > 0) {
-      const stagger = strikeProgress(elapsed - 128, 68)
-      this.drawActor(enemy, enemy.x + (strike?.joint ? 16 : 12) * stagger, stagger > 0 ? '#e9e9e9' : enemy.fill, true)
-    }
-  }
-
-  private animateStrike = () => {
-    this.draw()
-    if (this.strike && performance.now() - this.strike.start < 288) {
-      this.animation = requestAnimationFrame(this.animateStrike)
-    }
-  }
-
-  counterStrike(joint: boolean) {
-    this.strike = { start: performance.now(), joint }
-    this.animateStrike()
-  }
-
-  finishStrike() {
-    cancelAnimationFrame(this.animation)
-    this.strike = undefined
-    this.draw()
-  }
-
-  refresh(battle: YachtBattle) {
-    this.battle = battle
-    this.draw()
-  }
-}
+ui.soundToggle.addEventListener('click', (event) => {
+  if (!event.isTrusted) return
+  sound.toggle()
+  ui.soundToggle.setAttribute('aria-pressed', String(sound.isEnabled))
+  ui.soundToggle.querySelector('use')!.setAttribute('href', sound.isEnabled ? '#icon-sound-on' : '#icon-sound-off')
+})
 
 const arena = new Arena(element('arena'), ui.encounter)
 
@@ -515,8 +411,18 @@ const exchangeDuration = 1200
 const unlockDuration = 650
 let exchangeTimer: number | undefined
 
-function showExchange({ dealt, hitsTaken, awakenedDice, escortDealt }: Exchange) {
+function clearExchange() {
+  ui.playerDamage.hidden = true
+  ui.enemyDamage.hidden = true
+  ui.awakening.hidden = true
+}
+
+function showExchange(before: YachtBattle, phase: YachtBattle['phase'], exchange: Exchange) {
+  const { dealt, hitsTaken, awakenedDice, escortDealt } = exchange
   const taken = hitsTaken.reduce((sum, value) => sum + value, 0)
+  arena.playExchange(before, exchange)
+  if (dealt || taken || escortDealt) sound.play('stone-hit')
+  if (phase === 'counter') sound.play('perfect-block')
   ui.feedback.textContent = `적 피해 ${dealt}, 내 피해 ${taken}${escortDealt ? `, 호위 피해 ${escortDealt}` : ''}${awakenedDice ? `, 각성 ${awakenedDice.join(', ')}` : ''}`
   for (const [output, damage] of [[ui.playerDamage, taken], [ui.enemyDamage, dealt]] as const) {
     output.getAnimations().forEach((animation) => animation.cancel())
@@ -533,11 +439,7 @@ function showExchange({ dealt, hitsTaken, awakenedDice, escortDealt }: Exchange)
   ui.awakening.innerHTML = awakenedDice ? `${icon('die')}${awakenedDice.map((face) => `<span>${face}</span>`).join('')}` : ''
   ui.awakening.setAttribute('aria-label', awakenedDice ? `각성 ${awakenedDice.join(', ')}` : '')
   window.clearTimeout(exchangeTimer)
-  exchangeTimer = window.setTimeout(() => {
-    ui.playerDamage.hidden = true
-    ui.enemyDamage.hidden = true
-    ui.awakening.hidden = true
-  }, exchangeDuration)
+  exchangeTimer = window.setTimeout(clearExchange, exchangeDuration)
 }
 
 function updateEnemyHp(enemyHp: number) {
@@ -597,6 +499,7 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.turn.hidden = !inCombat
   ui.help.hidden = !inCombat
   ui.help.disabled = !showActions
+  ui.soundToggle.hidden = false
   ui.turn.innerHTML = `${icon('turn')}${turn}`
   ui.turn.setAttribute('aria-label', `${turn}턴`)
   const totals = yachtAllocationTotals(battle)
@@ -642,7 +545,7 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.next.hidden = !between
   ui.retry.hidden = !finished
   refreshDice(battle, totals, unlocks)
-  arena.refresh(battle)
+  arena.refresh(battle, enemy.id)
 }
 
 function showPerks(focus: boolean) {
@@ -655,26 +558,29 @@ function showPerks(focus: boolean) {
   ui.fight.hidden = true
   ui.turn.hidden = true
   ui.help.hidden = true
+  ui.soundToggle.hidden = true
   ui.perks.hidden = false
   const seed = fixedSeed ?? crypto.getRandomValues(new Uint32Array(1))[0]
   const offers = offerPerks(seed)
-  const begin = (perk: keyof typeof START_PERKS, parity?: Parity) => {
+  const begin = (event: MouseEvent, perk: keyof typeof START_PERKS, parity?: Parity) => {
+    if (event.isTrusted) sound.activate()
     ascent = beginAscent(seed, perk, parity)
     render()
+    sound.play('dice-roll')
     focusPhase()
   }
   const buttons = offers.map((perk) => {
     const { name, icon: symbol } = START_PERKS[perk]
     const { description, value, detail } = perkDisplay[perk]
     const button = perkButton(symbol, name, value, detail, description)
-    button.addEventListener('click', () => {
+    button.addEventListener('click', (event) => {
       if (perk !== 'oath') {
-        begin(perk)
+        begin(event, perk)
         return
       }
       const parityButtons = (['odd', 'even'] as const).map((parity) => {
         const choice = perkButton(parityIcons[parity], name, parityLabels[parity], `${icon('sword')} ${value}`, oathDescription(parity))
-        choice.addEventListener('click', () => begin(perk, parity))
+        choice.addEventListener('click', (event) => begin(event, perk, parity))
         return choice
       })
       const back = document.createElement('button')
@@ -715,8 +621,10 @@ function perkButton(symbol: string, name: string, value: string, detail: string,
 function place(indices: readonly number[], zone: DropZone) {
   if (ui.guide.open || !ascent || !indices.length || ascent.battle.phase !== 'assign') return
   const slot = zone === 'pool' ? null : zone
-  let { battle } = ascent
+  const before = ascent.battle
+  let battle = before
   for (const index of indices) battle = assignDie(battle, index, slot)
+  if (indices.some((index) => battle.slots[index] !== before.slots[index])) sound.play('dice-place')
   ascent = { ...ascent, battle }
   selected.clear()
   render()
@@ -742,6 +650,7 @@ function useReroll(extra: boolean) {
   if (!rerolled) return
   ascent = { ...ascent, battle: rerolled.battle }
   render()
+  sound.play('dice-roll')
   diceButtons[rerolled.focusIndex].focus()
 }
 
@@ -749,6 +658,7 @@ ui.reroll.addEventListener('click', () => useReroll(false))
 ui.extraReroll.addEventListener('click', () => useReroll(true))
 ui.resolve.addEventListener('click', async () => {
   if (ui.guide.open || !ascent) return
+  const before = ascent.battle
   const next = resolveAscentTurn(ascent)
   if (next === ascent) return
   ascent = next
@@ -757,15 +667,18 @@ ui.resolve.addEventListener('click', async () => {
   const pause = next.newUnlock || phase === 'won' || phase === 'lost'
   if (pause) {
     render('exchange')
-    if (lastExchange) showExchange(lastExchange)
+    if (lastExchange) showExchange(before, phase, lastExchange)
     await wait(next.newUnlock ? 180 : exchangeDuration)
   }
   if (next.newUnlock) {
     render('unlock')
+    sound.play('unlock')
     await wait(unlockDuration)
   }
   render()
-  if (!pause && lastExchange) showExchange(lastExchange)
+  if (!pause && lastExchange) showExchange(before, phase, lastExchange)
+  if (phase === 'won') sound.play('victory')
+  if (phase === 'lost') sound.play('defeat')
   focusPhase()
 })
 ui.counter.addEventListener('click', async () => {
@@ -777,22 +690,25 @@ ui.counter.addEventListener('click', async () => {
 
   const animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (next.perk?.kind === 'counter') renderActivePerk(next)
-  await roulette.reveal(reward, animate)
-  if (animate) {
-    arena.counterStrike(reward.joint)
-    await wait(145)
-  }
+  await roulette.reveal(reward, animate, () => sound.play('roulette-tick'))
+  sound.play('roulette-stop')
+  arena.counterStrike(reward.joint, animate)
+  if (animate) await wait(145)
+  sound.play('stone-hit')
   updateEnemyHp(next.enemyHp)
   await wait(reward.joint ? 1000 : 700)
   arena.finishStrike()
   ascent = { ...ascent, battle: next }
   render()
+  if (next.phase === 'won') sound.play('victory')
   focusPhase()
 })
 ui.next.addEventListener('click', () => {
   if (!ascent) return
+  clearExchange()
   ascent = nextAscentFight(ascent)
   render()
+  sound.play('dice-roll')
   focusPhase()
 })
 ui.retry.addEventListener('click', () => showPerks(true))

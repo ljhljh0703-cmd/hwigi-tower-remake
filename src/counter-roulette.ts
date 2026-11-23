@@ -64,7 +64,7 @@ export class CounterRoulette {
     this.panel.hidden = !rewards
   }
 
-  async reveal(reward: CounterResult, animate: boolean) {
+  async reveal(reward: CounterResult, animate: boolean, onTick: () => void) {
     this.button.disabled = true
     this.action.textContent = '회전 중'
     const angle = 1080 + (360 - reward.slot * this.degreesPerSlot) % 360
@@ -74,10 +74,26 @@ export class CounterRoulette {
         [{ transform: 'rotate(0deg)' }, { transform: rotate }],
         { duration: 920, easing: 'cubic-bezier(.15,.65,.22,1)' },
       )
+      let frame = 0
+      let lastSlot = 0
+      let lastTick = -Infinity
+      const tick = (now: number) => {
+        const progress = spin.effect?.getComputedTiming().progress ?? 0
+        const slot = Math.floor(angle * progress / this.degreesPerSlot)
+        if (slot !== lastSlot && now - lastTick >= 65) {
+          onTick()
+          lastTick = now
+        }
+        lastSlot = slot
+        frame = requestAnimationFrame(tick)
+      }
+      frame = requestAnimationFrame(tick)
       try {
         await spin.finished
       } catch {
         // If the animation is interrupted, still reveal the already drawn reward.
+      } finally {
+        cancelAnimationFrame(frame)
       }
     }
 

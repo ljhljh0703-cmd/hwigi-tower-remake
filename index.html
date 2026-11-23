@@ -72,6 +72,12 @@
         <path vector-effect="non-scaling-stroke" d="M8 8a4 4 0 1 1 6 3.5c-1.5 1-2 2-2 3.5"/>
         <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/>
       </symbol>
+      <symbol id="icon-sound-on" viewBox="0 0 24 24">
+        <path vector-effect="non-scaling-stroke" d="M3 9h4l5-4v14l-5-4H3zM15 9a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/>
+      </symbol>
+      <symbol id="icon-sound-off" viewBox="0 0 24 24">
+        <path vector-effect="non-scaling-stroke" d="M3 9h4l5-4v14l-5-4H3zm12 0 6 6m0-6-6 6"/>
+      </symbol>
       <symbol id="icon-triple" viewBox="0 0 42 14">
         <g fill="currentColor" stroke="none">
           <rect x="0.5" y="1" width="12" height="12" rx="2"/><rect x="15" y="1" width="12" height="12" rx="2"/><rect x="29.5" y="1" width="12" height="12" rx="2"/>
@@ -100,6 +106,9 @@
           <span id="active-perk" role="img" hidden></span>
           <span id="fight" hidden></span>
           <span id="turn" role="img" hidden></span>
+          <button id="sound-toggle" type="button" aria-label="소리" aria-pressed="true" hidden>
+            <svg class="icon" aria-hidden="true"><use href="#icon-sound-on"/></svg>
+          </button>
           <button id="help" type="button" aria-label="아이콘 사전" aria-haspopup="dialog" aria-controls="battle-guide" hidden>
             <svg class="icon" aria-hidden="true"><use href="#icon-help"/></svg>
           </button>
