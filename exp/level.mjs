@@ -1,5 +1,5 @@
 import { pathToFileURL } from 'node:url'
-import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from '../src/ascent.ts'
+import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn, takeAscentReward } from '../src/ascent.ts'
 import { DIE_COUNT, draw, intentOf } from '../src/combat.ts'
 import { offerPerks, pickOfferedPerk, START_PERKS } from '../src/perks.ts'
 import {
@@ -17,7 +17,7 @@ function wantsReroll(battle) {
   return !chargeBroken && (dealt < battle.enemyHp || damage >= battle.playerHp)
 }
 
-export function playAscent(seed, perk, observeTurn, policy = 'adaptive', perkAware = true) {
+export function playAscent(seed, perk, observeTurn, policy = 'adaptive', perkAware = true, chooseReward) {
   const parity = draw(seed, 0, 21) % 2 ? 'odd' : 'even'
   let ascent = beginAscent(seed, perk, parity)
   let wins = 0
@@ -76,6 +76,7 @@ export function playAscent(seed, perk, observeTurn, policy = 'adaptive', perkAwa
     if (ascent.battle.phase === 'lost') break
     if (ascent.battle.phase !== 'won') throw new Error(`Unfinished fight: ${seed}, ${perk}, ${fight}`)
     wins++
+    if (chooseReward && fight < FIGHT_COUNT) ascent = takeAscentReward(ascent, chooseReward(ascent))
     ascent = nextAscentFight(ascent)
   }
   const defeat = ascent.battle.phase === 'lost'

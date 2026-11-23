@@ -1,0 +1,30 @@
+export const RELICS = ['weight', 'buckle', 'rewind', 'wedge'] as const
+export type Relic = (typeof RELICS)[number]
+export type Reward = Relic | 'bandage' | 'tuning'
+export type RewardChoice = Reward | 'skip'
+
+export interface CombatRewards {
+  readonly relics: readonly Relic[]
+  readonly spent: readonly Relic[]
+  readonly tuning?: 'ready' | 'spent'
+}
+
+export const BANDAGE_THRESHOLD = 14
+export const BANDAGE_HEAL = 2
+
+export const REWARD_CARDS = {
+  bandage: { name: '약초 붕대', icon: 'reward-bandage', value: `+${BANDAGE_HEAL}`, description: `체력이 ${BANDAGE_THRESHOLD} 이하이면 이 카드를 골랐을 때 체력을 ${BANDAGE_HEAL} 회복합니다.` },
+  weight: { name: '저울추', icon: 'reward-weight', value: '+2', description: '전투당 한 번, 본체를 홀수 눈 하나와 짝수 눈 하나로 공격하면 턴 끝에 추가 피해 2를 줍니다.' },
+  buckle: { name: '받침 버클', icon: 'reward-buckle', value: '−1', description: '전투당 한 번, 주사위 두 개 이상으로 방어해 합이 예고 피해보다 1 낮으면 잃는 체력을 1 줄입니다.' },
+  rewind: { name: '되감기 핀', icon: 'reward-rewind', value: '+2', description: '전투당 한 번, 재굴림한 턴에 본체를 눈 4 이상의 주사위 한 개로 공격하면 턴 끝에 추가 피해 2를 줍니다.' },
+  wedge: { name: '쇠쐐기', icon: 'reward-wedge', value: '+3', description: '전투당 한 번, 적의 힘 모으기를 끊으면 끊은 턴 끝에 본체에 추가 피해 3을 줍니다.' },
+  tuning: { name: '조율 잔편', icon: 'reward-tuning', value: '±1', description: '등반 중 한 번, 턴 확정 전에 첫 번째 일반 주사위의 눈을 1 올리거나 내립니다. 눈은 1부터 6까지입니다.' },
+} as const satisfies Record<Reward, { name: string; icon: string; value: string; description: string }>
+
+export function isRelic(value: unknown): value is Relic {
+  return RELICS.some((relic) => relic === value)
+}
+
+export function isReward(value: unknown): value is Reward {
+  return value === 'tuning' || value === 'bandage' || isRelic(value)
+}

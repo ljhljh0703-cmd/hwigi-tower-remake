@@ -1,7 +1,9 @@
-import { ascentBattleSeed, ascentFinished, FIGHT_COUNT } from './ascent.ts'
+import { ascentBattleSeed, ascentFinished, FIGHT_COUNT, rewardOffers } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import { COUNTER_REWARDS, DIE_COUNT, PLAYER_HP } from './combat.ts'
 import { enemyForFight } from './enemy-roster.ts'
+import { isRelic, isReward } from './rewards.ts'
+import type { Reward } from './rewards.ts'
 import type { Hand, YachtBattle } from './yacht-combat.ts'
 
 export const ASCENT_SAVE_KEY = 'hwigi-tower.ascent'
@@ -10,6 +12,7 @@ const version = 1
 export interface AscentSave {
   readonly ascent: Ascent
   readonly selected: readonly number[]
+  readonly rewardPreview?: Reward
 }
 
 type SaveStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
@@ -61,6 +64,16 @@ function exchange(value: unknown) {
 
 function interference(value: unknown) { return value === 'lock' || value === 'freeze' }
 
+function combatRewards(value: unknown) {
+  if (value === undefined) return true
+  if (!record(value)) return false
+  const { relics, spent, tuning } = value
+  if (!Array.isArray(relics) || !Array.isArray(spent)) return false
+  return relics.every(isRelic) && new Set(relics).size === relics.length &&
+    spent.every((relic) => isRelic(relic) && relics.includes(relic)) && new Set(spent).size === spent.length &&
+    (tuning === undefined || tuning === 'ready' || tuning === 'spent')
+}
+
 function battleRecord(value: unknown, seed: number, enemy: Ascent['enemy']): value is SavedBattle {
   if (!record(value)) return false
   const { phase, turn, dice, slots, playerHp, enemyHp, fixedDie, stolenDie, escort, lastExchange } = value
@@ -69,7 +82,7 @@ function battleRecord(value: unknown, seed: number, enemy: Ascent['enemy']): val
   if ((phase === 'won') !== (enemyHp === 0) || !faces(dice) || !Array.isArray(slots) || slots.length !== dice.length) return false
   if (!slots.every((slot) => slot === 'attack' || slot === 'guard' || slot === 'escort' || (phase === 'assign' && slot === null))) return false
   if (lastExchange === null ? phase !== 'assign' : !exchange(lastExchange)) return false
-  if (!integer(value.enemyAttackBuff) || value.enemyAttackGrowth !== enemy.attackGrowth || !perk(value.perk)) return false
+  if (!integer(value.enemyAttackBuff) || value.enemyAttackGrowth !== enemy.attackGrowth || !perk(value.perk) || !combatRewards(value.rewards)) return false
   if (![value.extraRerollAvailable, value.rerolled, value.awakened].every((flag) => typeof flag === 'boolean')) return false
   if (![value.extraRerollSpent, value.paidRerollSpent, value.fourthDieUnlocked].every((flag) => flag === undefined || flag === true)) return false
   if (value.nextInterference !== undefined && !interference(value.nextInterference)) return false
@@ -81,12 +94,15 @@ function battleRecord(value: unknown, seed: number, enemy: Ascent['enemy']): val
 
 function readCheckpoint(raw: unknown): AscentSave | null {
   if (!record(raw) || raw.version !== version || !record(raw.ascent)) return null
-  const { seed, fight, unlocks, newUnlock, battle } = raw.ascent
+  const { seed, fight, unlocks, newUnlock, battle, rewardChoice } = raw.ascent
   if (!integer(seed, 0, 0xffffffff) || !integer(fight, 1, FIGHT_COUNT) || !Array.isArray(unlocks) || !unlocks.every(hand)) return null
   if (new Set(unlocks).size !== unlocks.length || (newUnlock !== null && (!hand(newUnlock) || !unlocks.includes(newUnlock)))) return null
   const enemy = enemyForFight(seed, fight)
   const fightSeed = ascentBattleSeed(seed, fight)
   if (!battleRecord(battle, fightSeed, enemy)) return null
+  if (rewardChoice !== undefined && (battle.phase !== 'won' || (rewardChoice !== 'skip' && !isReward(rewardChoice)))) return null
+  if (isRelic(rewardChoice) && !battle.rewards?.relics.includes(rewardChoice)) return null
+  if (rewardChoice === 'tuning' && battle.rewards?.tuning !== 'ready') return null
   if (battle.phase !== 'won' && Boolean(battle.fourthDieUnlocked) !== unlocks.includes('triple')) return null
   if (battle.phase === 'assign' && battle.dice.length !== DIE_COUNT + Number(Boolean(battle.fourthDieUnlocked)) - Number(Boolean(battle.stolenDie))) return null
   const { selected } = raw
@@ -96,8 +112,11 @@ function readCheckpoint(raw: unknown): AscentSave | null {
   const ascent: Ascent = {
     seed, fight, enemy, maxHp: PLAYER_HP, unlocks, newUnlock,
     battle: { ...battle, enemyIntents: enemy.intents, enemyAttackGrowth: enemy.attackGrowth },
+    ...(rewardChoice && { rewardChoice }),
   }
-  return ascentFinished(ascent) ? null : { ascent, selected }
+  const { rewardPreview } = raw
+  if (rewardPreview !== undefined && (!isReward(rewardPreview) || !rewardOffers(ascent).includes(rewardPreview))) return null
+  return ascentFinished(ascent) ? null : { ascent, selected, ...(rewardPreview && { rewardPreview }) }
 }
 
 export function loadAscentSave(storage?: SaveStorage): AscentSave | null {
@@ -109,17 +128,17 @@ export function loadAscentSave(storage?: SaveStorage): AscentSave | null {
   }
 }
 
-export function writeAscentSave({ ascent, selected }: AscentSave, storage?: SaveStorage) {
+export function writeAscentSave({ ascent, selected, rewardPreview }: AscentSave, storage?: SaveStorage) {
   try {
     const store = storage ?? globalThis.localStorage
     if (ascentFinished(ascent)) {
       store.removeItem(ASCENT_SAVE_KEY)
       return
     }
-    const { seed, fight, unlocks, newUnlock, battle } = ascent
+    const { seed, fight, unlocks, newUnlock, battle, rewardChoice } = ascent
     const { enemyIntents: _enemyIntents, ...savedBattle } = battle
     store.setItem(ASCENT_SAVE_KEY, JSON.stringify({
-      version, selected, ascent: { seed, fight, unlocks, newUnlock, battle: savedBattle },
+      version, selected, rewardPreview, ascent: { seed, fight, unlocks, newUnlock, rewardChoice, battle: savedBattle },
     }))
   } catch {
     // The run can still be played when browser storage is unavailable.

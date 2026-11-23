@@ -1,4 +1,5 @@
 import { START_PERKS } from './perks.ts'
+import { REWARD_CARDS } from './rewards.ts'
 
 interface GuideSection {
   readonly title: string
@@ -77,6 +78,13 @@ export const BATTLE_GUIDE: readonly GuideSection[] = [
       ['die', '홀수 서약', `홀수 눈 주사위를 공격 칸에 놓을 때마다 표시한 만큼 피해를 더합니다. 점선으로 표시된 주사위가 해당합니다.`],
       ['die-even', '짝수 서약', `짝수 눈 주사위를 공격 칸에 놓을 때마다 표시한 만큼 피해를 더합니다. 점선으로 표시된 주사위가 해당합니다.`],
       ['wheel', '역습 표식', `룰렛을 돌릴 때마다 아이콘 없는 칸 중 가장 작은 숫자 하나가 ${START_PERKS.counter.step}씩 커집니다. 위쪽에는 이번 등반에서 쌓인 증가량을 표시합니다.`],
+    ],
+  },
+  {
+    title: '전투 보상',
+    entries: [
+      ...Object.values(REWARD_CARDS).map(({ icon, name, description }) => [icon, name, description] as const),
+      ['completion-seal', '완주 인장', '탑의 문지기를 쓰러뜨리면 결과 화면에 완주 인장을 표시합니다.'],
     ],
   },
 ]

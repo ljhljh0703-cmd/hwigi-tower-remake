@@ -1,10 +1,13 @@
-import { ascentFinished, beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
+import { ascentFinished, beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn, rewardHealth, rewardOffers, takeAscentReward } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import { ASCENT_SAVE_KEY, loadAscentSave, writeAscentSave } from './ascent-save.ts'
 import { Arena } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
 import { BATTLE_GUIDE } from './battle-guide.ts'
 import { COMPANION_LINES, companionDieIndex } from './companion.ts'
+import { enemyForFight } from './enemy-roster.ts'
+import { REWARD_CARDS } from './rewards.ts'
+import type { Reward, RewardChoice } from './rewards.ts'
 import {
   allocationPower, assignDie, attackFor, chargedStrikePreview, DIE_COUNT, dieFaceForSlot, enemyIntentAt, incomingAttack,
 } from './combat.ts'
@@ -12,7 +15,7 @@ import type { Exchange, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
 import type { Parity } from './perks.ts'
 import {
-  bladeChargePreview, canReroll, previewUnlockProgress, spinYachtCounter, yachtAllocationTotals,
+  bladeChargePreview, canReroll, previewUnlockProgress, spinYachtCounter, tuneYachtDie, yachtAllocationTotals,
   yachtCounterRewards, yachtRerollCost,
 } from './yacht-combat.ts'
 import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
@@ -74,6 +77,17 @@ const ui = {
   ascentEvent: element('ascent-event'),
   eventFloor: element('event-floor'),
   result: element('result'),
+  completionSeal: element('completion-seal'),
+  rewardPanel: element('reward-panel'),
+  rewardContext: element('reward-context'),
+  rewardCards: element('reward-cards'),
+  rewardPreview: element('reward-preview'),
+  confirmReward: element<HTMLButtonElement>('confirm-reward'),
+  skipReward: element<HTMLButtonElement>('skip-reward'),
+  rewardStrip: element('reward-strip'),
+  tuningControls: element('tuning-controls'),
+  tuneDown: element<HTMLButtonElement>('tune-down'),
+  tuneUp: element<HTMLButtonElement>('tune-up'),
   planning: element('planning'),
   dice: {
     pool: element('pool-dice'),
@@ -170,7 +184,7 @@ ui.guideEntries.innerHTML = BATTLE_GUIDE.map(({ title, entries }) => `
   <section class="guide-section">
     <h3>${title}</h3>
     <dl>${entries.map(([symbol, name, description]) => `
-      <div class="guide-entry">
+      <div class="guide-entry" data-guide-icon="${symbol}">
         <dt>${icon(symbol)}<strong>${name}</strong></dt>
         <dd>${description}</dd>
       </div>
@@ -179,13 +193,17 @@ ui.guideEntries.innerHTML = BATTLE_GUIDE.map(({ title, entries }) => `
 `).join('')
 
 let guideTrigger: HTMLButtonElement | undefined
+function openGuide(button: HTMLButtonElement, symbol?: string) {
+  if (button.disabled || ui.guide.open) return
+  guideTrigger = button
+  ui.guide.showModal()
+  ui.guideEntries.scrollTop = 0
+  const entry = symbol && ui.guideEntries.querySelector(`[data-guide-icon="${symbol}"]`)
+  if (entry) ui.guideEntries.scrollTop = entry.getBoundingClientRect().top - ui.guideEntries.getBoundingClientRect().top - 12
+}
+
 for (const button of [ui.help, ui.lobbyGuide]) {
-  button.addEventListener('click', () => {
-    if (button.disabled || ui.guide.open) return
-    guideTrigger = button
-    ui.guide.showModal()
-    ui.guideEntries.scrollTop = 0
-  })
+  button.addEventListener('click', () => openGuide(button))
 }
 ui.guide.addEventListener('click', (event) => {
   if (event.target === ui.guide) ui.guide.close()
@@ -204,6 +222,7 @@ const enemyBadges: Record<string, { icon: string; label: string }> = {
 }
 
 let ascent: Ascent | null = null
+let chosenReward: Reward | undefined
 const selected = new Set<number>()
 const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
 const sound = new BattleAudio()
@@ -222,7 +241,7 @@ ui.soundToggle.addEventListener('click', toggleSound)
 ui.lobbySound.addEventListener('click', toggleSound)
 
 function saveCurrent(checkpoint = ascent) {
-  if (checkpoint) writeAscentSave({ ascent: checkpoint, selected: [...selected] })
+  if (checkpoint) writeAscentSave({ ascent: checkpoint, selected: [...selected], rewardPreview: chosenReward })
 }
 
 let onConfirm: (() => void) | undefined
@@ -555,18 +574,78 @@ function showCompanionLine(output: HTMLElement, line: string) {
   output.hidden = !line.trim()
 }
 
+function renderRewardPreview(run: Ascent) {
+  ui.rewardCards.querySelectorAll('button').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.reward === chosenReward))
+  })
+  ui.confirmReward.disabled = !chosenReward
+  ui.rewardPreview.hidden = !chosenReward
+  if (!chosenReward) return
+  const card = REWARD_CARDS[chosenReward]
+  const current = `${run.battle.playerHp}/${run.maxHp}`
+  const target = chosenReward === 'bandage'
+    ? `${current} ${icon('next')} ${rewardHealth(run)}/${run.maxHp}`
+    : chosenReward === 'tuning' ? `${icon('die')}${card.value} · 1/1` : `0/1 ${icon('next')} 1/1`
+  ui.rewardPreview.innerHTML = `${icon(card.icon)}<span>${card.name}</span><strong>${target}</strong>`
+}
+
+function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
+  const { battle, maxHp, seed, fight } = run
+  const next = enemyForFight(seed, fight + 1)
+  const badge = enemyBadges[next.id]
+  const charge = next.intents.some((intent) => intent.chargeThreshold !== undefined)
+  ui.rewardContext.innerHTML = `<span>${icon('heart')}${battle.playerHp}/${maxHp}</span><span title="다음 적: ${badge.label}" aria-label="다음 적: ${badge.label}" role="img">${icon(badge.icon)}${charge && badge.icon !== 'charge' ? icon('charge') : ''}</span>`
+  ui.rewardCards.replaceChildren(...offers.map((reward) => {
+    const { name, description, value, icon: symbol } = REWARD_CARDS[reward]
+    const card = document.createElement('button')
+    card.type = 'button'
+    card.className = 'reward-card'
+    card.dataset.reward = reward
+    card.innerHTML = `<span class="reward-symbol">${icon(symbol)}</span><strong>${name}</strong><b>${value}</b><span class="reward-description">${description}</span>`
+    card.addEventListener('click', () => {
+      chosenReward = reward
+      renderRewardPreview(run)
+      saveCurrent()
+    })
+    return card
+  }))
+  renderRewardPreview(run)
+}
+
+function renderRewardStrip(battle: YachtBattle, disabled: boolean) {
+  const rewards = battle.rewards
+  const held: Reward[] = [...(rewards?.relics ?? []), ...(rewards?.tuning ? ['tuning' as const] : [])]
+  ui.rewardStrip.hidden = !held.length
+  ui.rewardStrip.replaceChildren(...held.map((reward) => {
+    const card = REWARD_CARDS[reward]
+    const remaining = reward === 'tuning' ? rewards?.tuning === 'ready' : !rewards?.spent.some((relic) => relic === reward)
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.disabled = disabled
+    button.classList.toggle('spent', !remaining)
+    button.setAttribute('aria-label', `${card.name}, ${Number(remaining)}/1`)
+    button.setAttribute('aria-haspopup', 'dialog')
+    button.title = card.name
+    button.innerHTML = `${icon(card.icon)}${Number(remaining)}/1`
+    button.addEventListener('click', () => openGuide(button, card.icon))
+    return button
+  }))
+}
+
 function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   if (!ascent) return
   const { battle, fight, enemy, maxHp, unlocks, newUnlock } = ascent
   const { phase, turn, playerHp, enemyHp } = battle
   const between = phase === 'won' && fight < FIGHT_COUNT
   const finished = ascentFinished(ascent)
-  const atEvent = presentation === 'normal' && (between || finished)
+  const offers = presentation === 'normal' ? rewardOffers(ascent) : []
+  const atRewards = offers.length > 0
+  const atEvent = presentation === 'normal' && !atRewards && (between || finished)
   const atUnlock = presentation === 'unlock' && newUnlock !== null
-  const inCombat = !atEvent && !atUnlock
+  const inCombat = !atEvent && !atUnlock && !atRewards
   const showActions = presentation === 'normal' && inCombat
   const companionAwake = unlocks.includes('triple')
-  ui.main.dataset.screen = atEvent ? 'event' : atUnlock ? 'unlock' : 'battle'
+  ui.main.dataset.screen = atRewards ? 'reward' : atEvent ? 'event' : atUnlock ? 'unlock' : 'battle'
   ui.lobby.hidden = true
   ui.masthead.hidden = false
   ui.returnLobby.disabled = presentation !== 'normal'
@@ -582,6 +661,7 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.help.hidden = !inCombat
   ui.help.disabled = !showActions
   ui.soundToggle.hidden = false
+  renderRewardStrip(battle, presentation !== 'normal')
   ui.turn.innerHTML = `${icon('turn')}${turn}`
   ui.turn.setAttribute('aria-label', `${turn}턴`)
   const totals = yachtAllocationTotals(battle)
@@ -617,7 +697,12 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
     ui.feedback.textContent = revealLabel
   }
   ui.planning.hidden = !showActions || phase !== 'assign'
+  ui.tuningControls.hidden = battle.rewards?.tuning !== 'ready'
+  ui.tuneDown.disabled = tuneYachtDie(battle, -1) === battle
+  ui.tuneUp.disabled = tuneYachtDie(battle, 1) === battle
   roulette.setVisible(showActions && phase === 'counter' ? yachtCounterRewards(battle) : null)
+  ui.rewardPanel.hidden = !atRewards
+  if (atRewards) renderRewardOffers(ascent, offers)
   ui.ascentEvent.hidden = !atEvent
   const companionFallsAsleep = atEvent && finished && companionAwake
   ui.ownedUnlocks.hidden = !(between && unlocks.length) && !companionFallsAsleep
@@ -642,10 +727,11 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.ascentEvent.classList.toggle('finished', finished)
   ui.result.hidden = !atEvent || !finished
   ui.result.textContent = phase === 'won' ? '성공' : '실패'
+  ui.completionSeal.hidden = !atEvent || !finished || phase !== 'won'
   const finalUnlock = atEvent && phase === 'lost' && newUnlock ? unlockInfo[newUnlock] : null
   ui.finalUnlock.hidden = !finalUnlock
   ui.finalUnlock.innerHTML = finalUnlock ? `${icon(finalUnlock.icon)}해금 · ${finalUnlock.label}` : ''
-  ui.next.hidden = !between
+  ui.next.hidden = !between || !atEvent
   ui.retry.hidden = !finished
   refreshDice(battle, totals, unlocks)
   arena.refresh(battle, enemy.id)
@@ -659,6 +745,7 @@ function refreshLobbyActions() {
 
 function showLobby(focus = false) {
   ascent = null
+  chosenReward = undefined
   selected.clear()
   window.clearTimeout(exchangeTimer)
   clearExchange()
@@ -666,6 +753,7 @@ function showLobby(focus = false) {
   ui.main.dataset.screen = 'lobby'
   ui.lobby.hidden = false
   ui.masthead.hidden = true
+  ui.rewardStrip.hidden = true
   ui.perks.hidden = true
   ui.battle.hidden = true
   refreshLobbyActions()
@@ -674,11 +762,13 @@ function showLobby(focus = false) {
 
 function showPerks() {
   ascent = null
+  chosenReward = undefined
   selected.clear()
   roulette.setVisible(null)
   ui.main.dataset.screen = 'perks'
   ui.lobby.hidden = true
   ui.masthead.hidden = false
+  ui.rewardStrip.hidden = true
   ui.returnLobby.disabled = false
   ui.returnLobby.removeAttribute('aria-haspopup')
   ui.battle.hidden = true
@@ -766,7 +856,11 @@ function place(indices: readonly number[], zone: DropZone) {
 
 function focusPhase() {
   if (!ascent) return
-  if (ascent.battle.phase === 'counter') ui.counter.focus()
+  if (!ui.rewardPanel.hidden) {
+    const card = ui.rewardCards.querySelector<HTMLButtonElement>('[aria-pressed="true"]') ?? ui.rewardCards.querySelector('button')
+    card?.focus()
+  }
+  else if (ascent.battle.phase === 'counter') ui.counter.focus()
   else if (ascent.battle.phase === 'assign') diceButtons[selected.values().next().value ?? 0].focus()
   else if (!ui.next.hidden) ui.next.focus()
   else ui.retry.focus()
@@ -788,6 +882,32 @@ function useReroll(extra: boolean) {
 
 ui.reroll.addEventListener('click', () => useReroll(false))
 ui.extraReroll.addEventListener('click', () => useReroll(true))
+function useTuning(change: -1 | 1) {
+  if (ui.guide.open || !ascent) return
+  const battle = tuneYachtDie(ascent.battle, change)
+  if (battle === ascent.battle) return
+  ascent = { ...ascent, battle }
+  saveCurrent()
+  render()
+  diceButtons[0].focus()
+}
+
+ui.tuneDown.addEventListener('click', () => useTuning(-1))
+ui.tuneUp.addEventListener('click', () => useTuning(1))
+
+function claimReward(choice: RewardChoice) {
+  if (!ascent || ui.guide.open) return
+  const next = takeAscentReward(ascent, choice)
+  if (next === ascent) return
+  ascent = next
+  chosenReward = undefined
+  saveCurrent()
+  render()
+  focusPhase()
+}
+
+ui.confirmReward.addEventListener('click', () => { if (chosenReward) claimReward(chosenReward) })
+ui.skipReward.addEventListener('click', () => claimReward('skip'))
 ui.resolve.addEventListener('click', async () => {
   if (ui.guide.open || !ascent) return
   const before = ascent.battle
@@ -824,6 +944,7 @@ ui.counter.addEventListener('click', async () => {
   const companionJoint = reward.joint && ascent.unlocks.includes('triple')
   ui.help.disabled = true
   ui.returnLobby.disabled = true
+  ui.rewardStrip.querySelectorAll('button').forEach((button) => { button.disabled = true })
 
   const animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (next.perk?.kind === 'counter') renderActivePerk(next)
@@ -855,7 +976,7 @@ ui.counter.addEventListener('click', async () => {
   focusPhase()
 })
 ui.next.addEventListener('click', () => {
-  if (!ascent) return
+  if (!ascent || rewardOffers(ascent).length) return
   clearExchange()
   ascent = nextAscentFight(ascent)
   saveCurrent()
@@ -871,6 +992,7 @@ ui.continueAscent.addEventListener('click', (event) => {
     return
   }
   ascent = checkpoint.ascent
+  chosenReward = checkpoint.rewardPreview
   selected.clear()
   for (const index of checkpoint.selected) selected.add(index)
   if (event.isTrusted) sound.activate()

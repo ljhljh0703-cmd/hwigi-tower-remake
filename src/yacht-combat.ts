@@ -1,11 +1,12 @@
 import {
-  allocationPower, allocationTotals, COUNTER_REWARDS, DIE_COUNT, dieFaceForSlot, draw, enemyIntentAt, forecast, openTurn, PLAYER_HP,
+  allocationPower, allocationTotals, attackFor, COUNTER_REWARDS, DIE_COUNT, dieFaceForSlot, draw, enemyIntentAt, forecast, openTurn, PLAYER_HP,
   rerollChannels, roll, spinCounter,
   startBattle,
 } from './combat.ts'
 import type { Battle, Enemy, EnemyMechanic, Slot } from './combat.ts'
 import { collectorBonus, START_PERKS } from './perks.ts'
 import type { CollectedHand, PerkState } from './perks.ts'
+import type { CombatRewards, Relic } from './rewards.ts'
 
 export type Hand = 'triple' | 'straight'
 
@@ -25,6 +26,7 @@ export interface YachtBattle extends Battle {
   readonly perk?: PerkState
   readonly paidRerollSpent?: true
   readonly fourthDieUnlocked?: true
+  readonly rewards?: CombatRewards
 }
 
 const FOURTH_DIE_CHANNEL = 8
@@ -135,6 +137,15 @@ export function spendExtraReroll(battle: YachtBattle, index: number): YachtBattl
   return { ...battle, dice, extraRerollAvailable: false, extraRerollSpent: true }
 }
 
+export function tuneYachtDie(battle: YachtBattle, change: -1 | 1): YachtBattle {
+  const { rewards, dice, phase, fixedDie } = battle
+  if (phase !== 'assign' || rewards?.tuning !== 'ready' || fixedDie?.index === 0) return battle
+  const next = dice[0] + change
+  const mechanic = enemyIntentAt(battle).mechanic
+  if (next < 1 || next > 6 || (mechanic?.kind === 'seal' && (dice[0] === mechanic.value || next === mechanic.value))) return battle
+  return { ...battle, dice: [next, ...dice.slice(1)], rewards: { ...rewards, tuning: 'spent' } }
+}
+
 function usedHand(battle: YachtBattle, dice: readonly number[], slot: Slot): UsedHand | null {
   const unchanged = dice.flatMap((face, index) => battle.slots[index] === slot && face === battle.dice[index] ? [face] : [])
   const hand = classifyYachtHand(battle, unchanged)
@@ -192,7 +203,35 @@ export function yachtAllocationTotals(battle: YachtBattle, slots = battle.slots,
 }
 
 export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = battle.dice) {
-  return forecast(battle, slots, dice, yachtAllocationTotals(battle, slots, dice))
+  const totals = yachtAllocationTotals(battle, slots, dice)
+  const base = forecast(battle, slots, dice, totals)
+  const usedRelics: Relic[] = []
+  const { rewards } = battle
+  if (!rewards?.relics.length || base.dealt === battle.enemyHp) return { ...base, usedRelics }
+  const ready = (relic: Relic) => rewards.relics.includes(relic) && !rewards.spent.includes(relic)
+
+  let { hits, damage, dealt } = base
+  if (ready('buckle') && slots.filter((slot) => slot === 'guard').length >= 2) {
+    const incoming = attackFor(battle, base.intent, Boolean(battle.escort && base.escortDealt < battle.escort.hp))
+    if (totals.guard === incoming.totalDamage - 1) {
+      const residual = hits.findIndex((hit) => hit > 0)
+      hits = hits.map((hit, index) => index === residual ? hit - 1 : hit)
+      damage--
+      usedRelics.push('buckle')
+    }
+  }
+  if (damage < battle.playerHp) {
+    const faces = facesInSlot(dice, slots, 'attack', base.intent.mechanic)
+    const addDamage = (relic: Relic, bonus: number) => {
+      if (!ready(relic) || dealt === battle.enemyHp) return
+      dealt = Math.min(battle.enemyHp, dealt + bonus)
+      usedRelics.push(relic)
+    }
+    if (faces.length === 2 && faces.every((face) => face > 0) && faces[0] % 2 !== faces[1] % 2) addDamage('weight', 2)
+    if (battle.rerolled && faces.length === 1 && faces[0] >= 4) addDamage('rewind', 2)
+    if (base.chargeBroken) addDamage('wedge', 3)
+  }
+  return { ...base, dealt, hits, damage, usedRelics }
 }
 
 function turnHand(battle: YachtBattle, dice: readonly number[], counter: boolean): UsedHand | null {
@@ -309,6 +348,7 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
     playerHp,
     enemyHp,
     ...(perk && { perk }),
+    ...(battle.rewards && result.usedRelics.length && { rewards: { ...battle.rewards, spent: [...battle.rewards.spent, ...result.usedRelics] } }),
     ...((effect?.kind === 'lock' || effect?.kind === 'freeze') && { nextInterference: effect.kind }),
     ...(stolenDie && { stolenDie }),
     ...(escort && { escort }),
