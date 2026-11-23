@@ -94,7 +94,9 @@ export const ASCENT_ENEMIES = [
   ],
 ] as const satisfies readonly (readonly AscentEnemy[])[]
 
-export function enemyForFight(seed: number, fight: number): AscentEnemy {
+export type AscentEnemyId = (typeof ASCENT_ENEMIES)[number][number]['id']
+
+export function enemyForFight(seed: number, fight: number): AscentEnemy & { readonly id: AscentEnemyId } {
   const roster = ASCENT_ENEMIES[fight - 1]
   return roster[draw(seed, 0, 40 + fight) % roster.length]
 }

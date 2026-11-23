@@ -248,6 +248,7 @@ button:disabled {
 
 .player { inset-inline-start: var(--player-x, 26.1111%); }
 .enemy { inset-inline-start: 72.7778%; }
+.escort-guard { inset-inline-start: var(--escort-x, 56.6667%); inline-size: 64px; }
 
 #intent {
   position: absolute;
@@ -299,6 +300,23 @@ button:disabled {
 }
 
 .vital .icon { color: var(--muted); }
+
+.enemy .vital { translate: var(--enemy-vital-shift, 0px) 0; }
+
+.encounter:has(.escort-guard:not([hidden])) .vital { max-inline-size: clamp(78px, 25vw, 104px); }
+
+.escort-guard .vital {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  inset-inline: 0;
+  inline-size: clamp(44px, 14vw, 64px);
+  padding-block: 4px;
+  font-size: .85rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
 
 .enemy-vital {
   display: grid;

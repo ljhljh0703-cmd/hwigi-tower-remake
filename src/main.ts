@@ -42,6 +42,9 @@ const ui = {
   enemyBadge: element('enemy-badge'),
   playerTotal: element('player-total'),
   enemyTotal: element('enemy-total'),
+  escortGuard: element('escort-guard'),
+  escortGuardVital: element('escort-guard-vital'),
+  escortGuardTotal: element('escort-guard-total'),
   feedback: element('feedback'),
   playerDamage: element('player-damage'),
   enemyDamage: element('enemy-damage'),
@@ -513,6 +516,11 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.enemyBadge.innerHTML = icon(badge.icon)
   ui.enemyBadge.setAttribute('aria-label', badge.label)
   updateEnemyHp(enemyHp)
+  ui.escortGuard.hidden = !battle.escort || enemyHp <= 0
+  if (battle.escort) {
+    ui.escortGuardTotal.textContent = String(battle.escort.hp)
+    ui.escortGuardVital.setAttribute('aria-label', `호위병 체력 ${battle.escort.hp}`)
+  }
   ui.newUnlock.hidden = !atUnlock
   if (atUnlock) {
     const unlock = unlockInfo[newUnlock]
