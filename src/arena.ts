@@ -169,6 +169,7 @@ export class Arena {
     this.encounter.style.setProperty('--ground', `${ground}px`)
     this.encounter.style.setProperty('--enemy-head', `${ground - enemyHeight}px`)
     this.encounter.style.setProperty('--player-head', `${ground - hero.footY * this.spritePixels / this.density}px`)
+    this.encounter.style.setProperty('--enemy-x', `${this.enemyX / 3.6}%`)
     this.encounter.style.setProperty('--escort-x', `${escortHome / 3.6}%`)
     const vitalShift = (this.enemyX - enemyHome) * this.canvas.width / (360 * this.density)
     this.encounter.style.setProperty('--enemy-vital-shift', `${vitalShift}px`)

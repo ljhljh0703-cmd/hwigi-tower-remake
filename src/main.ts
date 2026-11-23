@@ -3,6 +3,7 @@ import type { Ascent } from './ascent.ts'
 import { Arena } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
 import { BATTLE_GUIDE } from './battle-guide.ts'
+import { COMPANION_LINES, companionDieIndex } from './companion.ts'
 import {
   allocationPower, assignDie, attackFor, chargedStrikePreview, DIE_COUNT, dieFaceForSlot, enemyIntentAt, incomingAttack,
 } from './combat.ts'
@@ -31,6 +32,10 @@ const ui = {
   encounter: document.querySelector<HTMLElement>('.encounter')!,
   fight: element('fight'),
   activePerk: element('active-perk'),
+  companionStatus: element('companion-status'),
+  companionFlight: element('companion-flight'),
+  companionAwakenLine: element('companion-awaken-line'),
+  companionSleepLine: element('companion-sleep-line'),
   turn: element('turn'),
   help: element<HTMLButtonElement>('help'),
   soundToggle: element<HTMLButtonElement>('sound-toggle'),
@@ -50,6 +55,7 @@ const ui = {
   enemyDamage: element('enemy-damage'),
   awakening: element('awakening'),
   newUnlock: element('new-unlock'),
+  unlockHeading: element('unlock-heading'),
   unlockReveal: element('unlock-reveal'),
   ownedUnlocks: element('owned-unlocks'),
   finalUnlock: element('final-unlock'),
@@ -95,7 +101,7 @@ const fixedSeed = seedParam !== null && /^\d{1,10}$/.test(seedParam) && Number(s
   : null
 
 const unlockInfo = {
-  triple: { icon: 'die', value: '+1', label: '네 번째 주사위' },
+  triple: { icon: 'companion-awake', value: '+1', label: '동료 주사위' },
   straight: { icon: 'reroll-die', value: '1', label: '전투당 재굴림 주사위 1회' },
 } as const
 
@@ -211,7 +217,7 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
       const battle = ascent?.battle
       const mechanic = battle && enemyIntentAt(battle).mechanic
       const faces = battle ? indices.map((die) => dieFaceForSlot(battle.dice[die], battle.slots[die], mechanic)) : []
-      return { indices, faces: faces.join('  ') }
+      return { indices, faces: faces.join('  '), companion: !!battle && indices.length === 1 && indices[0] === companionDieIndex(battle) }
     },
     drop: (indices, zone) => place(indices, zone),
   })
@@ -239,9 +245,12 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
   const pendingUnlock = unlocks.length < 2 ? previewUnlockProgress(battle) : undefined
   const intent = enemyIntentAt(battle)
   const mechanic = intent.mechanic
+  const companion = companionDieIndex(battle)
   diceButtons.forEach((button, index) => {
     const value = battle.dice[index]
     button.hidden = value === undefined
+    const isCompanion = index === companion
+    button.classList.toggle('companion-die', isCompanion)
     if (value === undefined) return
     button.disabled = !planning
     const slot = battle.slots[index]
@@ -249,7 +258,7 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
     const fixed = battle.fixedDie?.index === index ? battle.fixedDie.kind : undefined
     const sealed = mechanic?.kind === 'seal' && value === mechanic.value
     const status = fixed ?? (sealed ? 'seal' : undefined)
-    button.innerHTML = `${dieFaceForSlot(value, slot, mechanic)}${status ? `<span class="die-status">${icon(status)}</span>` : ''}`
+    button.innerHTML = `${dieFaceForSlot(value, slot, mechanic)}${isCompanion ? `<span class="companion-mark">${icon('companion-awake')}</span>` : ''}${status ? `<span class="die-status">${icon(status)}</span>` : ''}`
     const oathFace = battle.perk?.kind === 'oath' && !sealed && value % 2 === Number(battle.perk.parity === 'odd')
     button.classList.toggle('altered-face', oathFace)
     const place = slot ? { attack: '공격', guard: '방어', escort: '호위 공격' }[slot] : '미배치'
@@ -257,7 +266,8 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
     if (oathFace) faceLabel = `, 공격에 놓으면 +${START_PERKS.oath.bonus}`
     if (fixed) faceLabel += `, ${fixed === 'lock' ? '잠김' : '얼림'}, 재굴림 불가`
     if (sealed) faceLabel += ', 봉인되어 0으로 계산'
-    button.setAttribute('aria-label', `주사위 ${index + 1}, ${value}, ${place}${faceLabel}`)
+    const name = isCompanion ? '동료 주사위' : `주사위 ${index + 1}`
+    button.setAttribute('aria-label', `${name}, ${value}, ${place}${faceLabel}`)
     button.setAttribute('aria-pressed', String(selected.has(index)))
     if (parent !== button.parentElement) parent.append(button)
   })
@@ -270,8 +280,6 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
     ui.dice.pool.append(stolenPlaceholder)
   }
   ui.lockedDie.hidden = unlocks.includes('triple')
-  if (ui.lockedDie.hidden) ui.lockedDie.removeAttribute('aria-label')
-  else ui.lockedDie.setAttribute('aria-label', '잠긴 네 번째 주사위, 같은 눈 셋')
   renderUnlockProgress(ui.lockedDie, ui.lockedDie.hidden ? 0 : pendingUnlock?.triple ?? 0)
 
   const withoutPerk = allocationPower(battle)
@@ -412,12 +420,32 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals) {
 
 const exchangeDuration = 1200
 const unlockDuration = 650
+const companionAwakenDuration = 520
+const companionFlightDuration = 500
+const companionImpactTime = 350
 let exchangeTimer: number | undefined
 
 function clearExchange() {
   ui.playerDamage.hidden = true
   ui.enemyDamage.hidden = true
   ui.awakening.hidden = true
+}
+
+function showDamage(output: HTMLElement, damage: number, atImpact = false) {
+  output.getAnimations().forEach((animation) => animation.cancel())
+  output.textContent = `−${damage}`
+  output.hidden = damage === 0
+  if (damage && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    output.animate(
+      [{ translate: '0 7px', opacity: atImpact ? 1 : 0 }, { translate: '0 0', opacity: 1, offset: 0.15 }, { opacity: 1, offset: 0.75 }, { translate: '0 -9px', opacity: 0 }],
+      { duration: exchangeDuration },
+    )
+  }
+}
+
+function hideExchangeAfterDelay() {
+  window.clearTimeout(exchangeTimer)
+  exchangeTimer = window.setTimeout(clearExchange, exchangeDuration)
 }
 
 function showExchange(before: YachtBattle, phase: YachtBattle['phase'], exchange: Exchange) {
@@ -427,22 +455,12 @@ function showExchange(before: YachtBattle, phase: YachtBattle['phase'], exchange
   if (dealt || taken || escortDealt) sound.play('stone-hit')
   if (phase === 'counter') sound.play('perfect-block')
   ui.feedback.textContent = `적 피해 ${dealt}, 내 피해 ${taken}${escortDealt ? `, 호위 피해 ${escortDealt}` : ''}${awakenedDice ? `, 각성 ${awakenedDice.join(', ')}` : ''}`
-  for (const [output, damage] of [[ui.playerDamage, taken], [ui.enemyDamage, dealt]] as const) {
-    output.getAnimations().forEach((animation) => animation.cancel())
-    output.textContent = `−${damage}`
-    output.hidden = damage === 0
-    if (damage && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      output.animate(
-        [{ translate: '0 7px', opacity: 0 }, { translate: '0 0', opacity: 1, offset: 0.15 }, { opacity: 1, offset: 0.75 }, { translate: '0 -9px', opacity: 0 }],
-        { duration: exchangeDuration },
-      )
-    }
-  }
+  showDamage(ui.playerDamage, taken)
+  showDamage(ui.enemyDamage, dealt)
   ui.awakening.hidden = !awakenedDice
   ui.awakening.innerHTML = awakenedDice ? `${icon('die')}${awakenedDice.map((face) => `<span>${face}</span>`).join('')}` : ''
   ui.awakening.setAttribute('aria-label', awakenedDice ? `각성 ${awakenedDice.join(', ')}` : '')
-  window.clearTimeout(exchangeTimer)
-  exchangeTimer = window.setTimeout(clearExchange, exchangeDuration)
+  hideExchangeAfterDelay()
   return poseDuration
 }
 
@@ -483,6 +501,11 @@ function renderActivePerk(battle: YachtBattle) {
   ui.activePerk.title = name
 }
 
+function showCompanionLine(output: HTMLElement, line: string) {
+  output.textContent = line
+  output.hidden = !line.trim()
+}
+
 function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   if (!ascent) return
   const { battle, fight, enemy, maxHp, unlocks, newUnlock } = ascent
@@ -493,6 +516,7 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   const atUnlock = presentation === 'unlock' && newUnlock !== null
   const inCombat = !atEvent && !atUnlock
   const showActions = presentation === 'normal' && inCombat
+  const companionAwake = unlocks.includes('triple')
   ui.main.dataset.screen = atEvent ? 'event' : atUnlock ? 'unlock' : 'battle'
   ui.perks.hidden = true
   ui.battle.hidden = false
@@ -500,6 +524,7 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.fight.hidden = !inCombat
   ui.fight.textContent = `${fight}/${FIGHT_COUNT} 층`
   renderActivePerk(battle)
+  ui.companionStatus.hidden = !inCombat || !companionAwake
   ui.turn.hidden = !inCombat
   ui.help.hidden = !inCombat
   ui.help.disabled = !showActions
@@ -522,22 +547,38 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
     ui.escortGuardVital.setAttribute('aria-label', `호위병 체력 ${battle.escort.hp}`)
   }
   ui.newUnlock.hidden = !atUnlock
+  showCompanionLine(ui.companionAwakenLine, atUnlock && newUnlock === 'triple' ? COMPANION_LINES.awaken : '')
   if (atUnlock) {
     const unlock = unlockInfo[newUnlock]
-    const faces = [2, 4, 1, 3, 6, 5].map((face) => `<span>${face}</span>`).join('')
-    ui.unlockReveal.innerHTML = `<div class="die-net" aria-hidden="true">${faces}</div><span class="unlock-value">${icon(unlock.icon)}<strong>${unlock.value}</strong></span>`
-    ui.unlockReveal.setAttribute('aria-label', `${unlock.label} 해금`)
-    ui.feedback.textContent = `${unlock.label} 해금`
+    ui.unlockReveal.classList.toggle('companion-reveal', newUnlock === 'triple')
+    const revealLabel = newUnlock === 'triple' ? `${unlock.label} 깨어남` : `${unlock.label} 해금`
+    if (newUnlock === 'triple') {
+      ui.unlockHeading.innerHTML = `${icon(unlock.icon)}${unlock.label}`
+      ui.unlockReveal.innerHTML = `<span class="companion-tile" aria-hidden="true">${icon(unlock.icon)}</span>`
+    } else {
+      const faces = [2, 4, 1, 3, 6, 5].map((face) => `<span>${face}</span>`).join('')
+      ui.unlockHeading.innerHTML = `${icon('unlock')}해금`
+      ui.unlockReveal.innerHTML = `<div class="die-net" aria-hidden="true">${faces}</div><span class="unlock-value">${icon(unlock.icon)}<strong>${unlock.value}</strong></span>`
+    }
+    ui.unlockReveal.setAttribute('aria-label', revealLabel)
+    ui.feedback.textContent = revealLabel
   }
   ui.planning.hidden = !showActions || phase !== 'assign'
   roulette.setVisible(showActions && phase === 'counter' ? yachtCounterRewards(battle) : null)
   ui.ascentEvent.hidden = !atEvent
-  ui.ownedUnlocks.hidden = !between || unlocks.length === 0
-  ui.ownedUnlocks.innerHTML = unlocks.map((hand) => {
-    const unlock = unlockInfo[hand]
-    return `<span>${icon(unlock.icon)}${unlock.value}</span>`
-  }).join('')
-  ui.ownedUnlocks.setAttribute('aria-label', unlocks.map((hand) => unlockInfo[hand].label).join(', '))
+  const companionFallsAsleep = atEvent && finished && companionAwake
+  ui.ownedUnlocks.hidden = !(between && unlocks.length) && !companionFallsAsleep
+  if (companionFallsAsleep) {
+    ui.ownedUnlocks.innerHTML = `<span class="companion-tile companion-asleep">${icon('companion-sleep')}</span>`
+    ui.ownedUnlocks.setAttribute('aria-label', '동료 주사위 잠듦')
+  } else {
+    ui.ownedUnlocks.innerHTML = unlocks.map((hand) => {
+      const unlock = unlockInfo[hand]
+      return `<span>${icon(unlock.icon)}${unlock.value}</span>`
+    }).join('')
+    ui.ownedUnlocks.setAttribute('aria-label', unlocks.map((hand) => unlockInfo[hand].label).join(', '))
+  }
+  showCompanionLine(ui.companionSleepLine, companionFallsAsleep ? COMPANION_LINES.sleep : '')
   const wins = phase === 'lost' ? fight - 1 : fight
   ui.eventFloor.innerHTML = between
     ? `<span>${fight}/${FIGHT_COUNT}</span>${icon('next')}<strong>${fight + 1}/${FIGHT_COUNT}</strong>`
@@ -564,6 +605,7 @@ function showPerks(focus: boolean) {
   ui.main.dataset.screen = 'perks'
   ui.battle.hidden = true
   ui.activePerk.hidden = true
+  ui.companionStatus.hidden = true
   ui.fight.hidden = true
   ui.turn.hidden = true
   ui.help.hidden = true
@@ -682,7 +724,7 @@ ui.resolve.addEventListener('click', async () => {
   if (next.newUnlock) {
     render('unlock')
     sound.play('unlock')
-    await wait(unlockDuration)
+    await wait(next.newUnlock === 'triple' ? companionAwakenDuration : unlockDuration)
   }
   render()
   if (!pause && lastExchange) showExchange(before, phase, lastExchange)
@@ -695,17 +737,32 @@ ui.counter.addEventListener('click', async () => {
   const next = spinYachtCounter(ascent.battle)
   const reward = next.lastExchange?.counter
   if (!reward) return
+  const companionJoint = reward.joint && ascent.unlocks.includes('triple')
   ui.help.disabled = true
 
   const animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (next.perk?.kind === 'counter') renderActivePerk(next)
   await roulette.reveal(reward, animate, () => sound.play('roulette-tick'))
   sound.play('roulette-stop')
-  arena.counterStrike(reward.joint, animate)
-  if (animate) await wait(145)
+  if (companionJoint && animate) {
+    ui.companionFlight.style.setProperty('--flight-duration', `${companionFlightDuration}ms`)
+    ui.companionFlight.hidden = false
+    await wait(companionImpactTime)
+  }
+  arena.counterStrike(reward.joint && !companionJoint, animate)
+  if (animate && !companionJoint) await wait(145)
   sound.play('stone-hit')
+  if (companionJoint) {
+    clearExchange()
+    showDamage(ui.enemyDamage, ascent.battle.enemyHp - next.enemyHp, true)
+    hideExchangeAfterDelay()
+  }
   updateEnemyHp(next.enemyHp)
-  await wait(reward.joint ? 1000 : 700)
+  if (companionJoint && animate) {
+    await wait(companionFlightDuration - companionImpactTime)
+    ui.companionFlight.hidden = true
+  }
+  await wait(companionJoint && animate ? 650 : reward.joint ? 1000 : 700)
   arena.finishStrike()
   ascent = { ...ascent, battle: next }
   render()

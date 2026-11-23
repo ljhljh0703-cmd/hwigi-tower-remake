@@ -78,6 +78,13 @@
       <symbol id="icon-sound-off" viewBox="0 0 24 24">
         <path vector-effect="non-scaling-stroke" d="M3 9h4l5-4v14l-5-4H3zm12 0 6 6m0-6-6 6"/>
       </symbol>
+      <symbol id="icon-companion-sleep" viewBox="0 0 24 24">
+        <path vector-effect="non-scaling-stroke" d="M3 9c2.4 3 5.4 4.5 9 4.5S18.6 12 21 9M6.4 12.1 4.7 15m7.3-1.5V17m5.6-4.9 1.7 2.9"/>
+      </symbol>
+      <symbol id="icon-companion-awake" viewBox="0 0 24 24">
+        <path vector-effect="non-scaling-stroke" d="M2 12s4.2-5.5 10-5.5S22 12 22 12s-4.2 5.5-10 5.5S2 12 2 12Z"/>
+        <path d="m12 8.5 2.2 3.5-2.2 3.5L9.8 12Z" fill="currentColor" stroke="none"/>
+      </symbol>
       <symbol id="icon-triple" viewBox="0 0 42 14">
         <g fill="currentColor" stroke="none">
           <rect x="0.5" y="1" width="12" height="12" rx="2"/><rect x="15" y="1" width="12" height="12" rx="2"/><rect x="29.5" y="1" width="12" height="12" rx="2"/>
@@ -104,6 +111,9 @@
         <h1>회귀탑</h1>
         <div class="run-status">
           <span id="active-perk" role="img" hidden></span>
+          <span id="companion-status" role="img" aria-label="동료 주사위" title="동료 주사위" hidden>
+            <svg class="icon" aria-hidden="true"><use href="#icon-companion-awake"/></svg>
+          </span>
           <span id="fight" hidden></span>
           <span id="turn" role="img" hidden></span>
           <button id="sound-toggle" type="button" aria-label="소리" aria-pressed="true" hidden>
@@ -123,6 +133,9 @@
       <div id="battle" hidden>
         <section class="encounter" aria-label="전장">
           <div id="arena" aria-hidden="true"></div>
+          <div id="companion-flight" class="companion-tile" aria-hidden="true" hidden>
+            <svg class="icon"><use href="#icon-companion-awake"/></svg>
+          </div>
           <div class="combatant player">
             <output id="player-damage" class="damage-float" aria-hidden="true" hidden></output>
             <div class="vital">
@@ -156,9 +169,9 @@
           <div class="pool" data-dice-zone="pool">
             <svg class="icon" aria-hidden="true"><use href="#icon-die"/></svg>
             <div id="pool-dice" class="dice-row">
-              <span id="locked-die" class="die unlock-hint" role="img" aria-label="잠긴 네 번째 주사위, 같은 눈 셋">
-                <svg class="icon" aria-hidden="true"><use href="#icon-triple"/></svg>
-                <span class="die-status"><svg class="icon" aria-hidden="true"><use href="#icon-lock"/></svg></span>
+              <span id="locked-die" class="die unlock-hint" role="img" aria-label="잠든 동료 주사위, 같은 눈 셋">
+                <svg class="icon companion-closed" aria-hidden="true"><use href="#icon-companion-sleep"/></svg>
+                <svg class="icon companion-condition" aria-hidden="true"><use href="#icon-triple"/></svg>
               </span>
             </div>
             <button id="assign-pool" type="button" aria-label="선택 배치 빼기" title="선택 배치 빼기">
@@ -215,8 +228,9 @@
         </section>
 
         <section id="new-unlock" class="event-panel" aria-labelledby="unlock-heading" hidden>
-          <h2 id="unlock-heading"><svg class="icon" aria-hidden="true"><use href="#icon-unlock"/></svg>해금</h2>
+          <h2 id="unlock-heading"></h2>
           <div id="unlock-reveal" role="img"></div>
+          <p id="companion-awaken-line" class="companion-line" role="status" hidden></p>
         </section>
 
         <section id="ascent-event" class="event-panel" aria-label="등반 진행" hidden>
@@ -224,6 +238,7 @@
           <p id="result" role="status" hidden></p>
           <p id="owned-unlocks" role="img" hidden></p>
           <p id="final-unlock" role="status" hidden></p>
+          <p id="companion-sleep-line" class="companion-line" role="status" hidden></p>
           <button id="next" class="primary" type="button" hidden>다음 전투 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
           <button id="retry" class="primary" type="button" hidden>다시 <svg class="icon" aria-hidden="true"><use href="#icon-retry"/></svg></button>
         </section>

@@ -10,6 +10,8 @@
   --cut: #2d2c2b;
   --muted: #c2bfba;
   --rust: #98493e;
+  --companion-face: #40536d;
+  --companion-edge: #9db4d2;
   --grain: repeating-linear-gradient(112deg, #fff1 0 1px, transparent 1px 6px, #0001 6px 7px, transparent 7px 13px);
 }
 
@@ -84,6 +86,7 @@ h1, h2, p { margin: 0; }
 #active-perk.perk-ready strong { color: #f2ac98; }
 .perk-preview { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); font-size: inherit; white-space: nowrap; }
 #fight { padding-inline-start: 14px; border-inline-start: 1px solid var(--stone-edge); }
+#companion-status { color: #c1d6f0; }
 #help, #sound-toggle { width: 44px; padding: 0; font-size: 1.1rem; flex: none; }
 
 body:has(#battle-guide[open]) { overflow: hidden; }
@@ -237,6 +240,34 @@ button:disabled {
 
 #arena { position: absolute; inset: 0; overflow: clip; }
 #arena canvas { position: absolute; display: block; image-rendering: pixelated; }
+
+.companion-tile {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 2px solid var(--companion-edge);
+  border-block-end-color: #6685ad;
+  border-radius: 5px;
+  background: var(--companion-face);
+  color: #edf5ff;
+}
+
+#companion-flight {
+  position: absolute;
+  z-index: 2;
+  inline-size: 38px;
+  translate: -50% -50%;
+  pointer-events: none;
+  animation: companion-flight var(--flight-duration) linear both;
+}
+
+@keyframes companion-flight {
+  0% { left: var(--player-x); top: calc(var(--ground) - 46px); rotate: -18deg; }
+  38% { left: calc((var(--player-x) + var(--enemy-x)) / 2); top: calc(var(--ground) - 134px); rotate: 21deg; }
+  70% { left: var(--enemy-x); top: calc(var(--ground) - 52px); rotate: 72deg; }
+  84% { left: var(--enemy-x); top: calc(var(--ground) - 52px); rotate: 72deg; scale: 1.18; opacity: 1; box-shadow: 0 0 17px 4px #9db4d2; }
+  100% { left: var(--enemy-x); top: calc(var(--ground) - 52px); rotate: 72deg; scale: .85; opacity: 0; }
+}
 
 .combatant {
   position: absolute;
@@ -458,8 +489,9 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 
 .die[aria-pressed='true'] { outline: 2px solid #f5f4f2; outline-offset: 1px; background: #aaa7a2; }
 .die.altered-face { border-inline: 2px dashed #696662; }
-#locked-die { display: grid; place-items: center; order: 1; pointer-events: none; }
-#locked-die > .icon { width: 1.85em; }
+#locked-die { display: grid; place-content: center; justify-items: center; gap: 2px; order: 1; pointer-events: none; }
+#locked-die .companion-closed { inline-size: 19px; block-size: 16px; }
+#locked-die .companion-condition { inline-size: 34px; block-size: 12px; }
 .unlock-hint, .unlock-hint:disabled {
   border: 1px dashed var(--stone-edge);
   background: var(--stone-bed);
@@ -496,6 +528,21 @@ meter::-moz-meter-bar { background: #b5b2ad; }
   background: var(--stone-bed);
   color: #f5f4f2;
   font-size: .75rem;
+  pointer-events: none;
+}
+
+.die.companion-die, .dice-drag-preview.companion-die {
+  background: var(--companion-face);
+  border-color: var(--companion-edge);
+  border-block-end-color: #6685ad;
+  color: #edf5ff;
+}
+.die.companion-die[aria-pressed='true'] { background: #526c8e; }
+.companion-mark {
+  position: absolute;
+  inset: 1px auto auto 3px;
+  font-size: .66rem;
+  line-height: 1;
   pointer-events: none;
 }
 .stolen-die {
@@ -668,6 +715,20 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 .die-net span:nth-child(6) { grid-area: south; }
 .unlock-value { display: flex; align-items: center; gap: 4px; font-size: clamp(1.55rem, 5vw, 2.8rem); }
 
+.companion-reveal .companion-tile {
+  inline-size: 96px;
+  font-size: 2.6rem;
+  box-shadow: 0 0 0 6px #9db4d233, 0 0 26px #9db4d288;
+  animation: companion-awaken 520ms ease-out;
+}
+
+@keyframes companion-awaken {
+  from { background: var(--stone-bed); color: var(--muted); box-shadow: none; }
+  44% { box-shadow: 0 0 0 10px #d6e9ff40, 0 0 38px #d6e9ffc0; }
+}
+
+.companion-line { max-inline-size: 28ch; color: var(--muted); }
+
 #event-floor {
   display: flex;
   align-items: center;
@@ -687,11 +748,18 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 #next, #retry { min-block-size: 49px; min-inline-size: 160px; }
 #owned-unlocks, #owned-unlocks span { display: flex; align-items: center; gap: 6px; color: var(--muted); }
 #owned-unlocks { gap: 12px; }
+#owned-unlocks .companion-asleep {
+  justify-content: center;
+  inline-size: 42px;
+  background: var(--stone-bed);
+  border-color: var(--stone-edge);
+}
 #final-unlock { display: inline-flex; align-items: center; gap: 6px; color: #f6c795; }
 
 @media (max-width: 560px) {
   .masthead { min-block-size: 51px; }
   .run-status { gap: 8px; }
+  .run-status:has(#companion-status:not([hidden])) { gap: 5px; }
   #fight { padding-inline-start: 8px; }
   [data-screen='perks'] .masthead { min-block-size: 70px; }
   .event-panel { min-block-size: 360px; }
@@ -727,5 +795,5 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 
 @media (prefers-reduced-motion: reduce) {
   button { transition: none; }
-  .unlock-ready, #unlock-reveal { animation: none; }
+  .unlock-ready, #unlock-reveal, .companion-reveal .companion-tile { animation: none; }
 }

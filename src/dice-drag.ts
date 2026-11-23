@@ -15,7 +15,7 @@ export type DropZone = 'pool' | Slot
 
 interface DiceInput {
   select: () => void
-  lift: () => { indices: number[]; faces: string }
+  lift: () => { indices: number[]; faces: string; companion?: boolean }
   drop: (indices: number[], zone: DropZone) => void
 }
 
@@ -64,6 +64,7 @@ export function bindDiceInput(button: HTMLButtonElement, input: DiceInput) {
       drag.payload = input.lift()
       drag.preview = document.createElement('div')
       drag.preview.className = 'dice-drag-preview'
+      drag.preview.classList.toggle('companion-die', Boolean(drag.payload.companion))
       drag.preview.setAttribute('aria-hidden', 'true')
       drag.preview.textContent = drag.payload.faces
       document.body.append(drag.preview)
