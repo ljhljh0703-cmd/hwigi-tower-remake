@@ -55,7 +55,7 @@ export class BattleAudio {
   private load(track: Track) {
     let pending = this.tracks.get(track)
     if (!pending) {
-      pending = fetch(new URL(`sfx/${track}.wav`, document.baseURI)).then((response) => {
+      pending = fetch(new URL(`sfx/${track}.mp3`, document.baseURI)).then((response) => {
         if (!response.ok) throw new Error(`Audio unavailable: ${track}`)
         return response.arrayBuffer()
       }).then((bytes) => this.context!.decodeAudioData(bytes)).catch((error: unknown) => {

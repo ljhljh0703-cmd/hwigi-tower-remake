@@ -8,11 +8,12 @@ const companion = { x: 23, width: 29, height: 67, fill: '#a9a9a9' }
 // Align the actor feet with the foreground floor row in the 99×176 chamber.
 const chamberFloor = 136
 const spriteScale = 3
-const hero = { name: 'hero', x: 94, footX: 16, footY: 38, poses: ['idle', 'attack', 'guard', 'hit'] }
-const boss = { name: 'boss', footX: 24, footY: 46, poses: ['idle', 'charge', 'attack', 'knockdown'] }
-const golem = { name: 'golem', footX: 16, footY: 38, poses: ['idle', 'charge', 'attack', 'hit'] }
+// The frames are centered on the pose artwork. Each x coordinate marks the planted foot.
+const hero = { name: 'hero', x: 94, footY: 39, poses: { idle: 14, attack: 12, guard: 11, hit: 17 } }
+const boss = { name: 'boss', footY: 47, poses: { idle: 30, charge: 25, attack: 37, knockdown: 36 } }
+const golem = { name: 'golem', footY: 39, poses: { idle: 15, charge: 15, attack: 21, hit: 13 } }
 
-type Sprite = Pick<typeof hero, 'name' | 'footX' | 'footY'>
+type Sprite = { name: string; footY: number; poses: Readonly<Record<string, number>> }
 type PoseFrame = { pose: string; duration: number }
 
 function spriteFor(enemyId: string) {
@@ -122,12 +123,12 @@ export class Arena {
     this.canvas.style.height = `${this.canvas.height / density}px`
     this.context.imageSmoothingEnabled = false
     this.scale = Math.min(width / 240, height / 300)
-    this.floor = Math.round((height / 2 + 85 * this.scale) * density)
+    this.floor = Math.round((height / 2 + 65 * this.scale) * density)
     const unitsPerPixel = 360 / width
     const companionHalfWidth = companion.width * this.scale / 2
-    const playerHalfWidth = hero.footX * this.spritePixels / density
+    const playerLeftReach = Math.max(...Object.values(hero.poses)) * this.spritePixels / density
     this.companionHome = Math.max(companion.x, (12 + companionHalfWidth) * unitsPerPixel)
-    this.playerHome = Math.max(hero.x, this.companionHome + (companionHalfWidth + playerHalfWidth + 8) * unitsPerPixel)
+    this.playerHome = Math.max(hero.x, this.companionHome + (companionHalfWidth + playerLeftReach + 8) * unitsPerPixel)
     this.encounter.style.setProperty('--player-x', `${this.playerHome / 3.6}%`)
     this.positionOverlays()
     this.draw()
@@ -170,13 +171,13 @@ export class Arena {
 
   private drawSprite(sprite: Sprite, pose: string, x: number) {
     const image = this.images.get(`${sprite.name}-${pose}`)
-    const idle = this.images.get(`${sprite.name}-idle`)
-    const ready = image?.naturalWidth ? image : idle
-    if (!ready?.naturalWidth) return false
+    const readyPose = image?.naturalWidth ? pose : 'idle'
+    const readyImage = this.images.get(`${sprite.name}-${readyPose}`)
+    if (!readyImage?.naturalWidth) return false
     const scale = this.spritePixels
-    const left = Math.round(x * this.canvas.width / 360) - sprite.footX * scale
+    const left = Math.round(x * this.canvas.width / 360) - sprite.poses[readyPose] * scale
     const top = this.floor - sprite.footY * scale
-    this.context.drawImage(ready, left, top, ready.naturalWidth * scale, ready.naturalHeight * scale)
+    this.context.drawImage(readyImage, left, top, readyImage.naturalWidth * scale, readyImage.naturalHeight * scale)
     return true
   }
 
@@ -249,9 +250,9 @@ export class Arena {
     }
     this.battle = battle
     this.load('chamber')
-    for (const pose of hero.poses) this.load(`hero-${pose}`)
+    for (const pose of Object.keys(hero.poses)) this.load(`hero-${pose}`)
     const sprite = spriteFor(enemyId)
-    if (sprite) for (const pose of sprite.poses) this.load(`${sprite.name}-${pose}`)
+    if (sprite) for (const pose of Object.keys(sprite.poses)) this.load(`${sprite.name}-${pose}`)
     this.draw()
   }
 }

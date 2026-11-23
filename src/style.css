@@ -251,7 +251,7 @@ button:disabled {
 
 #intent {
   position: absolute;
-  inset: auto auto calc(100% - var(--enemy-head, 25%) + 14px) 50%;
+  inset: auto auto min(calc(100% - var(--enemy-head, 25%) + clamp(34px, 5vw, 48px)), calc(100% - 112px)) 50%;
   translate: -50% 0;
   width: max-content;
   z-index: 2;
@@ -330,10 +330,10 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 .damage-float {
   position: absolute;
   z-index: 1;
-  inset-block-start: var(--enemy-head, 25%);
+  inset-block-start: calc(var(--enemy-head, 25%) - 8px);
   inset-inline-start: 50%;
   padding: 2px 8px;
-  transform: translate(-50%, -25%);
+  transform: translate(-50%, -100%);
   border: 1px solid var(--stone-edge);
   background: var(--stone-bed);
   font-size: clamp(1.35rem, 4vw, 2.15rem);
@@ -341,7 +341,7 @@ meter::-moz-meter-bar { background: #b5b2ad; }
   line-height: 1;
 }
 
-.player .damage-float { inset-block-start: var(--player-head, 38%); }
+.player .damage-float { inset-block-start: calc(var(--player-head, 38%) - 8px); }
 
 .awakening {
   position: absolute;
