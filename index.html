@@ -81,6 +81,9 @@
       <symbol id="icon-companion-sleep" viewBox="0 0 24 24">
         <path vector-effect="non-scaling-stroke" d="M3 9c2.4 3 5.4 4.5 9 4.5S18.6 12 21 9M6.4 12.1 4.7 15m7.3-1.5V17m5.6-4.9 1.7 2.9"/>
       </symbol>
+      <symbol id="icon-lobby" viewBox="0 0 24 24">
+        <path vector-effect="non-scaling-stroke" d="M4 21V5l8-3 8 3v16M2 21h20M9 21v-6a3 3 0 0 1 6 0v6"/>
+      </symbol>
       <symbol id="icon-companion-awake" viewBox="0 0 24 24">
         <path vector-effect="non-scaling-stroke" d="M2 12s4.2-5.5 10-5.5S22 12 22 12s-4.2 5.5-10 5.5S2 12 2 12Z"/>
         <path d="m12 8.5 2.2 3.5-2.2 3.5L9.8 12Z" fill="currentColor" stroke="none"/>
@@ -106,9 +109,29 @@
         </g>
       </symbol>
     </svg>
-    <main data-screen="perks">
-      <header class="masthead">
-        <h1>회귀탑</h1>
+    <main data-screen="lobby">
+      <section id="lobby" aria-labelledby="lobby-title">
+        <div class="lobby-scene">
+          <h1 id="lobby-title">회귀탑</h1>
+          <img class="lobby-hero" src="/art/hero-idle.png" alt="" width="32" height="40">
+        </div>
+        <div class="lobby-actions">
+          <button id="continue-ascent" class="primary lobby-start" type="button" hidden>이어 하기 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
+          <button id="new-ascent" class="lobby-start" type="button">새로 하기 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
+          <div class="lobby-utilities">
+            <button id="lobby-guide" type="button" aria-haspopup="dialog" aria-controls="battle-guide"><svg class="icon" aria-hidden="true"><use href="#icon-help"/></svg>아이콘 사전</button>
+            <button id="lobby-sound" type="button" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#icon-sound-on"/></svg><span>소리 끄기</span></button>
+          </div>
+        </div>
+      </section>
+
+      <header id="masthead" class="masthead" hidden>
+        <div class="header-nav">
+          <button id="return-lobby" type="button" aria-label="로비로 돌아가기" title="로비로 돌아가기" aria-haspopup="dialog">
+            <svg class="icon" aria-hidden="true"><use href="#icon-lobby"/></svg>
+          </button>
+          <p class="masthead-title">회귀탑</p>
+        </div>
         <div class="run-status">
           <span id="active-perk" role="img" hidden></span>
           <span id="companion-status" role="img" aria-label="동료 주사위" title="동료 주사위" hidden>
@@ -125,7 +148,7 @@
         </div>
       </header>
 
-      <section id="perks" aria-labelledby="perks-heading">
+      <section id="perks" aria-labelledby="perks-heading" hidden>
         <h2 id="perks-heading">시작 특전</h2>
         <div id="perk-choices"></div>
       </section>
@@ -244,6 +267,16 @@
         </section>
       </div>
     </main>
+    <dialog id="lobby-confirm" aria-labelledby="lobby-confirm-title" aria-describedby="lobby-confirm-text">
+      <form method="dialog">
+        <h2 id="lobby-confirm-title"></h2>
+        <p id="lobby-confirm-text"></p>
+        <div class="confirm-actions">
+          <button type="submit" value="cancel" autofocus>취소</button>
+          <button id="lobby-confirm-action" class="primary" type="submit" value="confirm"></button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="battle-guide" aria-labelledby="guide-heading">
       <header class="guide-header">
         <h2 id="guide-heading">아이콘 사전</h2>

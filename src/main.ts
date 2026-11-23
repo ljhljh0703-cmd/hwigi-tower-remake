@@ -1,5 +1,6 @@
-import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
+import { ascentFinished, beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
+import { ASCENT_SAVE_KEY, loadAscentSave, writeAscentSave } from './ascent-save.ts'
 import { Arena } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
 import { BATTLE_GUIDE } from './battle-guide.ts'
@@ -26,6 +27,17 @@ function element<T extends HTMLElement>(id: string): T {
 
 const ui = {
   main: document.querySelector('main')!,
+  lobby: element('lobby'),
+  masthead: element('masthead'),
+  continueAscent: element<HTMLButtonElement>('continue-ascent'),
+  newAscent: element<HTMLButtonElement>('new-ascent'),
+  returnLobby: element<HTMLButtonElement>('return-lobby'),
+  lobbyGuide: element<HTMLButtonElement>('lobby-guide'),
+  lobbySound: element<HTMLButtonElement>('lobby-sound'),
+  confirm: element<HTMLDialogElement>('lobby-confirm'),
+  confirmTitle: element('lobby-confirm-title'),
+  confirmText: element('lobby-confirm-text'),
+  confirmAction: element<HTMLButtonElement>('lobby-confirm-action'),
   perks: element('perks'),
   perkChoices: element('perk-choices'),
   battle: element('battle'),
@@ -166,15 +178,19 @@ ui.guideEntries.innerHTML = BATTLE_GUIDE.map(({ title, entries }) => `
   </section>
 `).join('')
 
-ui.help.addEventListener('click', () => {
-  if (ui.help.disabled || ui.guide.open) return
-  ui.guide.showModal()
-  ui.guideEntries.scrollTop = 0
-})
+let guideTrigger: HTMLButtonElement | undefined
+for (const button of [ui.help, ui.lobbyGuide]) {
+  button.addEventListener('click', () => {
+    if (button.disabled || ui.guide.open) return
+    guideTrigger = button
+    ui.guide.showModal()
+    ui.guideEntries.scrollTop = 0
+  })
+}
 ui.guide.addEventListener('click', (event) => {
   if (event.target === ui.guide) ui.guide.close()
 })
-ui.guide.addEventListener('close', () => ui.help.focus())
+ui.guide.addEventListener('close', () => guideTrigger?.focus())
 
 const enemyBadges: Record<string, { icon: string; label: string }> = {
   thorns: { icon: 'thorns', label: '가시' },
@@ -192,11 +208,37 @@ const selected = new Set<number>()
 const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
 const sound = new BattleAudio()
 
-ui.soundToggle.addEventListener('click', (event) => {
+function toggleSound(event: MouseEvent) {
   if (!event.isTrusted) return
   sound.toggle()
-  ui.soundToggle.setAttribute('aria-pressed', String(sound.isEnabled))
-  ui.soundToggle.querySelector('use')!.setAttribute('href', sound.isEnabled ? '#icon-sound-on' : '#icon-sound-off')
+  for (const button of [ui.soundToggle, ui.lobbySound]) {
+    button.setAttribute('aria-pressed', String(sound.isEnabled))
+    button.querySelector('use')!.setAttribute('href', sound.isEnabled ? '#icon-sound-on' : '#icon-sound-off')
+  }
+  ui.lobbySound.querySelector('span')!.textContent = sound.isEnabled ? '소리 끄기' : '소리 켜기'
+}
+
+ui.soundToggle.addEventListener('click', toggleSound)
+ui.lobbySound.addEventListener('click', toggleSound)
+
+function saveCurrent(checkpoint = ascent) {
+  if (checkpoint) writeAscentSave({ ascent: checkpoint, selected: [...selected] })
+}
+
+let onConfirm: (() => void) | undefined
+function confirmLobbyAction(title: string, description: string, label: string, action: () => void) {
+  ui.confirmTitle.textContent = title
+  ui.confirmText.textContent = description
+  ui.confirmAction.textContent = label
+  ui.confirm.returnValue = ''
+  onConfirm = action
+  ui.confirm.showModal()
+}
+
+ui.confirm.addEventListener('close', () => {
+  const action = onConfirm
+  onConfirm = undefined
+  if (ui.confirm.returnValue === 'confirm') action?.()
 })
 
 const arena = new Arena(element('arena'), ui.encounter)
@@ -210,6 +252,7 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
     select: () => {
       if (ui.guide.open) return
       if (!selected.delete(index)) selected.add(index)
+      saveCurrent()
       render()
     },
     lift: () => {
@@ -511,13 +554,17 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   const { battle, fight, enemy, maxHp, unlocks, newUnlock } = ascent
   const { phase, turn, playerHp, enemyHp } = battle
   const between = phase === 'won' && fight < FIGHT_COUNT
-  const finished = phase === 'lost' || (phase === 'won' && !between)
+  const finished = ascentFinished(ascent)
   const atEvent = presentation === 'normal' && (between || finished)
   const atUnlock = presentation === 'unlock' && newUnlock !== null
   const inCombat = !atEvent && !atUnlock
   const showActions = presentation === 'normal' && inCombat
   const companionAwake = unlocks.includes('triple')
   ui.main.dataset.screen = atEvent ? 'event' : atUnlock ? 'unlock' : 'battle'
+  ui.lobby.hidden = true
+  ui.masthead.hidden = false
+  ui.returnLobby.disabled = presentation !== 'normal'
+  ui.returnLobby.setAttribute('aria-haspopup', 'dialog')
   ui.perks.hidden = true
   ui.battle.hidden = false
   ui.encounter.hidden = !inCombat
@@ -598,11 +645,36 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   arena.refresh(battle, enemy.id)
 }
 
-function showPerks(focus: boolean) {
+function refreshLobbyActions() {
+  const hasSave = loadAscentSave() !== null
+  ui.continueAscent.hidden = !hasSave
+  ui.newAscent.classList.toggle('primary', !hasSave)
+}
+
+function showLobby(focus = false) {
+  ascent = null
+  selected.clear()
+  window.clearTimeout(exchangeTimer)
+  clearExchange()
+  roulette.setVisible(null)
+  ui.main.dataset.screen = 'lobby'
+  ui.lobby.hidden = false
+  ui.masthead.hidden = true
+  ui.perks.hidden = true
+  ui.battle.hidden = true
+  refreshLobbyActions()
+  if (focus) (ui.continueAscent.hidden ? ui.newAscent : ui.continueAscent).focus()
+}
+
+function showPerks() {
   ascent = null
   selected.clear()
   roulette.setVisible(null)
   ui.main.dataset.screen = 'perks'
+  ui.lobby.hidden = true
+  ui.masthead.hidden = false
+  ui.returnLobby.disabled = false
+  ui.returnLobby.removeAttribute('aria-haspopup')
   ui.battle.hidden = true
   ui.activePerk.hidden = true
   ui.companionStatus.hidden = true
@@ -616,6 +688,7 @@ function showPerks(focus: boolean) {
   const begin = (event: MouseEvent, perk: keyof typeof START_PERKS, parity?: Parity) => {
     if (event.isTrusted) sound.activate()
     ascent = beginAscent(seed, perk, parity)
+    saveCurrent()
     render()
     sound.play('dice-roll')
     focusPhase()
@@ -648,7 +721,7 @@ function showPerks(focus: boolean) {
     return button
   })
   ui.perkChoices.replaceChildren(...buttons)
-  if (focus) buttons[0].focus()
+  buttons[0].focus()
 }
 
 function perkButton(symbol: string, name: string, value: string, detail: string, description: string) {
@@ -678,6 +751,7 @@ function place(indices: readonly number[], zone: DropZone) {
   if (indices.some((index) => battle.slots[index] !== before.slots[index])) sound.play('dice-place')
   ascent = { ...ascent, battle }
   selected.clear()
+  saveCurrent()
   render()
   const unassigned = battle.slots.indexOf(null)
   if (unassigned < 0) ui.resolve.focus()
@@ -687,7 +761,7 @@ function place(indices: readonly number[], zone: DropZone) {
 function focusPhase() {
   if (!ascent) return
   if (ascent.battle.phase === 'counter') ui.counter.focus()
-  else if (ascent.battle.phase === 'assign') diceButtons[0].focus()
+  else if (ascent.battle.phase === 'assign') diceButtons[selected.values().next().value ?? 0].focus()
   else if (!ui.next.hidden) ui.next.focus()
   else ui.retry.focus()
 }
@@ -700,6 +774,7 @@ function useReroll(extra: boolean) {
   const rerolled = rerollSelectedDice(ascent.battle, selected, extra)
   if (!rerolled) return
   ascent = { ...ascent, battle: rerolled.battle }
+  saveCurrent()
   render()
   sound.play('dice-roll')
   diceButtons[rerolled.focusIndex].focus()
@@ -714,6 +789,7 @@ ui.resolve.addEventListener('click', async () => {
   if (next === ascent) return
   ascent = next
   selected.clear()
+  saveCurrent()
   const { phase, lastExchange } = next.battle
   const pause = next.newUnlock || phase === 'won' || phase === 'lost'
   if (pause) {
@@ -737,8 +813,11 @@ ui.counter.addEventListener('click', async () => {
   const next = spinYachtCounter(ascent.battle)
   const reward = next.lastExchange?.counter
   if (!reward) return
+  const checkpoint = { ...ascent, battle: next }
+  saveCurrent(checkpoint)
   const companionJoint = reward.joint && ascent.unlocks.includes('triple')
   ui.help.disabled = true
+  ui.returnLobby.disabled = true
 
   const animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (next.perk?.kind === 'counter') renderActivePerk(next)
@@ -764,7 +843,7 @@ ui.counter.addEventListener('click', async () => {
   }
   await wait(companionJoint && animate ? 650 : reward.joint ? 1000 : 700)
   arena.finishStrike()
-  ascent = { ...ascent, battle: next }
+  ascent = checkpoint
   render()
   if (next.phase === 'won') sound.play('victory')
   focusPhase()
@@ -773,9 +852,38 @@ ui.next.addEventListener('click', () => {
   if (!ascent) return
   clearExchange()
   ascent = nextAscentFight(ascent)
+  saveCurrent()
   render()
   sound.play('dice-roll')
   focusPhase()
 })
-ui.retry.addEventListener('click', () => showPerks(true))
-showPerks(false)
+ui.retry.addEventListener('click', showPerks)
+ui.continueAscent.addEventListener('click', (event) => {
+  const checkpoint = loadAscentSave()
+  if (!checkpoint) {
+    showLobby(true)
+    return
+  }
+  ascent = checkpoint.ascent
+  selected.clear()
+  for (const index of checkpoint.selected) selected.add(index)
+  if (event.isTrusted) sound.activate()
+  render()
+  focusPhase()
+})
+ui.newAscent.addEventListener('click', () => {
+  if (loadAscentSave()) {
+    confirmLobbyAction('새로 하기', '새 등반을 시작하면 저장된 등반을 덮어씁니다.', '새로 하기', showPerks)
+  } else showPerks()
+})
+ui.returnLobby.addEventListener('click', () => {
+  if (!ascent) showLobby(true)
+  else {
+    const description = ascentFinished(ascent) ? '이 등반의 결과 화면을 닫습니다.' : '저장된 턴은 로비에서 이어 할 수 있습니다.'
+    confirmLobbyAction('로비로 돌아가기', description, '로비로 가기', () => showLobby(true))
+  }
+})
+window.addEventListener('storage', (event) => {
+  if ((event.key === ASCENT_SAVE_KEY || event.key === null) && !ui.lobby.hidden) refreshLobbyActions()
+})
+showLobby()

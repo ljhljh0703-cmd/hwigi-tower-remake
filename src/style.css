@@ -71,7 +71,8 @@ h1, h2, p { margin: 0; }
   border-block-end: 1px solid var(--stone-edge);
 }
 
-.masthead h1 { color: var(--muted); font-size: .875rem; font-weight: 650; }
+.masthead-title { color: var(--muted); font-size: .875rem; font-weight: 650; }
+.header-nav { display: flex; align-items: center; gap: 10px; }
 
 .run-status {
   display: flex;
@@ -87,9 +88,70 @@ h1, h2, p { margin: 0; }
 .perk-preview { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); font-size: inherit; white-space: nowrap; }
 #fight { padding-inline-start: 14px; border-inline-start: 1px solid var(--stone-edge); }
 #companion-status { color: #c1d6f0; }
-#help, #sound-toggle { width: 44px; padding: 0; font-size: 1.1rem; flex: none; }
+#help, #sound-toggle, #return-lobby { width: 44px; padding: 0; font-size: 1.1rem; flex: none; }
 
-body:has(#battle-guide[open]) { overflow: hidden; }
+#lobby {
+  display: grid;
+  grid-template-columns: minmax(0, 540px);
+  justify-content: center;
+  align-content: center;
+  flex: 1;
+  gap: 14px;
+  padding-block: clamp(14px, 4vh, 36px);
+}
+
+.lobby-scene {
+  --chamber-scale: 6;
+  --floor-gap: 55px;
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-items: start;
+  min-block-size: clamp(300px, 58dvh, 510px);
+  overflow: clip;
+  border: 1px solid var(--stone-edge);
+  border-block-start-color: #b3aaa0;
+  background-color: #343430;
+  background-image: url('/art/chamber.png');
+  background-size: calc(99px * var(--chamber-scale)) calc(176px * var(--chamber-scale));
+  background-position: center bottom calc(var(--floor-gap) - 40px * var(--chamber-scale));
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+.lobby-scene::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #201e1bcd, transparent 56%);
+}
+
+#lobby-title {
+  position: relative;
+  margin-block-start: clamp(38px, 9dvh, 84px);
+  color: #f2e7d5;
+  font-size: clamp(3.25rem, 11vw, 5.5rem);
+  font-weight: 800;
+  letter-spacing: .025em;
+  line-height: 1;
+  text-shadow: 0 4px #201e1b;
+}
+
+.lobby-hero {
+  position: absolute;
+  inset-block-end: calc(var(--floor-gap) - 4px);
+  inline-size: 128px;
+  block-size: 160px;
+  image-rendering: pixelated;
+}
+
+.lobby-actions { display: grid; gap: 8px; }
+.lobby-start { min-block-size: 46px; }
+.lobby-start.primary { min-block-size: 62px; font-size: 1.15rem; }
+.lobby-utilities { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lobby-utilities button { font-size: .85rem; }
+
+body:has(#battle-guide[open], #lobby-confirm[open]) { overflow: hidden; }
 
 #battle-guide {
   position: fixed;
@@ -103,7 +165,21 @@ body:has(#battle-guide[open]) { overflow: hidden; }
 }
 
 #battle-guide[open] { display: flex; flex-direction: column; }
-#battle-guide::backdrop { background: #1d1b19ba; }
+#battle-guide::backdrop, #lobby-confirm::backdrop { background: #1d1b19ba; }
+
+#lobby-confirm {
+  width: min(100% - 32px, 420px);
+  border: 1px solid var(--stone-edge);
+  border-block-start: 2px solid #99968f;
+  padding: 22px;
+  background: var(--stone-bed);
+  color: inherit;
+}
+
+#lobby-confirm form { display: grid; gap: 12px; }
+#lobby-confirm h2 { font-size: 1.2rem; }
+#lobby-confirm-text { color: var(--muted); line-height: 1.55; word-break: keep-all; }
+.confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-block-start: 8px; }
 
 .guide-header {
   display: flex;
@@ -167,7 +243,7 @@ button:disabled {
 }
 
 [data-screen='perks'] .masthead { min-block-size: 82px; }
-[data-screen='perks'] .masthead h1 { color: inherit; font-size: 1.75rem; }
+[data-screen='perks'] .masthead-title { color: inherit; font-size: 1.75rem; }
 [data-screen='perks'] { gap: 16px; }
 
 #perks, .event-panel {
@@ -758,6 +834,7 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 
 @media (max-width: 560px) {
   .masthead { min-block-size: 51px; }
+  :not([data-screen='perks']) > .masthead .masthead-title { display: none; }
   .run-status { gap: 8px; }
   .run-status:has(#companion-status:not([hidden])) { gap: 5px; }
   #fight { padding-inline-start: 8px; }
@@ -791,6 +868,12 @@ meter::-moz-meter-bar { background: #b5b2ad; }
   #escort-slot { grid-column: 1 / -1; }
   .slot { padding-inline: 6px; }
   #counter-panel { min-block-size: 238px; }
+}
+
+@media (max-width: 420px) {
+  .lobby-scene { --chamber-scale: 4; }
+  .masthead { gap: 5px; }
+  .run-status { gap: 5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

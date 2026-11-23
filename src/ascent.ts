@@ -17,6 +17,14 @@ export interface Ascent {
   readonly battle: YachtBattle
 }
 
+export function ascentFinished({ battle, fight }: Ascent) {
+  return battle.phase === 'lost' || (battle.phase === 'won' && fight === FIGHT_COUNT)
+}
+
+export function ascentBattleSeed(seed: number, fight: number) {
+  return (seed ^ Math.imul(fight - 1, 0x9e3779b9)) >>> 0
+}
+
 export function beginAscent(seed: number, perk?: StartPerk, parity: Parity = 'odd'): Ascent {
   const enemy = enemyForFight(seed, 1)
   return {
@@ -43,7 +51,7 @@ export function nextAscentFight(ascent: Ascent): Ascent {
   if (ascent.battle.phase !== 'won' || ascent.fight === FIGHT_COUNT) return ascent
   const { seed, unlocks } = ascent
   const fight = ascent.fight + 1
-  const fightSeed = (seed ^ Math.imul(fight - 1, 0x9e3779b9)) >>> 0
+  const fightSeed = ascentBattleSeed(seed, fight)
   const enemy = enemyForFight(seed, fight)
   const perk = ascent.battle.perk?.kind === 'blade' ? startPerk('blade') : ascent.battle.perk
   const battle = startYachtBattle(
