@@ -420,7 +420,7 @@ function clearExchange() {
 function showExchange(before: YachtBattle, phase: YachtBattle['phase'], exchange: Exchange) {
   const { dealt, hitsTaken, awakenedDice, escortDealt } = exchange
   const taken = hitsTaken.reduce((sum, value) => sum + value, 0)
-  arena.playExchange(before, exchange)
+  const poseDuration = arena.playExchange(before, exchange)
   if (dealt || taken || escortDealt) sound.play('stone-hit')
   if (phase === 'counter') sound.play('perfect-block')
   ui.feedback.textContent = `적 피해 ${dealt}, 내 피해 ${taken}${escortDealt ? `, 호위 피해 ${escortDealt}` : ''}${awakenedDice ? `, 각성 ${awakenedDice.join(', ')}` : ''}`
@@ -440,6 +440,7 @@ function showExchange(before: YachtBattle, phase: YachtBattle['phase'], exchange
   ui.awakening.setAttribute('aria-label', awakenedDice ? `각성 ${awakenedDice.join(', ')}` : '')
   window.clearTimeout(exchangeTimer)
   exchangeTimer = window.setTimeout(clearExchange, exchangeDuration)
+  return poseDuration
 }
 
 function updateEnemyHp(enemyHp: number) {
@@ -667,8 +668,8 @@ ui.resolve.addEventListener('click', async () => {
   const pause = next.newUnlock || phase === 'won' || phase === 'lost'
   if (pause) {
     render('exchange')
-    if (lastExchange) showExchange(before, phase, lastExchange)
-    await wait(next.newUnlock ? 180 : exchangeDuration)
+    const poseDuration = lastExchange ? showExchange(before, phase, lastExchange) : 0
+    await wait(next.newUnlock ? Math.max(180, poseDuration) : exchangeDuration)
   }
   if (next.newUnlock) {
     render('unlock')
