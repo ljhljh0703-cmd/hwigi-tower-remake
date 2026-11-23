@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- 회귀자는 탑을 오른다 게임 기획서 공개판. 볼트 wiki/projects/hwigi-remake/GDD.md 와 같은 내용 -->
+<title>회귀자는 탑을 오른다 게임 기획서 | 이주형</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/wanted-sans@1.0.3/fonts/webfonts/variable/split/WantedSansVariable.css">
+<link rel="stylesheet" href="../case/case-paper.css">
+<style>
+.gdd{max-width:860px;margin:0 auto;padding:40px 20px 80px}
+.gdd h1{font-size:clamp(30px,5vw,44px);line-height:1.15;margin:8px 0 18px}
+.gdd h3{font-size:17px;margin:24px 0 8px}
+.gdd h2{font-size:22px;margin:44px 0 12px;padding-top:14px;border-top:2px solid var(--ink)}
+.gdd p,.gdd li{font-size:15.5px;line-height:1.65}
+.gdd ul{padding-left:1.2em}
+.scroll{overflow-x:auto;margin:12px 0}
+.gdd .cp-table{font-size:14px;min-width:520px}
+.gdd .cp-table td,.gdd .cp-table th{vertical-align:top}
+.toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px;padding:0;list-style:none}
+.toc a{display:block;padding:4px 9px;border:1.5px solid var(--ink);background:var(--slip);font-size:13px;color:var(--ink);text-decoration:none}
+</style>
+</head>
+<body class="cp" data-ink="blue">
+<nav class="cp-nav" aria-label="탐색"><div class="cp-shell"><a class="cp-back" href="../">작품 페이지로</a><div class="cp-links"><a href="../../">바로 해 보기</a></div></div></nav>
+<main class="gdd">
+<p class="cp-kicker"><b>회귀자는 탑을 오른다</b> 게임 기획서</p>
+<h1>회귀자는 탑을 오른다 게임 기획서</h1>
+<ul class="toc" id="toc"></ul>
+
+<h2>1. 개요</h2>
+<div class="scroll"><table class="cp-table">
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>장르</td>
+<td>주사위 턴제 로그라이크</td>
+</tr>
+<tr>
+<td>플랫폼</td>
+<td>웹(휴대폰 세로 화면 우선, PC 브라우저), 설치와 로그인 없이 링크로 실행</td>
+</tr>
+<tr>
+<td>한 줄 소개</td>
+<td>적이 다음에 칠 공격을 보고, 주사위 세 개를 공격과 방어에 나눠 싸운다</td>
+</tr>
+<tr>
+<td>타깃</td>
+<td>가볍게 한 판 즐길 로그라이크를 찾는 사람</td>
+</tr>
+<tr>
+<td>한 판 길이</td>
+<td>휴대폰으로 10분 안에 몰입해서 끝내는 한 런</td>
+</tr>
+<tr>
+<td>레퍼런스</td>
+<td>슬레이 더 스파이어, 다이시 던전</td>
+</tr>
+<tr>
+<td>아트</td>
+<td>픽셀 아트 캐릭터, 돌로 된 탑 내부</td>
+</tr>
+</tbody>
+</table></div>
+<h3>레퍼런스와 차별점</h3>
+<div class="scroll"><table class="cp-table">
+<thead>
+<tr>
+<th>게임</th>
+<th>가져온 것</th>
+<th>이 게임에서 다른 점</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>슬레이 더 스파이어</td>
+<td>적의 다음 행동을 미리 보여 주는 의도 표시, 층을 오르는 런 구조</td>
+<td>카드 덱을 쌓는 대신 매 턴 주사위 세 개를 굴려 운과 판단이 섞임</td>
+</tr>
+<tr>
+<td>다이시 던전</td>
+<td>주사위 눈을 칸에 넣어 행동을 정하는 방식</td>
+<td>칸이 공격과 방어 두 개뿐이라 규칙이 짧고, 방어 합을 적 공격과 딱 맞추는 정확 방어가 핵심 재미</td>
+</tr>
+</tbody>
+</table></div>
+<h2>2. 코어 루프</h2>
+<div class="scroll"><table class="cp-table">
+<thead>
+<tr>
+<th>단계</th>
+<th>플레이어가 하는 일</th>
+<th>길이</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>턴</td>
+<td>적의 다음 공격 확인 → 주사위 굴려 공격과 방어에 배치 → 한 번 다시 굴리기 → 턴 종료</td>
+<td>한 번의 판단</td>
+</tr>
+<tr>
+<td>전투</td>
+<td>턴을 반복해 적 처치. 정확 방어로 반격 룰렛, 족보로 해금</td>
+<td>4~6턴</td>
+</tr>
+<tr>
+<td>런</td>
+<td>시작 특전 선택 → 일반 몹, 엘리트, 보스 3층 → 층 사이 보상</td>
+<td>10분 목표</td>
+</tr>
+<tr>
+<td>메타</td>
+<td>런이 끝나면 새 특전과 아이템이 해금되어 다음 런의 선택지가 넓어짐</td>
+<td>런 반복</td>
+</tr>
+</tbody>
+</table></div>
+<h2>3. 시스템</h2>
+<h3>3-1. 주사위와 배치</h3>
+<ul>
+<li>6면 주사위 3개로 시작. 에고 주사위를 해금하면 4개.</li>
+<li>굴린 주사위를 공격 칸과 방어 칸에 끌어다 놓는다. 칸마다 눈 합이 공격력과 방어력.</li>
+<li>주사위를 모두 놓아야 턴을 끝낼 수 있다.</li>
+<li>공격 합이 적의 남은 체력 이상이면 적은 공격하지 못하고 쓰러진다.</li>
+</ul>
+<h3>3-2. 다시 굴리기</h3>
+<ul>
+<li>턴마다 한 번, 고른 주사위를 함께 다시 굴린다. 새 눈이 더 낮아도 그대로 쓴다.</li>
+<li>밸런스 시뮬레이션에서 다시 굴리기가 사실상 필수 행동으로 나와, 제한하지 않고 기본 조작으로 둔다.</li>
+</ul>
+<h3>3-3. 방어와 정확 방어</h3>
+<ul>
+<li>방어 합만큼 적 공격 피해를 막는다. 연타는 방어 합 하나로 전체 타격을 깎는다.</li>
+<li>방어 합이 적의 이번 턴 총 피해와 똑같으면 정확 방어. 반격 룰렛을 한 번 돌린다.</li>
+<li>반격 룰렛 6칸: 반격 피해 1, 2, 3, 4와 합공 피해 6, 8.</li>
+<li>적 한 턴 피해는 21까지. 시작 체력 22에서 한 턴에 바로 쓰러지는 일을 막는다.</li>
+</ul>
+<h3>3-4. 해금</h3>
+<div class="scroll"><table class="cp-table">
+<thead>
+<tr>
+<th>해금</th>
+<th>조건</th>
+<th>효과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>에고 주사위</td>
+<td>같은 주사위 눈 셋</td>
+<td>그 런 동안 주사위 4개</td>
+</tr>
+<tr>
+<td>재굴림 주사위</td>
+<td>이어지는 눈 셋(예: 1, 2, 3)</td>
+<td>다시 굴리기 뒤 주사위 하나를 한 번 더 굴림. 전투마다 한 번</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>셋을 공격 칸에 쓰거나, 그 셋으로 정확 방어하면 해금된다. 한 칸 안에 셋이 들어 있으면 인정하고, 보상으로 바꾼 눈도 인정한다.</li>
+<li>해금은 바로 다음 배치부터 적용된다.</li>
+<li>해금할수록 다음 층 적도 강해진다. 엘리트는 해금 하나당 타격마다 +2, 보스는 +1.</li>
+<li>칸에 조건 눈이 둘 들어가면 잠긴 자리가 약하게, 셋이면 밝게 빛나 해금이 가까운 것을 보여 준다.</li>
+</ul>
+<h3>3-5. 시작 특전</h3>
+<p>런 시작에 6개 중 3개를 보여 주고 하나를 고른다. 효과는 런 내내 유지된다.</p>
+<div class="scroll"><table class="cp-table">
+<thead>
+<tr>
+<th>특전</th>
+<th>효과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>방패 저금</td>
+<td>정확 방어할 때마다 공격 보너스 +8. 공격받는 턴에 정확 방어를 놓치면 0</td>
+</tr>
+<tr>
+<td>큰 칼</td>
+<td>공격에 쓴 눈이 12 모이면 다음 공격 2배</td>
+</tr>
+<tr>
+<td>족보 수집가</td>
+<td>같은 눈이 둘 이상 든 칸에 보너스. 새 족보를 처음 쓸 때마다 +1, 최대 +2</td>
+</tr>
+<tr>
+<td>악마의 재굴림</td>
+<td>다시 굴리기 뒤 체력 1을 내고 한 번 더 굴림. 턴당 한 번</td>
+</tr>
+<tr>
+<td>홀짝 서약</td>
+<td>고른 홀수나 짝수 눈을 공격에 쓸 때마다 피해 +1</td>
+</tr>
+<tr>
+<td>역습 표식</td>
+<td>룰렛을 돌릴 때마다 가장 낮은 반격 칸 하나가 +7</td>
+</tr>
+</tbody>
+</table></div>
+<h3>3-6. 층 사이 보상</h3>
+<ul>
+<li>일반 몹과 엘리트를 이기면 카드 3장 중 1장을 고른다. 런마다 최대 2번.</li>
+<li>카드 종류: 유물 9종(전투마다 한 번 발동하는 보조 효과), 회복 3종, 주사위 강화 5종.</li>
+<li>시뮬레이션 결과, 체력 14 이하일 때 2 회복하는 카드를 넣으면 클리어율이 34.6%에서 42.5%로 오르고 보스전 평균 턴이 5.8턴에서 6.6턴으로 목표 안에 들어온다.</li>
+</ul>
+<h3>3-7. 메타 진행</h3>
+<ul>
+<li>런이 끝나면 새 특전과 아이템이 해금된다. 다음 런의 시작 특전 후보와 보상 카드 풀에 추가되어 매 런 다른 조합이 나온다.</li>
+<li>해금 조건과 해금 목록은 설계 중.</li>
+</ul>
+<h2>4. 콘텐츠</h2>
+<h3>4-1. 층 구성</h3>
+<div class="scroll"><table class="cp-table">
+<thead>
+<tr>
+<th>층</th>
+<th>적</th>
+<th>성격</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1층</td>
+<td>일반 몹 4종 중 하나</td>
+<td>짧은 전투. 첫 턴 강한 한 방 뒤 약한 공격과 기믹</td>
+</tr>
+<tr>
+<td>2층</td>
+<td>엘리트 3종 중 하나</td>
+<td>기믹이 강하고, 치명 일격을 씀</td>
+</tr>
+<tr>
+<td>3층</td>
+<td>보스</td>
+<td>연타, 힘 모으기, 치명 일격, 넉다운, 봉인을 도는 패턴</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>남은 체력은 다음 층으로 이어진다. 층 사이 자동 회복은 없다.</li>
+<li>일반 몹은 턴이 지날수록 타격이 세진다.</li>
+</ul>
+<h3>4-2. 적 기믹</h3>
+<div class="scroll"><table class="cp-table">
+<thead>
+<tr>
+<th>기믹</th>
+<th>효과</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>가시</td>
+<td>공격 칸에 놓은 주사위마다 피해를 받음</td>
+</tr>
+<tr>
+<td>자물쇠</td>
+<td>다음 턴 가장 낮은 주사위를 잠가 다시 굴릴 수 없음</td>
+</tr>
+<tr>
+<td>얼림</td>
+<td>다음 턴 두 번째 주사위를 1로 얼림</td>
+</tr>
+<tr>
+<td>격분</td>
+<td>이 턴에 다시 굴리면 적 공격이 세짐</td>
+</tr>
+<tr>
+<td>반응</td>
+<td>공격 합이 8 이상이면 적이 연타로 바꿈</td>
+</tr>
+<tr>
+<td>체력 비례</td>
+<td>내 현재 체력의 절반만큼 공격</td>
+</tr>
+<tr>
+<td>봉인</td>
+<td>이 턴에 놓은 5는 0으로 계산</td>
+</tr>
+<tr>
+<td>빼앗기</td>
+<td>주사위 하나를 빼앗아 감. 적에게 피해 10을 주면 돌려받음</td>
+</tr>
+<tr>
+<td>호위</td>
+<td>호위를 불러 적 공격을 키움. 호위 칸에 주사위를 놓아 따로 처치</td>
+</tr>
+</tbody>
+</table></div>
+<h3>4-3. 보스 패턴</h3>
+<div class="scroll"><table class="cp-table">
+<thead>
+<tr>
+<th>단계</th>
+<th>내용</th>
+<th>플레이어 대응</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>힘 모으기</td>
+<td>이 턴 공격 없음</td>
+<td>공격 합 12 이상이면 다음 치명 일격 피해 절반</td>
+</tr>
+<tr>
+<td>치명 일격</td>
+<td>한 번에 큰 피해</td>
+<td>방어에 몰아 버티기</td>
+</tr>
+<tr>
+<td>넉다운</td>
+<td>공격 없음, 받는 피해 2배</td>
+<td>공격에 몰아 크게 때리기</td>
+</tr>
+<tr>
+<td>봉인</td>
+<td>5가 0으로 계산</td>
+<td>5를 빼고 배치</td>
+</tr>
+</tbody>
+</table></div>
+<h2>5. 밸런스</h2>
+<h3>5-1. 난이도 곡선 목표</h3>
+<div class="scroll"><table class="cp-table">
+<thead>
+<tr>
+<th>지표</th>
+<th>목표</th>
+<th>현재</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1층 승률</td>
+<td>90~96%</td>
+<td>94%</td>
+</tr>
+<tr>
+<td>2층 승률</td>
+<td>75~85%</td>
+<td>79%</td>
+</tr>
+<tr>
+<td>보스 승률</td>
+<td>45~60%</td>
+<td>47%</td>
+</tr>
+<tr>
+<td>클리어율</td>
+<td>30~45%</td>
+<td>35%</td>
+</tr>
+<tr>
+<td>보스전 평균 턴</td>
+<td>6~7턴</td>
+<td>5.8턴</td>
+</tr>
+</tbody>
+</table></div>
+<p>층이 오를수록 승률이 내려가 1층은 대부분 통과하고 보스는 절반 안팎이 넘는 곡선을 목표로 한다. 보스전이 짧은 문제는 층 사이 보상으로 맞춘다(3-6).</p>
+<h3>5-2. 밸런스 QA 방식</h3>
+<ol>
+<li>직접 플레이로 시작했으나 수치를 고칠 때마다 같은 판을 반복해야 해 한계가 왔다.</li>
+<li>게임 규칙을 화면과 분리해 화면 없이 수백 판을 돌리는 밸런스 시뮬레이터를 만들었다. 같은 시드면 같은 판이 나와 수정 전후를 바로 비교한다.</li>
+<li>사람처럼 판단하는 AI 플레이어를 붙여, 특전과 적 조합마다 수천 판을 돌리고 그 결과로 적 체력과 공격력을 조정했다.</li>
+</ol>
+<p>시뮬레이터로 찾은 것
+- 다시 굴리기를 안 쓰면 첫 전투 512판 중 214판, 상황에 맞춰 쓰면 482판을 이긴다. 다시 굴리기를 기본 조작으로 정했다.
+- 주사위를 전부 공격에 넣으면 28판, 전부 방어에 넣으면 2판만 이긴다. 공격과 방어를 나누는 판단이 살아 있다.</p>
+<h2>6. 화면 흐름과 조작</h2>
+<h3>6-1. 화면 흐름</h3>
+<p>시작 특전 선택 → 전투(1층) → 보상 선택 → 전투(2층) → 보상 선택 → 전투(보스) → 결과(통과한 층 수, 다시 하기)</p>
+<h3>6-2. 조작</h3>
+<div class="scroll"><table class="cp-table">
+<thead>
+<tr>
+<th>조작</th>
+<th>방법</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>배치</td>
+<td>주사위를 칸으로 끌어다 놓기. 여러 개를 눌러 고른 뒤 칸을 누르면 한꺼번에 이동</td>
+</tr>
+<tr>
+<td>다시 굴리기</td>
+<td>고른 주사위를 함께 굴림</td>
+</tr>
+<tr>
+<td>되돌리기</td>
+<td>놓은 주사위를 다시 주사위 자리로</td>
+</tr>
+<tr>
+<td>아이콘 사전</td>
+<td>물음표 버튼으로 기믹, 적 공격 예고, 해금 조건 확인</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>화면 정보는 아이콘과 숫자로만 보여 준다. 적 위에 다음 공격, 칸 옆에 합계, 상단에 특전 상태.</li>
+<li>주소에 시드를 붙이면 같은 판을 다시 할 수 있다(버그 재현용).</li>
+</ul>
+<h3>6-3. 온보딩</h3>
+<p>규칙 설명 화면 없이 특전 선택 뒤 바로 전투에 들어가고, 모르는 아이콘은 물음표 버튼으로 확인한다. 첫 일반 몹은 첫 턴 한 방 9 뒤 약한 공격(2~6)으로 이어진다. 단계별 튜토리얼은 설계 중.</p>
+<h2>7. 아트와 사운드</h2>
+<ul>
+<li>화면: 탑 벽에 새긴 비문 느낌. 풍화된 회색 돌 바탕에 강조색은 녹슨 붉은색 하나.</li>
+<li>캐릭터와 적: 픽셀 아트. 대기, 준비, 공격, 피격 자세. 보스는 힘 모으기와 넉다운 자세 추가.</li>
+<li>사운드: 탑 내부 배경음 1개, 효과음 9개(굴림, 놓기, 타격, 정확 방어, 룰렛, 해금, 승리, 패배).</li>
+<li>그래픽과 사운드는 웹 ChatGPT로 생성.</li>
+</ul>
+<h2>8. 세계관</h2>
+<ul>
+<li>탑: 회귀자가 오르는 탑. 죽으면 처음으로 돌아가 다시 오른다. 톤은 회귀물, 잃어버린 것을 찾는 외로움, 차가운 폐허와 겨울.</li>
+<li>회귀자: 플레이어.</li>
+<li>마타이오스: 지난 회차에 회귀자를 살리려고 몸과 기억을 탑에 내준 동행. 남은 것은 주사위 하나뿐이고, 게임에서는 에고 주사위로 나온다. 에고 주사위가 이야기를 이끄는 방식으로 풀어 간다.</li>
+</ul>
+<h2>9. 열린 이슈</h2>
+<div class="scroll"><table class="cp-table">
+<thead>
+<tr>
+<th>이슈</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>메타 진행 상세</td>
+<td>해금 조건, 해금 목록, 런 사이 화면</td>
+</tr>
+<tr>
+<td>런 길이</td>
+<td>10분 목표 대비 실제 플레이 시간 측정</td>
+</tr>
+<tr>
+<td>층 사이 보상 구현</td>
+<td>카드 3장 중 1장, 회복 카드 우선</td>
+</tr>
+<tr>
+<td>각성</td>
+<td>위기 때 확률로 눈을 바꾸는 옛 규칙이 남아 있음. 유지 여부 결정</td>
+</tr>
+<tr>
+<td>합공 칸</td>
+<td>에고 주사위 해금 전에도 룰렛에 합공 칸이 있음. 해금 뒤에만 열지 결정</td>
+</tr>
+<tr>
+<td>해금 인정 규칙</td>
+<td>한 칸 안에 셋이 들어 있으면 인정, 보상으로 바꾼 눈도 인정하도록 변경 필요</td>
+</tr>
+<tr>
+<td>튜토리얼</td>
+<td>첫 판 단계별 안내</td>
+</tr>
+<tr>
+<td>화면 표기</td>
+<td>게임 안 "동료 주사위"를 "에고 주사위"로</td>
+</tr>
+</tbody>
+</table></div>
+<h2>10. 개발 이력</h2>
+<div class="scroll"><table class="cp-table">
+<thead>
+<tr>
+<th>날짜</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-04</td>
+<td>Unity Android 판으로 기획과 프로토타입 시작. 강화학습으로 전투 밸런스 실험</td>
+</tr>
+<tr>
+<td>2026-11-21</td>
+<td>웹 게임으로 다시 만들기 시작. 카드 전투를 버리고 주사위 전투로 확정. 그레이박스 공개</td>
+</tr>
+<tr>
+<td>2026-11-21</td>
+<td>직접 플레이 판정 뒤 야추 다이스식 해금 추가, 적 예고를 아이콘과 숫자로</td>
+</tr>
+<tr>
+<td>2026-11-22</td>
+<td>3층 런, 적 기믹 9종, 보스 패턴, 런 내내 유지되는 특전 6종. 밸런스 시뮬레이터와 AI 플레이어로 난이도 조정</td>
+</tr>
+<tr>
+<td>2026-11-23</td>
+<td>픽셀 아트와 사운드</td>
+</tr>
+<tr>
+<td>2026-11-24</td>
+<td>에고 주사위, 층 사이 보상 구조, 메타 진행 방향 결정</td>
+</tr>
+</tbody>
+</table></div>
+<p>마일스톤은 직접 만든 작업판 내일은내일에서 관리한다. 개발 상세(파일 구조, 테스트, 시뮬레이션 표본)는 저장소에 있다.</p>
+</main>
+<script>{const t=document.getElementById('toc');document.querySelectorAll('.gdd h2').forEach((h,i)=>{h.id='s'+(i+1);const li=document.createElement('li');const a=document.createElement('a');a.href='#'+h.id;a.textContent=h.textContent.replace(/^\d+\.\s*/,'');li.appendChild(a);t.appendChild(li);});}</script>
+</body></html>
