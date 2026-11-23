@@ -592,6 +592,23 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 @keyframes unlock-ready {
   45% { box-shadow: 0 0 18px #f6c795d0; }
 }
+
+.unlock-blocker {
+  position: absolute;
+  inset: -7px -4px auto auto;
+  display: grid;
+  place-items: center;
+  inline-size: 18px;
+  block-size: 18px;
+  border: 1px solid #a1998f;
+  border-radius: 50%;
+  background: var(--cut);
+  color: #ded6c9;
+  pointer-events: none;
+}
+
+#locked-die .unlock-blocker .icon, #extra-reroll .unlock-blocker .icon { width: 12px; height: 12px; }
+
 .die-status {
   position: absolute;
   inset: -7px -3px auto auto;
@@ -660,9 +677,9 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 
 .controls button { min-block-size: 49px; }
 #reroll { grid-column: 1; min-width: 70px; }
-#extra-reroll { grid-column: 2; }
+#extra-reroll { position: relative; grid-column: 2; }
 #extra-reroll .icon { width: 1.45em; height: 1.45em; }
-#extra-reroll.unlock-hint .icon:last-child { width: 2.35em; }
+#extra-reroll.unlock-hint > .icon:nth-child(2) { width: 2.35em; }
 #resolve { grid-column: 3; justify-self: end; width: min(100%, 215px); }
 #reroll-count, #reroll-count > span { display: inline-flex; align-items: center; gap: 4px; }
 #reroll-count > span + span { margin-inline-start: 4px; }

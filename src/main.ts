@@ -15,7 +15,7 @@ import {
   bladeChargePreview, canReroll, previewUnlockProgress, spinYachtCounter, yachtAllocationTotals,
   yachtCounterRewards, yachtRerollCost,
 } from './yacht-combat.ts'
-import type { Hand, YachtBattle } from './yacht-combat.ts'
+import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput, rerollSelectedDice } from './dice-drag.ts'
 import { CounterRoulette } from './counter-roulette.ts'
 import type { DropZone } from './dice-drag.ts'
@@ -271,9 +271,14 @@ const stolenPlaceholder = document.createElement('span')
 stolenPlaceholder.className = 'die stolen-die'
 stolenPlaceholder.setAttribute('role', 'img')
 
-function renderUnlockProgress(hint: HTMLElement, progress: 0 | 2 | 3) {
+function renderUnlockProgress(hint: HTMLElement, preview?: UnlockHint) {
+  const { progress, blocked } = preview ?? { progress: 0 }
   hint.classList.toggle('unlock-partial', progress === 2)
   hint.classList.toggle('unlock-ready', progress === 3)
+  hint.querySelector('.unlock-blocker')?.remove()
+  if (!blocked) return ''
+  hint.insertAdjacentHTML('beforeend', `<span class="unlock-blocker">${icon(blocked === 'guard' ? 'parry' : 'seal')}</span>`)
+  return blocked === 'guard' ? ', 정확 방어가 필요함' : ', 봉인된 눈은 제외됨'
 }
 
 function renderSlotTotal(total: HTMLElement, bonus: HTMLElement, value: number, added: number) {
@@ -323,7 +328,8 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
     ui.dice.pool.append(stolenPlaceholder)
   }
   ui.lockedDie.hidden = unlocks.includes('triple')
-  renderUnlockProgress(ui.lockedDie, ui.lockedDie.hidden ? 0 : pendingUnlock?.triple ?? 0)
+  const tripleHint = renderUnlockProgress(ui.lockedDie, ui.lockedDie.hidden ? undefined : pendingUnlock?.triple)
+  ui.lockedDie.setAttribute('aria-label', `잠든 동료 주사위, 같은 눈 셋${tripleHint}`)
 
   const withoutPerk = allocationPower(battle)
   const bladeReady = planning && bladeChargePreview(battle)?.ready
@@ -357,11 +363,11 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
   ui.reroll.title = '다시 굴리기'
   const rerollLocked = !unlocks.includes('straight')
   ui.extraReroll.classList.toggle('unlock-hint', rerollLocked)
-  renderUnlockProgress(ui.extraReroll, rerollLocked ? pendingUnlock?.straight ?? 0 : 0)
   ui.extraReroll.disabled = selected.size !== 1 || rerollable.length !== 1 || !battle.rerolled || !battle.extraRerollAvailable
   const extra = Number(battle.extraRerollAvailable)
   ui.extraReroll.innerHTML = `${icon(unlockInfo.straight.icon)}${rerollLocked ? icon('straight') : extra}`
-  ui.extraReroll.setAttribute('aria-label', rerollLocked ? '잠긴 재굴림 주사위, 이어지는 눈 셋' : `해금 재굴림 (${extra})`)
+  const straightHint = renderUnlockProgress(ui.extraReroll, rerollLocked ? pendingUnlock?.straight : undefined)
+  ui.extraReroll.setAttribute('aria-label', rerollLocked ? `잠긴 재굴림 주사위, 이어지는 눈 셋${straightHint}` : `해금 재굴림 (${extra})`)
   ui.extraReroll.title = '해금 재굴림'
   ui.resolve.disabled = !planning || battle.slots.includes(null)
 }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { beginAscent, resolveAscentTurn } from '../src/ascent.ts'
 import { PLAYER_HP, roll } from '../src/combat.ts'
 import { rerollSelectedDice } from '../src/dice-drag.ts'
 import { adaptAndReroll, countTradeoffs, simulate } from '../src/simulate.ts'
@@ -15,15 +16,16 @@ const filled = (dice, slots, extra = {}) => ({
 })
 
 test('unlock progress distinguishes partial, complete, and invalid hands', () => {
-  assert.deepEqual(previewUnlockProgress(filled([4, 4, 4], ['guard', 'guard', null])), { triple: 2, straight: 0 })
-  assert.deepEqual(previewUnlockProgress(filled([4, 4, 4], ['guard', 'guard', 'guard'])), { triple: 3, straight: 0 })
-  assert.deepEqual(previewUnlockProgress(filled([3, 3, 3], ['guard', 'guard', 'guard'])), { triple: 0, straight: 0 })
-  assert.deepEqual(previewUnlockProgress(filled([5, 3, 4], ['attack', 'attack', null])), { triple: 0, straight: 2 })
-  assert.deepEqual(previewUnlockProgress(filled([5, 3, 4], ['attack', 'attack', 'attack'])), { triple: 0, straight: 3 })
-  assert.deepEqual(previewUnlockProgress(filled([6, 1, 2], ['attack', 'attack', null])), { triple: 0, straight: 0 })
-  assert.deepEqual(previewUnlockProgress(filled([2, 2, 3], ['escort', 'escort', null])), { triple: 0, straight: 0 })
+  assert.deepEqual(previewUnlockProgress(filled([4, 4, 4], ['guard', 'guard', null])), { triple: { progress: 2 }, straight: { progress: 0 } })
+  assert.deepEqual(previewUnlockProgress(filled([4, 4, 4], ['guard', 'guard', 'guard'])).triple, { progress: 3 })
+  assert.deepEqual(previewUnlockProgress(filled([3, 3, 3], ['guard', 'guard', 'guard'])).triple, { progress: 0, blocked: 'guard' })
+  assert.deepEqual(previewUnlockProgress(filled([5, 3, 4], ['attack', 'attack', null])).straight, { progress: 2 })
+  assert.deepEqual(previewUnlockProgress(filled([5, 3, 4], ['attack', 'attack', 'attack'])).straight, { progress: 3 })
+  const noProgress = { triple: { progress: 0 }, straight: { progress: 0 } }
+  assert.deepEqual(previewUnlockProgress(filled([6, 1, 2], ['attack', 'attack', null])), noProgress)
+  assert.deepEqual(previewUnlockProgress(filled([2, 2, 3], ['escort', 'escort', null])), noProgress)
   const sealed = { id: 'seal', name: '봉인', hits: [7], mechanic: { kind: 'seal', value: 4 }, matches: () => true }
-  assert.deepEqual(previewUnlockProgress(filled([5, 3, 1], ['attack', 'attack', null], { enemyIntents: [sealed] })), { triple: 0, straight: 0 })
+  assert.deepEqual(previewUnlockProgress(filled([5, 3, 1], ['attack', 'attack', null], { enemyIntents: [sealed] })), noProgress)
 })
 
 test('rerolling a batch clears selection so one die can use the unlocked reroll', () => {
@@ -58,9 +60,66 @@ test('unlock previews follow the same attack and exact guard conditions as turn 
     assert.deepEqual(resolveYachtTurn(battle).hand, hand)
   }
   assert.deepEqual(previewYachtHand(filled([2, 2, 2, 5], [...attack, null])), { hand: 'triple', slot: 'attack' })
-  assert.equal(previewYachtHand(filled([2, 2, 2, 5], [...attack, 'attack'])), null)
+  assert.deepEqual(previewYachtHand(filled([2, 2, 2, 5], [...attack, 'attack'])), { hand: 'triple', slot: 'attack' })
   const sealed = { id: 'seal', name: '봉인', hits: [7], mechanic: { kind: 'seal', value: 2 }, matches: () => true }
   assert.equal(previewYachtHand(filled([2, 2, 2], attack, { enemyIntents: [sealed] })), null)
+})
+
+test('four dice qualify using any unchanged matching trio in the same slot', () => {
+  const attack = ['attack', 'attack', 'attack', 'attack']
+  for (const [dice, hand] of [[[2, 5, 2, 2], 'triple'], [[3, 3, 3, 3], 'triple'], [[2, 4, 2, 3], 'straight']]) {
+    const battle = filled(dice, attack)
+    const match = { hand, slot: 'attack' }
+    assert.deepEqual(previewYachtHand(battle), match)
+    assert.deepEqual(resolveYachtTurn(battle).hand, match)
+    assert.deepEqual(previewUnlockProgress(battle)[hand], { progress: 3 })
+  }
+  assert.deepEqual(previewUnlockProgress(filled([1, 5, 2, 3], ['attack', 'attack', 'attack', null])).straight, { progress: 2 })
+  const crisis = filled([6, 6, 1, 6], attack, { seed: 23, playerHp: 6 })
+  const outcome = resolveYachtTurn(crisis)
+  assert.deepEqual(outcome.battle.lastExchange.awakenedDice, [6, 6, 6, 6])
+  assert.deepEqual(outcome.hand, { hand: 'triple', slot: 'attack' })
+})
+
+test('a four-die guard uses the total of the whole slot for exact defense', () => {
+  const slots = ['guard', 'guard', 'guard', 'guard']
+  for (const [dice, hand, exact] of [
+    [[3, 3, 3, 3], 'triple', true], [[3, 3, 3, 4], 'triple', false],
+    [[3, 4, 2, 3], 'straight', true], [[3, 4, 2, 5], 'straight', false],
+  ]) {
+    const battle = filled(dice, slots)
+    const expected = exact ? { hand, slot: 'guard' } : null
+    assert.deepEqual(previewYachtHand(battle), expected)
+    assert.deepEqual(resolveYachtTurn(battle).hand, expected)
+    assert.deepEqual(previewUnlockProgress(battle)[hand], exact ? { progress: 3 } : { progress: 0, blocked: 'guard' })
+  }
+})
+
+test('a sealed die explains a blocked trio and can be left out of another trio', () => {
+  const seal = { id: 'seal', name: '봉인', hits: [9], mechanic: { kind: 'seal', value: 5 }, matches: () => true }
+  const attack = ['attack', 'attack', 'attack', 'attack']
+  const blocked = filled([6, 5, 4, 1], attack, { enemyIntents: [seal] })
+  assert.equal(resolveYachtTurn(blocked).hand, null)
+  assert.deepEqual(previewUnlockProgress(blocked).straight, { progress: 0, blocked: 'seal' })
+  for (const [dice, slot, hand] of [
+    [[5, 3, 4, 2], 'attack', 'straight'], [[5, 3, 3, 3], 'guard', 'triple'],
+  ]) {
+    const battle = filled(dice, Array(4).fill(slot), { enemyIntents: [seal] })
+    assert.deepEqual(previewUnlockProgress(battle)[hand], { progress: 3 })
+    assert.deepEqual(resolveYachtTurn(battle).hand, { hand, slot })
+  }
+})
+
+test('an included straight unlocks the extra reroll after the companion awakens', () => {
+  const ascent = beginAscent(42, 'collector')
+  const outcome = resolveAscentTurn({
+    ...ascent, unlocks: ['triple'],
+    battle: { ...ascent.battle, fourthDieUnlocked: true, dice: [3, 4, 3, 5], slots: Array(4).fill('attack') },
+  })
+  assert.deepEqual(outcome.unlocks, ['triple', 'straight'])
+  assert.deepEqual(outcome.battle.perk.hands, ['straight'])
+  const rerolled = rerollYachtDice(outcome.battle, [0])
+  assert.ok(spendExtraReroll(rerolled, 1).extraRerollSpent)
 })
 
 test('three guards unlock a triple only on an exact block', () => {
@@ -108,9 +167,9 @@ test('three-straight sorts faces, rejects duplicates and does not wrap around', 
   assert.equal(classifyHand([6, 4, 5]), 'straight')
   assert.equal(classifyHand([3, 3, 4]), null)
   assert.equal(classifyHand([5, 6, 1]), null)
-  assert.equal(classifyHand([1, 2, 3, 4]), null)
+  assert.equal(classifyHand([1, 2, 3, 4]), 'straight')
   const attack = ['attack', 'attack', 'attack']
-  assert.equal(resolveYachtTurn(filled([2, 3, 4, 5], [...attack, 'attack'])).hand, null)
+  assert.deepEqual(resolveYachtTurn(filled([2, 3, 4, 5], [...attack, 'attack'])).hand, { hand: 'straight', slot: 'attack' })
   assert.deepEqual(resolveYachtTurn(filled([2, 3, 4, 5], [...attack, 'guard'])).hand, { hand: 'straight', slot: 'attack' })
 })
 

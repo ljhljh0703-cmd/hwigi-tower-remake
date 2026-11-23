@@ -14,6 +14,11 @@ export interface UsedHand {
   readonly slot: Slot
 }
 
+export interface UnlockHint {
+  readonly progress: 0 | 2 | 3
+  readonly blocked?: 'guard' | 'seal'
+}
+
 export interface YachtBattle extends Battle {
   readonly extraRerollAvailable: boolean
   readonly extraRerollSpent?: true
@@ -27,12 +32,17 @@ const basicRerollChannels = [...rerollChannels, 9]
 const EXTRA_REROLL_CHANNEL = 10
 const paidRerollChannels = [11, 12, 13, 14]
 const combatSlots = ['attack', 'guard', 'escort'] as const
+const dieFaces = [1, 2, 3, 4, 5, 6] as const
 
 export function classifyHand(faces: readonly number[]): Hand | null {
-  if (faces.length !== DIE_COUNT || faces.some((face) => !Number.isInteger(face) || face < 1 || face > 6)) return null
-  const [first, second, third] = [...faces].sort((a, b) => a - b)
-  if (first === third) return 'triple'
-  if (second - first === 1 && third - second === 1) return 'straight'
+  if (faces.some((face) => !Number.isInteger(face) || face < 1 || face > 6)) return null
+  return includedHand(faces)
+}
+
+function includedHand(faces: readonly number[], count = matchingCount(faces)): Hand | null {
+  if (faces.length < DIE_COUNT) return null
+  if (count >= DIE_COUNT) return 'triple'
+  if (faces.some((face) => face >= 1 && face <= 4 && faces.includes(face + 1) && faces.includes(face + 2))) return 'straight'
   return null
 }
 
@@ -126,15 +136,17 @@ export function spendExtraReroll(battle: YachtBattle, index: number): YachtBattl
 }
 
 function usedHand(battle: YachtBattle, dice: readonly number[], slot: Slot): UsedHand | null {
-  const indices = battle.slots.flatMap((assigned, index) => assigned === slot ? [index] : [])
-  if (indices.length !== DIE_COUNT || indices.some((index) => dice[index] !== battle.dice[index])) return null
-  const hand = classifyYachtHand(battle, indices.map((index) => dice[index]))
+  const unchanged = dice.flatMap((face, index) => battle.slots[index] === slot && face === battle.dice[index] ? [face] : [])
+  const hand = classifyYachtHand(battle, unchanged)
   return hand && { hand, slot }
 }
 
+function unsealedFaces(faces: readonly number[], mechanic?: EnemyMechanic) {
+  return mechanic?.kind === 'seal' ? faces.filter((face) => face !== mechanic.value) : faces
+}
+
 export function classifyYachtHand(battle: YachtBattle, faces: readonly number[]): Hand | null {
-  const mechanic = enemyIntentAt(battle).mechanic
-  return mechanic?.kind === 'seal' && faces.includes(mechanic.value) ? null : classifyHand(faces)
+  return classifyHand(unsealedFaces(faces, enemyIntentAt(battle).mechanic))
 }
 
 function matchingCount(faces: readonly number[]): number {
@@ -191,21 +203,29 @@ export function previewYachtHand(battle: YachtBattle): UsedHand | null {
   return battle.phase === 'assign' ? turnHand(battle, battle.dice, forecastYacht(battle).counter) : null
 }
 
-export function previewUnlockProgress(battle: YachtBattle): Record<Hand, 0 | 2 | 3> {
-  const progress: Record<Hand, 0 | 2 | 3> = { triple: 0, straight: 0 }
-  if (battle.phase !== 'assign') return progress
+export function previewUnlockProgress(battle: YachtBattle): Record<Hand, UnlockHint> {
+  const hints: Record<Hand, UnlockHint> = { triple: { progress: 0 }, straight: { progress: 0 } }
+  if (battle.phase !== 'assign') return hints
   const mechanic = enemyIntentAt(battle).mechanic
   for (const slot of ['attack', 'guard'] as const) {
-    const faces = facesInSlot(battle.dice, battle.slots, slot, mechanic)
-    if (faces.length !== 2) continue
-    for (const face of [1, 2, 3, 4, 5, 6]) {
-      const hand = classifyYachtHand(battle, [...faces, face])
-      if (hand) progress[hand] = 2
+    const placed = facesInSlot(battle.dice, battle.slots, slot)
+    const faces = unsealedFaces(placed, mechanic)
+    const complete = includedHand(faces)
+    if (complete) {
+      hints[complete] = slot === 'attack' || forecastYacht(battle).counter
+        ? { progress: 3 }
+        : { progress: 0, blocked: 'guard' }
+      continue
+    }
+    const sealed = mechanic?.kind === 'seal' ? includedHand(placed) : null
+    if (sealed) hints[sealed] = { progress: 0, blocked: 'seal' }
+    if (faces.length < 2) continue
+    for (const face of unsealedFaces(dieFaces, mechanic)) {
+      const hand = includedHand([...faces, face])
+      if (hand && hints[hand].progress === 0 && !hints[hand].blocked) hints[hand] = { progress: 2 }
     }
   }
-  const complete = previewYachtHand(battle)
-  if (complete) progress[complete.hand] = 3
-  return progress
+  return hints
 }
 
 export function bladeChargePreview(battle: YachtBattle, dice = battle.dice) {
@@ -245,8 +265,7 @@ function resolvePerk(battle: YachtBattle, planned: ReturnType<typeof forecastYac
     for (const slot of combatSlots) {
       const faces = facesInSlot(dice, slots, slot, mechanic)
       const count = matchingCount(faces)
-      const hand: CollectedHand | null = count === 4 ? 'four' : count === 3 ? 'triple' : count === 2 ? 'pair'
-        : classifyHand(faces) === 'straight' ? 'straight' : null
+      const hand: CollectedHand | null = count === 4 ? 'four' : includedHand(faces, count) ?? (count === 2 ? 'pair' : null)
       if (hand) hands.add(hand)
     }
     return { ...perk, hands: [...hands] }
