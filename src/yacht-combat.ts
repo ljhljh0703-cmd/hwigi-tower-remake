@@ -191,6 +191,23 @@ export function previewYachtHand(battle: YachtBattle): UsedHand | null {
   return battle.phase === 'assign' ? turnHand(battle, battle.dice, forecastYacht(battle).counter) : null
 }
 
+export function previewUnlockProgress(battle: YachtBattle): Record<Hand, 0 | 2 | 3> {
+  const progress: Record<Hand, 0 | 2 | 3> = { triple: 0, straight: 0 }
+  if (battle.phase !== 'assign') return progress
+  const mechanic = enemyIntentAt(battle).mechanic
+  for (const slot of ['attack', 'guard'] as const) {
+    const faces = facesInSlot(battle.dice, battle.slots, slot, mechanic)
+    if (faces.length !== 2) continue
+    for (const face of [1, 2, 3, 4, 5, 6]) {
+      const hand = classifyYachtHand(battle, [...faces, face])
+      if (hand) progress[hand] = 2
+    }
+  }
+  const complete = previewYachtHand(battle)
+  if (complete) progress[complete.hand] = 3
+  return progress
+}
+
 export function bladeChargePreview(battle: YachtBattle, dice = battle.dice) {
   if (battle.perk?.kind !== 'blade') return null
   const { charge } = battle.perk

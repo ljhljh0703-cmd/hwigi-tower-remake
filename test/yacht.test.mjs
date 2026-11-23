@@ -1,15 +1,46 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { PLAYER_HP, roll } from '../src/combat.ts'
+import { rerollSelectedDice } from '../src/dice-drag.ts'
 import { adaptAndReroll, countTradeoffs, simulate } from '../src/simulate.ts'
 import {
-  classifyHand, previewYachtHand, rerollYachtDice, resolveYachtTurn, spendExtraReroll, spinYachtCounter, startYachtBattle,
+  classifyHand, previewUnlockProgress, previewYachtHand, rerollYachtDice, resolveYachtTurn, spendExtraReroll,
+  spinYachtCounter, startYachtBattle,
 } from '../src/yacht-combat.ts'
 import { chooseAllocation, chooseReroll } from '../src/yacht-policy.ts'
 import { simulateLegacyYacht, yachtVariants } from '../src/yacht-simulate.ts'
 
 const filled = (dice, slots, extra = {}) => ({
   ...startYachtBattle(42, PLAYER_HP, dice.length === 4, false), dice, slots, ...extra,
+})
+
+test('unlock progress distinguishes partial, complete, and invalid hands', () => {
+  assert.deepEqual(previewUnlockProgress(filled([4, 4, 4], ['guard', 'guard', null])), { triple: 2, straight: 0 })
+  assert.deepEqual(previewUnlockProgress(filled([4, 4, 4], ['guard', 'guard', 'guard'])), { triple: 3, straight: 0 })
+  assert.deepEqual(previewUnlockProgress(filled([3, 3, 3], ['guard', 'guard', 'guard'])), { triple: 0, straight: 0 })
+  assert.deepEqual(previewUnlockProgress(filled([5, 3, 4], ['attack', 'attack', null])), { triple: 0, straight: 2 })
+  assert.deepEqual(previewUnlockProgress(filled([5, 3, 4], ['attack', 'attack', 'attack'])), { triple: 0, straight: 3 })
+  assert.deepEqual(previewUnlockProgress(filled([6, 1, 2], ['attack', 'attack', null])), { triple: 0, straight: 0 })
+  assert.deepEqual(previewUnlockProgress(filled([2, 2, 3], ['escort', 'escort', null])), { triple: 0, straight: 0 })
+  const sealed = { id: 'seal', name: '봉인', hits: [7], mechanic: { kind: 'seal', value: 4 }, matches: () => true }
+  assert.deepEqual(previewUnlockProgress(filled([5, 3, 1], ['attack', 'attack', null], { enemyIntents: [sealed] })), { triple: 0, straight: 0 })
+})
+
+test('rerolling a batch clears selection so one die can use the unlocked reroll', () => {
+  const start = startYachtBattle(42, PLAYER_HP, false, true)
+  const selected = new Set([0, 1])
+  const basic = rerollSelectedDice(start, selected, false)
+  assert.equal(basic.battle.rerolled, true)
+  assert.equal(basic.focusIndex, 0)
+  assert.equal(selected.size, 0)
+  selected.add(1).add(2)
+  assert.equal(rerollSelectedDice(basic.battle, selected, true), null)
+  assert.deepEqual([...selected], [1, 2])
+  selected.delete(2)
+  const extra = rerollSelectedDice(basic.battle, selected, true)
+  assert.equal(extra.battle.extraRerollSpent, true)
+  assert.equal(extra.battle.dice[1], roll(42, 1, 10))
+  assert.equal(selected.size, 0)
 })
 
 test('unlock previews follow the same attack and exact guard conditions as turn resolution', () => {

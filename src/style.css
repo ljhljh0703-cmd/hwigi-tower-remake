@@ -389,8 +389,10 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 
 .slot-target:not(:disabled):hover { background: var(--stone-face); }
 .slot-target span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: .85rem; }
+.slot-target .slot-total { color: inherit; }
 .slot-target #attack-multiplier { color: #f2ac98; }
 .slot-target strong { font-size: 2rem; line-height: 1; }
+.slot-target .slot-bonus { color: #f6c795; font-size: .78rem; }
 
 .dice-row {
   display: flex;
@@ -427,12 +429,18 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 .die[aria-pressed='true'] { outline: 2px solid #f5f4f2; outline-offset: 1px; background: #aaa7a2; }
 .die.altered-face { border-inline: 2px dashed #696662; }
 #locked-die { display: grid; place-items: center; order: 1; pointer-events: none; }
-#locked-die > .icon { width: 1.65em; }
+#locked-die > .icon { width: 1.85em; }
 .unlock-hint, .unlock-hint:disabled {
   border: 1px dashed var(--stone-edge);
   background: var(--stone-bed);
   color: var(--muted);
   opacity: .63;
+}
+.unlock-partial, .unlock-partial:disabled {
+  border-color: #ae8968;
+  color: #d5b692;
+  opacity: .85;
+  box-shadow: 0 0 6px #f6c79535;
 }
 .unlock-ready, .unlock-ready:disabled {
   border-color: #f6c795;
@@ -501,7 +509,7 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 #reroll { grid-column: 1; min-width: 70px; }
 #extra-reroll { grid-column: 2; }
 #extra-reroll .icon { width: 1.45em; height: 1.45em; }
-#extra-reroll.unlock-hint .icon:last-child { width: 1.95em; }
+#extra-reroll.unlock-hint .icon:last-child { width: 2.35em; }
 #resolve { grid-column: 3; justify-self: end; width: min(100%, 215px); }
 #reroll-count, #reroll-count > span { display: inline-flex; align-items: center; gap: 4px; }
 #reroll-count > span + span { margin-inline-start: 4px; }
@@ -649,6 +657,7 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 #next, #retry { min-block-size: 49px; min-inline-size: 160px; }
 #owned-unlocks, #owned-unlocks span { display: flex; align-items: center; gap: 6px; color: var(--muted); }
 #owned-unlocks { gap: 12px; }
+#final-unlock { display: inline-flex; align-items: center; gap: 6px; color: #f6c795; }
 
 @media (max-width: 560px) {
   .masthead { min-block-size: 51px; }

@@ -1,4 +1,15 @@
 import type { Slot } from './combat.ts'
+import { canReroll, rerollYachtDice, spendExtraReroll } from './yacht-combat.ts'
+import type { YachtBattle } from './yacht-combat.ts'
+
+export function rerollSelectedDice(battle: YachtBattle, selected: Set<number>, extra: boolean) {
+  const indices = [...selected].filter((index) => canReroll(battle, index))
+  if (!indices.length || (extra && selected.size !== 1)) return null
+  const rerolled = extra ? spendExtraReroll(battle, indices[0]) : rerollYachtDice(battle, indices)
+  if (rerolled === battle) return null
+  selected.clear()
+  return { battle: rerolled, focusIndex: indices[0] }
+}
 
 export type DropZone = 'pool' | Slot
 

@@ -2,17 +2,17 @@ import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from './
 import type { Ascent } from './ascent.ts'
 import { BATTLE_GUIDE } from './battle-guide.ts'
 import {
-  assignDie, attackFor, chargedStrikePreview, DIE_COUNT, dieFaceForSlot, enemyIntentAt, incomingAttack,
+  allocationPower, assignDie, attackFor, chargedStrikePreview, DIE_COUNT, dieFaceForSlot, enemyIntentAt, incomingAttack,
 } from './combat.ts'
 import type { Exchange, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
 import type { Parity } from './perks.ts'
 import {
-  bladeChargePreview, canReroll, previewYachtHand, rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtAllocationTotals,
+  bladeChargePreview, canReroll, previewUnlockProgress, spinYachtCounter, yachtAllocationTotals,
   yachtCounterRewards, yachtRerollCost,
 } from './yacht-combat.ts'
 import type { Hand, YachtBattle } from './yacht-combat.ts'
-import { bindDiceInput } from './dice-drag.ts'
+import { bindDiceInput, rerollSelectedDice } from './dice-drag.ts'
 import { CounterRoulette } from './counter-roulette.ts'
 import type { DropZone } from './dice-drag.ts'
 import './style.css'
@@ -46,6 +46,7 @@ const ui = {
   newUnlock: element('new-unlock'),
   unlockReveal: element('unlock-reveal'),
   ownedUnlocks: element('owned-unlocks'),
+  finalUnlock: element('final-unlock'),
   ascentEvent: element('ascent-event'),
   eventFloor: element('event-floor'),
   result: element('result'),
@@ -63,11 +64,14 @@ const ui = {
     escort: element<HTMLButtonElement>('assign-escort'),
   },
   attackTotal: element('attack-total'),
+  attackBonus: element('attack-bonus'),
   attackMultiplier: element('attack-multiplier'),
   guardTotal: element('guard-total'),
+  guardBonus: element('guard-bonus'),
   escortSlot: element('escort-slot'),
   escortHp: element('escort-hp'),
   escortTotal: element('escort-total'),
+  escortBonus: element('escort-bonus'),
   reroll: element<HTMLButtonElement>('reroll'),
   rerollCount: element('reroll-count'),
   extraReroll: element<HTMLButtonElement>('extra-reroll'),
@@ -319,9 +323,21 @@ const stolenPlaceholder = document.createElement('span')
 stolenPlaceholder.className = 'die stolen-die'
 stolenPlaceholder.setAttribute('role', 'img')
 
+function renderUnlockProgress(hint: HTMLElement, progress: 0 | 2 | 3) {
+  hint.classList.toggle('unlock-partial', progress === 2)
+  hint.classList.toggle('unlock-ready', progress === 3)
+}
+
+function renderSlotTotal(total: HTMLElement, bonus: HTMLElement, value: number, added: number) {
+  total.textContent = String(value)
+  bonus.hidden = added === 0
+  bonus.textContent = added ? `+${added}` : ''
+  return added ? `, 특전 보너스 ${added} 포함` : ''
+}
+
 function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals, unlocks: readonly Hand[]) {
   const planning = battle.phase === 'assign'
-  const pendingUnlock = planning && unlocks.length < 2 ? previewYachtHand(battle)?.hand : undefined
+  const pendingUnlock = unlocks.length < 2 ? previewUnlockProgress(battle) : undefined
   const intent = enemyIntentAt(battle)
   const mechanic = intent.mechanic
   diceButtons.forEach((button, index) => {
@@ -355,17 +371,24 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
     ui.dice.pool.append(stolenPlaceholder)
   }
   ui.lockedDie.hidden = unlocks.includes('triple')
-  ui.lockedDie.classList.toggle('unlock-ready', !ui.lockedDie.hidden && pendingUnlock === 'triple')
+  if (ui.lockedDie.hidden) ui.lockedDie.removeAttribute('aria-label')
+  else ui.lockedDie.setAttribute('aria-label', '잠긴 네 번째 주사위, 같은 눈 셋')
+  renderUnlockProgress(ui.lockedDie, ui.lockedDie.hidden ? 0 : pendingUnlock?.triple ?? 0)
 
-  ui.attackTotal.textContent = String(attack)
-  ui.attackMultiplier.hidden = !planning || !bladeChargePreview(battle)?.ready
+  const withoutPerk = allocationPower(battle)
+  const bladeReady = planning && bladeChargePreview(battle)?.ready
+  const attackHint = renderSlotTotal(ui.attackTotal, ui.attackBonus, attack, battle.perk?.kind === 'blade' ? 0 : attack - withoutPerk.attack)
+  ui.attackMultiplier.hidden = !bladeReady
   ui.attackMultiplier.textContent = `×${START_PERKS.blade.multiplier}`
-  ui.guardTotal.textContent = String(guard)
+  const multiplierHint = bladeReady ? `, 큰 칼 준비, 공격 피해 ${START_PERKS.blade.multiplier}배` : ''
+  ui.assign.attack.setAttribute('aria-label', `공격 칸, 피해 ${attack}${attackHint}${multiplierHint}`)
+  const guardHint = renderSlotTotal(ui.guardTotal, ui.guardBonus, guard, guard - withoutPerk.guard)
+  ui.assign.guard.setAttribute('aria-label', `방어 칸, 합계 ${guard}${guardHint}`)
   ui.escortSlot.hidden = !battle.escort
   ui.escortSlot.parentElement!.classList.toggle('has-escort', Boolean(battle.escort))
   ui.escortHp.textContent = String(battle.escort?.hp ?? 0)
-  ui.assign.escort.setAttribute('aria-label', `호위 공격, 호위 체력 ${battle.escort?.hp ?? 0}`)
-  ui.escortTotal.textContent = String(escort)
+  const escortHint = renderSlotTotal(ui.escortTotal, ui.escortBonus, escort, escort - withoutPerk.escort)
+  ui.assign.escort.setAttribute('aria-label', `호위 공격, 피해 ${escort}${escortHint}, 호위 체력 ${battle.escort?.hp ?? 0}`)
   const canPlace = planning && selected.size > 0
   const rerollable = [...selected].filter((index) => canReroll(battle, index))
   ui.assign.pool.disabled = !canPlace || ![...selected].some((index) => battle.slots[index] !== null)
@@ -384,7 +407,7 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
   ui.reroll.title = '다시 굴리기'
   const rerollLocked = !unlocks.includes('straight')
   ui.extraReroll.classList.toggle('unlock-hint', rerollLocked)
-  ui.extraReroll.classList.toggle('unlock-ready', rerollLocked && pendingUnlock === 'straight')
+  renderUnlockProgress(ui.extraReroll, rerollLocked ? pendingUnlock?.straight ?? 0 : 0)
   ui.extraReroll.disabled = selected.size !== 1 || rerollable.length !== 1 || !battle.rerolled || !battle.extraRerollAvailable
   const extra = Number(battle.extraRerollAvailable)
   ui.extraReroll.innerHTML = `${icon(unlockInfo.straight.icon)}${rerollLocked ? icon('straight') : extra}`
@@ -613,6 +636,9 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.ascentEvent.classList.toggle('finished', finished)
   ui.result.hidden = !atEvent || !finished
   ui.result.textContent = phase === 'won' ? '성공' : '실패'
+  const finalUnlock = atEvent && phase === 'lost' && newUnlock ? unlockInfo[newUnlock] : null
+  ui.finalUnlock.hidden = !finalUnlock
+  ui.finalUnlock.innerHTML = finalUnlock ? `${icon(finalUnlock.icon)}해금 · ${finalUnlock.label}` : ''
   ui.next.hidden = !between
   ui.retry.hidden = !finished
   refreshDice(battle, totals, unlocks)
@@ -712,13 +738,11 @@ for (const zone of ['pool', 'attack', 'guard', 'escort'] as const) {
 }
 function useReroll(extra: boolean) {
   if (ui.guide.open || !ascent) return
-  const current = ascent.battle
-  const indices = [...selected].filter((index) => canReroll(current, index))
-  if (indices.length === 0) return
-  const battle = extra ? spendExtraReroll(current, indices[0]) : rerollYachtDice(current, indices)
-  ascent = { ...ascent, battle }
+  const rerolled = rerollSelectedDice(ascent.battle, selected, extra)
+  if (!rerolled) return
+  ascent = { ...ascent, battle: rerolled.battle }
   render()
-  diceButtons[indices[0]].focus()
+  diceButtons[rerolled.focusIndex].focus()
 }
 
 ui.reroll.addEventListener('click', () => useReroll(false))
