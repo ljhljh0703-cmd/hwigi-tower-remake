@@ -63,7 +63,8 @@ export function rewardOffers(ascent: Ascent): readonly Reward[] {
     battle.rewards?.tuning ? undefined : 'tuning',
     battle.playerHp <= BANDAGE_THRESHOLD ? 'bandage' : undefined,
   ]
-  const fillers = available.filter((relic) => !seats.includes(relic))
+  const fillers: Reward[] = available.filter((relic) => relic !== 'wedge' && !seats.includes(relic))
+  if (available.includes('wedge')) fillers.unshift('wedge')
   return seats.flatMap((card) => card ?? fillers.shift() ?? [])
 }
 

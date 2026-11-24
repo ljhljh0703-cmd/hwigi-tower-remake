@@ -12,13 +12,31 @@ function won(seed = 2, perk = 'shield', playerHp = 14) {
 
 test('the three seats prioritize the starting perk, replace ineligible cards, and gate the wedge', () => {
   assert.deepEqual(rewardOffers(won()), ['buckle', 'tuning', 'bandage'])
-  assert.deepEqual(rewardOffers(won(2, 'collector', 22)), ['weight', 'tuning', 'buckle'])
-  assert.deepEqual(rewardOffers(won(2, 'counter', 15)), ['buckle', 'tuning', 'weight'])
+  assert.deepEqual(rewardOffers(won(4, 'collector', 22)), ['weight', 'tuning', 'buckle'])
+  assert.deepEqual(rewardOffers(won(4, 'counter', 15)), ['buckle', 'tuning', 'weight'])
   const run = won(2, 'shield', 22)
   const testInventory = { ...run, battle: { ...run.battle, rewards: { tuning: 'spent', relics: ['weight'], spent: ['weight'] } } }
-  assert.deepEqual(rewardOffers(testInventory), ['buckle', 'rewind', 'wedge']) // Seed 2 leads to the charging vitality elite.
+  assert.deepEqual(rewardOffers(testInventory), ['buckle', 'wedge', 'rewind']) // Seed 2 leads to the charging vitality elite.
   assert.deepEqual(rewardOffers({ ...testInventory, seed: 4 }), ['buckle', 'rewind']) // Seed 4 leads to reaction.
   assert.deepEqual(rewardOffers({ ...run, fight: FIGHT_COUNT }), [])
+})
+
+test('a charging opponent gives the wedge first priority only for vacant seats and clears obsolete previews', () => {
+  const run = won(2, 'shield', 22)
+  assert.deepEqual(rewardOffers(run), ['buckle', 'tuning', 'wedge'])
+  assert.deepEqual(rewardOffers(won(2, 'shield', 14)), ['buckle', 'tuning', 'bandage'])
+  assert.deepEqual(rewardOffers(won(4, 'shield', 22)), ['buckle', 'tuning', 'weight'])
+
+  const carried = nextAscentFight(takeAscentReward(run, 'wedge'))
+  const eliteVictory = { ...carried, battle: { ...carried.battle, phase: 'won', enemyHp: 0 } }
+  assert.deepEqual(rewardOffers(eliteVictory), ['buckle', 'tuning', 'weight'])
+
+  let raw = null
+  const store = { getItem: () => raw, setItem: (_, value) => { raw = value } }
+  writeAscentSave({ ascent: run, selected: [], rewardPreview: 'weight' }, store)
+  const restored = loadAscentSave(store)
+  assert.deepEqual(restored.ascent, run)
+  assert.equal(restored.rewardPreview, undefined)
 })
 
 test('reward previews and confirmed claims survive a save with no repeat grant', () => {

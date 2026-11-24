@@ -115,8 +115,9 @@ function readCheckpoint(raw: unknown): AscentSave | null {
     ...(rewardChoice && { rewardChoice }),
   }
   const { rewardPreview } = raw
-  if (rewardPreview !== undefined && (!isReward(rewardPreview) || !rewardOffers(ascent).includes(rewardPreview))) return null
-  return ascentFinished(ascent) ? null : { ascent, selected, ...(rewardPreview && { rewardPreview }) }
+  if (rewardPreview !== undefined && !isReward(rewardPreview)) return null
+  const previewAvailable = rewardPreview !== undefined && rewardOffers(ascent).includes(rewardPreview)
+  return ascentFinished(ascent) ? null : { ascent, selected, ...(previewAvailable && { rewardPreview }) }
 }
 
 export function loadAscentSave(storage?: SaveStorage): AscentSave | null {
