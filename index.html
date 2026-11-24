@@ -194,9 +194,9 @@
           <span id="map-health" role="img" hidden></span>
           <span id="map-floor" hidden></span>
           <span id="run-coins" class="coin-total" role="img" hidden></span>
-          <span id="active-perk" role="img" hidden></span>
+          <span id="active-perk" class="sr-only" role="img" hidden></span>
           <span id="fight" hidden></span>
-          <span id="turn" role="img" hidden></span>
+          <span id="turn" class="sr-only" role="img" hidden></span>
           <div class="header-tools">
             <button id="sound-toggle" class="icon-button" type="button" aria-label="음소거" aria-pressed="false" title="음소거" hidden>
               <svg class="icon" aria-hidden="true"><use href="#icon-sound-on"/></svg>
@@ -211,7 +211,6 @@
         </div>
       </header>
       <div class="inventory-strip">
-        <span id="battle-coins" class="coin-total" role="img" hidden></span>
         <div id="reward-strip" role="group" aria-label="보유 보상" hidden></div>
         <div id="artifact-strip" role="group" aria-label="유물 세 칸" hidden></div>
       </div>
@@ -229,6 +228,7 @@
       <div id="battle" hidden>
         <section class="encounter" aria-label="전장">
           <div id="arena" aria-hidden="true"></div>
+          <p id="intent" role="img"></p>
           <div id="companion-flight" class="companion-tile" aria-hidden="true" hidden>
             <svg class="icon"><use href="#icon-companion-awake"/></svg>
           </div>
@@ -240,7 +240,6 @@
             </div>
           </div>
           <div class="combatant enemy">
-            <p id="intent" role="img"></p>
             <output id="enemy-damage" class="damage-float" aria-hidden="true"></output>
             <div class="vital">
               <div class="enemy-vital">
@@ -296,6 +295,7 @@
                 <span><svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg>공격 <span id="attack-multiplier" hidden></span></span>
                 <span class="slot-total"><strong id="attack-total">0</strong><small id="attack-bonus" class="slot-bonus" hidden></small><small id="wedge-bonus" class="slot-bonus" hidden></small></span>
               </button>
+              <div id="blade-meter" hidden><svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg><meter min="0" aria-label="큰 칼 충전"></meter></div>
               <div id="attack-dice" class="dice-row"></div>
             </section>
             <section class="slot" aria-label="방어 칸" data-dice-zone="guard">
@@ -351,9 +351,9 @@
             <p id="reward-context"></p>
           </header>
           <div id="reward-cards" role="group" aria-label="보상 카드"></div>
+          <p id="reward-preview" role="status" hidden></p>
           <div id="artifact-options" hidden></div>
           <div class="reward-actions">
-            <p id="reward-preview" role="status" hidden></p>
             <button id="skip-reward" type="button">건너뛰기</button>
             <button id="confirm-reward" class="primary" type="button" disabled>확인</button>
           </div>

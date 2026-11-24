@@ -1,14 +1,11 @@
-import { START_PERKS } from './perks.ts'
+import type { Reward } from './rewards.ts'
+import { oathDescription, PERK_TEXT, REWARD_TEXT } from './reward-copy.ts'
 import { REWARD_CARDS } from './rewards.ts'
 import { TREASURE_CARDS } from './treasure.ts'
 
 interface GuideSection {
   readonly title: string
   readonly entries: readonly (readonly [icon: string, name: string, description: string])[]
-}
-
-export function displayEgoDieName(description: string) {
-  return description.replace(/동료(?: 주사위)?/g, '에고 주사위')
 }
 
 export const BATTLE_GUIDE: readonly GuideSection[] = [
@@ -27,7 +24,7 @@ export const BATTLE_GUIDE: readonly GuideSection[] = [
       ['map-reward', '전리품', '보스 전 전투에서 승리한 뒤 받을 전리품을 하나 고르거나 건너뜁니다.'],
     ],
   },
-  { title: '아이템과 유물', entries: Object.values(TREASURE_CARDS).map((card) => [card.icon, card.name, displayEgoDieName(card.description)] as const) },
+  { title: '아이템과 유물', entries: (Object.keys(TREASURE_CARDS) as (keyof typeof TREASURE_CARDS)[]).map(key => [TREASURE_CARDS[key].icon, TREASURE_CARDS[key].name, REWARD_TEXT[key]] as const) },
   {
     title: '적 기믹',
     entries: [
@@ -78,9 +75,9 @@ export const BATTLE_GUIDE: readonly GuideSection[] = [
       ['companion-sleep', '에고 주사위', '처음에는 잠들어 있습니다. 같은 눈 셋으로 깨어나면 이번 등반 동안 함께 굴리고, 합공에 걸리면 적에게 날아갑니다. 등반이 끝나면 다시 잠듭니다.'],
       ['triple', '같은 눈 셋', '공격 칸이나 정확히 막은 방어 칸에 같은 눈 셋이 포함되면 에고 주사위가 깨어납니다. 같은 칸에 다른 주사위가 더 있어도 인정합니다.'],
       ['companion-awake', '깨어난 에고 주사위', '남색 테두리와 눈 표식으로 구별합니다. 다른 주사위처럼 굴리고 칸에 놓을 수 있습니다.'],
-      ['straight', '이어지는 눈 셋 · 재굴림 주사위', '공격 칸이나 정확히 막은 방어 칸에 1·2·3처럼 이어지는 눈 셋이 포함되면 재굴림 주사위가 열립니다. 배치 순서와 같은 칸의 다른 주사위는 상관없습니다.'],
+      ['straight', '이어지는 눈 셋 · 재굴림 주사위', '같은 칸에 이어지는 눈 셋을 놓으면 재굴림이 열려요. 6·5·4처럼 거꾸로 놓거나 다시 굴린 눈도 돼요. 봉인된 눈은 빠져요.'],
       ['reroll-die', '해금 재굴림', '기본 재굴림을 쓴 뒤 다시 굴릴 주사위 하나만 고르면 버튼을 쓸 수 있습니다. 해금한 뒤에는 전투마다 한 번 쓸 수 있습니다.'],
-      ['unlock', '해금', '한 칸에 조건에 맞는 눈이 둘이면 잠긴 자리가 약하게, 해금 조건을 채우면 밝게 빛납니다. 흐린 방패는 정확 방어가 필요함을, 봉인 아이콘은 필요한 눈이 봉인되었음을 뜻합니다.'],
+      ['unlock', '해금', '한 칸에 조건에 맞는 눈이 둘이면 잠긴 자리가 약하게, 해금 조건을 채우면 밝게 빛납니다. 방패는 에고 주사위에 정확한 방어가 필요하다는 뜻이에요. 봉인 아이콘이 뜨면 필요한 눈이 막힌 거예요.'],
     ],
   },
   {
@@ -93,19 +90,19 @@ export const BATTLE_GUIDE: readonly GuideSection[] = [
   {
     title: '상단 특전 표시',
     entries: [
-      ['parry', '방패 저금', `정확히 막을 때마다 모은 공격 보너스가 ${START_PERKS.shield.step}씩 오릅니다. 공격받는 턴에 정확히 막지 못하면 0으로 돌아갑니다.`],
-      ['sword', '큰 칼', `공격에 넣은 눈을 ${START_PERKS.blade.threshold} 이상 모으면 다음 공격이 ${START_PERKS.blade.multiplier}배가 됩니다. 위쪽 표시는 현재 충전량이며, 두 배 공격을 쓰거나 전투가 바뀌면 0으로 돌아갑니다.`],
-      ['pair', '족보 수집가', `같은 눈을 둘 이상 넣은 칸에 표시한 보너스를 더합니다. 새 족보를 처음 쓸 때마다 ${START_PERKS.collector.step}씩 늘어 최대 ${START_PERKS.collector.maximum}까지 오릅니다.`],
-      ['devil-die', '악마의 재굴림', `기본 재굴림을 쓴 뒤 체력 ${START_PERKS.reroll.cost}을 내고 한 번 더 굴립니다. 숫자는 이번 턴에 남은 추가 재굴림을 보여 줍니다.`],
-      ['die', '홀수 서약', `홀수 눈 주사위를 공격 칸에 놓을 때마다 표시한 만큼 피해를 더합니다. 점선으로 표시된 주사위가 해당합니다.`],
-      ['die-even', '짝수 서약', `짝수 눈 주사위를 공격 칸에 놓을 때마다 표시한 만큼 피해를 더합니다. 점선으로 표시된 주사위가 해당합니다.`],
-      ['wheel', '역습 표식', `룰렛을 돌릴 때마다 아이콘 없는 칸 중 가장 작은 숫자 하나가 ${START_PERKS.counter.step}씩 커집니다. 위쪽에는 이번 등반에서 쌓인 증가량을 표시합니다.`],
+      ['parry', '방패 저금', PERK_TEXT.shield],
+      ['sword', '큰 칼', PERK_TEXT.blade],
+      ['pair', '족보 수집가', PERK_TEXT.collector],
+      ['devil-die', '악마의 재굴림', PERK_TEXT.reroll],
+      ['die', '홀수 서약', oathDescription('odd')],
+      ['die-even', '짝수 서약', oathDescription('even')],
+      ['wheel', '역습 표식', PERK_TEXT.counter],
     ],
   },
   {
     title: '전투 보상',
     entries: [
-      ...Object.values(REWARD_CARDS).map(({ icon, name, description }) => [icon, name, displayEgoDieName(description)] as const),
+      ...(Object.keys(REWARD_CARDS) as Reward[]).map(key => [REWARD_CARDS[key].icon, REWARD_CARDS[key].name, REWARD_TEXT[key]] as const),
       ['completion-seal', '완주 인장', '탑의 문지기를 쓰러뜨리면 결과 화면에 완주 인장을 표시합니다.'],
     ],
   },

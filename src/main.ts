@@ -1,6 +1,6 @@
 import {
   ascentFinished, beginMapAscent, enterMapNode, FIGHT_COUNT, nextAscentFight, resolveAscentTurn,
-  returnToMap, rewardHealth, rewardOffers, spinAscentCounter, takeAscentReward,
+  returnToMap, rewardOffers, spinAscentCounter, takeAscentReward,
 } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import { CURRENT_MAP_RULES, MAP_ENEMY_BADGES, MAP_FLOORS } from './ascent-map.ts'
@@ -8,14 +8,15 @@ import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, write
 import { Arena } from './arena.ts'
 import type { BattleHit } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
-import { BATTLE_GUIDE, displayEgoDieName } from './battle-guide.ts'
+import { BATTLE_GUIDE } from './battle-guide.ts'
+import { oathDescription, PERK_TEXT, REWARD_TEXT } from './reward-copy.ts'
 import { COMPANION_LINES, companionDieIndex } from './companion.ts'
 import { enemyForFight } from './enemy-roster.ts'
 import { loadGameSettings, saveGameSettings, toggleMute } from './game-settings.ts'
 import type { GameSettings } from './game-settings.ts'
 import { MAP_NODE_ICONS, ForkView } from './map-view.ts'
-import { currentTreasureRoom, grantTreasure, healingFor, SHOP_PRICES, shopPrice, treasureCost, treasureEnabled } from './map-treasure.ts'
-import { ARTIFACT_SLOTS, ITEMS, PREPARATIONS, SHARDS, artifactReady, isArtifact, isItem, isPreparation, isShard, itemUses } from './treasure.ts'
+import { currentTreasureRoom, grantTreasure, healingFor, shopPrice, treasureCost } from './map-treasure.ts'
+import { ARTIFACT_SLOTS, ITEMS, PREPARATIONS, SHARDS, artifactReady, isArtifact, itemUses } from './treasure.ts'
 import type { Artifact, ArtifactOptions, CounterChoice } from './treasure.ts'
 import { availableCounterChoices, cancelSeal, chooseHourglass, draftSeal, startHourglass, toggleArtifact, toggleShard } from './treasure-combat.ts'
 import { relicReady, REWARD_CARDS, WEDGE_BONUS } from './rewards.ts'
@@ -69,11 +70,11 @@ const ui = {
   mapHealth: element('map-health'),
   mapFloor: element('map-floor'),
   runCoins: element('run-coins'),
-  battleCoins: element('battle-coins'),
   mapRest: element('map-rest-marker'),
   encounter: document.querySelector<HTMLElement>('.encounter')!,
   fight: element('fight'),
   activePerk: element('active-perk'),
+  bladeMeter: element('blade-meter'),
   companionFlight: element('companion-flight'),
   companionAwakenLine: element('companion-awaken-line'),
   companionSleepLine: element('companion-sleep-line'),
@@ -167,45 +168,30 @@ const unlockInfo = {
   straight: { icon: 'reroll-die', value: '1', label: '전투당 재굴림 주사위 1회' },
 } as const
 
-function oathDescription(parity?: Parity) {
-  const damage = `<strong>피해 ${START_PERKS.oath.bonus}</strong>`
-  if (parity) {
-    const eyes = parity === 'odd' ? '홀수 눈' : '짝수 눈'
-    return `이번 등반에서 <strong>${eyes}</strong> 주사위를 공격에 놓으면, 주사위마다 ${damage}을 더합니다.`
-  }
-  return `등반 시작에 <strong>홀수와 짝수</strong> 중 하나를 고릅니다. 고른 쪽 눈의 주사위를 공격에 놓으면, 주사위마다 ${damage}을 더합니다.`
-}
-
 const perkDisplay = {
   shield: {
     value: `+${START_PERKS.shield.step}`, detail: `${icon('parry')}${icon('sword')}`,
-    label: `정확히 막을 때마다 → 공격 +${START_PERKS.shield.step} 누적 (놓치면 0)`,
-    description: `방어 합이 적의 공격 피해와 같으면 <strong>정확히 막은 것</strong>이며, 그때마다 공격 피해 보너스가 <strong>${START_PERKS.shield.step}</strong>씩 쌓입니다. 적의 공격을 정확히 막지 못하면 모은 보너스가 사라집니다.`,
+    description: PERK_TEXT.shield,
   },
   blade: {
     value: `×${START_PERKS.blade.multiplier}`, detail: `${icon('sword')} ${START_PERKS.blade.threshold}`,
-    label: `공격에 놓은 눈이 ${START_PERKS.blade.threshold} 쌓이면 → 다음 공격 ${START_PERKS.blade.multiplier}배 (쓰거나 전투가 바뀌면 0)`,
-    description: `공격에 놓은 주사위 눈의 합이 <strong>${START_PERKS.blade.threshold} 이상</strong> 쌓이면 다음 공격의 피해가 <strong>${START_PERKS.blade.multiplier}배</strong>가 됩니다. 두 배 공격을 쓰거나 전투가 바뀌면 <strong>0</strong>부터 다시 모읍니다.`,
+    description: PERK_TEXT.blade,
   },
   collector: {
     value: `+${START_PERKS.collector.initial}~${START_PERKS.collector.maximum}`, detail: `${icon('die')}=${icon('die')}`,
-    label: `같은 눈 2개 이상인 칸에 보너스. 처음 ${START_PERKS.collector.initial}, 새 족보(트리플·스트레이트 등) 첫 사용마다 +${START_PERKS.collector.step} (최대 +${START_PERKS.collector.maximum})`,
-    description: `같은 눈 주사위를 <strong>2개 이상</strong> 한 칸에 놓으면 그 칸에 보너스를 더합니다. 보너스는 <strong>${START_PERKS.collector.initial}</strong>에서 시작하며, 같은 눈 셋이나 연속된 눈 셋 같은 새 <strong>족보</strong>를 처음 쓸 때마다 <strong>${START_PERKS.collector.step}</strong>씩 올라 <strong>최대 ${START_PERKS.collector.maximum}</strong>가 됩니다.`,
+    description: PERK_TEXT.collector,
   },
   reroll: {
     value: '+1', detail: `${icon('heart')} −${START_PERKS.reroll.cost}`,
-    label: `매 턴 기본 재굴림 후 → 1회 더 (체력 −${START_PERKS.reroll.cost})`,
-    description: `매 턴 기본 <strong>재굴림</strong>으로 선택한 주사위를 다시 굴린 뒤 <strong>한 번</strong> 더 굴릴 수 있습니다. 추가로 굴릴 때마다 <strong>체력 ${START_PERKS.reroll.cost}</strong>을 잃습니다.`,
+    description: PERK_TEXT.reroll,
   },
   oath: {
     value: `+${START_PERKS.oath.bonus}`, detail: '홀 / 짝',
-    label: `고른 홀·짝 눈을 공격에 놓으면 → 주사위마다 +${START_PERKS.oath.bonus}`,
-    description: oathDescription(),
+    description: PERK_TEXT.oath,
   },
   counter: {
     value: `+${START_PERKS.counter.step}`, detail: `${icon('parry')}${icon('wheel')}`,
-    label: `정확히 막아 룰렛을 돌릴 때마다 → 아이콘 없는 칸 중 가장 작은 숫자 +${START_PERKS.counter.step} (계속 쌓임)`,
-    description: `방어 합이 적의 공격 피해와 같으면 <strong>정확히 막은 것</strong>이며, 반격 피해를 정하는 <strong>룰렛</strong>을 돌릴 수 있습니다. 돌릴 때마다 아이콘 없는 칸 중 가장 작은 숫자 하나가 <strong>${START_PERKS.counter.step}</strong>씩 커져 등반이 끝날 때까지 쌓입니다.`,
+    description: PERK_TEXT.counter,
   },
 } as const
 
@@ -372,7 +358,7 @@ ui.abandonAscent.addEventListener('click', () => {
   })
 })
 
-const arena = new Arena(element('arena'), ui.encounter)
+const arena = new Arena(element('arena'), ui.encounter, ui.intent)
 
 const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
   const button = document.createElement('button')
@@ -501,10 +487,13 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
   ui.extraReroll.classList.toggle('unlock-hint', rerollLocked)
   ui.extraReroll.disabled = selected.size !== 1 || rerollable.length !== 1 || !battle.rerolled || !battle.extraRerollAvailable
   const extra = Number(battle.extraRerollAvailable)
-  ui.extraReroll.innerHTML = `${icon(unlockInfo.straight.icon)}${rerollLocked ? icon('straight') : extra}`
-  const straightHint = renderUnlockProgress(ui.extraReroll, rerollLocked ? pendingUnlock?.straight : undefined)
-  ui.extraReroll.setAttribute('aria-label', rerollLocked ? `잠긴 재굴림 주사위, 이어지는 눈 셋${straightHint}` : `해금 재굴림 (${extra})`)
-  ui.extraReroll.title = '해금 재굴림'
+  const straight = pendingUnlock?.straight
+  const rerollStatus = !rerollLocked ? '열림' : straight?.blocked === 'seal' ? '봉인됨' : straight?.progress === 3 ? '준비' : '잠김'
+  ui.extraReroll.innerHTML = `${icon(unlockInfo.straight.icon)}${rerollLocked ? '' : extra}<span class="reroll-state">${rerollStatus}</span>`
+  const straightHint = renderUnlockProgress(ui.extraReroll, rerollLocked ? straight : undefined)
+  const rerollLabel = rerollLocked ? `재굴림 ${rerollStatus}, 같은 칸에 이어지는 눈 셋${straightHint}` : `재굴림 열림, 이번 전투 ${extra}회 남음`
+  ui.extraReroll.setAttribute('aria-label', rerollLabel)
+  ui.extraReroll.title = rerollLabel
   ui.resolve.disabled = !planning || !canResolveYachtTurn(battle)
 }
 
@@ -574,8 +563,8 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals) {
           const changed = totals.attack >= mechanic.value
           const base = hitNumbers(attackFor(battle, intent).hits)
           const alternate = hitNumbers(attackFor(battle, mechanic.alternate).hits)
-          primary = `${icon('sword')}<strong${changed ? ' class="inactive-intent"' : ''}>${base}</strong>`
-          detail = `${icon('reaction')}${mechanic.value} <span${changed ? ' class="active-intent"' : ''}>${icon('sword')}${alternate}</span>`
+          primary = `${icon('sword')}<strong>${changed ? alternate : base}</strong>`
+          detail = `${icon('reaction')}${mechanic.value} <span>${icon('sword')}${changed ? base : alternate}</span>`
           label = `기본 공격 ${base}, 공격 합 ${mechanic.value} 이상이면 ${alternate}, 현재 피해 ${hits.join(', ')}`
           break
         }
@@ -661,6 +650,7 @@ function updateVital(meter: HTMLMeterElement, label: HTMLElement, hp: number, ma
   const previous = meter.max === max ? meter.value : hp
   meter.max = max
   meter.value = hp
+  if (meter === ui.playerHp) renderHealth(hp, max)
   label.textContent = `${hp}/${max}`
   if (hp >= previous) return
   if (reducedMotion()) {
@@ -784,11 +774,19 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
 
 function renderActivePerk(battle: YachtBattle) {
   const { perk } = battle
+  const blade = bladeChargePreview(battle)
+  ui.bladeMeter.hidden = !blade
+  if (blade) {
+    const meter = ui.bladeMeter.querySelector('meter')!
+    meter.max = START_PERKS.blade.threshold
+    meter.value = blade.ready ? meter.max : blade.nextCharge
+    meter.setAttribute('aria-label', `큰 칼 충전 ${meter.value}/${meter.max}`)
+    ui.bladeMeter.title = `큰 칼 ${meter.value}/${meter.max}`
+  }
   ui.activePerk.hidden = !perk
   if (!perk) return
   const { name, icon: defaultSymbol } = START_PERKS[perk.kind]
   const symbol = perk.kind === 'oath' ? parityIcons[perk.parity] : defaultSymbol
-  const blade = bladeChargePreview(battle)
   let value: string
   switch (perk.kind) {
     case 'shield': value = `+${perk.bonus}`; break
@@ -806,7 +804,7 @@ function renderActivePerk(battle: YachtBattle) {
   const previewLabel = projected
     ? `${blade?.pipsAdded ? `, 공격 눈 합 +${blade.pipsAdded}` : ''}, 배치 후 예상 ${projected}` : ''
   ui.activePerk.innerHTML = `${icon(symbol)}<strong>${value}</strong>${preview}`
-  ui.activePerk.setAttribute('aria-label', `${name} ${value}${previewLabel}, ${perkDisplay[perk.kind].label}`)
+  ui.activePerk.setAttribute('aria-label', `${name} ${value}${previewLabel}, ${perkDisplay[perk.kind].description}`)
   ui.activePerk.title = name
 }
 
@@ -821,27 +819,19 @@ function renderRewardPreview(run: Ascent) {
   })
   ui.confirmReward.disabled = !chosenReward || Boolean(run.battle.loot && !grantTreasure(run, chosenReward!, artifactOptions))
   ui.rewardPreview.hidden = !chosenReward
-  ui.artifactOptions.hidden = !isArtifact(chosenReward)
   if (isArtifact(chosenReward)) renderArtifactOptions(run, chosenReward)
+  else ui.artifactOptions.replaceChildren()
+  ui.artifactOptions.hidden = !ui.artifactOptions.childElementCount
   if (!chosenReward) return
+
   const card = REWARD_CARDS[chosenReward]
-  const current = `${run.battle.playerHp}/${run.maxHp}`
-  const loot = run.battle.loot
   const room = currentTreasureRoom(run)
   const heal = healingFor(chosenReward, room, run.route?.map.rules)
   const cost = treasureCost(room, chosenReward)
   const price = room?.kind === 'shop' ? shopPrice(chosenReward) : 0
-  const itemCount = loot && (isItem(chosenReward) ? loot.items[chosenReward] : isPreparation(chosenReward) ? loot.prep[chosenReward] : isShard(chosenReward) ? loot.shards[chosenReward] : undefined)
-  const target = loot ? [
-    (heal || cost) && `${icon('heart')}${current} ${icon('next')} ${Math.min(run.maxHp, run.battle.playerHp + heal - cost)}/${run.maxHp}`,
-    (isItem(chosenReward) || isPreparation(chosenReward) || isShard(chosenReward)) && `${itemCount ?? 0} ${icon('next')} ${(itemCount ?? 0) + 1}`,
-    artifactOptions.replace && `${icon(REWARD_CARDS[artifactOptions.replace].icon)}${icon('next')}${icon(card.icon)}`,
-    price && `${icon('ascent-coin')}${run.route?.coins} ${icon('next')} ${(run.route?.coins ?? 0) - price}`,
-  ].filter(Boolean).join(' · ') : chosenReward === 'bandage'
-    ? `${current} ${icon('next')} ${rewardHealth(run)}/${run.maxHp}`
-    : chosenReward === 'tuning' ? `${icon('die')}${card.value} · 1/1` : `0/1 ${icon('next')} 1/1`
-  const details = heal ? `체력 ${heal} 회복` : displayEgoDieName(card.description)
-  ui.rewardPreview.innerHTML = `${icon(card.icon)}<span>${card.name}</span><strong>${target}</strong><span class="reward-mobile-description">${details}</span>`
+  const effect = heal ? `고르면 체력을 ${heal} 회복해요.` : REWARD_TEXT[chosenReward]
+  const payment = price ? ` 동전 ${price}개가 들어요.` : cost ? ` 체력 ${cost}을 써요.` : ''
+  ui.rewardPreview.innerHTML = `<strong>${card.name}</strong><span>${effect}${payment}</span>`
 }
 
 function renderArtifactOptions(run: Ascent, artifact: Artifact) {
@@ -852,41 +842,20 @@ function renderArtifactOptions(run: Ascent, artifact: Artifact) {
   ui.artifactOptions.innerHTML = [
     equipped.length === ARTIFACT_SLOTS ? field('replace', '교체할 유물', equipped.map((id) => [id, `${icon(REWARD_CARDS[id].icon)}${REWARD_CARDS[id].name}`])) : '',
     artifact === 'heart-die' ? field('parity', '에고 주사위 눈', [['odd', '홀수'], ['even', '짝수']]) : '',
-    artifact === 'incomplete' ? field('hand', '완성할 족보', (['triple', 'straight'] as const).filter((id) => !run.unlocks.includes(id)).map((id) => [id, id === 'triple' ? '같은 눈 셋' : '이어지는 눈 셋'])) : '',
-    '<button type="button" data-cancel-reward>선택 취소</button>',
+    artifact === 'incomplete' ? field('hand', '맞출 주사위 눈', (['triple', 'straight'] as const).filter((id) => !run.unlocks.includes(id)).map((id) => [id, id === 'triple' ? '같은 눈 셋' : '이어지는 눈 셋'])) : '',
   ].join('')
 }
 
 ui.artifactOptions.addEventListener('click', (event) => {
   const button = (event.target as Element).closest<HTMLButtonElement>('button')
   if (!button || !ascent || !isArtifact(chosenReward)) return
-  if ('cancelReward' in button.dataset) {
-    const previous = chosenReward
-    chosenReward = undefined
-    artifactOptions = {}
-    renderRewardPreview(ascent)
-    ui.rewardCards.querySelector<HTMLButtonElement>(`[data-reward="${previous}"]`)?.focus()
-  } else {
-    const { option, value } = button.dataset
-    artifactOptions = { ...artifactOptions, [option!]: value }
-    renderRewardPreview(ascent)
-    ui.artifactOptions.querySelector<HTMLButtonElement>(`[data-option="${option}"][data-value="${value}"]`)?.focus()
-  }
+  const { option, value } = button.dataset
+  if (!option || !value) return
+  artifactOptions = { ...artifactOptions, [option]: value }
+  renderRewardPreview(ascent)
+  ui.artifactOptions.querySelector<HTMLButtonElement>(`[data-option="${option}"][data-value="${value}"]`)?.focus()
   saveCurrent()
 })
-
-function artifactHint(run: Ascent, id: Artifact) {
-  switch (id) {
-    case 'mirror': return run.battle.perk?.kind === 'counter' ? '역습 표식으로 키운 룰렛 피해를 다음 턴의 공격에 더할 수 있습니다.' : '정확히 막은 다음 턴에 공격할 계획이라면 룰렛 피해를 미룰 수 있습니다.'
-    case 'overflow': return run.battle.perk?.kind === 'shield' ? '정확히 막으면 방패 저금이 쌓이고, 방어가 넘치면 방패가 피해를 저장합니다.' : '예고 피해보다 눈을 더 놓으면 다음 턴 공격을 준비할 수 있습니다.'
-    case 'incomplete': return '등반에서 아직 열지 않은 족보를 완성해 기존 해금을 앞당깁니다.'
-    case 'heart-die': return run.battle.perk?.kind === 'oath' ? '서약과 같은 쪽을 고르면 에고 주사위의 공격 보너스를 받을 수 있습니다.' : '홀수는 1·3·5, 짝수는 2·4·6으로 에고 주사위의 눈을 고정합니다.'
-    case 'hourglass': return '기본 재굴림 뒤 낮은 일반 눈 두 개를 골라 원래 눈과 비교할 수 있습니다.'
-    case 'hammer': return '쇠쐐기나 시작 특전이 더한 공격 합도 망치 문턱에 셉니다.'
-    case 'banner': return '높은 눈을 공격에 몰 때 남은 적 피해를 줄일 수 있습니다.'
-    case 'horn': return '에고 주사위를 공격에 두고 다른 주사위로 방어 합을 맞춥니다.'
-  }
-}
 
 function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   const { battle, maxHp, seed, fight } = run
@@ -898,8 +867,7 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   ui.skipReward.textContent = atRoom ? '떠나기' : '건너뛰기'
   const health = `<span>${icon('heart')}${battle.playerHp}/${maxHp}</span>`
   if (run.route) {
-    const coins = atShop ? `<span>${icon('ascent-coin')}${run.route.coins}</span>` : ''
-    ui.rewardContext.innerHTML = health + coins
+    ui.rewardContext.replaceChildren()
   } else {
     const next = enemyForFight(seed, fight + 1)
     const badge = enemyBadges[next.id]
@@ -908,24 +876,15 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   }
   ui.rewardCards.replaceChildren(...offers.map((reward) => {
     const { name, icon: symbol } = REWARD_CARDS[reward]
-    const heal = (atShop && reward === 'kit' || (run.route?.map.rules ?? 0) >= 3 && reward === 'bandage')
-      ? healingFor(reward, room, run.route?.map.rules) : 0
-    const value = heal ? `+${heal}` : REWARD_CARDS[reward].value
-    const description = heal ? `확정하면 체력을 ${heal} 회복합니다. 최대 체력을 넘길 수 없습니다.`
-      : displayEgoDieName(REWARD_CARDS[reward].description)
     const card = document.createElement('button')
     card.type = 'button'
     card.className = 'reward-card'
     card.classList.toggle('artifact-card', isArtifact(reward))
-    card.classList.toggle('shop-card', atShop)
     card.dataset.reward = reward
-    const cost = treasureCost(room, reward)
-    const details = `${cost ? `체력 ${cost}을 내면 선택할 수 있습니다. ` : ''}${description}${isArtifact(reward) ? ` ${artifactHint(run, reward)}` : ''}`
-    card.disabled = Boolean(battle.loot && !treasureEnabled(run, reward))
-    const price = atShop ? `<span class="reward-price" aria-label="가격 ${shopPrice(reward)}동전">${icon('ascent-coin')}${shopPrice(reward)}</span>` : ''
-    card.innerHTML = `<span class="reward-symbol">${icon(symbol)}${isArtifact(reward) ? '<small>유물</small>' : ''}</span><strong>${name}</strong><b>${value}</b>${price}<span class="reward-description">${details}</span>`
+    card.setAttribute('aria-label', name)
+    card.innerHTML = icon(symbol)
     card.addEventListener('click', () => {
-      chosenReward = reward
+      chosenReward = chosenReward === reward ? undefined : reward
       artifactOptions = {}
       renderRewardPreview(run)
       saveCurrent()
@@ -935,9 +894,10 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   if (atShop && !offers.some(isArtifact)) {
     const emptyStock = document.createElement('button')
     emptyStock.type = 'button'
-    emptyStock.className = 'reward-card artifact-card shop-card'
+    emptyStock.className = 'reward-card artifact-card empty-reward'
     emptyStock.disabled = true
-    emptyStock.innerHTML = `<span class="reward-symbol">${icon('map-reward')}<small>유물</small></span><strong>품절</strong><span class="reward-price" aria-label="가격 ${SHOP_PRICES.artifact}동전">${icon('ascent-coin')}${SHOP_PRICES.artifact}</span>`
+    emptyStock.setAttribute('aria-label', '유물 품절')
+    emptyStock.innerHTML = icon('lock')
     ui.rewardCards.append(emptyStock)
   }
   if (run.route && !atRoom) {
@@ -1105,15 +1065,7 @@ function renderTreasureStrips(battle: YachtBattle, disabled: boolean) {
     return button
   })
   ui.artifactStrip.replaceChildren(...relicButtons)
-  for (let index = loot.equipped.length; index < ARTIFACT_SLOTS; index++) {
-    const empty = document.createElement('span')
-    empty.className = 'artifact-empty'
-    empty.setAttribute('role', 'img')
-    empty.setAttribute('aria-label', `빈 유물 칸 ${index + 1}`)
-    empty.innerHTML = icon('map-reward')
-    ui.artifactStrip.append(empty)
-  }
-  ui.artifactStrip.hidden = false
+  ui.artifactStrip.hidden = !relicButtons.length
 
   const items = [...itemButtons, ...shardButtons, ...prepButtons]
   items.sort((first, second) => Number(second.hasAttribute('aria-pressed')) - Number(first.hasAttribute('aria-pressed')))
@@ -1178,13 +1130,16 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
   ui.treasureControls.hidden = !ui.treasureControls.childElementCount
 }
 
-function renderCoins(balance?: number, inCombat = false) {
-  for (const label of [ui.runCoins, ui.battleCoins]) {
-    label.hidden = balance === undefined || inCombat !== (label === ui.battleCoins)
-    if (label.hidden) continue
-    label.innerHTML = `${icon('ascent-coin')}${balance}`
-    label.setAttribute('aria-label', `보유 동전 ${balance}개`)
-  }
+function renderCoins(balance?: number) {
+  ui.runCoins.hidden = balance === undefined
+  if (balance === undefined) return
+  ui.runCoins.innerHTML = `${icon('ascent-coin')}${balance}`
+  ui.runCoins.setAttribute('aria-label', `보유 동전 ${balance}개`)
+}
+
+function renderHealth(hp: number, max: number) {
+  ui.mapHealth.innerHTML = `${icon('heart')}${hp}/${max}`
+  ui.mapHealth.setAttribute('aria-label', `체력 ${hp}/${max}`)
 }
 
 function render(presentation: 'normal' | 'unlock' = 'normal') {
@@ -1211,9 +1166,10 @@ function render(presentation: 'normal' | 'unlock' = 'normal') {
   ui.perks.hidden = true
   ui.battle.hidden = atMap
   ui.fork.hidden = !atMap
-  ui.mapHealth.hidden = !atMap
+  ui.mapHealth.hidden = !(atMap || inCombat || atRewards)
+  if (!atMap) renderHealth(playerHp, maxHp)
   ui.mapFloor.hidden = !atMap
-  renderCoins(route?.coins, inCombat)
+  renderCoins(route?.coins)
   ui.encounter.hidden = !inCombat
   ui.fight.hidden = atMap || (!inCombat && !atRewards)
   const floor = route ? (route.node === null ? route.completed.length : route.map.byId[route.node].floor) : fight

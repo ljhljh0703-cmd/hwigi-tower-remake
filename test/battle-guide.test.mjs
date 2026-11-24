@@ -10,6 +10,6 @@ test('the battle guide names and describes every icon in the game library', () =
   assert.deepEqual(new Set(entries.map(([icon]) => icon)), icons)
   for (const [, name, description] of entries) {
     assert.ok(name.trim())
-    assert.match(description, /니다\.$/, name)
+    assert.match(description, /(?:니다|요)\.$/, name)
   }
 })

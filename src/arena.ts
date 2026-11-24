@@ -135,6 +135,7 @@ function strikeProgress(elapsed: number, oneWay: number) {
 export class Arena {
   private readonly frame: HTMLElement
   private readonly encounter: HTMLElement
+  private readonly intent: HTMLElement
   private readonly canvas = document.createElement('canvas')
   private readonly context = this.canvas.getContext('2d')!
   private readonly flashCanvas = document.createElement('canvas')
@@ -158,11 +159,14 @@ export class Arena {
   private trauma = 0
   private lastFrame = 0
 
-  constructor(frame: HTMLElement, encounter: HTMLElement) {
+  constructor(frame: HTMLElement, encounter: HTMLElement, intent: HTMLElement) {
     this.frame = frame
     this.encounter = encounter
+    this.intent = intent
     frame.append(this.canvas)
-    new ResizeObserver(this.resize).observe(frame)
+    const layout = new ResizeObserver(this.resize)
+    layout.observe(frame)
+    layout.observe(intent)
     window.addEventListener('resize', this.resize)
     this.watchDensity()
   }
@@ -210,11 +214,22 @@ export class Arena {
     if (!this.canvas.width || !this.floor) return
     const enemy = ENEMY_SPRITES[this.enemyId]
     const actors = this.enemyId === 'escort' ? [hero, ESCORT_SPRITE, enemy] : [hero, enemy]
-    const { placements, shake } = layoutSprites(actors, this.canvas.width, this.density, this.floor - 27 * this.density)
+    const intentWidth = this.intent.offsetWidth
+    const intentHeight = this.intent.offsetHeight
+    const gap = 7
+    const headroom = Math.max(27, intentHeight + gap + 4)
+    const { placements, shake } = layoutSprites(actors, this.canvas.width, this.density, this.floor - headroom * this.density)
     this.placements = placements
     this.shake = shake
     const player = placements.get(hero)!
     const foe = placements.get(enemy)!
+    const headY = (this.floor - enemy.footY * foe.scale) / this.density
+    const x = foe.foot / this.density
+    const half = intentWidth / 2 + 4
+    const center = Math.max(half, Math.min(x, this.canvas.width / this.density - half))
+    this.encounter.style.setProperty('--intent-center', `${center}px`)
+    this.encounter.style.setProperty('--intent-top', `${Math.max(4, headY - intentHeight - gap)}px`)
+    this.encounter.style.setProperty('--enemy-head-y', `${headY}px`)
     this.encounter.style.setProperty('--ground', `${this.floor / this.density}px`)
     this.encounter.style.setProperty('--player-x', `${player.foot * 100 / this.canvas.width}%`)
     this.encounter.style.setProperty('--enemy-x', `${foe.foot * 100 / this.canvas.width}%`)

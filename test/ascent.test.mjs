@@ -321,7 +321,7 @@ test('exact-defense hands take effect on the next planning turn without buffing 
   assert.equal(fourth.battle.dice.length, 4)
   assert.equal(fourth.battle.dice[3], roll(42, 3, 8))
   assert.equal(fourth.battle.slots[3], null)
-  const nextComboTurn = play(fourth, [4, 5, 5, 6], [...allGuard, 'guard'])
+  const nextComboTurn = play(fourth, [5, 5, 5, 6], [...allGuard, 'guard'])
   const straight = play(nextComboTurn, [face - 1, face, face + 1, 1], [...allGuard, 'attack'])
   assert.equal(straight.newUnlock, 'straight')
   assert.equal(straight.battle.extraRerollAvailable, true)

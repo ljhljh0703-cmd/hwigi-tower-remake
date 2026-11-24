@@ -65,6 +65,20 @@ test('unlock previews follow the same attack and exact guard conditions as turn 
   assert.equal(previewYachtHand(filled([2, 2, 2], attack, { enemyIntents: [sealed] })), null)
 })
 
+test('descending and rerolled straights unlock in any one available slot', () => {
+  for (const slot of ['attack', 'guard', 'escort']) {
+    const battle = filled([6, 5, 4, 1], [slot, slot, slot, 'attack'], { escort: { hp: 5, bonus: 2 } })
+    assert.deepEqual(previewUnlockProgress(battle).straight, { progress: 3 })
+    assert.deepEqual(resolveYachtTurn(battle).hand, { hand: 'straight', slot })
+  }
+  const start = startYachtBattle(286)
+  const rerolled = rerollYachtDice(start, [0, 1, 2])
+  const attack = ['attack', 'attack', 'attack']
+  assert.equal(rerolled.rerolled, true)
+  assert.deepEqual(rerolled.dice, [6, 5, 4])
+  assert.deepEqual(resolveYachtTurn({ ...rerolled, slots: attack }).hand, { hand: 'straight', slot: 'attack' })
+})
+
 test('four dice qualify using any unchanged matching trio in the same slot', () => {
   const attack = ['attack', 'attack', 'attack', 'attack']
   for (const [dice, hand] of [[[2, 5, 2, 2], 'triple'], [[3, 3, 3, 3], 'triple'], [[2, 4, 2, 3], 'straight']]) {
@@ -81,17 +95,19 @@ test('four dice qualify using any unchanged matching trio in the same slot', () 
   assert.deepEqual(outcome.hand, { hand: 'triple', slot: 'attack' })
 })
 
-test('a four-die guard uses the total of the whole slot for exact defense', () => {
+test('a four-die guard uses all eyes for the exact block while a straight still unlocks', () => {
   const slots = ['guard', 'guard', 'guard', 'guard']
   for (const [dice, hand, exact] of [
     [[3, 3, 3, 3], 'triple', true], [[3, 3, 3, 4], 'triple', false],
     [[3, 4, 2, 3], 'straight', true], [[3, 4, 2, 5], 'straight', false],
   ]) {
     const battle = filled(dice, slots)
-    const expected = exact ? { hand, slot: 'guard' } : null
+    const earned = exact || hand === 'straight'
+    const expected = earned ? { hand, slot: 'guard' } : null
     assert.deepEqual(previewYachtHand(battle), expected)
     assert.deepEqual(resolveYachtTurn(battle).hand, expected)
-    assert.deepEqual(previewUnlockProgress(battle)[hand], exact ? { progress: 3 } : { progress: 0, blocked: 'guard' })
+    assert.equal(resolveYachtTurn(battle).battle.phase === 'counter', exact)
+    assert.deepEqual(previewUnlockProgress(battle)[hand], earned ? { progress: 3 } : { progress: 0, blocked: 'guard' })
   }
 })
 
@@ -144,12 +160,13 @@ test('a finishing attack skips the three guards and the roulette', () => {
   assert.equal(spinYachtCounter(result.battle), result.battle)
 })
 
-test('awakening substitutions earn no hand, while unchanged faces can still qualify', () => {
+test('awakening cannot supply new hands and preserves a straight already placed', () => {
   const crisis = { seed: 23, playerHp: 6 }
   const attack = ['attack', 'attack', 'attack']
   const changed = resolveYachtTurn(filled([1, 2, 3], attack, crisis))
   assert.deepEqual(changed.battle.lastExchange.awakenedDice, [6, 6, 6])
-  assert.equal(changed.hand, null)
+  assert.deepEqual(changed.hand, { hand: 'straight', slot: 'attack' })
+  assert.equal(resolveYachtTurn(filled([1, 2, 4], attack, crisis)).hand, null)
   assert.deepEqual(resolveYachtTurn(filled([6, 6, 6], attack, crisis)).hand, { hand: 'triple', slot: 'attack' })
 
   const guard = ['guard', 'guard', 'guard']

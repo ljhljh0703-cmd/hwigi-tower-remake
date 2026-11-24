@@ -261,7 +261,16 @@ export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = 
 }
 
 function turnHand(battle: YachtBattle, dice: readonly number[], counter: boolean): UsedHand | null {
-  return usedHand(battle, dice, 'attack') ?? (counter ? usedHand(battle, dice, 'guard') : null)
+  const matching = usedHand(battle, dice, 'attack') ?? (counter ? usedHand(battle, dice, 'guard') : null)
+  if (matching?.hand === 'triple') return matching
+
+  // 연속 눈은 플레이어가 턴을 끝낼 때 놓아 둔 눈으로 검사한다.
+  for (const slot of combatSlots) {
+    if (slot === 'escort' && !battle.escort) continue
+    const hand = usedHand(battle, battle.dice, slot)
+    if (hand?.hand === 'straight') return hand
+  }
+  return null
 }
 
 function draftHand(battle: YachtBattle, dice: readonly number[], counter: boolean): UsedHand | null {
@@ -269,12 +278,13 @@ function draftHand(battle: YachtBattle, dice: readonly number[], counter: boolea
   const hand = battle.loot?.sealHand
   if (!draft || !hand) return null
   const slot = battle.slots[draft.index]
-  if (slot !== 'attack' && !(slot === 'guard' && counter)) return null
-  if (usedHand(battle, dice, slot!)?.hand !== hand) return null
+  if (!slot || (slot === 'escort' && !battle.escort)) return null
+  if (hand === 'triple' && slot !== 'attack' && !(slot === 'guard' && counter)) return null
+  if (usedHand(battle, hand === 'straight' ? battle.dice : dice, slot)?.hand !== hand) return null
   const original = [...dice]
   original[draft.index] = draft.before
   const raw = { ...battle, dice: original }
-  return usedHand(raw, original, slot!)?.hand !== hand ? { hand, slot: slot! } : null
+  return usedHand(raw, original, slot)?.hand !== hand ? { hand, slot } : null
 }
 
 export function canResolveYachtTurn(battle: YachtBattle): boolean {
@@ -292,22 +302,25 @@ export function previewUnlockProgress(battle: YachtBattle): Record<Hand, UnlockH
   const hints: Record<Hand, UnlockHint> = { triple: { progress: 0 }, straight: { progress: 0 } }
   if (battle.phase !== 'assign') return hints
   const mechanic = enemyIntentAt(battle).mechanic
-  for (const slot of ['attack', 'guard'] as const) {
+  for (const slot of combatSlots) {
+    if (slot === 'escort' && !battle.escort) continue
     const placed = facesInSlot(battle.dice, battle.slots, slot)
     const faces = unsealedFaces(placed, mechanic)
     const complete = includedHand(faces)
     if (complete) {
-      hints[complete] = slot === 'attack' || forecastYacht(battle).counter
-        ? { progress: 3 }
-        : { progress: 0, blocked: 'guard' }
+      if (complete === 'straight' || slot === 'attack' || (slot === 'guard' && forecastYacht(battle).counter)) {
+        hints[complete] = { progress: 3 }
+      } else if (slot === 'guard') {
+        hints[complete] = { progress: 0, blocked: 'guard' }
+      }
       continue
     }
     const sealed = mechanic?.kind === 'seal' ? includedHand(placed) : null
-    if (sealed) hints[sealed] = { progress: 0, blocked: 'seal' }
+    if (sealed && (slot !== 'escort' || sealed === 'straight')) hints[sealed] = { progress: 0, blocked: 'seal' }
     if (faces.length < 2) continue
     for (const face of unsealedFaces(dieFaces, mechanic)) {
       const hand = includedHand([...faces, face])
-      if (hand && hints[hand].progress === 0 && !hints[hand].blocked) hints[hand] = { progress: 2 }
+      if (hand && (slot !== 'escort' || hand === 'straight') && hints[hand].progress === 0 && !hints[hand].blocked) hints[hand] = { progress: 2 }
     }
   }
   return hints
