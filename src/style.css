@@ -373,6 +373,18 @@ button:disabled {
   min-block-size: 0;
 }
 
+/* Shift victory rewards up. The spacer can shrink when extra artifact options need room. */
+[data-screen='reward'] #battle:has(.battle-reward) {
+  display: flex;
+  flex-direction: column;
+}
+[data-screen='reward'] #battle:has(.battle-reward)::after {
+  content: '';
+  flex: 0 1 calc(20dvh + 24px);
+  min-block-size: 0;
+}
+#reward-panel.battle-reward { flex: none; margin: auto; }
+
 #reward-panel {
   display: grid;
   width: min(100%, 500px);
@@ -573,20 +585,24 @@ button:disabled {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: .28em;
-  color: #f5f4f2;
+  gap: 4px;
+  color: #fff7ef;
   font-size: clamp(28px, 5vw, 36px);
-  line-height: 1;
+  line-height: .9;
   white-space: nowrap;
-  padding: 4px 8px;
-  background: #201d1bea;
-  border-radius: 4px;
+  -webkit-text-stroke: 3px #211c18;
+  paint-order: stroke fill;
 }
 
-#intent .icon { width: .88em; height: .88em; }
-#intent { flex-direction: column-reverse; gap: 4px; }
-#intent span { display: inline-flex; align-items: center; gap: .28em; }
-#intent .intent-detail { font-size: .57em; color: var(--muted); }
+#intent::before { content: ''; position: absolute; inset: -10px -4px; }
+#intent strong { letter-spacing: -.02em; }
+#intent .icon {
+  width: .72em;
+  height: .72em;
+  filter: drop-shadow(1px 0 #211c18) drop-shadow(-1px 0 #211c18) drop-shadow(0 1px #211c18);
+}
+#intent span { display: inline-flex; align-items: center; gap: 4px; }
+#intent .intent-detail { font-size: .57em; color: #e4d5c5; }
 
 .vital {
   position: absolute;
@@ -1022,6 +1038,7 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 #extra-reroll .icon { width: 1.45em; height: 1.45em; }
 #extra-reroll.unlock-hint > .icon:nth-child(2) { width: 2.35em; }
 #resolve { grid-column: 3; justify-self: end; width: min(100%, 215px); }
+#resolve:not(:disabled) { background: #b04d3e; color: #fff7f4; }
 #reroll-count, #reroll-count > span { display: inline-flex; align-items: center; gap: 4px; }
 #reroll-count > span + span { margin-inline-start: 4px; }
 #reroll-count small { font-size: .73em; color: var(--muted); }
@@ -1260,12 +1277,11 @@ meter::-moz-meter-bar { background: #b5b2ad; }
     inset: 60px auto auto 0;
     justify-content: start;
     inline-size: max-content;
-    max-inline-size: 148px;
+    max-inline-size: 188px;
+    gap: 4px;
   }
-  [data-screen='battle'] .inventory-strip:has(#reward-strip:not([hidden])) {
-    inline-size: 148px;
-    flex-wrap: wrap;
-  }
+  [data-screen='battle'] .inventory-strip:has(#reward-strip:not([hidden])) { inline-size: 188px; }
+  [data-screen='battle'] #artifact-strip, [data-screen='battle'] #reward-strip { gap: 4px; }
   [data-screen='battle'] #artifact-strip { order: -1; }
   [data-screen='battle'] #reward-strip.treasure-items {
     --item-chip-width: 44px;

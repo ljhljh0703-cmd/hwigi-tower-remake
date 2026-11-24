@@ -899,7 +899,7 @@ function renderRewardPreview(run: Ascent) {
   const cost = treasureCost(room, chosenReward)
   const price = room?.kind === 'shop' ? shopPrice(chosenReward) : 0
   const effect = heal ? `고르면 체력을 ${heal} 회복해요.` : REWARD_TEXT[chosenReward]
-  const payment = price ? ` 동전 ${price}개가 들어요.` : ''
+  const payment = price ? ` 동전 ${price}개를 내요.` : ''
   const gain = heal ? `${icon('heart')}+${heal}` : `${icon(card.icon)}+1`
   const exchange = room?.kind === 'event' ? `<span class="reward-exchange"><span aria-label="얻음">얻음 ${gain}</span>${cost ? `<span aria-label="잃음">잃음 ${icon('heart')}−${cost}</span>` : ''}</span>` : ''
   ui.rewardPreview.innerHTML = `<strong>${card.name}</strong><span>${effect}${payment}</span>${exchange}`
@@ -932,6 +932,7 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   const { seed, fight } = run
   const room = currentTreasureRoom(run)
   const atRoom = room?.kind === 'event' || room?.kind === 'shop' || room?.kind === 'rest'
+  ui.rewardPanel.classList.toggle('battle-reward', !atRoom)
   const atShop = room?.kind === 'shop' && (run.route?.map.rules ?? 0) >= 3
   const eventName = room?.event === 'medicine' ? '무너진 약상자' : room?.event === 'pulley' ? '녹슨 도르래' : '빈 깃대'
   ui.rewardHeading.innerHTML = atRoom ? `${icon(MAP_NODE_ICONS[room.kind])} ${room.kind === 'event' ? eventName : room.kind === 'rest' ? '11층 휴식' : atShop ? '상인' : '장터 경유'}` : '전투 보상'
