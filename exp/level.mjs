@@ -29,6 +29,31 @@ function considerWedge(battle) {
   return finishes || breaksCharge || safeDamage ? armed : battle
 }
 
+export function planAscentTurn(opening, policy, perkAware = true, observeRoll) {
+  let battle = opening
+  if (wantsReroll(battle)) {
+    const indices = chooseReroll(battle, policy, false, perkAware)
+    const rerolled = rerollYachtDice(battle, indices)
+    if (rerolled !== battle) observeRoll?.(indices, false)
+    battle = rerolled
+  }
+  if (battle.extraRerollAvailable && battle.rerolled && wantsReroll(battle)) {
+    const [index] = chooseReroll(battle, policy, true, perkAware)
+    if (index !== undefined) {
+      battle = spendExtraReroll(battle, index)
+      observeRoll?.([index], true)
+    }
+  }
+  const cost = battle.perk?.kind === 'reroll' && battle.rerolled ? yachtRerollCost(battle) : null
+  if (cost !== null && battle.playerHp - cost >= hpReserveAfterPayment && wantsReroll(battle)) {
+    const indices = chooseReroll(battle, policy, false, perkAware)
+    const rerolled = rerollYachtDice(battle, indices)
+    if (rerolled !== battle) observeRoll?.(indices, false)
+    battle = rerolled
+  }
+  return considerWedge({ ...battle, slots: chooseAllocation(battle, policy, undefined, perkAware) })
+}
+
 export function playAscent(seed, perk, observeTurn, policy = 'adaptive', perkAware = true, chooseReward) {
   const parity = draw(seed, 0, 21) % 2 ? 'odd' : 'even'
   let ascent = beginAscent(seed, perk, parity)
@@ -47,30 +72,15 @@ export function playAscent(seed, perk, observeTurn, policy = 'adaptive', perkAwa
     for (let turn = 0; turn < turnLimit && ascent.battle.phase === 'assign'; turn++) {
       fightTurns[fight - 1]++
       const opening = ascent.battle
-      let battle = opening
-      if (wantsReroll(battle)) battle = rerollYachtDice(battle, chooseReroll(battle, policy, false, perkAware))
-      if (battle.extraRerollAvailable && battle.rerolled && wantsReroll(battle)) {
-        const [index] = chooseReroll(battle, policy, true, perkAware)
-        if (index !== undefined) battle = spendExtraReroll(battle, index)
-      }
-
-      const cost = perk === 'reroll' && battle.rerolled ? yachtRerollCost(battle) : null
-      if (cost !== null && battle.playerHp - cost >= hpReserveAfterPayment && wantsReroll(battle)) {
-        const rerolled = rerollYachtDice(battle, chooseReroll(battle, policy, false, perkAware))
-        if (rerolled !== battle) {
-          battle = rerolled
-          extraRolls++
-          paidHp += cost
-        }
-      }
-
-      const slots = chooseAllocation(battle, policy, undefined, perkAware)
-      const planning = considerWedge({ ...battle, slots })
-      if (battle.dice.length > DIE_COUNT) {
-        const canFinish = forecastYacht(planning).dealt === battle.enemyHp
+      const planning = planAscentTurn(opening, policy, perkAware)
+      const cost = opening.playerHp - planning.playerHp
+      extraRolls += Number(cost > 0)
+      paidHp += cost
+      if (planning.dice.length > DIE_COUNT) {
+        const canFinish = forecastYacht(planning).dealt === planning.enemyHp
         fourDieTurns++
         finishingTurns += Number(canFinish)
-        if (countYachtTradeoffs(battle) <= 1) {
+        if (countYachtTradeoffs({ ...planning, wedgeArmed: undefined }) <= 1) {
           fewChoices++
           nonFinishingFewChoices += Number(!canFinish)
         }
@@ -79,7 +89,7 @@ export function playAscent(seed, perk, observeTurn, policy = 'adaptive', perkAwa
       const remainingFights = FIGHT_COUNT - fight + Number(resolved.battle.phase !== 'won')
       if (!ascent.unlocks.includes('triple') && resolved.battle.phase !== 'lost' && remainingFights > 0) {
         tripleLandmarks.push({
-          fight, turn: battle.turn, remainingFights, acquired: resolved.newUnlock === 'triple',
+          fight, turn: opening.turn, remainingFights, acquired: resolved.newUnlock === 'triple',
         })
       }
       ascent = { ...resolved, battle: spinYachtCounter(resolved.battle) }

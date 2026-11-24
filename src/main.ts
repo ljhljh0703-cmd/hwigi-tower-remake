@@ -1,6 +1,10 @@
-import { ascentFinished, beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn, rewardHealth, rewardOffers, takeAscentReward } from './ascent.ts'
+import {
+  ascentFinished, availableMapNodes, beginMapAscent, enterMapNode, FIGHT_COUNT, nextAscentFight, resolveAscentTurn,
+  returnToMap, rewardHealth, rewardOffers, spinAscentCounter, takeAscentReward,
+} from './ascent.ts'
 import type { Ascent } from './ascent.ts'
-import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, writeAscentSave } from './ascent-save.ts'
+import { MAP_FLOORS } from './ascent-map.ts'
+import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, writeAscentSave } from './ascent-save.ts'
 import { Arena } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
 import { BATTLE_GUIDE } from './battle-guide.ts'
@@ -8,6 +12,7 @@ import { COMPANION_LINES, companionDieIndex } from './companion.ts'
 import { enemyForFight } from './enemy-roster.ts'
 import { loadGameSettings, saveGameSettings, toggleMute } from './game-settings.ts'
 import type { GameSettings } from './game-settings.ts'
+import { MAP_NODE_ICONS, MAP_NODE_NAMES, MapView } from './map-view.ts'
 import { relicReady, REWARD_CARDS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
 import {
@@ -17,7 +22,7 @@ import type { Exchange, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
 import type { Parity } from './perks.ts'
 import {
-  bladeChargePreview, canReroll, previewUnlockProgress, spinYachtCounter, toggleYachtWedge, tuneYachtDie, yachtAllocationTotals,
+  bladeChargePreview, canReroll, previewUnlockProgress, toggleYachtWedge, tuneYachtDie, yachtAllocationTotals,
   yachtCounterRewards, yachtRerollCost,
 } from './yacht-combat.ts'
 import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
@@ -35,6 +40,7 @@ const ui = {
   lobby: element('lobby'),
   masthead: element('masthead'),
   continueAscent: element<HTMLButtonElement>('continue-ascent'),
+  saveNotice: element('save-notice'),
   newAscent: element<HTMLButtonElement>('new-ascent'),
   returnLobby: element<HTMLButtonElement>('return-lobby'),
   lobbyGuide: element<HTMLButtonElement>('lobby-guide'),
@@ -54,6 +60,11 @@ const ui = {
   perks: element('perks'),
   perkChoices: element('perk-choices'),
   battle: element('battle'),
+  map: element('ascent-map'),
+  mapConfirm: element<HTMLButtonElement>('map-confirm'),
+  mapHealth: element('map-health'),
+  mapFloor: element('map-floor'),
+  mapRest: element('map-rest-marker'),
   encounter: document.querySelector<HTMLElement>('.encounter')!,
   fight: element('fight'),
   activePerk: element('active-perk'),
@@ -233,11 +244,18 @@ const enemyBadges: Record<string, { icon: string; label: string }> = {
 
 let ascent: Ascent | null = null
 let chosenReward: Reward | undefined
+let nodePreview: number | undefined
 const selected = new Set<number>()
 const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
 const sound = new BattleAudio()
 const systemMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 let settings = loadGameSettings()
+const mapView = new MapView(ui.map, { health: ui.mapHealth, floor: ui.mapFloor }, icon, (id) => {
+  if (ascent?.route?.screen !== 'map') return
+  nodePreview = id
+  saveCurrent()
+  mapView.render(ascent, nodePreview, false, reducedMotion())
+})
 
 function reducedMotion() { return settings.reducedMotion ?? systemMotion.matches }
 function animationSpeed() { return settings.speed === 'fast' ? 2 : 1 }
@@ -315,7 +333,7 @@ window.addEventListener('touchend', resumeAudio, { capture: true, passive: true 
 window.addEventListener('keydown', resumeAudio, true)
 
 function saveCurrent(checkpoint = ascent) {
-  if (checkpoint) writeAscentSave({ ascent: checkpoint, selected: [...selected], rewardPreview: chosenReward })
+  if (checkpoint) writeAscentSave({ ascent: checkpoint, selected: [...selected], rewardPreview: chosenReward, nodePreview })
 }
 
 let onConfirm: (() => void) | undefined
@@ -679,10 +697,17 @@ function renderRewardPreview(run: Ascent) {
 
 function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   const { battle, maxHp, seed, fight } = run
-  const next = enemyForFight(seed, fight + 1)
-  const badge = enemyBadges[next.id]
-  const charge = next.intents.some((intent) => intent.chargeThreshold !== undefined)
-  ui.rewardContext.innerHTML = `<span>${icon('heart')}${battle.playerHp}/${maxHp}</span><span title="다음 적: ${badge.label}" aria-label="다음 적: ${badge.label}" role="img">${icon(badge.icon)}${charge && badge.icon !== 'charge' ? icon('charge') : ''}</span>`
+  const health = `<span>${icon('heart')}${battle.playerHp}/${maxHp}</span>`
+  if (run.route) {
+    const next = availableMapNodes(run)
+    const destinations = next.map(({ floor, kind }) => `${floor}층 ${MAP_NODE_NAMES[kind]}`).join(', ')
+    ui.rewardContext.innerHTML = `${health}<span aria-label="다음 길 ${destinations}" role="img">${icon('next')}${next.map(({ kind }) => icon(MAP_NODE_ICONS[kind])).join('')}</span>`
+  } else {
+    const next = enemyForFight(seed, fight + 1)
+    const badge = enemyBadges[next.id]
+    const charge = next.intents.some((intent) => intent.chargeThreshold !== undefined)
+    ui.rewardContext.innerHTML = `${health}<span title="다음 적: ${badge.label}" aria-label="다음 적: ${badge.label}" role="img">${icon(badge.icon)}${charge && badge.icon !== 'charge' ? icon('charge') : ''}</span>`
+  }
   ui.rewardCards.replaceChildren(...offers.map((reward) => {
     const { name, description, value, icon: symbol } = REWARD_CARDS[reward]
     const card = document.createElement('button')
@@ -697,6 +722,16 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
     })
     return card
   }))
+  if (run.route) {
+    for (let seat = offers.length; seat < 3; seat++) {
+      const empty = document.createElement('div')
+      empty.className = 'reward-card empty-reward'
+      empty.setAttribute('role', 'img')
+      empty.setAttribute('aria-label', '빈 보상 자리')
+      empty.innerHTML = icon('map-reward')
+      ui.rewardCards.append(empty)
+    }
+  }
   renderRewardPreview(run)
 }
 
@@ -737,34 +772,48 @@ function renderRewardStrip(battle: YachtBattle, disabled: boolean) {
 
 function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   if (!ascent) return
-  const { battle, fight, enemy, maxHp, unlocks, newUnlock } = ascent
+  const { battle, fight, enemy, maxHp, unlocks, newUnlock, route } = ascent
   const { phase, turn, playerHp, enemyHp } = battle
-  const between = phase === 'won' && fight < FIGHT_COUNT
+  const atMap = presentation === 'normal' && route?.screen === 'map'
+  const atRest = presentation === 'normal' && route?.screen === 'rest'
+  const between = route ? route.screen === 'return' || atRest : phase === 'won' && fight < FIGHT_COUNT
   const finished = ascentFinished(ascent)
   const offers = presentation === 'normal' ? rewardOffers(ascent) : []
-  const atRewards = offers.length > 0
+  const atRewards = presentation === 'normal' && (route ? route.screen === 'reward' : offers.length > 0)
   const atEvent = presentation === 'normal' && !atRewards && (between || finished)
   const atUnlock = presentation === 'unlock' && newUnlock !== null
-  const inCombat = !atEvent && !atUnlock && !atRewards
+  const inCombat = !atMap && !atEvent && !atUnlock && !atRewards
   const showActions = presentation === 'normal' && inCombat
   const companionAwake = unlocks.includes('triple')
-  ui.main.dataset.screen = atRewards ? 'reward' : atEvent ? 'event' : atUnlock ? 'unlock' : 'battle'
+  const openingMap = atMap && ui.main.dataset.screen !== 'map'
+  ui.main.dataset.screen = atMap ? 'map' : atRewards ? 'reward' : atEvent ? 'event' : atUnlock ? 'unlock' : 'battle'
   ui.lobby.hidden = true
   ui.masthead.hidden = false
   ui.returnLobby.disabled = presentation !== 'normal'
   ui.returnLobby.setAttribute('aria-haspopup', 'dialog')
   ui.perks.hidden = true
-  ui.battle.hidden = false
+  ui.battle.hidden = atMap
+  ui.map.hidden = !atMap
+  ui.mapHealth.hidden = !atMap
+  ui.mapFloor.hidden = !atMap
   ui.encounter.hidden = !inCombat
   ui.fight.hidden = !inCombat
-  ui.fight.textContent = `${fight}/${FIGHT_COUNT} 층`
+  const floor = route ? (route.node === null ? route.completed.length : route.map.byId[route.node].floor) : fight
+  const floors = route ? MAP_FLOORS : FIGHT_COUNT
+  ui.fight.textContent = `${floor}/${floors} 층`
   renderActivePerk(battle)
   ui.turn.hidden = !inCombat
-  ui.help.hidden = !inCombat
-  ui.help.disabled = !showActions
+  ui.help.hidden = !inCombat && !atMap
+  ui.help.disabled = !showActions && !atMap
   ui.battleSettings.hidden = !inCombat
   ui.battleSettings.disabled = !showActions
-  ui.soundToggle.hidden = false
+  ui.soundToggle.hidden = atMap
+  if (atMap) {
+    ui.activePerk.hidden = true
+    ui.rewardStrip.hidden = true
+    mapView.render(ascent, nodePreview, openingMap, reducedMotion())
+    return
+  }
   renderRewardStrip(battle, presentation !== 'normal')
   ui.turn.innerHTML = `${icon('turn')}${turn}`
   ui.turn.setAttribute('aria-label', `${turn}턴`)
@@ -808,6 +857,7 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.rewardPanel.hidden = !atRewards
   if (atRewards) renderRewardOffers(ascent, offers)
   ui.ascentEvent.hidden = !atEvent
+  ui.mapRest.hidden = !atRest
   const companionFallsAsleep = atEvent && finished && companionAwake
   ui.ownedUnlocks.hidden = !(between && unlocks.length) && !companionFallsAsleep
   if (companionFallsAsleep) {
@@ -821,13 +871,18 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
     ui.ownedUnlocks.setAttribute('aria-label', unlocks.map((hand) => unlockInfo[hand].label).join(', '))
   }
   showCompanionLine(ui.companionSleepLine, companionFallsAsleep ? COMPANION_LINES.sleep : '')
-  const wins = phase === 'lost' ? fight - 1 : fight
-  ui.eventFloor.innerHTML = between
-    ? `<span>${fight}/${FIGHT_COUNT}</span>${icon('next')}<strong>${fight + 1}/${FIGHT_COUNT}</strong>`
-    : `<strong>${wins}/${FIGHT_COUNT}</strong>`
-  ui.eventFloor.setAttribute('aria-label', between
-    ? `${fight}층에서 ${fight + 1}층으로`
-    : `${FIGHT_COUNT}층 중 ${wins}층 통과`)
+  const wins = route?.completed.length ?? (phase === 'lost' ? fight - 1 : fight)
+  if (atRest) {
+    ui.eventFloor.innerHTML = `<strong>${floor}/${floors}</strong><span>${icon('heart')}${playerHp}/${maxHp}</span>`
+    ui.eventFloor.setAttribute('aria-label', `${floor}층 정비, 체력 ${playerHp}/${maxHp}`)
+  } else if (route && finished && phase === 'lost') {
+    ui.eventFloor.innerHTML = `<span>${icon('map-check')}${wins}/${floors}</span><strong>${icon('critical')}${floor}/${floors}</strong>`
+    ui.eventFloor.setAttribute('aria-label', `완료 ${wins}층, 실패 ${floor}층`)
+  } else {
+    ui.eventFloor.innerHTML = between
+      ? `<span>${floor}/${floors}</span>${icon('next')}<strong>${floor + 1}/${floors}</strong>` : `<strong>${wins}/${floors}</strong>`
+    ui.eventFloor.setAttribute('aria-label', between ? `${floor}층에서 ${floor + 1}층으로` : `${floors}층 중 ${wins}층 통과`)
+  }
   ui.ascentEvent.classList.toggle('finished', finished)
   ui.result.hidden = !atEvent || !finished
   ui.result.textContent = phase === 'won' ? '성공' : '실패'
@@ -836,20 +891,24 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.finalUnlock.hidden = !finalUnlock
   ui.finalUnlock.innerHTML = finalUnlock ? `${icon(finalUnlock.icon)}해금 · ${finalUnlock.label}` : ''
   ui.next.hidden = !between || !atEvent
+  ui.next.innerHTML = route ? `지도 ${icon('map-pin')}` : `다음 전투 ${icon('next')}`
   ui.retry.hidden = !finished
   refreshDice(battle, totals, unlocks)
   arena.refresh(battle, enemy.id)
 }
 
 function refreshLobbyActions() {
-  const hasSave = loadAscentSave() !== null
+  const { checkpoint, invalidMap } = readAscentSave()
+  const hasSave = checkpoint !== null
   ui.continueAscent.hidden = !hasSave
+  ui.saveNotice.hidden = !invalidMap
   ui.newAscent.classList.toggle('primary', !hasSave)
 }
 
 function showLobby(focus = false) {
   ascent = null
   chosenReward = undefined
+  nodePreview = undefined
   selected.clear()
   window.clearTimeout(exchangeTimer)
   clearExchange()
@@ -860,6 +919,7 @@ function showLobby(focus = false) {
   ui.rewardStrip.hidden = true
   ui.perks.hidden = true
   ui.battle.hidden = true
+  ui.map.hidden = true
   refreshLobbyActions()
   if (focus) (ui.continueAscent.hidden ? ui.newAscent : ui.continueAscent).focus()
 }
@@ -867,6 +927,7 @@ function showLobby(focus = false) {
 function showPerks() {
   ascent = null
   chosenReward = undefined
+  nodePreview = undefined
   selected.clear()
   roulette.setVisible(null)
   ui.main.dataset.screen = 'perks'
@@ -876,6 +937,9 @@ function showPerks() {
   ui.returnLobby.disabled = false
   ui.returnLobby.removeAttribute('aria-haspopup')
   ui.battle.hidden = true
+  ui.map.hidden = true
+  ui.mapHealth.hidden = true
+  ui.mapFloor.hidden = true
   ui.activePerk.hidden = true
   ui.fight.hidden = true
   ui.turn.hidden = true
@@ -887,10 +951,9 @@ function showPerks() {
   const offers = offerPerks(seed)
   const begin = (event: MouseEvent, perk: keyof typeof START_PERKS, parity?: Parity) => {
     if (event.isTrusted) sound.activate()
-    ascent = beginAscent(seed, perk, parity)
+    ascent = beginMapAscent(seed, perk, parity)
     saveCurrent()
     render()
-    sound.play('dice-roll')
     focusPhase()
   }
   const buttons = offers.map((perk) => {
@@ -960,9 +1023,10 @@ function place(indices: readonly number[], zone: DropZone) {
 
 function focusPhase() {
   if (!ascent) return
-  if (!ui.rewardPanel.hidden) {
-    const card = ui.rewardCards.querySelector<HTMLButtonElement>('[aria-pressed="true"]') ?? ui.rewardCards.querySelector('button')
-    card?.focus()
+  if (!ui.map.hidden) mapView.focusFirst()
+  else if (!ui.rewardPanel.hidden) {
+    const target = ui.rewardCards.querySelector<HTMLButtonElement>('[aria-pressed="true"]') ?? ui.rewardCards.querySelector('button') ?? ui.skipReward
+    target.focus()
   }
   else if (ascent.battle.phase === 'counter') ui.counter.focus()
   else if (ascent.battle.phase === 'assign') diceButtons[selected.values().next().value ?? 0].focus()
@@ -1040,10 +1104,11 @@ ui.resolve.addEventListener('click', async () => {
 })
 ui.counter.addEventListener('click', async () => {
   if (ui.guide.open || !ascent || ascent.battle.phase !== 'counter' || ui.counter.disabled) return
-  const next = spinYachtCounter(ascent.battle)
+  const checkpoint = spinAscentCounter(ascent)
+  if (checkpoint === ascent) return
+  const next = checkpoint.battle
   const reward = next.lastExchange?.counter
   if (!reward) return
-  const checkpoint = { ...ascent, battle: next }
   saveCurrent(checkpoint)
   const companionJoint = reward.joint && ascent.unlocks.includes('triple')
   ui.help.disabled = true
@@ -1080,13 +1145,29 @@ ui.counter.addEventListener('click', async () => {
   if (next.phase === 'won') sound.play('victory')
   focusPhase()
 })
-ui.next.addEventListener('click', () => {
-  if (!ascent || rewardOffers(ascent).length) return
+ui.mapConfirm.addEventListener('click', () => {
+  if (ui.guide.open || ascent?.route?.screen !== 'map') return
+  const id = nodePreview ?? availableMapNodes(ascent)[0]?.id
+  if (id === undefined) return
+  const next = enterMapNode(ascent, id)
+  if (next === ascent) return
   clearExchange()
-  ascent = nextAscentFight(ascent)
+  ascent = next
+  nodePreview = undefined
   saveCurrent()
   render()
-  sound.play('dice-roll')
+  if (ascent.route?.screen === 'battle') sound.play('dice-roll')
+  focusPhase()
+})
+ui.next.addEventListener('click', () => {
+  if (!ascent || rewardOffers(ascent).length) return
+  const next = ascent.route ? returnToMap(ascent) : nextAscentFight(ascent)
+  if (ascent === next) return
+  clearExchange()
+  ascent = next
+  saveCurrent()
+  render()
+  if (!ascent.route) sound.play('dice-roll')
   focusPhase()
 })
 ui.retry.addEventListener('click', showPerks)
@@ -1098,6 +1179,7 @@ ui.continueAscent.addEventListener('click', (event) => {
   }
   ascent = checkpoint.ascent
   chosenReward = checkpoint.rewardPreview
+  nodePreview = checkpoint.nodePreview
   selected.clear()
   for (const index of checkpoint.selected) selected.add(index)
   if (event.isTrusted) sound.activate()
@@ -1105,7 +1187,8 @@ ui.continueAscent.addEventListener('click', (event) => {
   focusPhase()
 })
 ui.newAscent.addEventListener('click', () => {
-  if (loadAscentSave()) {
+  const { checkpoint, invalidMap } = readAscentSave()
+  if (checkpoint || invalidMap) {
     confirmLobbyAction('새로 하기', '새 등반을 시작하면 저장된 등반을 덮어씁니다.', '새로 하기', showPerks)
   } else showPerks()
 })

@@ -1,18 +1,21 @@
-import { ascentBattleSeed, ascentFinished, FIGHT_COUNT, rewardOffers } from './ascent.ts'
-import type { Ascent } from './ascent.ts'
+import { ascentBattleSeed, ascentFinished, availableMapNodes, FIGHT_COUNT, mapRewardOffers, rewardOffers } from './ascent.ts'
+import type { Ascent, MapProgress } from './ascent.ts'
+import { enemyForMapNode, generateAscentMap, MAP_FIGHTS, MAP_FLOORS, MAP_RULES, mapPathIsValid } from './ascent-map.ts'
 import { COUNTER_REWARDS, DIE_COUNT, PLAYER_HP } from './combat.ts'
 import { enemyForFight } from './enemy-roster.ts'
-import { isRelic, isReward, relicReady } from './rewards.ts'
-import type { CombatRewards, Reward } from './rewards.ts'
+import { BANDAGE_HEAL, isRelic, isReward, relicReady } from './rewards.ts'
+import type { CombatRewards, Reward, RewardChoice } from './rewards.ts'
 import type { Hand, YachtBattle } from './yacht-combat.ts'
 
 export const ASCENT_SAVE_KEY = 'hwigi-tower.ascent'
-const version = 1
+const LEGACY_VERSION = 1
+const MAP_VERSION = 2
 
 export interface AscentSave {
   readonly ascent: Ascent
   readonly selected: readonly number[]
   readonly rewardPreview?: Reward
+  readonly nodePreview?: number
 }
 
 type SaveStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
@@ -93,40 +96,108 @@ function battleRecord(value: unknown, seed: number, enemy: Ascent['enemy']): val
   return escort === undefined || (record(escort) && integer(escort.hp, 1) && integer(escort.bonus))
 }
 
+function sameList(value: unknown, expected: readonly unknown[]): boolean {
+  return Array.isArray(value) && value.length === expected.length && value.every((item, index) => item === expected[index])
+}
+
+function acquiredRewards(rewards: CombatRewards | undefined): readonly Reward[] {
+  return [...(rewards?.relics ?? []), ...(rewards?.tuning ? ['tuning' as const] : [])]
+}
+
+function mapCheckpoint(seed: number, fight: number, value: unknown) {
+  if (!record(value) || value.rules !== MAP_RULES || !Array.isArray(value.completed)) return null
+  const { completed, screen, node, offers } = value
+  if (completed.length >= MAP_FLOORS || !completed.every((id) => integer(id))) return null
+  if (screen !== 'map' && screen !== 'return' && screen !== 'battle' && screen !== 'reward' && screen !== 'rest') return null
+  const onNode = screen === 'battle' || screen === 'reward' || screen === 'rest'
+  if (onNode ? !integer(node) : node !== null) return null
+  const active = typeof node === 'number' ? node : null
+  const map = generateAscentMap(seed)
+  const path = active === null ? completed : [...completed, active]
+  if (!mapPathIsValid(map, path)) return null
+  if (active !== null && (map.byId[active].kind === 'rest') !== (screen === 'rest')) return null
+  if (screen === 'reward' && map.byId[active!].kind === 'boss') return null
+  const lastCompleted = completed.at(-1)
+  if (screen === 'return' && (lastCompleted === undefined || map.byId[lastCompleted].kind === 'rest')) return null
+  const hasOffers = screen === 'reward' || screen === 'return'
+  if (hasOffers ? !Array.isArray(offers) || !offers.every(isReward) : offers !== undefined) return null
+  const fights = path.map((id) => map.byId[id]).filter((room) => room.enemyId)
+  if (fight !== fights.length) return null
+  const battleNode = fights.at(-1) ?? map.nodes[0]
+  const route: MapProgress = { map, completed, screen, node: active, ...(Array.isArray(offers) && { offers }) }
+  return { route, enemy: enemyForMapNode(battleNode)!, fightSeed: battleNode.battleSeed, acquired: value.acquired }
+}
+
+function beforeClaim(battle: YachtBattle, choice: RewardChoice): YachtBattle {
+  if (choice === 'bandage') return { ...battle, playerHp: battle.playerHp - BANDAGE_HEAL }
+  if (!battle.rewards || choice === 'skip') return battle
+  const rewards = choice === 'tuning' ? { ...battle.rewards, tuning: undefined }
+    : { ...battle.rewards, relics: battle.rewards.relics.filter((relic) => relic !== choice) }
+  return { ...battle, rewards }
+}
+
 function readCheckpoint(raw: unknown): AscentSave | null {
-  if (!record(raw) || raw.version !== version || !record(raw.ascent)) return null
+  if (!record(raw) || (raw.version !== LEGACY_VERSION && raw.version !== MAP_VERSION) || !record(raw.ascent)) return null
   const { seed, fight, unlocks, newUnlock, battle, rewardChoice } = raw.ascent
-  if (!integer(seed, 0, 0xffffffff) || !integer(fight, 1, FIGHT_COUNT) || !Array.isArray(unlocks) || !unlocks.every(hand)) return null
+  const isMap = raw.version === MAP_VERSION
+  if (!integer(seed, 0, 0xffffffff) || !integer(fight, isMap ? 0 : 1, isMap ? MAP_FIGHTS : FIGHT_COUNT) || !Array.isArray(unlocks) || !unlocks.every(hand)) return null
   if (new Set(unlocks).size !== unlocks.length || (newUnlock !== null && (!hand(newUnlock) || !unlocks.includes(newUnlock)))) return null
-  const enemy = enemyForFight(seed, fight)
-  const fightSeed = ascentBattleSeed(seed, fight)
+  const mapped = isMap ? mapCheckpoint(seed, fight, raw.ascent.route) : null
+  if (isMap && !mapped) return null
+  const enemy = mapped?.enemy ?? enemyForFight(seed, fight)
+  const fightSeed = mapped?.fightSeed ?? ascentBattleSeed(seed, fight)
   if (!battleRecord(battle, fightSeed, enemy)) return null
   if (rewardChoice !== undefined && (battle.phase !== 'won' || (rewardChoice !== 'skip' && !isReward(rewardChoice)))) return null
   if (isRelic(rewardChoice) && !battle.rewards?.relics.includes(rewardChoice)) return null
   if (rewardChoice === 'tuning' && battle.rewards?.tuning !== 'ready') return null
   if (battle.phase !== 'won' && Boolean(battle.fourthDieUnlocked) !== unlocks.includes('triple')) return null
   if (battle.phase === 'assign' && battle.dice.length !== DIE_COUNT + Number(Boolean(battle.fourthDieUnlocked)) - Number(Boolean(battle.stolenDie))) return null
+  const restoredBattle: YachtBattle = { ...battle, enemyIntents: enemy.intents, enemyAttackGrowth: enemy.attackGrowth }
+  if (mapped) {
+    const { route, acquired } = mapped
+    const expectsVictory = route.screen !== 'battle' && fight > 0
+    if ((battle.phase === 'won') !== expectsVictory || (route.screen === 'return') !== (rewardChoice !== undefined)) return null
+    if (fight === 0 && (battle.phase !== 'assign' || battle.turn !== 1 || battle.playerHp !== PLAYER_HP || battle.lastExchange !== null || unlocks.length)) return null
+    if (!sameList(acquired, acquiredRewards(battle.rewards))) return null
+    if ((battle.enemyAttackBuff ?? 0) > enemy.attackPerUnlock * unlocks.length) return null
+    if (route.screen === 'reward' && !sameList(route.offers, mapRewardOffers(seed, route.node!, restoredBattle))) return null
+    if (route.screen === 'return' && rewardChoice !== undefined) {
+      const prior = beforeClaim(restoredBattle, rewardChoice)
+      if (prior.playerHp < 1 || (rewardChoice !== 'skip' && !route.offers?.includes(rewardChoice))) return null
+      if (!sameList(route.offers, mapRewardOffers(seed, route.completed.at(-1)!, prior))) return null
+    }
+  }
   const { selected } = raw
   if (!Array.isArray(selected) || new Set(selected).size !== selected.length ||
-      !selected.every((index) => battle.phase === 'assign' && integer(index, 0, battle.dice.length - 1))) return null
+      !selected.every((index) => battle.phase === 'assign' && (!mapped || mapped.route.screen === 'battle') && integer(index, 0, battle.dice.length - 1))) return null
 
   const ascent: Ascent = {
     seed, fight, enemy, maxHp: PLAYER_HP, unlocks, newUnlock,
-    battle: { ...battle, enemyIntents: enemy.intents, enemyAttackGrowth: enemy.attackGrowth },
+    battle: restoredBattle,
+    ...(mapped && { route: mapped.route }),
     ...(rewardChoice && { rewardChoice }),
   }
   const { rewardPreview } = raw
   if (rewardPreview !== undefined && !isReward(rewardPreview)) return null
   const previewAvailable = rewardPreview !== undefined && rewardOffers(ascent).includes(rewardPreview)
-  return ascentFinished(ascent) ? null : { ascent, selected, ...(previewAvailable && { rewardPreview }) }
+  const { nodePreview } = raw
+  if (nodePreview !== undefined && !(mapped?.route.screen === 'map' && integer(nodePreview) && mapped.route.map.byId[nodePreview])) return null
+  return ascentFinished(ascent) ? null : { ascent, selected, ...(previewAvailable && { rewardPreview }), ...(typeof nodePreview === 'number' && { nodePreview }) }
 }
 
 export function loadAscentSave(storage?: SaveStorage): AscentSave | null {
+  return readAscentSave(storage).checkpoint
+}
+
+export function readAscentSave(storage?: SaveStorage): { checkpoint: AscentSave | null; invalidMap: boolean } {
   try {
     const data = (storage ?? globalThis.localStorage).getItem(ASCENT_SAVE_KEY)
-    return data === null ? null : readCheckpoint(JSON.parse(data))
+    const raw: unknown = data === null ? null : JSON.parse(data)
+    const checkpoint = readCheckpoint(raw)
+    const invalidMap = !checkpoint && record(raw) && (raw.version === MAP_VERSION || (record(raw.ascent) && raw.ascent.route !== undefined))
+    return { checkpoint, invalidMap }
   } catch {
-    return null
+    return { checkpoint: null, invalidMap: false }
   }
 }
 
@@ -138,17 +209,22 @@ export function clearAscentSave(storage?: Pick<Storage, 'removeItem'>) {
   }
 }
 
-export function writeAscentSave({ ascent, selected, rewardPreview }: AscentSave, storage?: SaveStorage) {
+export function writeAscentSave({ ascent, selected, rewardPreview, nodePreview }: AscentSave, storage?: SaveStorage) {
   try {
     const store = storage ?? globalThis.localStorage
     if (ascentFinished(ascent)) {
       store.removeItem(ASCENT_SAVE_KEY)
       return
     }
-    const { seed, fight, unlocks, newUnlock, battle, rewardChoice } = ascent
+    const { seed, fight, unlocks, newUnlock, battle, rewardChoice, route } = ascent
     const { enemyIntents: _enemyIntents, ...savedBattle } = battle
+    const savedRoute = route && {
+      rules: route.map.rules, completed: route.completed, node: route.node, screen: route.screen,
+      offers: route.offers, acquired: acquiredRewards(battle.rewards),
+    }
     store.setItem(ASCENT_SAVE_KEY, JSON.stringify({
-      version, selected, rewardPreview, ascent: { seed, fight, unlocks, newUnlock, rewardChoice, battle: savedBattle },
+      version: route ? MAP_VERSION : LEGACY_VERSION, selected, rewardPreview, nodePreview,
+      ascent: { seed, fight, unlocks, newUnlock, rewardChoice, battle: savedBattle, route: savedRoute },
     }))
   } catch {
     // The run can still be played when browser storage is unavailable.

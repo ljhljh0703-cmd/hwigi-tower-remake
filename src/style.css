@@ -142,6 +142,7 @@ h1, h2, p { margin: 0; }
 .lobby-actions { grid-row: 3; display: grid; gap: 8px; margin: 0 12px 12px; }
 .lobby-start { min-block-size: 46px; }
 .lobby-start.primary { min-block-size: 62px; font-size: 1.15rem; }
+#save-notice { padding: 8px; color: #f6c795; font-size: .85rem; text-align: center; }
 
 body:has(#battle-guide[open], #lobby-confirm[open], #settings[open]) { overflow: hidden; }
 
@@ -297,6 +298,67 @@ button:disabled {
 
 #battle { display: grid; gap: 14px; }
 
+[data-screen='map'] { block-size: calc(100dvh - var(--page-end)); }
+#map-health { display: inline-flex; align-items: center; gap: 5px; color: #f6d2ad; }
+#map-floor { white-space: nowrap; }
+#ascent-map { display: grid; grid-template-rows: minmax(0, 1fr) auto; flex: 1; min-block-size: 0; width: min(100%, 600px); margin-inline: auto; }
+#map-scroll {
+  min-block-size: 0;
+  overflow: hidden auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--stone-edge);
+  border-block-start: 0;
+  background: linear-gradient(90deg, #292824 0 15%, #363330 15% 16%, #2c2926 16% 100%);
+}
+#map-scroll:focus-visible { outline: 2px solid #f1f0ee; outline-offset: -3px; }
+#map-graph { position: relative; block-size: var(--map-height); }
+.map-lines { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; }
+.map-lines line { vector-effect: non-scaling-stroke; stroke: #8d8173; stroke-width: 1.7; }
+.map-lines .locked { stroke: #85796d; stroke-dasharray: 4 5; }
+.map-lines .missed { stroke: #6a635b; stroke-width: 1; }
+.map-lines .visited, .map-lines .available { stroke: #f0bf8d; stroke-width: 2.5; }
+.map-level, .map-node { position: absolute; inset-block-start: var(--y); }
+.map-level { inset-inline-start: 7%; translate: -50% -50%; color: #d9c9ba; font-size: .85rem; }
+.map-node {
+  inset-inline-start: var(--x);
+  translate: -50% -50%;
+  display: grid;
+  place-items: center;
+  inline-size: 56px;
+  block-size: 54px;
+  padding: 0;
+  border: 1px solid #b09b89;
+  background: #433a31;
+  color: #f3d7bc;
+  font-size: 1.35rem;
+}
+.map-node.locked { border-style: dashed; background: #36322e; color: #c9baaa; }
+.map-node.missed { color: #b4a79b; border-color: #81786e; background: repeating-linear-gradient(132deg, #4a443d 0 2px, #332e2a 2px 7px); }
+.map-node.current { border: 4px double #f3c490; }
+.map-node.available { border: 2px solid #eabc90; }
+.map-node[aria-pressed='true'] { outline: 2px solid #f6d2ad; outline-offset: 3px; background-color: #5b4737; }
+.map-node:focus-visible { outline: 2px solid #fff1e1; outline-offset: 4px; }
+.map-marker {
+  position: absolute;
+  inset: auto -5px -4px auto;
+  display: grid;
+  place-items: center;
+  inline-size: 20px;
+  block-size: 20px;
+  border: 1px solid #8a7664;
+  border-radius: 50%;
+  background: #302923;
+  font-size: .75rem;
+}
+.map-start { inline-size: 44px; block-size: 44px; }
+.map-destination { display: flex; align-items: stretch; gap: 10px; padding-block: 9px 0; }
+#map-preview { display: flex; flex: 1; align-items: center; flex-wrap: wrap; gap: 5px 12px; min-block-size: 62px; border: 1px solid var(--stone-edge); padding: 8px 10px; background: var(--stone-bed); }
+#map-preview > * { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: .9rem; }
+#map-preview strong { color: #f6c795; }
+#map-confirm { flex: none; min-inline-size: 77px; }
+#map-rest-marker { display: grid; place-items: center; inline-size: 90px; block-size: 90px; border: 3px double #dbaa7d; background: #44372d; color: #f6c795; font-size: 2.7rem; }
+#event-floor > :is(span, strong) { display: inline-flex; align-items: center; gap: 5px; }
+
 [data-screen='event'] #battle, [data-screen='unlock'] #battle, [data-screen='reward'] #battle {
   flex: 1;
   align-content: center;
@@ -342,6 +404,7 @@ button:disabled {
 .reward-card b { color: #f6c795; }
 .reward-description { grid-column: 1 / -1; font-size: .85rem; font-weight: 450; line-height: 1.45; color: #e2ddd5; }
 .reward-card[aria-pressed='true'] { border-color: #f6c795; background: #51443a; }
+.empty-reward { display: grid; place-items: center; grid-template: none; border-style: dashed; color: var(--muted); opacity: .55; }
 
 .reward-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 #reward-preview {
