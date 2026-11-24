@@ -92,60 +92,46 @@ h1, h2, p { margin: 0; }
 
 #lobby {
   display: grid;
-  grid-template-columns: minmax(0, 540px);
+  grid-template-columns: minmax(0, 360px);
   justify-content: center;
   align-content: center;
   flex: 1;
-  gap: 14px;
-  padding-block: clamp(14px, 4vh, 36px);
+  padding-block: 14px;
 }
 
 .lobby-scene {
-  --chamber-scale: 6;
-  --floor-gap: 55px;
   position: relative;
+  isolation: isolate;
   display: grid;
-  justify-items: center;
-  align-items: start;
-  min-block-size: clamp(300px, 58dvh, 510px);
+  grid-template-rows: 30% 1fr auto;
+  min-block-size: 640px;
   overflow: clip;
-  border: 1px solid var(--stone-edge);
-  border-block-start-color: #b3aaa0;
+  outline: 1px solid var(--stone-edge);
   background-color: #343430;
-  background-image: url('/art/chamber.png');
-  background-size: calc(99px * var(--chamber-scale)) calc(176px * var(--chamber-scale));
-  background-position: center bottom calc(var(--floor-gap) - 40px * var(--chamber-scale));
-  background-repeat: no-repeat;
-  image-rendering: pixelated;
 }
 
-.lobby-scene::before {
-  content: '';
+.lobby-key {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, #201e1bcd, transparent 56%);
+  z-index: -1;
+  inset: 0 auto auto 50%;
+  translate: -50% 0;
+  inline-size: 360px;
+  block-size: 639px;
+  image-rendering: pixelated;
 }
 
 #lobby-title {
-  position: relative;
-  margin-block-start: clamp(38px, 9dvh, 84px);
+  align-self: start;
+  margin-block-start: 28px;
+  margin-inline: 20px;
   color: #f2e7d5;
-  font-size: clamp(3.25rem, 11vw, 5.5rem);
+  font-size: clamp(1.75rem, 8.8vw, 2.15rem);
   font-weight: 800;
-  letter-spacing: .025em;
-  line-height: 1;
-  text-shadow: 0 4px #201e1b;
+  line-height: 1.16;
+  text-shadow: 0 2px #201e1b;
 }
 
-.lobby-hero {
-  position: absolute;
-  inset-block-end: calc(var(--floor-gap) - 4px);
-  inline-size: 128px;
-  block-size: 160px;
-  image-rendering: pixelated;
-}
-
-.lobby-actions { display: grid; gap: 8px; }
+.lobby-actions { grid-row: 3; display: grid; gap: 8px; margin: 0 12px 12px; }
 .lobby-start { min-block-size: 46px; }
 .lobby-start.primary { min-block-size: 62px; font-size: 1.15rem; }
 .lobby-utilities { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -243,7 +229,7 @@ button:disabled {
 }
 
 [data-screen='perks'] .masthead { min-block-size: 82px; }
-[data-screen='perks'] .masthead-title { color: inherit; font-size: 1.75rem; }
+[data-screen='perks'] .masthead-title { color: inherit; font-size: clamp(1.05rem, 5vw, 1.75rem); }
 [data-screen='perks'] { gap: 16px; }
 
 #perks, .event-panel {
@@ -962,7 +948,6 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 }
 
 @media (max-width: 420px) {
-  .lobby-scene { --chamber-scale: 4; }
   .masthead { gap: 5px; }
   .run-status { gap: 5px; }
 }
