@@ -348,6 +348,7 @@ button:disabled {
 #reward-strip { display: flex; justify-content: end; gap: 5px; padding-block: 4px; }
 #reward-strip button { gap: 4px; min-inline-size: 44px; padding-inline: 6px; font-size: .78rem; }
 #reward-strip .spent { color: var(--muted); }
+#reward-strip button[aria-pressed='true'] { border-color: #f6c795; background: #51443a; color: #f6c795; }
 #tuning-controls { display: flex; justify-content: center; align-items: center; gap: 6px; color: #f6c795; }
 #tuning-controls button { min-inline-size: 44px; padding-inline: 6px; }
 
@@ -586,6 +587,7 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 .slot-target #attack-multiplier { color: #f2ac98; }
 .slot-target strong { font-size: 2rem; line-height: 1; }
 .slot-target .slot-bonus { color: #f6c795; font-size: .78rem; }
+#wedge-bonus:not([hidden]) { display: inline-flex; gap: 2px; align-items: center; }
 
 .dice-row {
   display: flex;

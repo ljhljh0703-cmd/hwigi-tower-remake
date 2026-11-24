@@ -3,7 +3,7 @@ import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn, takeAscen
 import { DIE_COUNT, draw, intentOf } from '../src/combat.ts'
 import { offerPerks, pickOfferedPerk, START_PERKS } from '../src/perks.ts'
 import {
-  forecastYacht, rerollYachtDice, spendExtraReroll, spinYachtCounter, yachtRerollCost,
+  forecastYacht, rerollYachtDice, spendExtraReroll, spinYachtCounter, toggleYachtWedge, yachtRerollCost,
 } from '../src/yacht-combat.ts'
 import { chooseAllocation, chooseReroll, countYachtTradeoffs } from '../src/yacht-policy.ts'
 
@@ -15,6 +15,18 @@ const turnLimit = 120
 function wantsReroll(battle) {
   const { dealt, damage, chargeBroken } = forecastYacht(battle, battle.dice.map(() => 'attack'))
   return !chargeBroken && (dealt < battle.enemyHp || damage >= battle.playerHp)
+}
+
+function considerWedge(battle) {
+  const armed = toggleYachtWedge(battle)
+  if (armed === battle) return battle
+  const before = forecastYacht(battle)
+  const after = forecastYacht(armed)
+  if (after.damage >= battle.playerHp || before.dealt === battle.enemyHp) return battle
+  const finishes = after.dealt === battle.enemyHp
+  const breaksCharge = after.chargeBroken && !before.chargeBroken
+  const safeDamage = after.dealt > before.dealt && after.damage <= before.damage && (!before.counter || after.counter)
+  return finishes || breaksCharge || safeDamage ? armed : battle
 }
 
 export function playAscent(seed, perk, observeTurn, policy = 'adaptive', perkAware = true, chooseReward) {
@@ -53,8 +65,9 @@ export function playAscent(seed, perk, observeTurn, policy = 'adaptive', perkAwa
       }
 
       const slots = chooseAllocation(battle, policy, undefined, perkAware)
+      const planning = considerWedge({ ...battle, slots })
       if (battle.dice.length > DIE_COUNT) {
-        const canFinish = forecastYacht(battle, slots).dealt === battle.enemyHp
+        const canFinish = forecastYacht(planning).dealt === battle.enemyHp
         fourDieTurns++
         finishingTurns += Number(canFinish)
         if (countYachtTradeoffs(battle) <= 1) {
@@ -62,7 +75,6 @@ export function playAscent(seed, perk, observeTurn, policy = 'adaptive', perkAwa
           nonFinishingFewChoices += Number(!canFinish)
         }
       }
-      const planning = { ...battle, slots }
       const resolved = resolveAscentTurn({ ...ascent, battle: planning })
       const remainingFights = FIGHT_COUNT - fight + Number(resolved.battle.phase !== 'won')
       if (!ascent.unlocks.includes('triple') && resolved.battle.phase !== 'lost' && remainingFights > 0) {

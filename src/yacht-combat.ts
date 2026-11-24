@@ -6,6 +6,7 @@ import {
 import type { Battle, Enemy, EnemyMechanic, Slot } from './combat.ts'
 import { collectorBonus, START_PERKS } from './perks.ts'
 import type { CollectedHand, PerkState } from './perks.ts'
+import { relicReady, WEDGE_BONUS } from './rewards.ts'
 import type { CombatRewards, Relic } from './rewards.ts'
 
 export type Hand = 'triple' | 'straight'
@@ -27,6 +28,7 @@ export interface YachtBattle extends Battle {
   readonly paidRerollSpent?: true
   readonly fourthDieUnlocked?: true
   readonly rewards?: CombatRewards
+  readonly wedgeArmed?: true
 }
 
 const FOURTH_DIE_CHANNEL = 8
@@ -146,6 +148,12 @@ export function tuneYachtDie(battle: YachtBattle, change: -1 | 1): YachtBattle {
   return { ...battle, dice: [next, ...dice.slice(1)], rewards: { ...rewards, tuning: 'spent' } }
 }
 
+export function toggleYachtWedge(battle: YachtBattle): YachtBattle {
+  if (battle.phase !== 'assign' || !relicReady(battle.rewards, 'wedge')) return battle
+  const { wedgeArmed, ...rest } = battle
+  return wedgeArmed ? rest : { ...rest, wedgeArmed: true }
+}
+
 function usedHand(battle: YachtBattle, dice: readonly number[], slot: Slot): UsedHand | null {
   const unchanged = dice.flatMap((face, index) => battle.slots[index] === slot && face === battle.dice[index] ? [face] : [])
   const hand = classifyYachtHand(battle, unchanged)
@@ -196,22 +204,22 @@ export function yachtAllocationTotals(battle: YachtBattle, slots = battle.slots,
     }
   } else if (perk?.kind === 'shield' && totals.attack > 0) {
     totals.attack += perk.bonus
-  } else if (perk?.kind === 'blade' && perk.charge >= START_PERKS.blade.threshold) {
-    return allocationPower(battle, totals, START_PERKS.blade.multiplier)
   }
-  return allocationPower(battle, totals)
+  const bladeMultiplier = perk?.kind === 'blade' && perk.charge >= START_PERKS.blade.threshold
+    ? START_PERKS.blade.multiplier : undefined
+  const powered = allocationPower(battle, totals, bladeMultiplier)
+  return battle.wedgeArmed ? { ...powered, attack: powered.attack + WEDGE_BONUS } : powered
 }
 
 export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = battle.dice) {
   const totals = yachtAllocationTotals(battle, slots, dice)
   const base = forecast(battle, slots, dice, totals)
-  const usedRelics: Relic[] = []
+  const usedRelics: Relic[] = battle.wedgeArmed ? ['wedge'] : []
   const { rewards } = battle
   if (!rewards?.relics.length || base.dealt === battle.enemyHp) return { ...base, usedRelics }
-  const ready = (relic: Relic) => rewards.relics.includes(relic) && !rewards.spent.includes(relic)
 
   let { hits, damage, dealt } = base
-  if (ready('buckle') && slots.filter((slot) => slot === 'guard').length >= 2) {
+  if (relicReady(rewards, 'buckle') && slots.filter((slot) => slot === 'guard').length >= 2) {
     const incoming = attackFor(battle, base.intent, Boolean(battle.escort && base.escortDealt < battle.escort.hp))
     if (totals.guard === incoming.totalDamage - 1) {
       const residual = hits.findIndex((hit) => hit > 0)
@@ -223,13 +231,12 @@ export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = 
   if (damage < battle.playerHp) {
     const faces = facesInSlot(dice, slots, 'attack', base.intent.mechanic)
     const addDamage = (relic: Relic, bonus: number) => {
-      if (!ready(relic) || dealt === battle.enemyHp) return
+      if (!relicReady(rewards, relic) || dealt === battle.enemyHp) return
       dealt = Math.min(battle.enemyHp, dealt + bonus)
       usedRelics.push(relic)
     }
     if (faces.length === 2 && faces.every((face) => face > 0) && faces[0] % 2 !== faces[1] % 2) addDamage('weight', 2)
     if (battle.rerolled && faces.length === 1 && faces[0] >= 4) addDamage('rewind', 2)
-    if (base.chargeBroken) addDamage('wedge', 3)
   }
   return { ...base, dealt, hits, damage, usedRelics }
 }
@@ -336,7 +343,7 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
   const enemyHp = battle.enemyHp - result.dealt
   const effect = enemyHp > 0 && playerHp > 0 ? result.intent.mechanic : undefined
   const escortHp = (battle.escort?.hp ?? 0) - result.escortDealt
-  const { stolenDie: previousTheft, escort: previousEscort, weakenedStrikeTurn: _weakenedStrikeTurn, ...rest } = battle
+  const { stolenDie: previousTheft, escort: previousEscort, weakenedStrikeTurn: _weakenedStrikeTurn, wedgeArmed: _wedgeArmed, ...rest } = battle
   const stolenDie = effect?.kind === 'steal' && !previousTheft
     ? { remaining: effect.value } : damageToStolenDie(battle, result.dealt)
   const escort = previousEscort && escortHp > 0 ? { ...previousEscort, hp: escortHp }

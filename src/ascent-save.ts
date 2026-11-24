@@ -2,8 +2,8 @@ import { ascentBattleSeed, ascentFinished, FIGHT_COUNT, rewardOffers } from './a
 import type { Ascent } from './ascent.ts'
 import { COUNTER_REWARDS, DIE_COUNT, PLAYER_HP } from './combat.ts'
 import { enemyForFight } from './enemy-roster.ts'
-import { isRelic, isReward } from './rewards.ts'
-import type { Reward } from './rewards.ts'
+import { isRelic, isReward, relicReady } from './rewards.ts'
+import type { CombatRewards, Reward } from './rewards.ts'
 import type { Hand, YachtBattle } from './yacht-combat.ts'
 
 export const ASCENT_SAVE_KEY = 'hwigi-tower.ascent'
@@ -64,7 +64,7 @@ function exchange(value: unknown) {
 
 function interference(value: unknown) { return value === 'lock' || value === 'freeze' }
 
-function combatRewards(value: unknown) {
+function combatRewards(value: unknown): value is CombatRewards | undefined {
   if (value === undefined) return true
   if (!record(value)) return false
   const { relics, spent, tuning } = value
@@ -83,6 +83,7 @@ function battleRecord(value: unknown, seed: number, enemy: Ascent['enemy']): val
   if (!slots.every((slot) => slot === 'attack' || slot === 'guard' || slot === 'escort' || (phase === 'assign' && slot === null))) return false
   if (lastExchange === null ? phase !== 'assign' : !exchange(lastExchange)) return false
   if (!integer(value.enemyAttackBuff) || value.enemyAttackGrowth !== enemy.attackGrowth || !perk(value.perk) || !combatRewards(value.rewards)) return false
+  if (value.wedgeArmed !== undefined && (value.wedgeArmed !== true || phase !== 'assign' || !relicReady(value.rewards, 'wedge'))) return false
   if (![value.extraRerollAvailable, value.rerolled, value.awakened].every((flag) => typeof flag === 'boolean')) return false
   if (![value.extraRerollSpent, value.paidRerollSpent, value.fourthDieUnlocked].every((flag) => flag === undefined || flag === true)) return false
   if (value.nextInterference !== undefined && !interference(value.nextInterference)) return false

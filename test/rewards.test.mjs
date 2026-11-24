@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn, rewardOffers, takeAscentReward } from '../src/ascent.ts'
 import { loadAscentSave, writeAscentSave } from '../src/ascent-save.ts'
-import { resolveYachtTurn, spinYachtCounter, tuneYachtDie } from '../src/yacht-combat.ts'
+import { chargedStrikePreview, incomingAttack } from '../src/combat.ts'
+import { forecastYacht, resolveYachtTurn, spinYachtCounter, toggleYachtWedge, tuneYachtDie, yachtAllocationTotals } from '../src/yacht-combat.ts'
 
 function won(seed = 2, perk = 'shield', playerHp = 14) {
   const run = beginAscent(seed, perk)
@@ -10,33 +11,41 @@ function won(seed = 2, perk = 'shield', playerHp = 14) {
     lastExchange: { turn: 1, dealt: 12, hitsTaken: [], counter: null, awakened: false } } }
 }
 
-test('the three seats prioritize the starting perk, replace ineligible cards, and gate the wedge', () => {
+test('the three seats prioritize the starting perk and replace ineligible cards', () => {
   assert.deepEqual(rewardOffers(won()), ['buckle', 'tuning', 'bandage'])
   assert.deepEqual(rewardOffers(won(4, 'collector', 22)), ['weight', 'tuning', 'buckle'])
-  assert.deepEqual(rewardOffers(won(4, 'counter', 15)), ['buckle', 'tuning', 'weight'])
+  assert.deepEqual(rewardOffers(won(4, 'counter', 15)), ['buckle', 'tuning', 'rewind'])
   const run = won(2, 'shield', 22)
   const testInventory = { ...run, battle: { ...run.battle, rewards: { tuning: 'spent', relics: ['weight'], spent: ['weight'] } } }
-  assert.deepEqual(rewardOffers(testInventory), ['buckle', 'wedge', 'rewind']) // Seed 2 leads to the charging vitality elite.
-  assert.deepEqual(rewardOffers({ ...testInventory, seed: 4 }), ['buckle', 'rewind']) // Seed 4 leads to reaction.
+  assert.deepEqual(rewardOffers(testInventory), ['buckle', 'rewind', 'wedge'])
   assert.deepEqual(rewardOffers({ ...run, fight: FIGHT_COUNT }), [])
 })
 
-test('a charging opponent gives the wedge first priority only for vacant seats and clears obsolete previews', () => {
-  const run = won(2, 'shield', 22)
+test('the wedge fills vacant seats without a charging opponent and is not offered again once held', () => {
+  const run = won(7, 'shield', 22)
   assert.deepEqual(rewardOffers(run), ['buckle', 'tuning', 'wedge'])
-  assert.deepEqual(rewardOffers(won(2, 'shield', 14)), ['buckle', 'tuning', 'bandage'])
-  assert.deepEqual(rewardOffers(won(4, 'shield', 22)), ['buckle', 'tuning', 'weight'])
-
   const carried = nextAscentFight(takeAscentReward(run, 'wedge'))
+  assert.equal(carried.enemy.id, 'reaction')
+  assert.deepEqual(rewardOffers(won(8, 'shield', 22)), ['buckle', 'tuning', 'wedge'])
+  assert.deepEqual(rewardOffers(won(7, 'shield', 14)), ['buckle', 'tuning', 'bandage'])
   const eliteVictory = { ...carried, battle: { ...carried.battle, phase: 'won', enemyHp: 0 } }
-  assert.deepEqual(rewardOffers(eliteVictory), ['buckle', 'tuning', 'weight'])
+  assert.deepEqual(rewardOffers(eliteVictory), ['buckle', 'tuning', 'rewind'])
+})
 
+test('a save restores an armed wedge and clears an obsolete reward preview', () => {
+  const run = won(7, 'shield', 22)
   let raw = null
   const store = { getItem: () => raw, setItem: (_, value) => { raw = value } }
   writeAscentSave({ ascent: run, selected: [], rewardPreview: 'weight' }, store)
   const restored = loadAscentSave(store)
   assert.deepEqual(restored.ascent, run)
   assert.equal(restored.rewardPreview, undefined)
+  const next = nextAscentFight(takeAscentReward(restored.ascent, 'wedge'))
+  const armed = { ...next, battle: toggleYachtWedge(next.battle) }
+  writeAscentSave({ ascent: armed, selected: [] }, store)
+  assert.deepEqual(loadAscentSave(store).ascent, armed)
+  writeAscentSave({ ascent: { ...armed, battle: { ...armed.battle, rewards: { relics: ['wedge'], spent: ['wedge'] } } }, selected: [] }, store)
+  assert.equal(loadAscentSave(store), null)
 })
 
 test('reward previews and confirmed claims survive a save with no repeat grant', () => {
@@ -86,7 +95,7 @@ function turn(relics, dice, slots, intent, extra = {}) {
 
 const impact = { id: 'impact', name: '공격', hits: [7], matches: () => true }
 
-test('attack relics fire after the base reaction and charge checks and spend each use once', () => {
+test('weight and rewind add damage after the base reaction check and spend each use once', () => {
   const alternate = { ...impact, hits: [2, 2] }
   const reaction = { ...impact, mechanic: { kind: 'reaction', value: 8, alternate } }
   const weight = turn(['weight'], [3, 4, 2], ['attack', 'attack', 'guard'], reaction)
@@ -99,16 +108,53 @@ test('attack relics fire after the base reaction and charge checks and spend eac
   const rewind = turn(['rewind'], [4, 3, 3], ['attack', 'guard', 'guard'], impact, { rerolled: true })
   assert.equal(resolveYachtTurn(rewind).battle.lastExchange.dealt, 6)
   assert.deepEqual(resolveYachtTurn({ ...rewind, rerolled: false }).battle.rewards.spent, [])
+})
+
+test('the wedge uses the displayed attack total for charge, commits once, and resets on the next floor', () => {
   const charge = { ...impact, id: 'charge', hits: [], chargeThreshold: 12 }
-  const wedge = turn(['wedge'], [4, 4, 4], ['attack', 'attack', 'attack'], charge)
-  const broken = resolveYachtTurn(wedge).battle
-  assert.equal(broken.lastExchange.dealt, 15)
+  const wedge = turn(['wedge'], [4, 3, 2], ['attack', 'attack', 'attack'], charge)
+  assert.equal(forecastYacht(wedge).chargeBroken, false)
+  const armed = toggleYachtWedge(wedge)
+  const totals = yachtAllocationTotals(armed)
+  assert.equal(totals.attack, 12)
+  assert.equal(chargedStrikePreview(armed, totals).weakened, true)
+  assert.deepEqual(toggleYachtWedge(armed), wedge)
+  const incomplete = { ...armed, slots: ['attack', 'attack', null] }
+  assert.equal(resolveYachtTurn(incomplete).battle, incomplete)
+
+  const broken = resolveYachtTurn(armed).battle
+  assert.equal(broken.lastExchange.dealt, 12)
   assert.equal(broken.lastExchange.chargeBroken, true)
   assert.equal(broken.weakenedStrikeTurn, 2)
-  assert.deepEqual(resolveYachtTurn({ ...wedge, dice: [4, 4, 3] }).battle.rewards.spent, [])
+  assert.deepEqual(broken.rewards.spent, ['wedge'])
+  assert.equal(broken.wedgeArmed, undefined)
+  assert.equal(toggleYachtWedge(broken), broken)
   const intermission = won()
   const next = nextAscentFight({ ...intermission, battle: { ...intermission.battle, rewards: broken.rewards } })
   assert.deepEqual(next.battle.rewards, { relics: ['wedge'], spent: [] })
+  assert.equal(toggleYachtWedge(next.battle).wedgeArmed, true)
+})
+
+test('the wedge changes reaction at the displayed threshold and its flat bonus works on guard-only and lethal turns', () => {
+  const alternate = { ...impact, hits: [2, 2] }
+  const reaction = { ...impact, mechanic: { kind: 'reaction', value: 10, alternate } }
+  const ready = turn(['wedge'], [4, 3, 2], ['attack', 'attack', 'guard'], reaction)
+  const armed = toggleYachtWedge(ready)
+  assert.deepEqual(forecastYacht(ready).hits, [5])
+  assert.deepEqual(incomingAttack(armed, yachtAllocationTotals(armed)).hits, [2, 2])
+  const resolved = resolveYachtTurn(armed).battle
+  assert.equal(resolved.lastExchange.dealt, 10)
+  assert.deepEqual(resolved.lastExchange.hitsTaken, [0, 2])
+
+  const lethal = toggleYachtWedge({ ...ready, enemyHp: 3, slots: ['guard', 'guard', 'guard'] })
+  assert.equal(yachtAllocationTotals(lethal).attack, 3)
+  const won = resolveYachtTurn(lethal).battle
+  assert.equal(won.phase, 'won')
+  assert.deepEqual(won.rewards.spent, ['wedge'])
+  assert.equal(toggleYachtWedge(won), won)
+
+  const blade = { ...armed, perk: { kind: 'blade', charge: 12 } }
+  assert.equal(yachtAllocationTotals(blade).attack, 17)
 })
 
 test('buckle protects HP without creating an exact block or removing thorns', () => {

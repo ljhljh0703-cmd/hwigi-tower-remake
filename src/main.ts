@@ -6,7 +6,7 @@ import { BattleAudio } from './battle-audio.ts'
 import { BATTLE_GUIDE } from './battle-guide.ts'
 import { COMPANION_LINES, companionDieIndex } from './companion.ts'
 import { enemyForFight } from './enemy-roster.ts'
-import { REWARD_CARDS } from './rewards.ts'
+import { relicReady, REWARD_CARDS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
 import {
   allocationPower, assignDie, attackFor, chargedStrikePreview, DIE_COUNT, dieFaceForSlot, enemyIntentAt, incomingAttack,
@@ -15,7 +15,7 @@ import type { Exchange, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
 import type { Parity } from './perks.ts'
 import {
-  bladeChargePreview, canReroll, previewUnlockProgress, spinYachtCounter, tuneYachtDie, yachtAllocationTotals,
+  bladeChargePreview, canReroll, previewUnlockProgress, spinYachtCounter, toggleYachtWedge, tuneYachtDie, yachtAllocationTotals,
   yachtCounterRewards, yachtRerollCost,
 } from './yacht-combat.ts'
 import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
@@ -102,6 +102,7 @@ const ui = {
   },
   attackTotal: element('attack-total'),
   attackBonus: element('attack-bonus'),
+  wedgeBonus: element('wedge-bonus'),
   attackMultiplier: element('attack-multiplier'),
   guardTotal: element('guard-total'),
   guardBonus: element('guard-bonus'),
@@ -350,11 +351,16 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
 
   const withoutPerk = allocationPower(battle)
   const bladeReady = planning && bladeChargePreview(battle)?.ready
-  const attackHint = renderSlotTotal(ui.attackTotal, ui.attackBonus, attack, battle.perk?.kind === 'blade' ? 0 : attack - withoutPerk.attack)
+  const wedge = battle.wedgeArmed ? WEDGE_BONUS : 0
+  const perkBonus = battle.perk?.kind === 'blade' ? 0 : attack - withoutPerk.attack - wedge
+  const attackHint = renderSlotTotal(ui.attackTotal, ui.attackBonus, attack, perkBonus)
+  ui.wedgeBonus.hidden = !wedge
+  ui.wedgeBonus.innerHTML = wedge ? `${icon('reward-wedge')}+${wedge}` : ''
   ui.attackMultiplier.hidden = !bladeReady
   ui.attackMultiplier.textContent = `×${START_PERKS.blade.multiplier}`
   const multiplierHint = bladeReady ? `, 큰 칼 준비, 공격 피해 ${START_PERKS.blade.multiplier}배` : ''
-  ui.assign.attack.setAttribute('aria-label', `공격 칸, 피해 ${attack}${attackHint}${multiplierHint}`)
+  const wedgeHint = wedge ? `, 쇠쐐기 보너스 ${wedge} 포함` : ''
+  ui.assign.attack.setAttribute('aria-label', `공격 칸, 피해 ${attack}${attackHint}${multiplierHint}${wedgeHint}`)
   const guardHint = renderSlotTotal(ui.guardTotal, ui.guardBonus, guard, guard - withoutPerk.guard)
   ui.assign.guard.setAttribute('aria-label', `방어 칸, 합계 ${guard}${guardHint}`)
   ui.escortSlot.hidden = !battle.escort
@@ -612,20 +618,35 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
 
 function renderRewardStrip(battle: YachtBattle, disabled: boolean) {
   const rewards = battle.rewards
-  const held: Reward[] = [...(rewards?.relics ?? []), ...(rewards?.tuning ? ['tuning' as const] : [])]
+  const held = [...(rewards?.relics ?? []), ...(rewards?.tuning ? ['tuning' as const] : [])]
   ui.rewardStrip.hidden = !held.length
   ui.rewardStrip.replaceChildren(...held.map((reward) => {
     const card = REWARD_CARDS[reward]
-    const remaining = reward === 'tuning' ? rewards?.tuning === 'ready' : !rewards?.spent.some((relic) => relic === reward)
+    const remaining = reward === 'tuning' ? rewards?.tuning === 'ready' : relicReady(rewards, reward)
     const button = document.createElement('button')
     button.type = 'button'
+    button.dataset.reward = reward
     button.disabled = disabled
     button.classList.toggle('spent', !remaining)
     button.setAttribute('aria-label', `${card.name}, ${Number(remaining)}/1`)
-    button.setAttribute('aria-haspopup', 'dialog')
     button.title = card.name
     button.innerHTML = `${icon(card.icon)}${Number(remaining)}/1`
-    button.addEventListener('click', () => openGuide(button, card.icon))
+    if (reward === 'wedge' && remaining && battle.phase === 'assign') {
+      button.setAttribute('aria-pressed', String(Boolean(battle.wedgeArmed)))
+      button.addEventListener('click', () => {
+        if (!ascent || ui.guide.open) return
+        const next = toggleYachtWedge(ascent.battle)
+        if (next === ascent.battle) return
+        const focused = document.activeElement === button
+        ascent = { ...ascent, battle: next }
+        saveCurrent()
+        render()
+        if (focused) ui.rewardStrip.querySelector<HTMLButtonElement>('[data-reward="wedge"]')?.focus()
+      })
+    } else {
+      button.setAttribute('aria-haspopup', 'dialog')
+      button.addEventListener('click', () => openGuide(button, card.icon))
+    }
     return button
   }))
 }

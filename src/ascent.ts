@@ -1,4 +1,4 @@
-import { PLAYER_HP } from './combat.ts'
+import { draw, PLAYER_HP } from './combat.ts'
 import { ASCENT_ENEMIES, enemyForFight } from './enemy-roster.ts'
 import { startPerk } from './perks.ts'
 import type { Parity, StartPerk } from './perks.ts'
@@ -8,6 +8,7 @@ import { activateYachtHand, resolveYachtTurn, startYachtBattle } from './yacht-c
 import type { Hand, YachtBattle } from './yacht-combat.ts'
 
 export const FIGHT_COUNT = ASCENT_ENEMIES.length
+const REWARD_ORDER_CHANNEL = 30
 
 export interface Ascent {
   readonly seed: number
@@ -53,9 +54,7 @@ export function resolveAscentTurn(ascent: Ascent): Ascent {
 export function rewardOffers(ascent: Ascent): readonly Reward[] {
   const { battle, fight, seed, rewardChoice } = ascent
   if (battle.phase !== 'won' || fight === FIGHT_COUNT || rewardChoice) return []
-  const next = enemyForFight(seed, fight + 1)
-  const available = RELICS.filter((relic) => !battle.rewards?.relics.includes(relic) &&
-    (relic !== 'wedge' || next.intents.some((intent) => intent.chargeThreshold !== undefined)))
+  const available = RELICS.filter((relic) => !battle.rewards?.relics.includes(relic))
   const kind = battle.perk?.kind
   const preferred = kind === 'shield' || kind === 'counter' ? 'buckle' : 'weight'
   const seats: (Reward | undefined)[] = [
@@ -63,8 +62,9 @@ export function rewardOffers(ascent: Ascent): readonly Reward[] {
     battle.rewards?.tuning ? undefined : 'tuning',
     battle.playerHp <= BANDAGE_THRESHOLD ? 'bandage' : undefined,
   ]
-  const fillers: Reward[] = available.filter((relic) => relic !== 'wedge' && !seats.includes(relic))
-  if (available.includes('wedge')) fillers.unshift('wedge')
+  const firstFiller = draw(seed, fight, REWARD_ORDER_CHANNEL) % RELICS.length
+  const fillers = [...RELICS.slice(firstFiller), ...RELICS.slice(0, firstFiller)]
+    .filter((relic) => available.includes(relic) && !seats.includes(relic))
   return seats.flatMap((card) => card ?? fillers.shift() ?? [])
 }
 
