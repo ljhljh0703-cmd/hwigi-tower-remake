@@ -117,16 +117,16 @@ mark.todo{background:#ffe08a;color:#1b1a17;padding:0 4px;font-weight:800;font-si
 </header>
 
 <section class="cp-section" id="play" aria-labelledby="play-h" data-layer="narrative">
-<div class="cp-head"><h2 id="play-h">이런 게임입니다</h2> <p>한 턴, 해금, 한 판</p></div>
+<div class="cp-head"><h2 id="play-h">이런 게임입니다</h2> <p>코어 루프, 해금 시스템, 런 구조</p></div>
 <p class="cp-lead">슬레이 더 스파이어처럼 적의 다음 행동이 보이고, 다이시 던전처럼 주사위를 칸에 넣어 싸웁니다. 휴대폰으로 10분 안에 한 판을 끝내는 가벼운 로그라이크를 목표로 만들었습니다.</p>
 <div class="cp-figs play-figs" style="grid-template-columns:repeat(3,minmax(0,1fr))">
 <figure class="cp-fig"><video src="shots/clip-block.mp4" poster="shots/clip-block.webp" autoplay muted loop playsinline aria-label="주사위를 방어와 공격에 나눠 정확히 막고 반격 룰렛을 돌리는 장면"></video><figcaption><b>주사위 분배와 정확 방어</b> 적이 9 피해를 예고하자 4와 5를 방어에, 3을 공격에 놓아 피해를 정확히 막고, 반격 룰렛으로 추가 피해를 줍니다.</figcaption></figure>
 <figure class="cp-fig"><video src="shots/clip-unlock.mp4" poster="shots/clip-unlock.webp" autoplay muted loop playsinline aria-label="같은 눈 세 개로 막아 에고 주사위를 해금하는 장면"></video><figcaption><b>주사위 조합으로 해금</b> 3이 세 개 나와 그대로 방어에 쓰자 에고 주사위가 해금되고, 다음 턴부터 주사위 4개로 싸웁니다.</figcaption></figure>
 <figure class="cp-fig"><img src="shots/02-battle.webp" alt="엘리트가 힘을 모아 치명 일격 21을 예고한 전투 화면" loading="lazy"><figcaption><b>엘리트의 치명 일격</b> 2층 엘리트가 힘을 모아 21 피해의 치명 일격을 예고한 턴입니다. 공격으로 힘 모으기를 끊을지, 방어에 몰아 버틸지 골라야 합니다.</figcaption></figure>
 </div>
-<h3 class="cp-h3">해금</h3>
+<h3 class="cp-h3">해금 시스템</h3>
 <p class="cp-note" style="margin-top:0">같은 주사위 눈이 세 개 나오면 에고 주사위를 얻고, 1, 2, 3처럼 이어지는 눈 세 개를 맞추면 전투마다 한 번 더 굴릴 수 있는 재굴림 주사위가 열리는 등, 주사위 조합으로 새로운 능력을 해금하는 요소를 넣었습니다. 해금할수록 다음 층의 적도 함께 강해져서, 언제 족보를 노릴지가 또 하나의 판단이 됩니다.</p>
-<h3 class="cp-h3">한 판</h3>
+<h3 class="cp-h3">런 구조</h3>
 <p class="cp-note" style="margin-top:0">런을 시작할 때 고른 특전 하나가 끝까지 효과를 내고, 일반 몹, 엘리트, 보스 순서로 3층을 오르며 남은 체력이 다음 층으로 이어집니다. 적마다 주사위를 잠그거나 얼리거나 빼앗는 기믹이 있고, 보스는 힘을 모은 뒤 치명 일격을 날리고 잠시 쓰러지는 패턴을 반복합니다.</p>
 </section>
 
@@ -136,16 +136,16 @@ mark.todo{background:#ffe08a;color:#1b1a17;padding:0 4px;font-weight:800;font-si
 <ol class="flow5">
 <li><b><a href="gdd/">기획서</a></b><span>규칙, 수치, 결정 연표</span></li>
 <li><b>마일스톤</b><span>내일은내일에 M1~M6, 할 일 29개</span></li>
-<li><b>개발</b><span>층마다 웹에 올려 링크로 확인</span></li>
+<li><b>개발</b><span>빌드마다 웹에 올려 링크로 확인</span></li>
 <li><b>밸런스 QA</b><span>AI 플레이어로 수천 판</span></li>
-<li><b>플레이 판정</b><span>직접 해 보고 다음 층 결정</span></li>
+<li><b>플레이 판정</b><span>빌드마다 직접 플레이하고 다음 마일스톤 결정</span></li>
 </ol>
 <figure class="ms-shot"><img src="shots/05-naeil.webp" alt="내일은내일 마일스톤 화면. 회귀자는 탑을 오른다 18/29 완료, M1 100%, M3 73%"><figcaption>내일은내일 마일스톤 화면, 2026-11-24 기준 할 일 29개 중 18개 완료</figcaption></figure>
 <table class="cp-table" style="margin-top:18px"><thead><tr><th>마일스톤</th><th>끝나면</th><th>지금</th></tr></thead><tbody>
 <tr><td>M1 코어 재미 검증(그레이박스)</td><td>그래픽 없이 규칙만으로 한 판이 돌고, 또 하고 싶은지 판정</td><td>5/5</td></tr>
 <tr><td>M2 타격감 및 피드백</td><td>굴림, 놓기, 타격의 반응 연출</td><td>2/3</td></tr>
 <tr><td>M3 버티컬 슬라이스와 밸런스 시뮬레이터</td><td>3전투 런, 해금, 특전, 적 기믹을 한 판으로 완성하고 시뮬레이터로 검증</td><td>8/11</td></tr>
-<tr><td>M4 메타 진행</td><td>런 뒤 새 특전과 아이템 해금(메타 진행)</td><td>1/4</td></tr>
+<tr><td>M4 메타 진행</td><td>런이 끝난 뒤 새 특전과 아이템 해금</td><td>1/4</td></tr>
 <tr><td>M5 아트, 사운드 적용 및 최적화</td><td>픽셀 아트, 사운드, 첫 화면 로딩 속도</td><td>2/4</td></tr>
 <tr><td>M6 포트폴리오 패키징</td><td>이 페이지와 플레이 영상</td><td>0/2</td></tr>
 </tbody></table>
@@ -161,8 +161,8 @@ mark.todo{background:#ffe08a;color:#1b1a17;padding:0 4px;font-weight:800;font-si
 <li><b>AI 플레이어</b><span>사람처럼 판단하는 AI 플레이어를 붙여, 특전과 적 조합마다 수천 판을 돌리고 그 결과로 적 체력과 공격력을 조정했습니다.</span></li>
 </ol>
 <div class="qa-grid">
-<article class="qa-card"><h3>시뮬레이터로 찾은 것: 다시 굴리기 필수 문제</h3>
-<p>첫 전투를 같은 조건으로 512판씩 돌리니, 다시 굴리기를 안 쓰면 214판, 상황에 맞춰 쓰면 482판을 이겼습니다. 다시 굴리기가 사실상 필수 행동이었습니다. 이를 막지 않고 기본 조작으로 정했습니다.</p></article>
+<article class="qa-card"><h3>시뮬레이터로 찾은 것: 리롤 필수 문제</h3>
+<p>첫 전투를 같은 조건으로 512판씩 돌리니, 리롤을 안 쓰면 214판, 상황에 맞춰 쓰면 482판을 이겼습니다. 리롤이 사실상 필수 행동이었습니다. 이를 막지 않고 기본 조작으로 정했습니다.</p></article>
 <article class="qa-card"><h3>시뮬레이터로 확인한 것: 한쪽 몰빵은 통하지 않음</h3>
 <p>주사위를 전부 공격에 넣으면 512판 중 28판, 전부 방어에 넣으면 2판만 이겼습니다. 공격과 방어를 나누는 판단이 게임의 중심에 남아 있습니다.</p></article>
 </div>
@@ -187,14 +187,14 @@ mark.todo{background:#ffe08a;color:#1b1a17;padding:0 4px;font-weight:800;font-si
 <section class="cp-section" id="about" aria-labelledby="about-h" data-layer="fact">
 <div class="cp-head"><h2 id="about-h">역할과 작품 정보</h2> <p>내가 정한 것, AI로 짠 것, 내가 확인한 것</p></div>
 <dl class="cp-who">
-<div><dt>내가 정한 것</dt> <dd>주사위만 쓰는 전투, 야추 다이스식 해금, 다시 굴리기를 기본 조작으로 두기, 밸런스 QA 방식, 하지 않을 것(여러 재화와 메뉴)</dd></div>
+<div><dt>내가 정한 것</dt> <dd>주사위만 쓰는 전투, 야추 다이스식 해금, 리롤을 기본 조작으로 두기, 밸런스 QA 방식, 하지 않을 것(여러 재화와 메뉴)</dd></div>
 <div><dt>AI로 짠 것</dt> <dd>게임 코드(Phaser 3, TypeScript), 밸런스 시뮬레이터와 AI 플레이어, 적과 특전 수치의 초기값(Codex). 그래픽과 사운드(웹 ChatGPT로 생성)</dd></div>
 <div><dt>내가 확인한 것</dt> <dd>밸런스 리포트를 보고 고칠 것 고르기, 빌드마다 직접 플레이 판정(세 번)</dd></div>
 </dl>
 <dl class="cp-facts">
 <dt>만든 사람</dt> <dd>이주형. 팀원 없음</dd>
 <dt>기간</dt> <dd>기획 2026년 4월(Unity판)부터, 웹 리메이크 개발 2026-11-21부터</dd>
-<dt>단계</dt> <dd>브라우저에서 바로 하는 프로토타입. 3층 런 한 판까지</dd>
+<dt>단계</dt> <dd>브라우저에서 바로 하는 프로토타입. 버티컬 슬라이스(3층 런 한 판) 단계</dd>
 <dt>쓴 도구</dt> <dd>Phaser 3, TypeScript, Vite, GitHub Pages, Codex, 내일은내일</dd>
 </dl>
 </section>
@@ -205,7 +205,7 @@ mark.todo{background:#ffe08a;color:#1b1a17;padding:0 4px;font-weight:800;font-si
 <li>실제 플레이어 데이터는 없습니다.</li>
 <li>런이 끝난 뒤 새 특전과 아이템을 해금하는 메타 진행은 설계 중입니다.</li>
 <li>보스전이 목표보다 짧습니다. 층 사이 보상으로 맞출 계획입니다.</li>
-<li>플레이 영상이 아직 없습니다.</li>
+<li>타격감 연출(피해 숫자, 히트스톱, 화면 흔들림)은 보강하고 있습니다.</li>
 </ul>
 </section>
 
@@ -242,7 +242,7 @@ mark.todo{background:#ffe08a;color:#1b1a17;padding:0 4px;font-weight:800;font-si
 </header>
 <div class="ez-grid">
 <section class="ez-card wide" style="--tilt:-.6deg"><span class="ez-tag">01 한 턴</span>
-<ol class="ez-flow"><li>적의 수 보기</li><li>주사위 나누기</li><li>다시 굴리기</li><li class="mine">딱 맞게 막기<b>룰렛</b></li></ol>
+<ol class="ez-flow"><li>적의 수 보기</li><li>주사위 나누기</li><li>리롤</li><li class="mine">딱 맞게 막기<b>룰렛</b></li></ol>
 <p class="ez-small">같은 주사위 눈 셋으로 에고 주사위를 얻는 등, 주사위 조합으로 새 능력을 해금하며 일반 몹, 엘리트, 보스 3층을 오릅니다.</p></section>
 <section class="ez-card kraft" style="--tilt:.8deg"><span class="ez-tag">02 마일스톤</span>
 <p class="ez-new">내일은내일로 M1~M6, 할 일 29개 관리</p>
@@ -250,9 +250,9 @@ mark.todo{background:#ffe08a;color:#1b1a17;padding:0 4px;font-weight:800;font-si
 <section class="ez-card accent" style="--tilt:-.9deg"><span class="ez-tag">03 내가 맡은 것</span>
 <ul class="ez-list"><li>기획과 전투 규칙</li><li>마일스톤 관리</li><li>밸런스 QA 설계</li><li>직접 플레이 판정</li></ul></section>
 <section class="ez-card wide" style="--tilt:.4deg"><span class="ez-tag">04 밸런스 QA</span><span class="ez-stamp">482</span>
-<p class="ez-band">직접 플레이 → 시뮬레이터 → AI 플레이어. 다시 굴리기를 안 쓰면 214승, 쓰면 <b>482승</b>(512판)</p>
+<p class="ez-band">직접 플레이 → 시뮬레이터 → AI 플레이어. 리롤을 안 쓰면 214승, 쓰면 <b>482승</b>(512판)</p>
 <div class="ez-bars" role="img" aria-label="첫 전투 512판 승리 수 비교"><div><span>공격에만</span><i style="--w:6%"></i><b>28</b></div><div class="mid"><span>안 굴림</span><i style="--w:44%"></i><b>214</b></div><div class="hi"><span>상황 맞춰 굴림</span><i style="--w:100%"></i><b>482</b></div></div>
-<p class="ez-small">이 결과로 다시 굴리기를 기본 조작으로 정함</p></section>
+<p class="ez-small">이 결과로 리롤을 기본 조작으로 정함</p></section>
 <section class="ez-card wide ez-row" style="--tilt:-.5deg"><span class="ez-tag">05 사람은 재미만</span>
 <p>"일단 재미는 있어." 직접 해 보고 세 번 판정했고, 그때마다 적 예고, 해금, 적 기믹, 특전을 고쳤습니다.</p></section>
 </div>
