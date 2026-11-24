@@ -68,9 +68,8 @@
       <symbol id="icon-steal" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M8 21v-3l-4-5c-1-1.5.7-3.1 2-2l3 2V5a1.5 1.5 0 0 1 3 0v4l1-1 2 1 2-1 3 2v4l-3 4v3Z"/></symbol>
       <symbol id="icon-escort" viewBox="0 0 24 24"><circle vector-effect="non-scaling-stroke" cx="8" cy="6" r="3"/><path vector-effect="non-scaling-stroke" d="M3 20v-4a5 5 0 0 1 7-4.6M17 9c1.8 1.4 3.3 2 5 2v3.5c0 2.8-2 5-5 6.5-3-1.5-5-3.7-5-6.5V11c1.7 0 3.2-.6 5-2Z"/></symbol>
       <symbol id="icon-vitality" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="m13 17-2 2-7-7c-4-4 1-10 7-5 5-5 10 0 8 4m-5 10 7-8m-6 2 4 4"/></symbol>
-      <symbol id="icon-help" viewBox="0 0 24 24">
-        <path vector-effect="non-scaling-stroke" d="M8 8a4 4 0 1 1 6 3.5c-1.5 1-2 2-2 3.5"/>
-        <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/>
+      <symbol id="icon-guide" viewBox="0 0 24 24">
+        <path vector-effect="non-scaling-stroke" d="M12 7c-2.4-2.1-5.5-2.6-9-2v13c3.5-.6 6.6-.1 9 2 2.4-2.1 5.5-2.6 9-2V5c-3.5-.6-6.6-.1-9 2Zm0 0v13"/>
       </symbol>
       <symbol id="icon-sound-on" viewBox="0 0 24 24">
         <path vector-effect="non-scaling-stroke" d="M3 9h4l5-4v14l-5-4H3zM15 9a4 4 0 0 1 0 6m3-9a8 8 0 0 1 0 12"/>
@@ -132,39 +131,40 @@
     </svg>
     <main data-screen="lobby">
       <section id="lobby" aria-labelledby="lobby-title">
+        <div class="lobby-tools">
+          <button id="lobby-sound" class="icon-button" type="button" aria-label="음소거" aria-pressed="false" title="음소거">
+            <svg class="icon" aria-hidden="true"><use href="#icon-sound-on"/></svg>
+          </button>
+          <button id="lobby-guide" class="icon-button" type="button" aria-label="도감" title="도감" aria-haspopup="dialog" aria-controls="battle-guide">
+            <svg class="icon" aria-hidden="true"><use href="#icon-guide"/></svg>
+          </button>
+        </div>
         <div class="lobby-scene">
           <img class="lobby-key" src="/art/lobby-key.png" alt="" width="120" height="213">
           <h1 id="lobby-title">회귀자는 <br>탑을 오른다</h1>
           <div class="lobby-actions">
             <button id="continue-ascent" class="primary lobby-start" type="button" hidden>이어 하기 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
             <button id="new-ascent" class="lobby-start" type="button">새로 하기 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
-            <div class="lobby-utilities">
-              <button id="lobby-guide" type="button" aria-haspopup="dialog" aria-controls="battle-guide"><svg class="icon" aria-hidden="true"><use href="#icon-help"/></svg>아이콘 사전</button>
-              <button id="lobby-sound" type="button" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#icon-sound-on"/></svg><span>소리 끄기</span></button>
-            </div>
           </div>
         </div>
       </section>
 
       <header id="masthead" class="masthead" hidden>
         <div class="header-nav">
-          <button id="return-lobby" type="button" aria-label="로비로 돌아가기" title="로비로 돌아가기" aria-haspopup="dialog">
+          <button id="return-lobby" class="icon-button" type="button" aria-label="로비로 돌아가기" title="로비로 돌아가기" aria-haspopup="dialog">
             <svg class="icon" aria-hidden="true"><use href="#icon-lobby"/></svg>
           </button>
           <p class="masthead-title">회귀자는 탑을 오른다</p>
         </div>
         <div class="run-status">
           <span id="active-perk" role="img" hidden></span>
-          <span id="companion-status" role="img" aria-label="동료 주사위" title="동료 주사위" hidden>
-            <svg class="icon" aria-hidden="true"><use href="#icon-companion-awake"/></svg>
-          </span>
           <span id="fight" hidden></span>
           <span id="turn" role="img" hidden></span>
-          <button id="sound-toggle" type="button" aria-label="소리" aria-pressed="true" hidden>
+          <button id="sound-toggle" class="icon-button" type="button" aria-label="음소거" aria-pressed="false" title="음소거" hidden>
             <svg class="icon" aria-hidden="true"><use href="#icon-sound-on"/></svg>
           </button>
-          <button id="help" type="button" aria-label="아이콘 사전" aria-haspopup="dialog" aria-controls="battle-guide" hidden>
-            <svg class="icon" aria-hidden="true"><use href="#icon-help"/></svg>
+          <button id="help" class="icon-button" type="button" aria-label="도감" title="도감" aria-haspopup="dialog" aria-controls="battle-guide" hidden>
+            <svg class="icon" aria-hidden="true"><use href="#icon-guide"/></svg>
           </button>
         </div>
       </header>
@@ -320,7 +320,7 @@
     </dialog>
     <dialog id="battle-guide" aria-labelledby="guide-heading">
       <header class="guide-header">
-        <h2 id="guide-heading">아이콘 사전</h2>
+        <h2 id="guide-heading">도감</h2>
         <form method="dialog"><button type="submit" autofocus>닫기</button></form>
       </header>
       <div id="guide-entries" tabindex="0" role="region" aria-label="아이콘 목록"></div>

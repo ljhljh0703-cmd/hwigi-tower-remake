@@ -28,6 +28,7 @@ body {
 }
 
 main {
+  --header-gap: 14px;
   display: flex;
   flex-direction: column;
   width: min(100%, 880px);
@@ -71,13 +72,13 @@ h1, h2, p { margin: 0; }
   border-block-end: 1px solid var(--stone-edge);
 }
 
-.masthead-title { color: var(--muted); font-size: .875rem; font-weight: 650; }
+.masthead-title { display: none; font-weight: 650; }
 .header-nav { display: flex; align-items: center; gap: 10px; }
 
 .run-status {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--header-gap);
   font-size: .8rem;
   color: var(--muted);
 }
@@ -87,16 +88,24 @@ h1, h2, p { margin: 0; }
 #active-perk.perk-ready strong { color: #f2ac98; }
 .perk-preview { display: inline-flex; align-items: center; gap: 3px; color: var(--muted); font-size: inherit; white-space: nowrap; }
 #fight { padding-inline-start: 14px; border-inline-start: 1px solid var(--stone-edge); }
-#companion-status { color: #c1d6f0; }
-#help, #sound-toggle, #return-lobby { width: 44px; padding: 0; font-size: 1.1rem; flex: none; }
+.icon-button { width: 44px; padding: 0; font-size: 1.1rem; flex: none; }
 
 #lobby {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 360px);
   justify-content: center;
   align-content: center;
   flex: 1;
-  padding-block: 14px;
+  padding-block: 54px 14px;
+}
+
+.lobby-tools {
+  position: absolute;
+  inset-block-start: 7px;
+  inset-inline-end: 0;
+  display: flex;
+  gap: var(--header-gap);
 }
 
 .lobby-scene {
@@ -134,8 +143,6 @@ h1, h2, p { margin: 0; }
 .lobby-actions { grid-row: 3; display: grid; gap: 8px; margin: 0 12px 12px; }
 .lobby-start { min-block-size: 46px; }
 .lobby-start.primary { min-block-size: 62px; font-size: 1.15rem; }
-.lobby-utilities { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.lobby-utilities button { font-size: .85rem; }
 
 body:has(#battle-guide[open], #lobby-confirm[open]) { overflow: hidden; }
 
@@ -229,7 +236,7 @@ button:disabled {
 }
 
 [data-screen='perks'] .masthead { min-block-size: 82px; }
-[data-screen='perks'] .masthead-title { color: inherit; font-size: clamp(1.05rem, 5vw, 1.75rem); }
+[data-screen='perks'] .masthead-title { display: block; font-size: clamp(1.05rem, 5vw, 1.75rem); }
 [data-screen='perks'] { gap: 16px; }
 
 #perks, .event-panel {
@@ -899,10 +906,9 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 #final-unlock { display: inline-flex; align-items: center; gap: 6px; color: #f6c795; }
 
 @media (max-width: 560px) {
+  main { --header-gap: 8px; }
   .masthead { min-block-size: 51px; }
-  :not([data-screen='perks']) > .masthead .masthead-title { display: none; }
-  .run-status { gap: 8px; }
-  .run-status:has(#companion-status:not([hidden])) { gap: 5px; }
+  .lobby-tools { inset-block-start: 3.5px; }
   #fight { padding-inline-start: 8px; }
   [data-screen='perks'] .masthead { min-block-size: 70px; }
   .event-panel { min-block-size: 360px; }
@@ -948,8 +954,8 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 }
 
 @media (max-width: 420px) {
+  main { --header-gap: 5px; }
   .masthead { gap: 5px; }
-  .run-status { gap: 5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -47,7 +47,6 @@ const ui = {
   encounter: document.querySelector<HTMLElement>('.encounter')!,
   fight: element('fight'),
   activePerk: element('active-perk'),
-  companionStatus: element('companion-status'),
   companionFlight: element('companion-flight'),
   companionAwakenLine: element('companion-awaken-line'),
   companionSleepLine: element('companion-sleep-line'),
@@ -231,10 +230,9 @@ function toggleSound(event: MouseEvent) {
   if (!event.isTrusted) return
   sound.toggle()
   for (const button of [ui.soundToggle, ui.lobbySound]) {
-    button.setAttribute('aria-pressed', String(sound.isEnabled))
+    button.setAttribute('aria-pressed', String(!sound.isEnabled))
     button.querySelector('use')!.setAttribute('href', sound.isEnabled ? '#icon-sound-on' : '#icon-sound-off')
   }
-  ui.lobbySound.querySelector('span')!.textContent = sound.isEnabled ? '소리 끄기' : '소리 켜기'
 }
 
 ui.soundToggle.addEventListener('click', toggleSound)
@@ -656,7 +654,6 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.fight.hidden = !inCombat
   ui.fight.textContent = `${fight}/${FIGHT_COUNT} 층`
   renderActivePerk(battle)
-  ui.companionStatus.hidden = !inCombat || !companionAwake
   ui.turn.hidden = !inCombat
   ui.help.hidden = !inCombat
   ui.help.disabled = !showActions
@@ -773,7 +770,6 @@ function showPerks() {
   ui.returnLobby.removeAttribute('aria-haspopup')
   ui.battle.hidden = true
   ui.activePerk.hidden = true
-  ui.companionStatus.hidden = true
   ui.fight.hidden = true
   ui.turn.hidden = true
   ui.help.hidden = true
