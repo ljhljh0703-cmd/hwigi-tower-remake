@@ -295,6 +295,7 @@ test('three fights use their seeded enemy table and carry health without recover
     assert.equal(ascent.battle.playerHp, PLAYER_HP - (fight - 1) * 3)
     const enemy = enemyForFight(ascent.seed, fight)
     assert.equal(ascent.battle.enemyHp, enemy.hp)
+    if (fight === FIGHT_COUNT) assert.equal(ascent.battle.enemyHp, 88)
     assert.equal(ascent.battle.enemyIntents, enemy.intents)
     assert.equal(ascent.battle.enemyAttackBuff, 0)
     assert.equal(nextAscentFight(ascent), ascent)

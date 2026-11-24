@@ -84,7 +84,7 @@ export const ASCENT_ENEMIES = [
     ] },
   ],
   [
-    { id: 'boss', hp: 84, attackPerUnlock: 1, attackGrowth: 0, intents: [
+    { id: 'boss', hp: 88, attackPerUnlock: 1, attackGrowth: 0, intents: [
       ...bossOpening.map((intent) => ({
         ...intent,
         matches: (turn: number) => turn <= bossOpening.length && intent.matches(turn),

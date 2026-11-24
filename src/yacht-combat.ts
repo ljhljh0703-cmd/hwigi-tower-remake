@@ -6,7 +6,7 @@ import {
 import type { Battle, Enemy, EnemyMechanic, Slot } from './combat.ts'
 import { collectorBonus, START_PERKS } from './perks.ts'
 import type { CollectedHand, PerkState } from './perks.ts'
-import { relicReady, WEDGE_BONUS } from './rewards.ts'
+import { BUCKLE_MAX_SHORTFALL, BUCKLE_REDUCTION, relicReady, WEDGE_BONUS, WEIGHT_BONUS } from './rewards.ts'
 import type { CombatRewards, Relic } from './rewards.ts'
 
 export type Hand = 'triple' | 'straight'
@@ -219,12 +219,18 @@ export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = 
   if (!rewards?.relics.length || base.dealt === battle.enemyHp) return { ...base, usedRelics }
 
   let { hits, damage, dealt } = base
-  if (relicReady(rewards, 'buckle') && slots.filter((slot) => slot === 'guard').length >= 2) {
+  if (relicReady(rewards, 'buckle')) {
     const incoming = attackFor(battle, base.intent, Boolean(battle.escort && base.escortDealt < battle.escort.hp))
-    if (totals.guard === incoming.totalDamage - 1) {
-      const residual = hits.findIndex((hit) => hit > 0)
-      hits = hits.map((hit, index) => index === residual ? hit - 1 : hit)
-      damage--
+    const shortfall = incoming.totalDamage - totals.guard
+    if (shortfall >= 1 && shortfall <= BUCKLE_MAX_SHORTFALL) {
+      let reduction = Math.min(shortfall, BUCKLE_REDUCTION)
+      damage -= reduction
+      hits = hits.map((hit, index) => {
+        if (index >= incoming.hits.length) return hit
+        const blocked = Math.min(hit, reduction)
+        reduction -= blocked
+        return hit - blocked
+      })
       usedRelics.push('buckle')
     }
   }
@@ -235,7 +241,8 @@ export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = 
       dealt = Math.min(battle.enemyHp, dealt + bonus)
       usedRelics.push(relic)
     }
-    if (faces.length === 2 && faces.every((face) => face > 0) && faces[0] % 2 !== faces[1] % 2) addDamage('weight', 2)
+    const mixedParity = faces.some((face) => face % 2 === 1) && faces.some((face) => face > 0 && face % 2 === 0)
+    if (mixedParity) addDamage('weight', WEIGHT_BONUS)
     if (battle.rerolled && faces.length === 1 && faces[0] >= 4) addDamage('rewind', 2)
   }
   return { ...base, dealt, hits, damage, usedRelics }

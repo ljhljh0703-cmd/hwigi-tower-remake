@@ -110,6 +110,20 @@ test('weight and rewind add damage after the base reaction check and spend each 
   assert.deepEqual(resolveYachtTurn({ ...rewind, rerolled: false }).battle.rewards.spent, [])
 })
 
+test('weight accepts three or more attack dice with both parities and ignores sealed eyes', () => {
+  const mixed = turn(['weight'], [1, 2, 3], ['attack', 'attack', 'attack'], impact)
+  const result = resolveYachtTurn(mixed).battle
+  assert.equal(result.lastExchange.dealt, 8)
+  assert.deepEqual(result.rewards.spent, ['weight'])
+  assert.equal(forecastYacht(mixed, mixed.slots, [1, 3, 5]).dealt, 9)
+  assert.equal(forecastYacht(mixed, [...mixed.slots, 'attack'], [1, 2, 3, 4]).dealt, 12)
+
+  const seal = { ...impact, mechanic: { kind: 'seal', value: 2 } }
+  const sealed = resolveYachtTurn({ ...mixed, enemyIntents: [seal] }).battle
+  assert.equal(sealed.lastExchange.dealt, 4)
+  assert.deepEqual(sealed.rewards.spent, [])
+})
+
 test('the wedge uses the displayed attack total for charge, commits once, and resets on the next floor', () => {
   const charge = { ...impact, id: 'charge', hits: [], chargeThreshold: 12 }
   const wedge = turn(['wedge'], [4, 3, 2], ['attack', 'attack', 'attack'], charge)
@@ -157,13 +171,29 @@ test('the wedge changes reaction at the displayed threshold and its flat bonus w
   assert.equal(yachtAllocationTotals(blade).attack, 17)
 })
 
-test('buckle protects HP without creating an exact block or removing thorns', () => {
-  const thorns = { ...impact, mechanic: { kind: 'thorns', value: 2 } }
-  const battle = turn(['buckle'], [3, 3, 4], ['guard', 'guard', 'attack'], thorns)
-  const outcome = resolveYachtTurn(battle).battle
-  assert.deepEqual(outcome.lastExchange.hitsTaken, [0, 2])
-  assert.equal(outcome.playerHp, 20)
-  assert.equal(outcome.phase, 'assign')
+test('buckle covers a guard shortfall of one to three without absorbing thorns or creating a counter', () => {
+  const thorns = { ...impact, hits: [4, 3], mechanic: { kind: 'thorns', value: 2 } }
+  const battle = turn(['buckle'], [4, 1, 1], ['guard', 'attack', 'attack'], thorns)
+  for (const [guard, saved] of [[3, 0], [4, 2], [5, 2], [6, 1]]) {
+    const outcome = resolveYachtTurn({ ...battle, dice: [guard, 1, 1] }).battle
+    assert.equal(outcome.lastExchange.hitsTaken.at(-1), 4)
+    assert.equal(outcome.playerHp, battle.playerHp - (7 - guard + 4 - saved))
+    assert.equal(outcome.phase, 'assign')
+    assert.deepEqual(outcome.rewards.spent, saved ? ['buckle'] : [])
+  }
+
+  const exact = resolveYachtTurn({ ...battle, dice: [4, 3, 1], slots: ['guard', 'guard', 'attack'] }).battle
+  assert.equal(exact.phase, 'counter')
+  assert.deepEqual(exact.rewards.spent, [])
+  const spent = resolveYachtTurn(battle).battle.rewards
+  assert.equal(forecastYacht({ ...battle, rewards: spent }).damage, 7)
+})
+
+test('buckle can absorb a shortfall across hits without a die in the guard slot', () => {
+  const combo = { ...impact, hits: [1, 1, 1] }
+  const noGuard = turn(['buckle'], [1, 1, 1], ['attack', 'attack', 'attack'], combo)
+  const outcome = resolveYachtTurn(noGuard).battle
+  assert.deepEqual(outcome.lastExchange.hitsTaken, [0, 0, 1])
   assert.deepEqual(outcome.rewards.spent, ['buckle'])
 })
 
