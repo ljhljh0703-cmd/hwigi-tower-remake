@@ -3,8 +3,8 @@ import { ASCENT_ENEMIES, MAP_ENEMIES } from './enemy-roster.ts'
 import type { AscentEnemyId, enemyForFight } from './enemy-roster.ts'
 
 export const MAP_RULES = 1
-export type MapRules = 1 | 2 | 3
-export const CURRENT_MAP_RULES = 3
+export type MapRules = 1 | 2 | 3 | 4
+export const CURRENT_MAP_RULES = 4
 export const MAP_START = 0
 export const MAP_FLOORS = 12
 export const MAP_FIGHTS = MAP_FLOORS - 1
@@ -50,16 +50,26 @@ export const MAP_ENEMY_BADGES = {
   'iron-knight': { icon: 'charge', label: '철갑 기사' },
 } satisfies Partial<Record<AscentEnemyId, { icon: string; label: string }>>
 
+function forkKinds(seed: number, floor: number): readonly MapNodeKind[] {
+  const merchantFloor = 6 + draw(seed, 0, 90) % 3
+  const earlyEvent = 3 + draw(seed, 0, 91) % 3
+  const lateEvent = Math.max(merchantFloor + 1, 8) + draw(seed, 0, 92) % (11 - Math.max(merchantFloor + 1, 8))
+  if (floor === merchantFloor) return ['fight', 'shop']
+  if (floor === earlyEvent || floor === lateEvent) return ['fight', 'event']
+  return ['fight', 'elite']
+}
+
 export function generateAscentMap(seed: number, rules: MapRules = MAP_RULES): AscentMap {
   const diagonal = draw(seed, 0, 80) % 2
   const eliteStart = draw(seed, 0, 86) % eliteEnemies.length
   let eliteIndex = 0
   const nodes = stageOneFloors.flatMap((types, index) => {
     const floor = index + 1
-    const variants: readonly MapNodeKind[] = rules >= 2 && (floor === 4 || floor === 9) ? ['fight', 'event']
+    const variants: readonly MapNodeKind[] = rules === 4 && types.length === 2 ? forkKinds(seed, floor)
+      : rules >= 2 && (floor === 4 || floor === 9) ? ['fight', 'event']
       : rules >= 2 && floor === 7 ? ['fight', 'shop'] : types
     const ordered = draw(seed, floor, 81) % 2 ? [...variants].reverse() : variants
-    const replacement = rules === 3 ? draw(seed, floor, 88) % 2 : undefined
+    const replacement = rules >= 3 ? draw(seed, floor, 88) % 2 : undefined
     return ordered.map((kind, position): MapNode => {
       const lane = types.length === 1 ? 2 : position as 0 | 1
       const id = floor * 4 + lane
@@ -71,9 +81,10 @@ export function generateAscentMap(seed: number, rules: MapRules = MAP_RULES): As
         : replacement === 1 && floor === 10 && kind === 'elite' ? 'iron-knight' : baseEnemy
       const nextBase = (floor + 1) * 4
       const next = floor === MAP_FLOORS ? [] : floor >= 10 ? [nextBase + 2]
-        : lane === 2 ? [nextBase, nextBase + 1]
+        : rules === 4 || lane === 2 ? [nextBase, nextBase + 1]
           : lane === (floor + diagonal) % 2 ? [nextBase, nextBase + 1] : [nextBase + lane]
-      const event = kind === 'event' ? MAP_EVENTS[(draw(seed, 0, 87) + Number(floor === 9)) % MAP_EVENTS.length] : undefined
+      const eventOrder = rules === 4 ? draw(seed, floor, 87) : draw(seed, 0, 87) + Number(floor === 9)
+      const event = kind === 'event' ? MAP_EVENTS[eventOrder % MAP_EVENTS.length] : undefined
       return { id, floor, lane, kind, ...(enemyId && { enemyId }), ...(event && { event }), battleSeed: draw(seed, id, 83), next }
     })
   })
@@ -99,8 +110,9 @@ export function enemyForMapNode(node: MapNode, rules: MapRules): ReturnType<type
   if (!enemy) return undefined
   if (node.kind === 'boss') return rules >= 2 ? { ...enemy, hp: 84 } : enemy
   const elite = node.kind === 'elite'
-  const hp = enemy.hp + 2 * Math.floor((node.floor - (elite ? 5 : 1)) / 2)
-  const firstHitAdjustment = Number(node.floor >= 9) - (elite ? 3 : 0)
+  const earlyElite = rules === 4 && elite && node.floor <= 5
+  const hp = enemy.hp - (earlyElite ? 4 : 0) + 2 * Math.floor((node.floor - (elite ? 5 : 1)) / 2)
+  const firstHitAdjustment = Number(node.floor >= 9) - (elite ? 3 : 0) - (earlyElite ? 2 : 0)
   const first = enemy.intents.find((intent) => intent.matches(1))!
   const intents = firstHitAdjustment && first.hits.length
     ? [{ ...first, matches: (turn: number) => turn === 1, hits: [Math.max(1, first.hits[0] + firstHitAdjustment), ...first.hits.slice(1)] }, ...enemy.intents]

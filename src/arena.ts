@@ -50,8 +50,8 @@ export const ENEMY_SPRITES = {
 
 export const ESCORT_SPRITE = enemySprite('escort-guard', 12, 26, 4, [11, 8])
 
-function layoutSprites(sprites: readonly Sprite[], width: number, density: number) {
-  const desired = sprites.map(({ scale }) => Math.max(1, Math.floor(scale * density)))
+function layoutSprites(sprites: readonly Sprite[], width: number, density: number, spriteHeight: number) {
+  const desired = sprites.map(({ scale, footY }) => Math.max(1, Math.floor(Math.min(scale * density, spriteHeight / footY))))
   const widths = sprites.map(({ reach: [left, right] }) => left + right)
   const desiredWidth = widths.reduce((sum, width, i) => sum + width * desired[i], 0)
   const available = width - (sprites.length + 1) * 8 * density
@@ -200,7 +200,8 @@ export class Arena {
     this.canvas.style.width = `${this.canvas.width / density}px`
     this.canvas.style.height = `${this.canvas.height / density}px`
     this.context.imageSmoothingEnabled = false
-    this.floor = this.canvas.height - Math.round(footerHeight * density)
+    const footer = parseFloat(getComputedStyle(this.encounter).getPropertyValue('--arena-footer')) || footerHeight
+    this.floor = Math.max(1, this.canvas.height - Math.round(footer * density))
     this.positionActors()
     this.draw()
   }
@@ -209,7 +210,7 @@ export class Arena {
     if (!this.canvas.width || !this.floor) return
     const enemy = ENEMY_SPRITES[this.enemyId]
     const actors = this.enemyId === 'escort' ? [hero, ESCORT_SPRITE, enemy] : [hero, enemy]
-    const { placements, shake } = layoutSprites(actors, this.canvas.width, this.density)
+    const { placements, shake } = layoutSprites(actors, this.canvas.width, this.density, this.floor - 27 * this.density)
     this.placements = placements
     this.shake = shake
     const player = placements.get(hero)!

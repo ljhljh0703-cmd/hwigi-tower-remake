@@ -66,7 +66,7 @@ export function beginMapAscent(seed: number, perk?: StartPerk, parity: Parity = 
   return {
     seed, fight: 0, enemy, maxHp: PLAYER_HP, unlocks: [], newUnlock: null,
     battle: startYachtBattle(first.battleSeed, PLAYER_HP, false, false, startPerk(perk, parity), enemy, 0, rules >= 2 ? emptyTreasure : undefined),
-    route: { map, completed: [], node: null, screen: 'map', ...(rules === 3 && { coins: 0 }) },
+    route: { map, completed: [], node: null, screen: 'map', ...(rules >= 3 && { coins: 0 }) },
   }
 }
 
@@ -123,7 +123,7 @@ export function mapRewardOffers(seed: number, id: number, battle: YachtBattle): 
 function settleBattle(ascent: Ascent): Ascent {
   const { route, battle } = ascent
   if (route?.screen !== 'battle' || route.node === null) return ascent
-  const wallet = route.map.rules === 3 ? { coins: 0 } : {}
+  const wallet = route.map.rules >= 3 ? { coins: 0 } : {}
   if (battle.phase === 'lost') return { ...ascent, route: { ...route, screen: 'finished', ...wallet } }
   if (battle.phase !== 'won') return ascent
   const node = route.map.byId[route.node]
@@ -131,7 +131,7 @@ function settleBattle(ascent: Ascent): Ascent {
     return { ...ascent, route: { ...completeMapNode(route, 'finished'), ...wallet } }
   }
   const offers = route.map.rules >= 2 ? treasureOffers(ascent, node) : mapRewardOffers(ascent.seed, route.node, battle)
-  const coins = route.map.rules === 3 ? { coins: (route.coins ?? 0) + victoryCoins(node.kind) } : {}
+  const coins = route.map.rules >= 3 ? { coins: (route.coins ?? 0) + victoryCoins(node.kind) } : {}
   return { ...ascent, route: { ...route, screen: 'reward', offers, ...coins } }
 }
 
@@ -183,7 +183,7 @@ export function takeAscentReward(ascent: Ascent, choice: RewardChoice, options: 
   const atRoom = route && route.map.rules >= 2 && (route.screen === 'rest' || route.screen === 'event' || route.screen === 'shop')
   const atReward = route ? route.screen === 'reward' || atRoom : offers.length > 0
   if (!atReward || (choice !== 'skip' && !offers.includes(choice))) return ascent
-  const purchase = route?.map.rules === 3 && route.screen === 'shop' && choice !== 'skip'
+  const purchase = route && route.map.rules >= 3 && route.screen === 'shop' && choice !== 'skip'
     ? { coins: (route.coins ?? 0) - shopPrice(choice), shopPurchase: choice } : {}
   const grantedAscent = { ...ascent, rewardChoice: choice, ...(route && { route: { ...completeMapNode(route, 'return'), offers, ...purchase } }) }
   if (route && route.map.rules >= 2) {

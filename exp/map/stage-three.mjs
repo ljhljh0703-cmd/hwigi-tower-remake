@@ -13,9 +13,9 @@ import { optionsFor, pickTreasure, planTreasureTurn } from './stage-two.mjs'
 const safeOrder = ['event', 'shop', 'rest', 'fight', 'elite']
 const eliteOrder = ['elite', 'event', 'shop', 'rest', 'fight']
 
-export function playRulesThree(seed, perk, policy, preferElite, record) {
+export function playRulesThree(seed, perk, policy, preferElite, record, rules = 3) {
   const parity = draw(seed, 0, 21) % 2 ? 'odd' : 'even'
-  let run = beginMapAscent(seed, perk, parity, 3)
+  let run = beginMapAscent(seed, perk, parity, rules)
   const path = []
   const offered = {}
   const choices = {}

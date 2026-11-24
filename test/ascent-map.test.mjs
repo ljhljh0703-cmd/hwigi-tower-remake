@@ -220,3 +220,51 @@ test('map saves validate the rules and path, preserve a locked preview and coexi
     assert.deepEqual(readAscentSave(store), { checkpoint: null, invalidMap: true })
   }
 })
+
+test('fork rules give distinct choices on floors 2–10, preserve the rest and boss, and offer a merchant on every route', () => {
+  const merchantFloors = new Set()
+  const eventFloors = new Set()
+  for (let seed = 0; seed < 4096; seed++) {
+    const map = generateAscentMap(seed, 4)
+    assert.deepEqual(generateAscentMap(seed, 4), map)
+    const merchant = map.nodes.filter(({ kind }) => kind === 'shop')
+    assert.equal(merchant.length, 1)
+    merchantFloors.add(merchant[0].floor)
+    for (const node of map.nodes) {
+      if (node.kind === 'event') eventFloors.add(node.floor)
+      if (node.floor === merchant[0].floor - 1) assert(node.next.includes(merchant[0].id))
+      const choices = nextMapNodes(map, node.id)
+      if (node.floor <= 9) {
+        assert.equal(choices.length, 2)
+        assert.notEqual(choices[0].kind, choices[1].kind)
+      } else {
+        assert.deepEqual(choices.map(({ kind }) => kind), node.floor === 10 ? ['rest'] : node.floor === 11 ? ['boss'] : [])
+      }
+    }
+  }
+  assert.deepEqual([...merchantFloors].sort(), [6, 7, 8])
+  assert(eventFloors.size > 2)
+})
+
+test('fork choices and visited rounds survive resuming without revealing or rerolling a branch', () => {
+  let run = beginMapAscent(7, 'blade', 'odd', 4)
+  const first = availableMapNodes(run)[0]
+  run = enterMapNode(run, first.id)
+  run = resolveAscentTurn({ ...run, battle: { ...run.battle, enemyHp: 1, slots: ['attack', 'attack', 'attack'] } })
+  assert.equal(run.route.screen, 'reward')
+  assert.equal(rewardOffers(run).length, 3)
+  run = returnToMap(takeAscentReward(run, 'skip'))
+  const choices = availableMapNodes(run)
+  const memory = new Map()
+  const storage = { setItem: (key, value) => memory.set(key, value), getItem: (key) => memory.get(key) ?? null, removeItem: (key) => memory.delete(key) }
+  writeAscentSave({ ascent: run, selected: [] }, storage)
+  const saved = loadAscentSave(storage)
+  assert(saved)
+  assert.deepEqual(availableMapNodes(saved.ascent), choices)
+  assert.equal(enterMapNode(saved.ascent, choices[0].id).route.screen, 'battle')
+  assert.equal(enterMapNode(saved.ascent, mapNodeOnLaterFloor(saved.ascent)), saved.ascent)
+})
+
+function mapNodeOnLaterFloor(run) {
+  return run.route.map.nodes.find(({ floor }) => floor === 3).id
+}

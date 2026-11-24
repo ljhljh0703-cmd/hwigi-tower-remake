@@ -1,5 +1,5 @@
 import {
-  ascentFinished, availableMapNodes, beginMapAscent, enterMapNode, FIGHT_COUNT, nextAscentFight, resolveAscentTurn,
+  ascentFinished, beginMapAscent, enterMapNode, FIGHT_COUNT, nextAscentFight, resolveAscentTurn,
   returnToMap, rewardHealth, rewardOffers, spinAscentCounter, takeAscentReward,
 } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
@@ -13,7 +13,7 @@ import { COMPANION_LINES, companionDieIndex } from './companion.ts'
 import { enemyForFight } from './enemy-roster.ts'
 import { loadGameSettings, saveGameSettings, toggleMute } from './game-settings.ts'
 import type { GameSettings } from './game-settings.ts'
-import { MAP_NODE_ICONS, MAP_NODE_NAMES, MapView } from './map-view.ts'
+import { MAP_NODE_ICONS, ForkView } from './map-view.ts'
 import { currentTreasureRoom, grantTreasure, healingFor, SHOP_PRICES, shopPrice, treasureCost, treasureEnabled } from './map-treasure.ts'
 import { ARTIFACT_SLOTS, ITEMS, PREPARATIONS, SHARDS, artifactReady, isArtifact, isItem, isPreparation, isShard, itemUses } from './treasure.ts'
 import type { Artifact, ArtifactOptions, CounterChoice } from './treasure.ts'
@@ -65,8 +65,7 @@ const ui = {
   perks: element('perks'),
   perkChoices: element('perk-choices'),
   battle: element('battle'),
-  map: element('ascent-map'),
-  mapConfirm: element<HTMLButtonElement>('map-confirm'),
+  fork: element('ascent-fork'),
   mapHealth: element('map-health'),
   mapFloor: element('map-floor'),
   runCoins: element('run-coins'),
@@ -262,19 +261,13 @@ const enemyBadges: Record<string, { icon: string; label: string }> = {
 let ascent: Ascent | null = null
 let chosenReward: Reward | undefined
 let artifactOptions: ArtifactOptions = {}
-let nodePreview: number | undefined
 let exchangeBusy = false
 const selected = new Set<number>()
 const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
 const sound = new BattleAudio()
 const systemMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 let settings = loadGameSettings()
-const mapView = new MapView(ui.map, { health: ui.mapHealth, floor: ui.mapFloor }, icon, (id) => {
-  if (ascent?.route?.screen !== 'map') return
-  nodePreview = id
-  saveCurrent()
-  mapView.render(ascent, nodePreview, false, reducedMotion())
-})
+const forkView = new ForkView(ui.fork, { health: ui.mapHealth, floor: ui.mapFloor }, icon, enterFork)
 
 function reducedMotion() { return settings.reducedMotion ?? systemMotion.matches }
 function animationSpeed() { return settings.speed === 'fast' ? 2 : 1 }
@@ -349,7 +342,7 @@ window.addEventListener('keydown', resumeAudio, true)
 
 function saveCurrent(checkpoint = ascent) {
   if (checkpoint) writeAscentSave({
-    ascent: checkpoint, selected: [...selected], rewardPreview: chosenReward, nodePreview,
+    ascent: checkpoint, selected: [...selected], rewardPreview: chosenReward,
     ...(isArtifact(chosenReward) && { artifactOptions }),
   })
 }
@@ -847,7 +840,8 @@ function renderRewardPreview(run: Ascent) {
   ].filter(Boolean).join(' · ') : chosenReward === 'bandage'
     ? `${current} ${icon('next')} ${rewardHealth(run)}/${run.maxHp}`
     : chosenReward === 'tuning' ? `${icon('die')}${card.value} · 1/1` : `0/1 ${icon('next')} 1/1`
-  ui.rewardPreview.innerHTML = `${icon(card.icon)}<span>${card.name}</span><strong>${target}</strong>`
+  const details = heal ? `체력 ${heal} 회복` : displayEgoDieName(card.description)
+  ui.rewardPreview.innerHTML = `${icon(card.icon)}<span>${card.name}</span><strong>${target}</strong><span class="reward-mobile-description">${details}</span>`
 }
 
 function renderArtifactOptions(run: Ascent, artifact: Artifact) {
@@ -898,15 +892,14 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   const { battle, maxHp, seed, fight } = run
   const room = currentTreasureRoom(run)
   const atRoom = room?.kind === 'event' || room?.kind === 'shop' || room?.kind === 'rest'
-  const atShop = room?.kind === 'shop' && run.route?.map.rules === 3
+  const atShop = room?.kind === 'shop' && (run.route?.map.rules ?? 0) >= 3
   const eventName = room?.event === 'medicine' ? '무너진 약상자' : room?.event === 'pulley' ? '녹슨 도르래' : '빈 깃대'
-  ui.rewardHeading.innerHTML = atRoom ? `${icon(MAP_NODE_ICONS[room.kind])} ${room.kind === 'event' ? eventName : room.kind === 'rest' ? '11층 휴식' : atShop ? '7층 상인' : '장터 경유'}` : '전투 보상'
+  ui.rewardHeading.innerHTML = atRoom ? `${icon(MAP_NODE_ICONS[room.kind])} ${room.kind === 'event' ? eventName : room.kind === 'rest' ? '11층 휴식' : atShop ? '상인' : '장터 경유'}` : '전투 보상'
   ui.skipReward.textContent = atRoom ? '떠나기' : '건너뛰기'
   const health = `<span>${icon('heart')}${battle.playerHp}/${maxHp}</span>`
   if (run.route) {
-    const next = availableMapNodes(run)
-    const destinations = next.map(({ floor, kind }) => `${floor}층 ${MAP_NODE_NAMES[kind]}`).join(', ')
-    ui.rewardContext.innerHTML = `${health}<span aria-label="다음 길 ${destinations}" role="img">${icon('next')}${next.map(({ kind }) => icon(MAP_NODE_ICONS[kind])).join('')}</span>`
+    const coins = atShop ? `<span>${icon('ascent-coin')}${run.route.coins}</span>` : ''
+    ui.rewardContext.innerHTML = health + coins
   } else {
     const next = enemyForFight(seed, fight + 1)
     const badge = enemyBadges[next.id]
@@ -915,7 +908,7 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   }
   ui.rewardCards.replaceChildren(...offers.map((reward) => {
     const { name, icon: symbol } = REWARD_CARDS[reward]
-    const heal = (atShop && reward === 'kit' || run.route?.map.rules === 3 && reward === 'bandage')
+    const heal = (atShop && reward === 'kit' || (run.route?.map.rules ?? 0) >= 3 && reward === 'bandage')
       ? healingFor(reward, room, run.route?.map.rules) : 0
     const value = heal ? `+${heal}` : REWARD_CARDS[reward].value
     const description = heal ? `확정하면 체력을 ${heal} 회복합니다. 최대 체력을 넘길 수 없습니다.`
@@ -1210,20 +1203,19 @@ function render(presentation: 'normal' | 'unlock' = 'normal') {
   const inCombat = !atMap && !atEvent && !atUnlock && !atRewards
   const showActions = presentation === 'normal' && inCombat
   const companionAwake = unlocks.includes('triple')
-  const openingMap = atMap && ui.main.dataset.screen !== 'map'
-  ui.main.dataset.screen = atMap ? 'map' : atRewards ? 'reward' : atEvent ? 'event' : atUnlock ? 'unlock' : 'battle'
+  ui.main.dataset.screen = atMap ? 'fork' : atRewards ? 'reward' : atEvent ? 'event' : atUnlock ? 'unlock' : 'battle'
   ui.lobby.hidden = true
   ui.masthead.hidden = false
   ui.returnLobby.disabled = presentation !== 'normal'
   ui.returnLobby.setAttribute('aria-haspopup', 'dialog')
   ui.perks.hidden = true
   ui.battle.hidden = atMap
-  ui.map.hidden = !atMap
+  ui.fork.hidden = !atMap
   ui.mapHealth.hidden = !atMap
   ui.mapFloor.hidden = !atMap
   renderCoins(route?.coins, inCombat)
   ui.encounter.hidden = !inCombat
-  ui.fight.hidden = !inCombat
+  ui.fight.hidden = atMap || (!inCombat && !atRewards)
   const floor = route ? (route.node === null ? route.completed.length : route.map.byId[route.node].floor) : fight
   const floors = route ? MAP_FLOORS : FIGHT_COUNT
   ui.fight.textContent = `${floor}/${floors} 층`
@@ -1238,7 +1230,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal') {
     ui.activePerk.hidden = true
     ui.rewardStrip.hidden = true
     ui.artifactStrip.hidden = true
-    mapView.render(ascent, nodePreview, openingMap, reducedMotion())
+    forkView.render(ascent)
     return
   }
   renderRewardStrip(battle, presentation !== 'normal')
@@ -1321,7 +1313,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal') {
   ui.finalUnlock.hidden = !finalUnlock
   ui.finalUnlock.innerHTML = finalUnlock ? `${icon(finalUnlock.icon)}해금 · ${finalUnlock.label}` : ''
   ui.next.hidden = !between || !atEvent
-  ui.next.innerHTML = route ? `지도 ${icon('map-pin')}` : `다음 전투 ${icon('next')}`
+  ui.next.innerHTML = route ? `다음 층 ${icon('next')}` : `다음 전투 ${icon('next')}`
   ui.retry.hidden = !finished
   refreshDice(battle, totals, unlocks)
   arena.refresh(battle, enemy.id)
@@ -1340,7 +1332,6 @@ function showLobby(focus = false) {
   ascent = null
   chosenReward = undefined
   artifactOptions = {}
-  nodePreview = undefined
   selected.clear()
   clearExchange()
   roulette.setVisible(null)
@@ -1351,7 +1342,7 @@ function showLobby(focus = false) {
   ui.artifactStrip.hidden = true
   ui.perks.hidden = true
   ui.battle.hidden = true
-  ui.map.hidden = true
+  ui.fork.hidden = true
   refreshLobbyActions()
   if (focus) (ui.continueAscent.hidden ? ui.newAscent : ui.continueAscent).focus()
 }
@@ -1361,7 +1352,6 @@ function showPerks() {
   ascent = null
   chosenReward = undefined
   artifactOptions = {}
-  nodePreview = undefined
   selected.clear()
   roulette.setVisible(null)
   ui.main.dataset.screen = 'perks'
@@ -1372,7 +1362,7 @@ function showPerks() {
   ui.returnLobby.disabled = false
   ui.returnLobby.removeAttribute('aria-haspopup')
   ui.battle.hidden = true
-  ui.map.hidden = true
+  ui.fork.hidden = true
   ui.mapHealth.hidden = true
   ui.mapFloor.hidden = true
   ui.activePerk.hidden = true
@@ -1458,7 +1448,7 @@ function place(indices: readonly number[], zone: DropZone) {
 
 function focusPhase() {
   if (!ascent) return
-  if (!ui.map.hidden) mapView.focusFirst()
+  if (!ui.fork.hidden) forkView.focusFirst()
   else if (!ui.rewardPanel.hidden) {
     const target = ui.rewardCards.querySelector<HTMLButtonElement>('[aria-pressed="true"]') ?? ui.rewardCards.querySelector('button:not(:disabled)') ?? ui.skipReward
     target.focus()
@@ -1503,7 +1493,7 @@ function claimReward(choice: RewardChoice) {
   if (!ascent || ui.guide.open) return
   const next = takeAscentReward(ascent, choice, artifactOptions)
   if (next === ascent) return
-  ascent = next
+  ascent = returnToMap(next)
   chosenReward = undefined
   artifactOptions = {}
   saveCurrent()
@@ -1623,20 +1613,17 @@ async function playCounter(choice?: CounterChoice) {
   focusPhase()
 }
 ui.counter.addEventListener('click', () => void playCounter())
-ui.mapConfirm.addEventListener('click', () => {
+function enterFork(id: number) {
   if (ui.guide.open || exchangeBusy || ascent?.route?.screen !== 'map') return
-  const id = nodePreview ?? availableMapNodes(ascent)[0]?.id
-  if (id === undefined) return
   const next = enterMapNode(ascent, id)
   if (next === ascent) return
   clearExchange()
   ascent = next
-  nodePreview = undefined
   saveCurrent()
   render()
   if (ascent.route?.screen === 'battle') sound.play('dice-roll')
   focusPhase()
-})
+}
 ui.next.addEventListener('click', () => {
   if (exchangeBusy || !ascent || rewardOffers(ascent).length) return
   const next = ascent.route ? returnToMap(ascent) : nextAscentFight(ascent)
@@ -1655,10 +1642,9 @@ ui.continueAscent.addEventListener('click', (event) => {
     showLobby(true)
     return
   }
-  ascent = checkpoint.ascent
+  ascent = returnToMap(checkpoint.ascent)
   chosenReward = checkpoint.rewardPreview
   artifactOptions = checkpoint.artifactOptions ?? {}
-  nodePreview = checkpoint.nodePreview
   selected.clear()
   for (const index of checkpoint.selected) selected.add(index)
   if (event.isTrusted) sound.activate()

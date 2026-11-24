@@ -115,7 +115,7 @@ function acquiredRewards(rewards: CombatRewards | undefined): readonly Reward[] 
 }
 
 function mapCheckpoint(seed: number, fight: number, value: unknown) {
-  if (!record(value) || (value.rules !== 1 && value.rules !== 2 && value.rules !== 3) || !Array.isArray(value.completed)) return null
+  if (!record(value) || (value.rules !== 1 && value.rules !== 2 && value.rules !== 3 && value.rules !== 4) || !Array.isArray(value.completed)) return null
   const { completed, screen, node, offers, rules, bossMaxHp, coins, shopPurchase } = value
   if (completed.length >= MAP_FLOORS || !completed.every((id) => integer(id))) return null
   const room = screen === 'rest' || (rules >= 2 && (screen === 'event' || screen === 'shop'))
@@ -132,7 +132,7 @@ function mapCheckpoint(seed: number, fight: number, value: unknown) {
   if (screen === 'return' && (lastCompleted === undefined || (rules === 1 && map.byId[lastCompleted].kind === 'rest'))) return null
   const hasOffers = screen === 'reward' || screen === 'return' || (rules >= 2 && room)
   if (hasOffers ? !Array.isArray(offers) || offers.length > 3 || new Set(offers).size !== offers.length || !offers.every(rules >= 2 ? isReward : isLegacyReward) : offers !== undefined) return null
-  if (rules === 3) {
+  if (rules >= 3) {
     const price = shopPurchase === 'kit' || isArtifact(shopPurchase) ? shopPrice(shopPurchase) : 0
     if (shopPurchase !== undefined && (!price || !completed.some((id) => map.byId[id].kind === 'shop'))) return null
     const won = screen === 'reward' ? path : completed
@@ -199,7 +199,7 @@ function readCheckpoint(raw: unknown): AscentSave | null {
     if (!rulesTwo && route.screen === 'reward' && !sameList(route.offers, mapRewardOffers(seed, route.node!, restoredBattle))) return null
     if (route.screen === 'return' && rewardChoice !== undefined) {
       if (rewardChoice !== 'skip' && !route.offers?.includes(rewardChoice)) return null
-      if (route.map.rules === 3 && route.map.byId[route.completed.at(-1)!].kind === 'shop' &&
+      if (route.map.rules >= 3 && route.map.byId[route.completed.at(-1)!].kind === 'shop' &&
         (rewardChoice === 'skip' ? route.shopPurchase !== undefined : route.shopPurchase !== rewardChoice)) return null
       if (!rulesTwo) {
         const prior = beforeClaim(restoredBattle, rewardChoice)

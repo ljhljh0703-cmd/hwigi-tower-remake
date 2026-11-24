@@ -176,7 +176,7 @@
           <img class="lobby-key" src="/art/lobby-key.png" alt="" width="120" height="213">
           <h1 id="lobby-title">회귀자는 <br>탑을 오른다</h1>
           <div class="lobby-actions">
-            <p id="save-notice" role="status" hidden>이 지도 저장을 이어 할 수 없습니다.</p>
+            <p id="save-notice" role="status" hidden>이 등반을 이어 할 수 없습니다.</p>
             <button id="continue-ascent" class="primary lobby-start" type="button" hidden>이어 하기 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
             <button id="new-ascent" class="lobby-start" type="button">새로 하기 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
           </div>
@@ -216,14 +216,9 @@
         <div id="artifact-strip" role="group" aria-label="유물 세 칸" hidden></div>
       </div>
 
-      <section id="ascent-map" aria-label="등반 지도" hidden>
-        <div id="map-scroll" role="region" aria-label="층과 연결 경로" tabindex="0">
-          <div id="map-graph"></div>
-        </div>
-        <div class="map-destination">
-          <div id="map-preview" role="status" aria-label="목적지 미리 보기"></div>
-          <button id="map-confirm" class="primary" type="button" disabled>이동 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
-        </div>
+      <section id="ascent-fork" aria-labelledby="fork-heading" hidden>
+        <h2 id="fork-heading">두 갈래 길</h2>
+        <div id="fork-options" role="group" aria-label="다음 층 선택"></div>
       </section>
 
       <section id="perks" aria-labelledby="perks-heading" hidden>

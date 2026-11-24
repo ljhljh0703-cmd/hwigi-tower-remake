@@ -52,7 +52,7 @@ export function treasureOffers(run: Ascent, node: MapNode): readonly Treasure[] 
   if (node.event === 'pulley') return ['whetstone']
   if (node.event === 'flag') return artifactChoices(run, node).slice(0, 1)
   if (node.kind === 'shop') {
-    if (run.route?.map.rules !== 3) return []
+    if (!run.route || run.route.map.rules < 3) return []
     const stock = artifactChoices(run, node)
     return stock.length ? ['kit', stock[draw(run.seed, node.id, 85) % stock.length]] : ['kit']
   }
@@ -75,7 +75,7 @@ export function treasureCost(node: MapNode | undefined, choice: Treasure): numbe
 }
 
 export function healingFor(choice: Treasure, node?: MapNode, rules?: MapRules): number {
-  return choice === 'bandage' ? (rules === 3 ? MAP_THREE_BANDAGE_HEAL : BANDAGE_HEAL)
+  return choice === 'bandage' ? ((rules === 3 || rules === 4) ? MAP_THREE_BANDAGE_HEAL : BANDAGE_HEAL)
     : choice === 'medicine' ? 3 : choice === 'kit' ? (node?.kind === 'shop' ? SHOP_HEAL : REST_HEAL) : 0
 }
 
