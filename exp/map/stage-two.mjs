@@ -15,11 +15,17 @@ import { chooseAllocation } from '../../src/yacht-policy.ts'
 const itemOrder = ['wedge', 'buckle', 'weight', 'mantle', 'tongs', 'rewind', 'coin', 'knot', 'hook', 'smash', 'assist', 'tuning']
 const artifactOrder = ['hammer', 'banner', 'overflow', 'horn', 'heart-die', 'mirror', 'hourglass', 'incomplete']
 
-function pickTreasure(run) {
+export function pickTreasure(run) {
   const offers = rewardOffers(run).filter((card) => treasureEnabled(run, card))
   const artifact = offers.find(isArtifact)
   const { playerHp, loot } = run.battle
   const room = currentTreasureRoom(run)
+  if (room?.kind === 'shop' && run.route.map.rules === 3) {
+    if (offers.includes('kit') && run.maxHp - playerHp >= 4) return 'kit'
+    const weakest = artifactOrder.findLastIndex((id) => loot.equipped.includes(id))
+    if (artifact && (loot.equipped.length < ARTIFACT_SLOTS || artifactOrder.indexOf(artifact) < weakest)) return artifact
+    return offers.includes('kit') && run.maxHp - playerHp >= 2 ? 'kit' : 'skip'
+  }
   if (room?.kind === 'rest' || room?.kind === 'event' || room?.kind === 'shop') {
     if (offers.includes('kit') && run.maxHp - playerHp >= 2) return 'kit'
     if (offers.includes('medicine')) return 'medicine'
@@ -36,7 +42,7 @@ function pickTreasure(run) {
   return itemOrder.find((card) => offers.includes(card)) ?? offers.find((card) => !isArtifact(card)) ?? 'skip'
 }
 
-function optionsFor(run, choice) {
+export function optionsFor(run, choice) {
   const { loot, perk } = run.battle
   if (!isArtifact(choice)) return {}
   return {
@@ -46,7 +52,7 @@ function optionsFor(run, choice) {
   }
 }
 
-function planTreasureTurn(battle, policy) {
+export function planTreasureTurn(battle, policy) {
   let plan = planAscentTurn(battle, policy)
   const { loot } = plan
   const replan = (candidate) => ({ ...candidate, slots: chooseAllocation(candidate, policy) })

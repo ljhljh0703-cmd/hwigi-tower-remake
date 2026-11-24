@@ -1,4 +1,4 @@
-import { enemyForMapNode, generateAscentMap, MAP_FLOORS, MAP_REWARD_CHANNEL, MAP_START, nextMapNodes } from './ascent-map.ts'
+import { enemyForMapNode, generateAscentMap, MAP_FLOORS, MAP_REWARD_CHANNEL, MAP_START, nextMapNodes, victoryCoins } from './ascent-map.ts'
 import type { AscentMap, MapNode, MapRules } from './ascent-map.ts'
 import { draw, PLAYER_HP } from './combat.ts'
 import { ASCENT_ENEMIES, enemyForFight } from './enemy-roster.ts'
@@ -6,9 +6,9 @@ import { startPerk } from './perks.ts'
 import type { Parity, StartPerk } from './perks.ts'
 import { BANDAGE_HEAL, BANDAGE_THRESHOLD, RELICS, isLegacyReward, isRelic } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
-import { grantTreasure, treasureOffers } from './map-treasure.ts'
+import { grantTreasure, shopPrice, treasureOffers } from './map-treasure.ts'
 import { emptyTreasure, nextTreasureBattle } from './treasure.ts'
-import type { ArtifactOptions, CounterChoice } from './treasure.ts'
+import type { ArtifactOptions, CounterChoice, Treasure } from './treasure.ts'
 import { activateYachtHand, resolveYachtTurn, spinYachtCounter, startYachtBattle } from './yacht-combat.ts'
 import type { Hand, YachtBattle } from './yacht-combat.ts'
 
@@ -21,6 +21,8 @@ export interface MapProgress {
   readonly node: number | null
   readonly screen: 'map' | 'battle' | 'reward' | 'return' | 'rest' | 'event' | 'shop' | 'finished'
   readonly offers?: readonly Reward[]
+  readonly coins?: number
+  readonly shopPurchase?: Treasure
 }
 
 export interface Ascent {
@@ -63,8 +65,8 @@ export function beginMapAscent(seed: number, perk?: StartPerk, parity: Parity = 
   const enemy = enemyForMapNode(first, rules)!
   return {
     seed, fight: 0, enemy, maxHp: PLAYER_HP, unlocks: [], newUnlock: null,
-    battle: startYachtBattle(first.battleSeed, PLAYER_HP, false, false, startPerk(perk, parity), enemy, 0, rules === 2 ? emptyTreasure : undefined),
-    route: { map, completed: [], node: null, screen: 'map' },
+    battle: startYachtBattle(first.battleSeed, PLAYER_HP, false, false, startPerk(perk, parity), enemy, 0, rules >= 2 ? emptyTreasure : undefined),
+    route: { map, completed: [], node: null, screen: 'map', ...(rules === 3 && { coins: 0 }) },
   }
 }
 
@@ -96,11 +98,12 @@ export function enterMapNode(ascent: Ascent, id: number): Ascent {
   const next = enemy ? enterBattle(ascent, enemy, node.battleSeed) : { ...ascent, newUnlock: null }
   if (enemy) return { ...next, route: { ...route, node: id, screen: 'battle' } }
   const screen = node.kind === 'event' || node.kind === 'shop' ? node.kind : 'rest'
-  return { ...next, route: { ...route, node: id, screen, ...(route.map.rules === 2 && { offers: treasureOffers(ascent, node) }) } }
+  return { ...next, route: { ...route, node: id, screen, ...(route.map.rules >= 2 && { offers: treasureOffers(ascent, node) }) } }
 }
 
 function completeMapNode(route: MapProgress, screen: 'return' | 'map' | 'finished'): MapProgress {
-  return { map: route.map, node: null, completed: [...route.completed, route.node!], screen }
+  const { offers: _offers, ...progress } = route
+  return { ...progress, node: null, completed: [...route.completed, route.node!], screen }
 }
 
 export function returnToMap(ascent: Ascent): Ascent {
@@ -120,13 +123,16 @@ export function mapRewardOffers(seed: number, id: number, battle: YachtBattle): 
 function settleBattle(ascent: Ascent): Ascent {
   const { route, battle } = ascent
   if (route?.screen !== 'battle' || route.node === null) return ascent
-  if (battle.phase === 'lost') return { ...ascent, route: { ...route, screen: 'finished' } }
+  const wallet = route.map.rules === 3 ? { coins: 0 } : {}
+  if (battle.phase === 'lost') return { ...ascent, route: { ...route, screen: 'finished', ...wallet } }
   if (battle.phase !== 'won') return ascent
-  if (route.map.byId[route.node].floor === MAP_FLOORS) {
-    return { ...ascent, route: completeMapNode(route, 'finished') }
+  const node = route.map.byId[route.node]
+  if (node.floor === MAP_FLOORS) {
+    return { ...ascent, route: { ...completeMapNode(route, 'finished'), ...wallet } }
   }
-  const offers = route.map.rules === 2 ? treasureOffers(ascent, route.map.byId[route.node]) : mapRewardOffers(ascent.seed, route.node, battle)
-  return { ...ascent, route: { ...route, screen: 'reward', offers } }
+  const offers = route.map.rules >= 2 ? treasureOffers(ascent, node) : mapRewardOffers(ascent.seed, route.node, battle)
+  const coins = route.map.rules === 3 ? { coins: (route.coins ?? 0) + victoryCoins(node.kind) } : {}
+  return { ...ascent, route: { ...route, screen: 'reward', offers, ...coins } }
 }
 
 export function resolveAscentTurn(ascent: Ascent): Ascent {
@@ -174,11 +180,13 @@ export function rewardHealth(ascent: Ascent) {
 export function takeAscentReward(ascent: Ascent, choice: RewardChoice, options: ArtifactOptions = {}): Ascent {
   const offers = rewardOffers(ascent)
   const { battle, route } = ascent
-  const atRoom = route?.map.rules === 2 && (route.screen === 'rest' || route.screen === 'event' || route.screen === 'shop')
+  const atRoom = route && route.map.rules >= 2 && (route.screen === 'rest' || route.screen === 'event' || route.screen === 'shop')
   const atReward = route ? route.screen === 'reward' || atRoom : offers.length > 0
   if (!atReward || (choice !== 'skip' && !offers.includes(choice))) return ascent
-  const grantedAscent = { ...ascent, rewardChoice: choice, ...(route && { route: { ...completeMapNode(route, 'return'), offers } }) }
-  if (route?.map.rules === 2) {
+  const purchase = route?.map.rules === 3 && route.screen === 'shop' && choice !== 'skip'
+    ? { coins: (route.coins ?? 0) - shopPrice(choice), shopPurchase: choice } : {}
+  const grantedAscent = { ...ascent, rewardChoice: choice, ...(route && { route: { ...completeMapNode(route, 'return'), offers, ...purchase } }) }
+  if (route && route.map.rules >= 2) {
     const next = choice === 'skip' ? battle : grantTreasure(ascent, choice, options)
     return next ? { ...grantedAscent, battle: next } : ascent
   }

@@ -30,6 +30,9 @@ export const ENEMY_SPRITES = {
   reaction: enemySprite('reaction', 20, 46),
   vitality: enemySprite('vitality', 20, 46),
   escort: enemySprite('escort', 20, 46),
+  'shield-soldier': enemySprite('lock', 16, 38),
+  'seal-sentinel': enemySprite('freeze', 16, 38),
+  'iron-knight': enemySprite('vitality', 20, 46),
   boss,
 } satisfies Record<AscentEnemyId, Sprite>
 

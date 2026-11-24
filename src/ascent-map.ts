@@ -1,15 +1,19 @@
 import { draw } from './combat.ts'
-import { ASCENT_ENEMIES } from './enemy-roster.ts'
+import { ASCENT_ENEMIES, MAP_ENEMIES } from './enemy-roster.ts'
 import type { AscentEnemyId, enemyForFight } from './enemy-roster.ts'
 
 export const MAP_RULES = 1
-export type MapRules = 1 | 2
+export type MapRules = 1 | 2 | 3
+export const CURRENT_MAP_RULES = 3
 export const MAP_START = 0
 export const MAP_FLOORS = 12
 export const MAP_FIGHTS = MAP_FLOORS - 1
 export const MAP_REWARD_CHANNEL = 84
 
 export type MapNodeKind = 'fight' | 'elite' | 'rest' | 'boss' | 'event' | 'shop'
+export function victoryCoins(kind: MapNodeKind) {
+  return kind === 'elite' ? 2 : kind === 'fight' ? 1 : 0
+}
 export const MAP_EVENTS = ['medicine', 'pulley', 'flag'] as const
 export type MapEvent = (typeof MAP_EVENTS)[number]
 export type MapLane = 0 | 1 | 2
@@ -38,7 +42,13 @@ const stageOneFloors: readonly (readonly MapNodeKind[])[] = [
 ]
 const normalEnemies = [['lock', 'freeze'], ['thorns', 'rage']] as const
 const eliteEnemies = ['reaction', 'vitality', 'escort'] as const
-const roster = ASCENT_ENEMIES.flat()
+const roster = [...ASCENT_ENEMIES.flat(), ...MAP_ENEMIES]
+
+export const MAP_ENEMY_BADGES = {
+  'shield-soldier': { icon: 'reaction', label: '방패병' },
+  'seal-sentinel': { icon: 'seal', label: '봉인 파수꾼' },
+  'iron-knight': { icon: 'charge', label: '철갑 기사' },
+} satisfies Partial<Record<AscentEnemyId, { icon: string; label: string }>>
 
 export function generateAscentMap(seed: number, rules: MapRules = MAP_RULES): AscentMap {
   const diagonal = draw(seed, 0, 80) % 2
@@ -46,15 +56,19 @@ export function generateAscentMap(seed: number, rules: MapRules = MAP_RULES): As
   let eliteIndex = 0
   const nodes = stageOneFloors.flatMap((types, index) => {
     const floor = index + 1
-    const variants: readonly MapNodeKind[] = rules === 2 && (floor === 4 || floor === 9) ? ['fight', 'event']
-      : rules === 2 && floor === 7 ? ['fight', 'shop'] : types
+    const variants: readonly MapNodeKind[] = rules >= 2 && (floor === 4 || floor === 9) ? ['fight', 'event']
+      : rules >= 2 && floor === 7 ? ['fight', 'shop'] : types
     const ordered = draw(seed, floor, 81) % 2 ? [...variants].reverse() : variants
+    const replacement = rules === 3 ? draw(seed, floor, 88) % 2 : undefined
     return ordered.map((kind, position): MapNode => {
       const lane = types.length === 1 ? 2 : position as 0 | 1
       const id = floor * 4 + lane
-      const enemyId = kind === 'fight' ? normalEnemies[floor % 2][(draw(seed, floor, 82) + position) % 2]
+      const baseEnemy = kind === 'fight' ? normalEnemies[floor % 2][(draw(seed, floor, 82) + position) % 2]
         : kind === 'elite' ? eliteEnemies[(eliteStart + eliteIndex++) % eliteEnemies.length]
           : kind === 'boss' ? 'boss' : undefined
+      const enemyId = replacement === 0 && kind === 'fight' && position === ordered.indexOf('fight')
+        ? floor === 6 ? 'shield-soldier' : floor === 9 ? 'seal-sentinel' : baseEnemy
+        : replacement === 1 && floor === 10 && kind === 'elite' ? 'iron-knight' : baseEnemy
       const nextBase = (floor + 1) * 4
       const next = floor === MAP_FLOORS ? [] : floor >= 10 ? [nextBase + 2]
         : lane === 2 ? [nextBase, nextBase + 1]
@@ -83,7 +97,7 @@ export function mapPathIsValid(map: AscentMap, path: readonly number[]): boolean
 export function enemyForMapNode(node: MapNode, rules: MapRules): ReturnType<typeof enemyForFight> | undefined {
   const enemy = roster.find(({ id }) => id === node.enemyId)
   if (!enemy) return undefined
-  if (node.kind === 'boss') return rules === 2 ? { ...enemy, hp: 84 } : enemy
+  if (node.kind === 'boss') return rules >= 2 ? { ...enemy, hp: 84 } : enemy
   const elite = node.kind === 'elite'
   const hp = enemy.hp + 2 * Math.floor((node.floor - (elite ? 5 : 1)) / 2)
   const firstHitAdjustment = Number(node.floor >= 9) - (elite ? 3 : 0)

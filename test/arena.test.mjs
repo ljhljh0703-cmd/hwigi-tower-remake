@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 import { ENEMY_SPRITES, ESCORT_SPRITE, enemyExchangePoses, enemyPlanPose, escortExchangePoses, heroExchangePoses } from '../src/arena.ts'
 import { beginAscent } from '../src/ascent.ts'
-import { ASCENT_ENEMIES } from '../src/enemy-roster.ts'
+import { ASCENT_ENEMIES, MAP_ENEMIES } from '../src/enemy-roster.ts'
 import { resolveYachtTurn, startYachtBattle } from '../src/yacht-combat.ts'
 
 function poses(before) {
@@ -35,10 +35,10 @@ test('the hero recoils from thorns after a finishing blow without showing a guar
 
 test('every enemy and the summoned guard have complete native-size artwork', () => {
   const [ordinary, elite, [boss]] = ASCENT_ENEMIES
-  assert.deepEqual(Object.keys(ENEMY_SPRITES).sort(), ASCENT_ENEMIES.flat().map(({ id }) => id).sort())
+  assert.deepEqual(Object.keys(ENEMY_SPRITES).sort(), [...ASCENT_ENEMIES.flat(), ...MAP_ENEMIES].map(({ id }) => id).sort())
   for (const [sprites, size] of [
-    [ordinary.map(({ id }) => ENEMY_SPRITES[id]), [32, 40]],
-    [elite.map(({ id }) => ENEMY_SPRITES[id]), [40, 48]],
+    [[...ordinary, ...MAP_ENEMIES.filter(({ attackPerUnlock }) => !attackPerUnlock)].map(({ id }) => ENEMY_SPRITES[id]), [32, 40]],
+    [[...elite, ...MAP_ENEMIES.filter(({ attackPerUnlock }) => attackPerUnlock)].map(({ id }) => ENEMY_SPRITES[id]), [40, 48]],
     [[ENEMY_SPRITES[boss.id]], [48, 48]],
     [[ESCORT_SPRITE], [24, 28]],
   ]) {
@@ -54,7 +54,7 @@ test('every enemy and the summoned guard have complete native-size artwork', () 
 })
 
 test('ordinary and elite enemies ready, reel, and attack for actual exchanges', () => {
-  for (const enemy of ASCENT_ENEMIES.slice(0, 2).flat()) {
+  for (const enemy of [...ASCENT_ENEMIES.slice(0, 2).flat(), ...MAP_ENEMIES]) {
     const before = { ...startYachtBattle(91, 22, false, false, undefined, enemy), dice: [3, 4, 5], slots: ['attack', 'guard', 'guard'] }
     assert.equal(enemyPlanPose(enemy.id, before), 'charge')
     assert.equal(enemyPlanPose(enemy.id, { ...before, phase: 'counter' }), 'idle')

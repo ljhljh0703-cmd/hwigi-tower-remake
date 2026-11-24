@@ -1,11 +1,11 @@
 import { ascentBattleSeed, ascentFinished, availableMapNodes, FIGHT_COUNT, mapRewardOffers, rewardOffers } from './ascent.ts'
 import type { Ascent, MapProgress } from './ascent.ts'
-import { enemyForMapNode, generateAscentMap, MAP_FIGHTS, MAP_FLOORS, mapPathIsValid } from './ascent-map.ts'
+import { enemyForMapNode, generateAscentMap, MAP_FIGHTS, MAP_FLOORS, mapPathIsValid, victoryCoins } from './ascent-map.ts'
 import { COUNTER_REWARDS, DIE_COUNT, draw, PLAYER_HP } from './combat.ts'
 import { enemyForFight } from './enemy-roster.ts'
 import { BANDAGE_HEAL, isLegacyReward, isRelic, isReward, relicReady } from './rewards.ts'
 import type { CombatRewards, Reward, RewardChoice } from './rewards.ts'
-import { treasureOffers } from './map-treasure.ts'
+import { shopPrice, treasureOffers } from './map-treasure.ts'
 import { isArtifact, isItem, isPreparation, isShard, itemUses } from './treasure.ts'
 import type { ArtifactOptions } from './treasure.ts'
 import { artifactOptionsRecord, treasureRecord } from './treasure-save.ts'
@@ -115,10 +115,10 @@ function acquiredRewards(rewards: CombatRewards | undefined): readonly Reward[] 
 }
 
 function mapCheckpoint(seed: number, fight: number, value: unknown) {
-  if (!record(value) || (value.rules !== 1 && value.rules !== 2) || !Array.isArray(value.completed)) return null
-  const { completed, screen, node, offers, rules, bossMaxHp } = value
+  if (!record(value) || (value.rules !== 1 && value.rules !== 2 && value.rules !== 3) || !Array.isArray(value.completed)) return null
+  const { completed, screen, node, offers, rules, bossMaxHp, coins, shopPurchase } = value
   if (completed.length >= MAP_FLOORS || !completed.every((id) => integer(id))) return null
-  const room = screen === 'rest' || (rules === 2 && (screen === 'event' || screen === 'shop'))
+  const room = screen === 'rest' || (rules >= 2 && (screen === 'event' || screen === 'shop'))
   if (screen !== 'map' && screen !== 'return' && screen !== 'battle' && screen !== 'reward' && !room) return null
   const onNode = screen === 'battle' || screen === 'reward' || room
   if (onNode ? !integer(node) : node !== null) return null
@@ -130,8 +130,15 @@ function mapCheckpoint(seed: number, fight: number, value: unknown) {
   if (screen === 'reward' && map.byId[active!].kind === 'boss') return null
   const lastCompleted = completed.at(-1)
   if (screen === 'return' && (lastCompleted === undefined || (rules === 1 && map.byId[lastCompleted].kind === 'rest'))) return null
-  const hasOffers = screen === 'reward' || screen === 'return' || (rules === 2 && room)
-  if (hasOffers ? !Array.isArray(offers) || offers.length > 3 || new Set(offers).size !== offers.length || !offers.every(rules === 2 ? isReward : isLegacyReward) : offers !== undefined) return null
+  const hasOffers = screen === 'reward' || screen === 'return' || (rules >= 2 && room)
+  if (hasOffers ? !Array.isArray(offers) || offers.length > 3 || new Set(offers).size !== offers.length || !offers.every(rules >= 2 ? isReward : isLegacyReward) : offers !== undefined) return null
+  if (rules === 3) {
+    const price = shopPurchase === 'kit' || isArtifact(shopPurchase) ? shopPrice(shopPurchase) : 0
+    if (shopPurchase !== undefined && (!price || !completed.some((id) => map.byId[id].kind === 'shop'))) return null
+    const won = screen === 'reward' ? path : completed
+    const earned = won.reduce((sum, id) => sum + victoryCoins(map.byId[id].kind), 0)
+    if (!integer(coins) || coins !== earned - price) return null
+  } else if (coins !== undefined || shopPurchase !== undefined) return null
   const fights = path.map((id) => map.byId[id]).filter((room) => room.enemyId)
   if (fight !== fights.length) return null
   const battleNode = fights.at(-1) ?? map.nodes[0]
@@ -141,7 +148,11 @@ function mapCheckpoint(seed: number, fight: number, value: unknown) {
   if (bossMaxHp !== undefined && (!stageTwoBoss || bossMaxHp !== enemy.hp && bossMaxHp !== previousBoss?.hp)) return null
   // Saves made before the balance change omit the maximum for an already-entered boss.
   const restoredEnemy = previousBoss && (bossMaxHp === undefined || bossMaxHp === previousBoss.hp) ? previousBoss : enemy
-  const route: MapProgress = { map, completed, screen, node: active, ...(Array.isArray(offers) && { offers }) }
+  const route: MapProgress = {
+    map, completed, screen, node: active, ...(Array.isArray(offers) && { offers }),
+    ...(typeof coins === 'number' && { coins }),
+    ...((shopPurchase === 'kit' || isArtifact(shopPurchase)) && { shopPurchase }),
+  }
   return { route, enemy: restoredEnemy, fightSeed: battleNode.battleSeed, acquired: value.acquired }
 }
 
@@ -163,7 +174,7 @@ function readCheckpoint(raw: unknown): AscentSave | null {
   if (isMap && !mapped) return null
   const enemy = mapped?.enemy ?? enemyForFight(seed, fight)
   const fightSeed = mapped?.fightSeed ?? ascentBattleSeed(seed, fight)
-  const rulesTwo = mapped?.route.map.rules === 2
+  const rulesTwo = !!mapped && mapped.route.map.rules >= 2
   if (!battleRecord(battle, fightSeed, enemy, rulesTwo)) return null
   if (rewardChoice !== undefined && rewardChoice !== 'skip' && !isReward(rewardChoice)) return null
   if (rewardChoice !== undefined && (battle.phase !== 'won' || (!rulesTwo && rewardChoice !== 'skip' && !isLegacyReward(rewardChoice)))) return null
@@ -181,12 +192,15 @@ function readCheckpoint(raw: unknown): AscentSave | null {
     const { route, acquired } = mapped
     const expectsVictory = route.screen !== 'battle' && fight > 0
     if ((battle.phase === 'won') !== expectsVictory || (route.screen === 'return') !== (rewardChoice !== undefined)) return null
+    if (isArtifact(route.shopPurchase) && !battle.loot?.acquired.includes(route.shopPurchase)) return null
     if (fight === 0 && (battle.phase !== 'assign' || battle.turn !== 1 || battle.playerHp !== PLAYER_HP || battle.lastExchange !== null || unlocks.length)) return null
     if (!sameList(acquired, rulesTwo ? battle.loot!.acquired : acquiredRewards(battle.rewards))) return null
     if ((battle.enemyAttackBuff ?? 0) > enemy.attackPerUnlock * unlocks.length) return null
     if (!rulesTwo && route.screen === 'reward' && !sameList(route.offers, mapRewardOffers(seed, route.node!, restoredBattle))) return null
     if (route.screen === 'return' && rewardChoice !== undefined) {
       if (rewardChoice !== 'skip' && !route.offers?.includes(rewardChoice)) return null
+      if (route.map.rules === 3 && route.map.byId[route.completed.at(-1)!].kind === 'shop' &&
+        (rewardChoice === 'skip' ? route.shopPurchase !== undefined : route.shopPurchase !== rewardChoice)) return null
       if (!rulesTwo) {
         const prior = beforeClaim(restoredBattle, rewardChoice)
         if (prior.playerHp < 1 || !sameList(route.offers, mapRewardOffers(seed, route.completed.at(-1)!, prior))) return null
@@ -256,6 +270,7 @@ export function writeAscentSave({ ascent, selected, rewardPreview, nodePreview, 
     const savedRoute = route && {
       rules: route.map.rules, completed: route.completed, node: route.node, screen: route.screen,
       offers: route.offers, acquired: battle.loot?.acquired ?? acquiredRewards(battle.rewards),
+      coins: route.coins, shopPurchase: route.shopPurchase,
       ...(route.map.rules === 2 && enemy.id === 'boss' && { bossMaxHp: enemy.hp }),
     }
     store.setItem(ASCENT_SAVE_KEY, JSON.stringify({

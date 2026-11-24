@@ -3,7 +3,7 @@ import {
   returnToMap, rewardHealth, rewardOffers, spinAscentCounter, takeAscentReward,
 } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
-import { MAP_FLOORS } from './ascent-map.ts'
+import { CURRENT_MAP_RULES, MAP_ENEMY_BADGES, MAP_FLOORS } from './ascent-map.ts'
 import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, writeAscentSave } from './ascent-save.ts'
 import { Arena } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
@@ -13,7 +13,7 @@ import { enemyForFight } from './enemy-roster.ts'
 import { loadGameSettings, saveGameSettings, toggleMute } from './game-settings.ts'
 import type { GameSettings } from './game-settings.ts'
 import { MAP_NODE_ICONS, MAP_NODE_NAMES, MapView } from './map-view.ts'
-import { currentTreasureRoom, grantTreasure, healingFor, treasureCost, treasureEnabled } from './map-treasure.ts'
+import { currentTreasureRoom, grantTreasure, healingFor, SHOP_PRICES, shopPrice, treasureCost, treasureEnabled } from './map-treasure.ts'
 import { ARTIFACT_SLOTS, ITEMS, PREPARATIONS, SHARDS, artifactReady, isArtifact, isItem, isPreparation, isShard, itemUses } from './treasure.ts'
 import type { Artifact, ArtifactOptions, CounterChoice } from './treasure.ts'
 import { availableCounterChoices, cancelSeal, chooseHourglass, draftSeal, startHourglass, toggleArtifact, toggleShard } from './treasure-combat.ts'
@@ -68,6 +68,8 @@ const ui = {
   mapConfirm: element<HTMLButtonElement>('map-confirm'),
   mapHealth: element('map-health'),
   mapFloor: element('map-floor'),
+  runCoins: element('run-coins'),
+  battleCoins: element('battle-coins'),
   mapRest: element('map-rest-marker'),
   encounter: document.querySelector<HTMLElement>('.encounter')!,
   fight: element('fight'),
@@ -248,6 +250,7 @@ const enemyBadges: Record<string, { icon: string; label: string }> = {
   vitality: { icon: 'vitality', label: '체력 비례 일격' },
   escort: { icon: 'escort', label: '호위와 주사위 빼앗기' },
   boss: { icon: 'charge', label: '힘 모으는 보스' },
+  ...MAP_ENEMY_BADGES,
 }
 
 let ascent: Ascent | null = null
@@ -710,13 +713,16 @@ function renderRewardPreview(run: Ascent) {
   const card = REWARD_CARDS[chosenReward]
   const current = `${run.battle.playerHp}/${run.maxHp}`
   const loot = run.battle.loot
-  const heal = healingFor(chosenReward)
-  const cost = treasureCost(currentTreasureRoom(run), chosenReward)
+  const room = currentTreasureRoom(run)
+  const heal = healingFor(chosenReward, room, run.route?.map.rules)
+  const cost = treasureCost(room, chosenReward)
+  const price = room?.kind === 'shop' ? shopPrice(chosenReward) : 0
   const itemCount = loot && (isItem(chosenReward) ? loot.items[chosenReward] : isPreparation(chosenReward) ? loot.prep[chosenReward] : isShard(chosenReward) ? loot.shards[chosenReward] : undefined)
   const target = loot ? [
     (heal || cost) && `${icon('heart')}${current} ${icon('next')} ${Math.min(run.maxHp, run.battle.playerHp + heal - cost)}/${run.maxHp}`,
     (isItem(chosenReward) || isPreparation(chosenReward) || isShard(chosenReward)) && `${itemCount ?? 0} ${icon('next')} ${(itemCount ?? 0) + 1}`,
     artifactOptions.replace && `${icon(REWARD_CARDS[artifactOptions.replace].icon)}${icon('next')}${icon(card.icon)}`,
+    price && `${icon('ascent-coin')}${run.route?.coins} ${icon('next')} ${(run.route?.coins ?? 0) - price}`,
   ].filter(Boolean).join(' · ') : chosenReward === 'bandage'
     ? `${current} ${icon('next')} ${rewardHealth(run)}/${run.maxHp}`
     : chosenReward === 'tuning' ? `${icon('die')}${card.value} · 1/1` : `0/1 ${icon('next')} 1/1`
@@ -771,8 +777,9 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   const { battle, maxHp, seed, fight } = run
   const room = currentTreasureRoom(run)
   const atRoom = room?.kind === 'event' || room?.kind === 'shop' || room?.kind === 'rest'
+  const atShop = room?.kind === 'shop' && run.route?.map.rules === 3
   const eventName = room?.event === 'medicine' ? '무너진 약상자' : room?.event === 'pulley' ? '녹슨 도르래' : '빈 깃대'
-  ui.rewardHeading.innerHTML = atRoom ? `${icon(MAP_NODE_ICONS[room.kind])} ${room.kind === 'event' ? eventName : room.kind === 'rest' ? '11층 휴식' : '장터 경유'}` : '전투 보상'
+  ui.rewardHeading.innerHTML = atRoom ? `${icon(MAP_NODE_ICONS[room.kind])} ${room.kind === 'event' ? eventName : room.kind === 'rest' ? '11층 휴식' : atShop ? '7층 상인' : '장터 경유'}` : '전투 보상'
   ui.skipReward.textContent = atRoom ? '떠나기' : '건너뛰기'
   const health = `<span>${icon('heart')}${battle.playerHp}/${maxHp}</span>`
   if (run.route) {
@@ -786,16 +793,22 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
     ui.rewardContext.innerHTML = `${health}<span title="다음 적: ${badge.label}" aria-label="다음 적: ${badge.label}" role="img">${icon(badge.icon)}${charge && badge.icon !== 'charge' ? icon('charge') : ''}</span>`
   }
   ui.rewardCards.replaceChildren(...offers.map((reward) => {
-    const { name, description, value, icon: symbol } = REWARD_CARDS[reward]
+    const { name, icon: symbol } = REWARD_CARDS[reward]
+    const heal = (atShop && reward === 'kit' || run.route?.map.rules === 3 && reward === 'bandage')
+      ? healingFor(reward, room, run.route?.map.rules) : 0
+    const value = heal ? `+${heal}` : REWARD_CARDS[reward].value
+    const description = heal ? `확정하면 체력을 ${heal} 회복합니다. 최대 체력을 넘길 수 없습니다.` : REWARD_CARDS[reward].description
     const card = document.createElement('button')
     card.type = 'button'
     card.className = 'reward-card'
     card.classList.toggle('artifact-card', isArtifact(reward))
+    card.classList.toggle('shop-card', atShop)
     card.dataset.reward = reward
     const cost = treasureCost(room, reward)
     const details = `${cost ? `체력 ${cost}을 내면 선택할 수 있습니다. ` : ''}${description}${isArtifact(reward) ? ` ${artifactHint(run, reward)}` : ''}`
     card.disabled = Boolean(battle.loot && !treasureEnabled(run, reward))
-    card.innerHTML = `<span class="reward-symbol">${icon(symbol)}${isArtifact(reward) ? '<small>유물</small>' : ''}</span><strong>${name}</strong><b>${value}</b><span class="reward-description">${details}</span>`
+    const price = atShop ? `<span class="reward-price" aria-label="가격 ${shopPrice(reward)}동전">${icon('ascent-coin')}${shopPrice(reward)}</span>` : ''
+    card.innerHTML = `<span class="reward-symbol">${icon(symbol)}${isArtifact(reward) ? '<small>유물</small>' : ''}</span><strong>${name}</strong><b>${value}</b>${price}<span class="reward-description">${details}</span>`
     card.addEventListener('click', () => {
       chosenReward = reward
       artifactOptions = {}
@@ -804,6 +817,14 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
     })
     return card
   }))
+  if (atShop && !offers.some(isArtifact)) {
+    const emptyStock = document.createElement('button')
+    emptyStock.type = 'button'
+    emptyStock.className = 'reward-card artifact-card shop-card'
+    emptyStock.disabled = true
+    emptyStock.innerHTML = `<span class="reward-symbol">${icon('map-reward')}<small>유물</small></span><strong>품절</strong><span class="reward-price" aria-label="가격 ${SHOP_PRICES.artifact}동전">${icon('ascent-coin')}${SHOP_PRICES.artifact}</span>`
+    ui.rewardCards.append(emptyStock)
+  }
   if (run.route && !atRoom) {
     for (let seat = offers.length; seat < 3; seat++) {
       const empty = document.createElement('div')
@@ -1042,13 +1063,22 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
   ui.treasureControls.hidden = !ui.treasureControls.childElementCount
 }
 
+function renderCoins(balance?: number, inCombat = false) {
+  for (const label of [ui.runCoins, ui.battleCoins]) {
+    label.hidden = balance === undefined || inCombat !== (label === ui.battleCoins)
+    if (label.hidden) continue
+    label.innerHTML = `${icon('ascent-coin')}${balance}`
+    label.setAttribute('aria-label', `보유 동전 ${balance}개`)
+  }
+}
+
 function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   if (!ascent) return
   const { battle, fight, enemy, maxHp, unlocks, newUnlock, route } = ascent
   const { phase, turn, playerHp, enemyHp } = battle
   const atMap = presentation === 'normal' && route?.screen === 'map'
   const atRest = presentation === 'normal' && route?.screen === 'rest'
-  const atTreasureRoom = route?.map.rules === 2 && (atRest || route.screen === 'event' || route.screen === 'shop')
+  const atTreasureRoom = route && route.map.rules >= 2 && (atRest || route.screen === 'event' || route.screen === 'shop')
   const between = route ? route.screen === 'return' || atRest : phase === 'won' && fight < FIGHT_COUNT
   const finished = ascentFinished(ascent)
   const offers = presentation === 'normal' ? rewardOffers(ascent) : []
@@ -1069,6 +1099,7 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.map.hidden = !atMap
   ui.mapHealth.hidden = !atMap
   ui.mapFloor.hidden = !atMap
+  renderCoins(route?.coins, inCombat)
   ui.encounter.hidden = !inCombat
   ui.fight.hidden = !inCombat
   const floor = route ? (route.node === null ? route.completed.length : route.map.byId[route.node].floor) : fight
@@ -1185,6 +1216,7 @@ function refreshLobbyActions() {
 }
 
 function showLobby(focus = false) {
+  renderCoins()
   ascent = null
   chosenReward = undefined
   artifactOptions = {}
@@ -1206,6 +1238,7 @@ function showLobby(focus = false) {
 }
 
 function showPerks() {
+  renderCoins()
   ascent = null
   chosenReward = undefined
   artifactOptions = {}
@@ -1234,7 +1267,7 @@ function showPerks() {
   const offers = offerPerks(seed)
   const begin = (event: MouseEvent, perk: keyof typeof START_PERKS, parity?: Parity) => {
     if (event.isTrusted) sound.activate()
-    ascent = beginMapAscent(seed, perk, parity, 2)
+    ascent = beginMapAscent(seed, perk, parity, CURRENT_MAP_RULES)
     saveCurrent()
     render()
     focusPhase()

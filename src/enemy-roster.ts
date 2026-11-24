@@ -40,8 +40,8 @@ function bossCycle(openingHits: readonly number[], criticalDamage: number, seale
   )
 }
 
-function reaction(damage: number) {
-  return impact(damage, { kind: 'reaction', value: 8, alternate: { ...combo([2, 2]), matches: () => true } })
+function reaction(damage: number, alternateHit = 2) {
+  return impact(damage, { kind: 'reaction', value: 8, alternate: { ...combo([alternateHit, alternateHit]), matches: () => true } })
 }
 
 function theft(hits: readonly number[]) {
@@ -94,7 +94,15 @@ export const ASCENT_ENEMIES = [
   ],
 ] as const satisfies readonly (readonly AscentEnemy[])[]
 
-export type AscentEnemyId = (typeof ASCENT_ENEMIES)[number][number]['id']
+export const MAP_ENEMIES = [
+  { id: 'shield-soldier', hp: 23, attackPerUnlock: 0, attackGrowth: 1, intents: cycle(impact(10), reaction(9, 3), combo([3, 3])) },
+  { id: 'seal-sentinel', hp: 25, attackPerUnlock: 0, attackGrowth: 1, intents: cycle(combo([5, 4]), impact(12, { kind: 'seal', value: 5 }), impact(9)) },
+  { id: 'iron-knight', hp: 30, attackPerUnlock: 1, attackGrowth: 0, intents: cycle(
+    combo([6, 5]), charge, critical(15), { id: 'knockdown', name: '넉다운', hits: [], damageTakenMultiplier: 2 },
+  ) },
+] as const satisfies readonly AscentEnemy[]
+
+export type AscentEnemyId = (typeof ASCENT_ENEMIES)[number][number]['id'] | (typeof MAP_ENEMIES)[number]['id']
 
 export function enemyForFight(seed: number, fight: number): AscentEnemy & { readonly id: AscentEnemyId } {
   const roster = ASCENT_ENEMIES[fight - 1]
