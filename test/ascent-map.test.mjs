@@ -38,11 +38,11 @@ test('4,096 seeds produce the same 21 nodes, connections and enemy rolls with no
         assert.equal(room.battleSeed, draw(seed, room.id, 83))
         if (room.kind === 'fight') assert.ok((floor % 2 ? ['thorns', 'rage'] : ['lock', 'freeze']).includes(room.enemyId))
         if (floor >= 2 && floor <= 9) assert.equal(room.next.length, room.lane === (floor + draw(seed, 0, 80) % 2) % 2 ? 2 : 1)
-        const enemy = enemyForMapNode(room)
+        const enemy = enemyForMapNode(room, map.rules)
         if (!enemy) continue
         const restored = regenerated.byId[room.id]
         const first = startYachtBattle(room.battleSeed, 22, false, false, undefined, enemy)
-        const replay = startYachtBattle(restored.battleSeed, 22, false, false, undefined, enemyForMapNode(restored))
+        const replay = startYachtBattle(restored.battleSeed, 22, false, false, undefined, enemyForMapNode(restored, regenerated.rules))
         assert.deepEqual(first.dice, replay.dice)
       }
       if (rooms.every(({ kind }) => kind === 'fight') && size === 2) assert.notEqual(rooms[0].enemyId, rooms[1].enemyId)
@@ -56,7 +56,7 @@ test('floor scaling applies to the first hit only and fixes each room’s unlock
   const kinds = new Set()
   for (let seed = 0; seed < 12; seed++) {
     for (const room of generateAscentMap(seed).nodes) {
-      const enemy = enemyForMapNode(room)
+      const enemy = enemyForMapNode(room, 1)
       if (!enemy) continue
       const original = base.find(({ id }) => id === room.enemyId)
       const elite = room.kind === 'elite'

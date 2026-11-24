@@ -864,8 +864,62 @@ function updateTreasureBattle(before: YachtBattle, next: YachtBattle, selector?:
   if (clearSelection) selected.clear()
   saveCurrent()
   render()
-  if (selector) document.querySelector<HTMLElement>(selector)?.focus()
+  const control = selector && document.querySelector<HTMLElement>(selector)
+  if (control) {
+    if (control.closest('#inventory-overflow')) setInventoryOverflow(true)
+    control.focus()
+  }
 }
+
+function setInventoryOverflow(open: boolean) {
+  const panel = ui.rewardStrip.querySelector<HTMLElement>('#inventory-overflow')
+  const trigger = ui.rewardStrip.querySelector<HTMLButtonElement>('[aria-controls="inventory-overflow"]')
+  if (!panel || !trigger || trigger.hidden) return
+  panel.hidden = !open
+  trigger.setAttribute('aria-expanded', String(open))
+}
+
+function layoutTreasureItems() {
+  const strip = ui.rewardStrip
+  const panel = strip.querySelector<HTMLElement>('#inventory-overflow')
+  const trigger = strip.querySelector<HTMLButtonElement>('[aria-controls="inventory-overflow"]')
+  if (!panel || !trigger || strip.hidden) return
+  const buttons = Array.from(strip.querySelectorAll<HTMLButtonElement>('[data-reward]'))
+  const style = getComputedStyle(strip)
+  const gap = Number.parseFloat(style.columnGap)
+  const chip = Number.parseFloat(style.getPropertyValue('--item-chip-width'))
+  const capacity = Math.floor((strip.clientWidth + gap) / (chip + gap))
+  const visible = buttons.length > capacity ? Math.max(0, capacity - 1) : buttons.length
+  const overflow = buttons.slice(visible)
+  if (overflow.every((button) => button.parentElement === panel) && panel.childElementCount === overflow.length) return
+
+  const focused = document.activeElement
+  panel.replaceChildren(...overflow)
+  for (const button of buttons.slice(0, visible)) strip.insertBefore(button, trigger)
+  trigger.textContent = `+${overflow.length}`
+  trigger.setAttribute('aria-label', `나머지 보유 보상 ${overflow.length}개`)
+  if (!overflow.length) setInventoryOverflow(false)
+  trigger.hidden = !overflow.length
+  if (focused instanceof HTMLButtonElement && buttons.includes(focused)) {
+    if (focused.parentElement === panel && panel.hidden) trigger.focus({ preventScroll: true })
+    else focused.focus({ preventScroll: true })
+  } else if (focused === trigger && trigger.hidden) {
+    buttons.at(-1)?.focus({ preventScroll: true })
+  }
+}
+
+const inventoryResize = new ResizeObserver(layoutTreasureItems)
+inventoryResize.observe(ui.rewardStrip)
+ui.rewardStrip.addEventListener('keydown', (event) => {
+  const trigger = ui.rewardStrip.querySelector<HTMLButtonElement>('[aria-controls="inventory-overflow"][aria-expanded="true"]')
+  if (event.key !== 'Escape' || !trigger) return
+  event.preventDefault()
+  setInventoryOverflow(false)
+  trigger.focus()
+})
+document.addEventListener('pointerdown', (event) => {
+  if (event.target instanceof Node && !ui.rewardStrip.contains(event.target) && !ui.guide.open) setInventoryOverflow(false)
+})
 
 function renderTreasureStrips(battle: YachtBattle, disabled: boolean) {
   const loot = battle.loot!
@@ -902,10 +956,6 @@ function renderTreasureStrips(battle: YachtBattle, disabled: boolean) {
     const count = (loot.prepared[id] ?? 0) + (loot.prep[id] ?? 0)
     return buttonFor(id, String(count), count > 0)
   })
-  ui.rewardStrip.classList.add('treasure-items')
-  ui.rewardStrip.replaceChildren(...itemButtons, ...shardButtons, ...prepButtons)
-  ui.rewardStrip.hidden = !ui.rewardStrip.childElementCount
-
   const relicButtons = loot.equipped.map((id) => {
     const available = artifactReady(loot, id) && !(id === 'incomplete' && loot.sealUsed)
     const toggle = ready && available && (id === 'banner' || (id === 'hammer' && enemyIntentAt(battle).chargeThreshold !== undefined))
@@ -928,6 +978,23 @@ function renderTreasureStrips(battle: YachtBattle, disabled: boolean) {
     ui.artifactStrip.append(empty)
   }
   ui.artifactStrip.hidden = false
+
+  const items = [...itemButtons, ...shardButtons, ...prepButtons]
+  items.sort((first, second) => Number(second.hasAttribute('aria-pressed')) - Number(first.hasAttribute('aria-pressed')))
+  const overflow = document.createElement('button')
+  overflow.type = 'button'
+  overflow.disabled = disabled
+  overflow.hidden = true
+  overflow.setAttribute('aria-controls', 'inventory-overflow')
+  overflow.setAttribute('aria-expanded', 'false')
+  const panel = document.createElement('div')
+  panel.id = 'inventory-overflow'
+  panel.hidden = true
+  overflow.addEventListener('click', () => setInventoryOverflow(panel.hidden))
+  ui.rewardStrip.classList.add('treasure-items')
+  ui.rewardStrip.replaceChildren(...items, overflow, panel)
+  ui.rewardStrip.hidden = !items.length
+  layoutTreasureItems()
 }
 
 function renderTreasureControls(battle: YachtBattle, enabled: boolean) {

@@ -420,17 +420,38 @@ button:disabled {
 }
 #reward-preview strong { display: inline-flex; align-items: center; gap: 4px; margin-inline-start: auto; color: #f6c795; }
 
-#reward-strip { display: flex; justify-content: end; gap: 5px; padding-block: 4px; }
+.inventory-strip { display: flex; justify-content: end; gap: 8px; padding-block: 4px; }
+.inventory-strip:not(:has(> :not([hidden]))) { display: none; }
+#reward-strip { display: flex; justify-content: end; gap: 5px; }
 #reward-strip button { gap: 4px; min-inline-size: 44px; padding-inline: 6px; font-size: .78rem; }
 #reward-strip .spent { color: var(--muted); }
 #reward-strip button[aria-pressed='true'] { border-color: #f6c795; background: #51443a; color: #f6c795; }
-#reward-strip.treasure-items { flex-wrap: wrap; }
-#artifact-strip { display: flex; justify-content: end; gap: 8px; padding-block: 4px; }
+#reward-strip.treasure-items { --item-chip-width: 52px; flex: 1; min-inline-size: 0; position: relative; }
+#reward-strip.treasure-items > button {
+  flex: none;
+  inline-size: var(--item-chip-width);
+  padding-inline: 3px;
+  gap: 2px;
+}
+#inventory-overflow {
+  position: absolute;
+  z-index: 4;
+  inset-block-start: calc(100% + 4px);
+  inset-inline-end: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(44px, 1fr));
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--stone-edge);
+  background: var(--stone-bed);
+  box-shadow: 0 3px 8px #171615a0;
+}
+#artifact-strip { display: flex; flex: none; justify-content: end; gap: 6px; }
 #artifact-strip button, .artifact-empty {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-inline-size: 54px;
+  min-inline-size: 48px;
   min-block-size: 44px;
   gap: 4px;
   padding-inline: 4px;

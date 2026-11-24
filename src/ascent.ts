@@ -60,7 +60,7 @@ export function beginAscent(seed: number, perk?: StartPerk, parity: Parity = 'od
 export function beginMapAscent(seed: number, perk?: StartPerk, parity: Parity = 'odd', rules: MapRules = 1): Ascent {
   const map = generateAscentMap(seed, rules)
   const first = map.nodes[0]
-  const enemy = enemyForMapNode(first)!
+  const enemy = enemyForMapNode(first, rules)!
   return {
     seed, fight: 0, enemy, maxHp: PLAYER_HP, unlocks: [], newUnlock: null,
     battle: startYachtBattle(first.battleSeed, PLAYER_HP, false, false, startPerk(perk, parity), enemy, 0, rules === 2 ? emptyTreasure : undefined),
@@ -92,7 +92,7 @@ export function enterMapNode(ascent: Ascent, id: number): Ascent {
   if (route?.screen !== 'map') return ascent
   const node = availableMapNodes(ascent).find((candidate) => candidate.id === id)
   if (!node) return ascent
-  const enemy = enemyForMapNode(node)
+  const enemy = enemyForMapNode(node, route.map.rules)
   const next = enemy ? enterBattle(ascent, enemy, node.battleSeed) : { ...ascent, newUnlock: null }
   if (enemy) return { ...next, route: { ...route, node: id, screen: 'battle' } }
   const screen = node.kind === 'event' || node.kind === 'shop' ? node.kind : 'rest'

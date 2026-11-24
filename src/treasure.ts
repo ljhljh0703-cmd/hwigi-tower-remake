@@ -6,6 +6,7 @@ export const PREPARATIONS = ['whetstone', 'lining', 'emergency'] as const
 export const SHARDS = ['tuning', 'assist', 'smash'] as const
 export const ARTIFACTS = ['mirror', 'overflow', 'incomplete', 'heart-die', 'hourglass', 'hammer', 'banner', 'horn'] as const
 export const ARTIFACT_SLOTS = 3
+export const REST_HEAL = 5
 
 export type Item = (typeof ITEMS)[number]
 export type Preparation = (typeof PREPARATIONS)[number]
@@ -92,7 +93,7 @@ export const TREASURE_CARDS = {
   hook: { name: '호위 갈고리', icon: 'treasure-hook', value: '+2', description: '주사위 한 개로 호위에게 피해를 주면 턴 끝에 살아 있는 호위에게 피해 2를 더 줍니다.' },
   coin: { name: '새긴 동전', icon: 'treasure-coin', value: '+2', description: '서로 다른 눈 세 개로 정확히 막으면 룰렛 뒤 살아 있는 본체에 피해 2를 더 줍니다.' },
   medicine: { name: '약봉지', icon: 'reward-bandage', value: '+3', description: '확정하면 체력을 3 회복합니다. 체력이 가득 차 있으면 사용할 수 없습니다.' },
-  kit: { name: '치료 도구', icon: 'reward-bandage', value: '+4', description: '확정하면 체력을 4 회복합니다. 최대 체력을 넘길 수 없습니다.' },
+  kit: { name: '치료 도구', icon: 'reward-bandage', value: `+${REST_HEAL}`, description: `확정하면 체력을 ${REST_HEAL} 회복합니다. 최대 체력을 넘길 수 없습니다.` },
   whetstone: { name: '숫돌', icon: 'treasure-whetstone', value: '+2', description: '다음 전투에서 살아 있는 본체에 처음 피해를 주는 턴 끝에 피해 2를 더 줍니다. 남은 수량은 그 전투가 끝날 때 사라집니다.' },
   lining: { name: '덧댄 천', icon: 'treasure-mantle', value: '−2', description: '다음 전투에서 처음 적 공격으로 잃는 체력을 최대 2 줄입니다. 남은 수량은 그 전투가 끝날 때 사라집니다.' },
   emergency: { name: '응급 천', icon: 'treasure-emergency', value: '+2', description: '다음 전투에서 체력 8 이하인 첫 배치 시작에 체력을 2 회복합니다. 남은 수량은 그 전투가 끝날 때 사라집니다.' },

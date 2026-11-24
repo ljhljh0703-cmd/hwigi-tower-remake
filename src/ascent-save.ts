@@ -116,7 +116,7 @@ function acquiredRewards(rewards: CombatRewards | undefined): readonly Reward[] 
 
 function mapCheckpoint(seed: number, fight: number, value: unknown) {
   if (!record(value) || (value.rules !== 1 && value.rules !== 2) || !Array.isArray(value.completed)) return null
-  const { completed, screen, node, offers, rules } = value
+  const { completed, screen, node, offers, rules, bossMaxHp } = value
   if (completed.length >= MAP_FLOORS || !completed.every((id) => integer(id))) return null
   const room = screen === 'rest' || (rules === 2 && (screen === 'event' || screen === 'shop'))
   if (screen !== 'map' && screen !== 'return' && screen !== 'battle' && screen !== 'reward' && !room) return null
@@ -135,8 +135,14 @@ function mapCheckpoint(seed: number, fight: number, value: unknown) {
   const fights = path.map((id) => map.byId[id]).filter((room) => room.enemyId)
   if (fight !== fights.length) return null
   const battleNode = fights.at(-1) ?? map.nodes[0]
+  const enemy = enemyForMapNode(battleNode, rules)!
+  const stageTwoBoss = rules === 2 && battleNode.kind === 'boss'
+  const previousBoss = stageTwoBoss ? enemyForMapNode(battleNode, 1) : undefined
+  if (bossMaxHp !== undefined && (!stageTwoBoss || bossMaxHp !== enemy.hp && bossMaxHp !== previousBoss?.hp)) return null
+  // Saves made before the balance change omit the maximum for an already-entered boss.
+  const restoredEnemy = previousBoss && (bossMaxHp === undefined || bossMaxHp === previousBoss.hp) ? previousBoss : enemy
   const route: MapProgress = { map, completed, screen, node: active, ...(Array.isArray(offers) && { offers }) }
-  return { route, enemy: enemyForMapNode(battleNode)!, fightSeed: battleNode.battleSeed, acquired: value.acquired }
+  return { route, enemy: restoredEnemy, fightSeed: battleNode.battleSeed, acquired: value.acquired }
 }
 
 function beforeClaim(battle: YachtBattle, choice: RewardChoice): YachtBattle {
@@ -245,11 +251,12 @@ export function writeAscentSave({ ascent, selected, rewardPreview, nodePreview, 
       store.removeItem(ASCENT_SAVE_KEY)
       return
     }
-    const { seed, fight, unlocks, newUnlock, battle, rewardChoice, route } = ascent
+    const { seed, fight, unlocks, newUnlock, battle, rewardChoice, route, enemy } = ascent
     const { enemyIntents: _enemyIntents, ...savedBattle } = battle
     const savedRoute = route && {
       rules: route.map.rules, completed: route.completed, node: route.node, screen: route.screen,
       offers: route.offers, acquired: battle.loot?.acquired ?? acquiredRewards(battle.rewards),
+      ...(route.map.rules === 2 && enemy.id === 'boss' && { bossMaxHp: enemy.hp }),
     }
     store.setItem(ASCENT_SAVE_KEY, JSON.stringify({
       version: route ? MAP_VERSION : LEGACY_VERSION, selected, rewardPreview, nodePreview, artifactOptions,

@@ -80,9 +80,10 @@ export function mapPathIsValid(map: AscentMap, path: readonly number[]): boolean
   return true
 }
 
-export function enemyForMapNode(node: MapNode): ReturnType<typeof enemyForFight> | undefined {
+export function enemyForMapNode(node: MapNode, rules: MapRules): ReturnType<typeof enemyForFight> | undefined {
   const enemy = roster.find(({ id }) => id === node.enemyId)
-  if (!enemy || node.kind === 'boss') return enemy
+  if (!enemy) return undefined
+  if (node.kind === 'boss') return rules === 2 ? { ...enemy, hp: 84 } : enemy
   const elite = node.kind === 'elite'
   const hp = enemy.hp + 2 * Math.floor((node.floor - (elite ? 5 : 1)) / 2)
   const firstHitAdjustment = Number(node.floor >= 9) - (elite ? 3 : 0)

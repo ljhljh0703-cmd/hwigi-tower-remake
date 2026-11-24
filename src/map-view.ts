@@ -3,7 +3,7 @@ import type { Ascent } from './ascent.ts'
 import { enemyForMapNode, MAP_FLOORS, MAP_START, nextMapNodes } from './ascent-map.ts'
 import type { MapNode, MapNodeKind } from './ascent-map.ts'
 import { attackFor, enemyIntentAt } from './combat.ts'
-import { treasureOffers } from './map-treasure.ts'
+import { healingFor, treasureOffers } from './map-treasure.ts'
 import { startYachtBattle } from './yacht-combat.ts'
 
 export const MAP_NODE_ICONS: Record<MapNodeKind, string> = { fight: 'sword', elite: 'map-elite', rest: 'map-rest', boss: 'map-boss', event: 'map-event', shop: 'map-shop' }
@@ -112,9 +112,9 @@ export class MapView {
       return `${initial}<span role="img" aria-label="선택 ${treasureOffers(ascent, node).length + 1}개, 체력 ${cost}">${this.icon('map-reward')}${treasureOffers(ascent, node).length + 1} ${this.icon('heart')}${cost}</span>`
     }
     if (node.kind === 'rest') return ascent.route?.map.rules === 2
-      ? `${initial}<span role="img" aria-label="치료 도구와 숫돌">${this.icon('heart')}${ascent.battle.playerHp}→${Math.min(ascent.maxHp, ascent.battle.playerHp + 4)} ${this.icon('treasure-whetstone')}</span>`
+      ? `${initial}<span role="img" aria-label="치료 도구와 숫돌">${this.icon('heart')}${ascent.battle.playerHp}→${Math.min(ascent.maxHp, ascent.battle.playerHp + healingFor('kit'))} ${this.icon('treasure-whetstone')}</span>`
       : `${initial}<span role="img" aria-label="정비 경유">${this.icon('next')}</span>`
-    const enemy = enemyForMapNode(node)!
+    const enemy = enemyForMapNode(node, ascent.route!.map.rules)!
     if (node.kind === 'boss') return `${initial}<span role="img" aria-label="체력 ${enemy.hp}, 힘 모으기와 봉인">${this.icon('heart')}${enemy.hp} ${this.icon('charge')}${this.icon('seal')}</span>`
     const { battle, unlocks } = ascent
     const first = startYachtBattle(node.battleSeed, battle.playerHp, false, false, undefined, enemy, unlocks.length * enemy.attackPerUnlock)

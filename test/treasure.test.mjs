@@ -4,7 +4,7 @@ import {
   availableMapNodes, beginMapAscent, enterMapNode, resolveAscentTurn, returnToMap,
   rewardOffers, takeAscentReward,
 } from '../src/ascent.ts'
-import { loadAscentSave, writeAscentSave } from '../src/ascent-save.ts'
+import { ASCENT_SAVE_KEY, loadAscentSave, writeAscentSave } from '../src/ascent-save.ts'
 import { attackFor, chargedStrikePreview, draw, enemyIntentAt, roll } from '../src/combat.ts'
 import { ASCENT_ENEMIES } from '../src/enemy-roster.ts'
 import { artifactChoices, treasureEnabled } from '../src/map-treasure.ts'
@@ -301,10 +301,39 @@ test('rule two pickups and rooms preserve HP limits, stable offers, and one map 
   const rest = enterMapNode({ ...ready, battle: { ...ready.battle, playerHp: 20 } }, restNode.id)
   assert.deepEqual(rewardOffers(rest), ['kit', 'whetstone'])
   assert.equal(takeAscentReward(rest, 'kit').battle.playerHp, 22)
+  assert.equal(takeAscentReward({ ...rest, battle: { ...rest.battle, playerHp: 14 } }, 'kit').battle.playerHp, 19)
   const prepared = returnToMap(takeAscentReward(rest, 'whetstone'))
   const boss = enterMapNode(prepared, availableMapNodes(prepared)[0].id)
   assert.deepEqual(boss.battle.loot.prepared, { whetstone: 1 })
   assert.deepEqual(boss.battle.loot.prep, {})
+})
+
+test('rules-two bosses start at 84 HP and active 88 HP saves keep their exact turn', () => {
+  const [seed, bossNode] = stageTwoNode((node) => node.kind === 'boss')
+  const ready = roomBefore(seed, bossNode)
+  const boss = enterMapNode(ready, bossNode.id)
+  assert.equal(boss.battle.enemyHp, 84)
+  assert.deepEqual(checkpoint(boss).ascent, boss)
+
+  let raw
+  const store = { setItem: (_, data) => { raw = data }, getItem: () => raw }
+  writeAscentSave({ ascent: boss, selected: [0] }, store)
+  const old = JSON.parse(raw)
+  assert.equal(old.ascent.route.bossMaxHp, 84)
+  delete old.ascent.route.bossMaxHp
+  old.ascent.battle.enemyHp = 86
+  store.setItem(ASCENT_SAVE_KEY, JSON.stringify(old))
+
+  const restored = loadAscentSave(store)
+  assert.equal(restored.ascent.enemy.hp, 88)
+  assert.equal(restored.ascent.battle.enemyHp, 86)
+  assert.deepEqual(restored.selected, [0])
+  const afterDamage = { ...restored.ascent, battle: { ...restored.ascent.battle, enemyHp: 79 } }
+  assert.deepEqual(checkpoint(afterDamage).ascent, afterDamage)
+
+  old.ascent.route.bossMaxHp = 83
+  store.setItem(ASCENT_SAVE_KEY, JSON.stringify(old))
+  assert.equal(loadAscentSave(store), null)
 })
 
 test('an elite offers an eligible relic first, equips three and requires confirmed replacement for a fourth', () => {

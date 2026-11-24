@@ -3,7 +3,7 @@ import type { MapNode } from './ascent-map.ts'
 import type { Ascent } from './ascent.ts'
 import { draw } from './combat.ts'
 import { BANDAGE_THRESHOLD, BANDAGE_HEAL } from './rewards.ts'
-import { ARTIFACTS, ITEMS, PREPARATIONS, SHARDS, changeCount, equipArtifact, isArtifact, isItem, isPreparation, isShard } from './treasure.ts'
+import { ARTIFACTS, ITEMS, PREPARATIONS, REST_HEAL, SHARDS, changeCount, equipArtifact, isArtifact, isItem, isPreparation, isShard } from './treasure.ts'
 import type { ArtifactOptions, Treasure } from './treasure.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 
@@ -63,7 +63,7 @@ export function treasureCost(node: MapNode | undefined, choice: Treasure): numbe
 }
 
 export function healingFor(choice: Treasure): number {
-  return choice === 'bandage' ? BANDAGE_HEAL : choice === 'medicine' ? 3 : choice === 'kit' ? 4 : 0
+  return choice === 'bandage' ? BANDAGE_HEAL : choice === 'medicine' ? 3 : choice === 'kit' ? REST_HEAL : 0
 }
 
 export function treasureEnabled(run: Ascent, choice: Treasure): boolean {
