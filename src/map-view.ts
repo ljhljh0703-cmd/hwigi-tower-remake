@@ -3,10 +3,11 @@ import type { Ascent } from './ascent.ts'
 import { enemyForMapNode, MAP_FLOORS, MAP_START, nextMapNodes } from './ascent-map.ts'
 import type { MapNode, MapNodeKind } from './ascent-map.ts'
 import { attackFor, enemyIntentAt } from './combat.ts'
+import { treasureOffers } from './map-treasure.ts'
 import { startYachtBattle } from './yacht-combat.ts'
 
-export const MAP_NODE_ICONS: Record<MapNodeKind, string> = { fight: 'sword', elite: 'map-elite', rest: 'map-rest', boss: 'map-boss' }
-export const MAP_NODE_NAMES: Record<MapNodeKind, string> = { fight: '일반 전투', elite: '정예', rest: '정비', boss: '보스' }
+export const MAP_NODE_ICONS: Record<MapNodeKind, string> = { fight: 'sword', elite: 'map-elite', rest: 'map-rest', boss: 'map-boss', event: 'map-event', shop: 'map-shop' }
+export const MAP_NODE_NAMES: Record<MapNodeKind, string> = { fight: '일반 전투', elite: '정예', rest: '정비', boss: '보스', event: '사건', shop: '장터 경유' }
 const statusNames = { current: '현재', visited: '지나옴', available: '이동 가능', missed: '지나친 갈래', locked: '잠김' }
 const statusIcons = { current: 'map-pin', visited: 'map-check', available: 'next', missed: '', locked: 'lock' }
 const columns = [100, 240, 170]
@@ -105,7 +106,14 @@ export class MapView {
   private describe(ascent: Ascent, node: MapNode, reachable: boolean): string {
     const initial = `<strong>${this.icon(MAP_NODE_ICONS[node.kind])}${node.floor}/${MAP_FLOORS}</strong>`
     if (!reachable) return `${initial}<span role="img" aria-label="이동 불가">${this.icon('lock')}</span>`
-    if (node.kind === 'rest') return `${initial}<span role="img" aria-label="정비 경유">${this.icon('next')}</span>`
+    if (node.kind === 'shop') return `${initial}<span role="img" aria-label="장터 경유">${this.icon('next')}</span>`
+    if (node.kind === 'event') {
+      const cost = node.event === 'flag' ? '−3' : node.event === 'pulley' ? '−2' : '+3'
+      return `${initial}<span role="img" aria-label="선택 ${treasureOffers(ascent, node).length + 1}개, 체력 ${cost}">${this.icon('map-reward')}${treasureOffers(ascent, node).length + 1} ${this.icon('heart')}${cost}</span>`
+    }
+    if (node.kind === 'rest') return ascent.route?.map.rules === 2
+      ? `${initial}<span role="img" aria-label="치료 도구와 숫돌">${this.icon('heart')}${ascent.battle.playerHp}→${Math.min(ascent.maxHp, ascent.battle.playerHp + 4)} ${this.icon('treasure-whetstone')}</span>`
+      : `${initial}<span role="img" aria-label="정비 경유">${this.icon('next')}</span>`
     const enemy = enemyForMapNode(node)!
     if (node.kind === 'boss') return `${initial}<span role="img" aria-label="체력 ${enemy.hp}, 힘 모으기와 봉인">${this.icon('heart')}${enemy.hp} ${this.icon('charge')}${this.icon('seal')}</span>`
     const { battle, unlocks } = ascent

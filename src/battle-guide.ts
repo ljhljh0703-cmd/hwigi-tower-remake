@@ -1,5 +1,6 @@
 import { START_PERKS } from './perks.ts'
 import { REWARD_CARDS } from './rewards.ts'
+import { TREASURE_CARDS } from './treasure.ts'
 
 interface GuideSection {
   readonly title: string
@@ -12,15 +13,16 @@ export const BATTLE_GUIDE: readonly GuideSection[] = [
     entries: [
       ['sword', '일반 전투', '주사위를 공격 칸에 배치해 적을 공격합니다. 지도에서는 일반 전투를 표시합니다.'],
       ['map-elite', '정예', '이 층의 일반 전투보다 위험한 적을 만납니다. 승리하면 전리품을 고릅니다.'],
-      ['map-event', '사건', '전투 대신 선택을 하는 방을 표시합니다. 이번 규칙에서는 일반 전투가 이 자리를 채웁니다.'],
-      ['map-shop', '상인', '상품을 고르는 방을 표시합니다. 이번 규칙에서는 일반 전투가 이 자리를 채웁니다.'],
-      ['map-rest', '정비', '11층에서 잠시 쉬고 보스로 이동합니다. 이번 규칙의 정비에서는 체력과 보유 효과를 그대로 가지고 갑니다.'],
+      ['map-event', '사건', '규칙판 2에서는 체력과 보상을 확인하고 행동을 선택합니다. 떠나면 효과 없이 방을 통과합니다.'],
+      ['map-shop', '장터 경유', '규칙판 2에서는 7층 장터를 효과 없이 경유합니다.'],
+      ['map-rest', '고정 휴식', '11층에서 보스전을 준비합니다. 규칙판 2에서는 치료 도구나 다음 전투에 쓸 숫돌을 고를 수 있습니다.'],
       ['map-boss', '보스', '12층 문지기입니다. 힘 모으기와 봉인에 대비하고 승리하면 완주 인장을 받습니다.'],
       ['map-pin', '현재 위치', '지도에서 발을 딛고 있는 층을 표시합니다. 화살표가 있는 연결 방을 고르고 이동을 눌러 다음 층에 들어갑니다.'],
       ['map-check', '완료한 경로', '실선과 체크가 지나온 길을 표시합니다. 점선과 자물쇠는 잠긴 길, 빗금은 놓친 갈래를 표시합니다.'],
       ['map-reward', '전리품', '보스 전 전투에서 승리한 뒤 받을 전리품을 하나 고르거나 건너뜁니다.'],
     ],
   },
+  { title: '아이템과 유물', entries: Object.values(TREASURE_CARDS).map((card) => [card.icon, card.name, card.description] as const) },
   {
     title: '적 기믹',
     entries: [

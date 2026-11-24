@@ -424,6 +424,39 @@ button:disabled {
 #reward-strip button { gap: 4px; min-inline-size: 44px; padding-inline: 6px; font-size: .78rem; }
 #reward-strip .spent { color: var(--muted); }
 #reward-strip button[aria-pressed='true'] { border-color: #f6c795; background: #51443a; color: #f6c795; }
+#reward-strip.treasure-items { flex-wrap: wrap; }
+#artifact-strip { display: flex; justify-content: end; gap: 8px; padding-block: 4px; }
+#artifact-strip button, .artifact-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 54px;
+  min-block-size: 44px;
+  gap: 4px;
+  padding-inline: 4px;
+  border: 3px double #b9a2db;
+  border-radius: 10px 10px 3px 3px;
+  color: #e3d5f4;
+  background: #443a50;
+  font-size: .78rem;
+}
+#artifact-strip .artifact-empty { border: 1px dashed #a799af; color: #ada2b5; background: #39343c; }
+#artifact-strip .spent { color: #b6aabc; }
+#artifact-strip [aria-pressed='true'], #artifact-strip .triggered { border-color: #efdbff; background: #5d416f; color: #fff0ff; }
+#reward-strip .triggered { border-color: #f6c795; color: #f6c795; }
+.reward-card.artifact-card { border-color: #b9a2db; }
+.reward-card.artifact-card .reward-symbol { color: #e3d5f4; }
+.reward-card.artifact-card .reward-symbol small { display: block; margin-block-start: 4px; font-size: .62rem; }
+.artifact-option { display: grid; gap: 5px; margin-block-end: 8px; }
+.artifact-option > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.artifact-option > div:has([data-option='replace']) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.artifact-option [data-option='replace'] { padding-inline: 4px; font-size: .82rem; }
+.artifact-option [aria-pressed='true'] { border-color: #b9a2db; background: #554264; }
+#artifact-options { padding: 8px; border: 1px solid #b9a2db; background: var(--stone-bed); }
+#reward-heading > .icon { color: #f6c795; vertical-align: middle; }
+#treasure-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; padding: 5px; border: 1px solid #b9a2db; background: var(--stone-bed); }
+#treasure-controls button { min-inline-size: 44px; gap: 4px; }
+.treasure-die-choice { display: flex; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--stone-edge); }
 #tuning-controls { display: flex; justify-content: center; align-items: center; gap: 6px; color: #f6c795; }
 #tuning-controls button { min-inline-size: 44px; padding-inline: 6px; }
 

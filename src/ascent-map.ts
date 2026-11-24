@@ -3,12 +3,15 @@ import { ASCENT_ENEMIES } from './enemy-roster.ts'
 import type { AscentEnemyId, enemyForFight } from './enemy-roster.ts'
 
 export const MAP_RULES = 1
+export type MapRules = 1 | 2
 export const MAP_START = 0
 export const MAP_FLOORS = 12
 export const MAP_FIGHTS = MAP_FLOORS - 1
 export const MAP_REWARD_CHANNEL = 84
 
-export type MapNodeKind = 'fight' | 'elite' | 'rest' | 'boss'
+export type MapNodeKind = 'fight' | 'elite' | 'rest' | 'boss' | 'event' | 'shop'
+export const MAP_EVENTS = ['medicine', 'pulley', 'flag'] as const
+export type MapEvent = (typeof MAP_EVENTS)[number]
 export type MapLane = 0 | 1 | 2
 
 export interface MapNode {
@@ -17,12 +20,13 @@ export interface MapNode {
   readonly lane: MapLane
   readonly kind: MapNodeKind
   readonly enemyId?: AscentEnemyId
+  readonly event?: MapEvent
   readonly battleSeed: number
   readonly next: readonly number[]
 }
 
 export interface AscentMap {
-  readonly rules: typeof MAP_RULES
+  readonly rules: MapRules
   readonly nodes: readonly MapNode[]
   readonly byId: Readonly<Record<number, MapNode>>
 }
@@ -36,13 +40,15 @@ const normalEnemies = [['lock', 'freeze'], ['thorns', 'rage']] as const
 const eliteEnemies = ['reaction', 'vitality', 'escort'] as const
 const roster = ASCENT_ENEMIES.flat()
 
-export function generateAscentMap(seed: number): AscentMap {
+export function generateAscentMap(seed: number, rules: MapRules = MAP_RULES): AscentMap {
   const diagonal = draw(seed, 0, 80) % 2
   const eliteStart = draw(seed, 0, 86) % eliteEnemies.length
   let eliteIndex = 0
   const nodes = stageOneFloors.flatMap((types, index) => {
     const floor = index + 1
-    const ordered = draw(seed, floor, 81) % 2 ? [...types].reverse() : types
+    const variants: readonly MapNodeKind[] = rules === 2 && (floor === 4 || floor === 9) ? ['fight', 'event']
+      : rules === 2 && floor === 7 ? ['fight', 'shop'] : types
+    const ordered = draw(seed, floor, 81) % 2 ? [...variants].reverse() : variants
     return ordered.map((kind, position): MapNode => {
       const lane = types.length === 1 ? 2 : position as 0 | 1
       const id = floor * 4 + lane
@@ -53,10 +59,11 @@ export function generateAscentMap(seed: number): AscentMap {
       const next = floor === MAP_FLOORS ? [] : floor >= 10 ? [nextBase + 2]
         : lane === 2 ? [nextBase, nextBase + 1]
           : lane === (floor + diagonal) % 2 ? [nextBase, nextBase + 1] : [nextBase + lane]
-      return { id, floor, lane, kind, ...(enemyId && { enemyId }), battleSeed: draw(seed, id, 83), next }
+      const event = kind === 'event' ? MAP_EVENTS[(draw(seed, 0, 87) + Number(floor === 9)) % MAP_EVENTS.length] : undefined
+      return { id, floor, lane, kind, ...(enemyId && { enemyId }), ...(event && { event }), battleSeed: draw(seed, id, 83), next }
     })
   })
-  return { rules: MAP_RULES, nodes, byId: Object.fromEntries(nodes.map((node) => [node.id, node])) }
+  return { rules, nodes, byId: Object.fromEntries(nodes.map((node) => [node.id, node])) }
 }
 
 export function nextMapNodes(map: AscentMap, current: number): readonly MapNode[] {

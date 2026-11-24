@@ -85,6 +85,7 @@ export interface Battle {
   readonly stolenDie?: { readonly remaining: number }
   readonly escort?: { readonly hp: number; readonly bonus: number }
   readonly weakenedStrikeTurn?: number
+  readonly erasedStrikeTurn?: number
 }
 
 export function draw(seed: number, turn: number, channel: number): number {
@@ -207,6 +208,7 @@ export function respondingIntent(intent: EnemyIntent, attack: number): EnemyInte
 export function attackFor(battle: Battle, intent: EnemyIntent, escortSurvives = Boolean(battle.escort)) {
   const { turn, enemyAttackBuff = 0, enemyAttackGrowth = 0, playerHp, rerolled } = battle
   const { name, hits: baseHits, mechanic } = intent
+  if (intent.id === 'critical' && battle.erasedStrikeTurn === turn) return { name, hits: [], totalDamage: 0 }
   const rage = mechanic?.kind === 'rage' && rerolled ? mechanic.value : 0
   const buff = enemyAttackBuff + Math.min(MAX_TURN_ATTACK_BONUS, enemyAttackGrowth * (turn - 1))
   let hits = mechanic?.kind === 'vitality'
@@ -242,18 +244,19 @@ function breaksCharge(intent: EnemyIntent, attack: number) {
   return intent.chargeThreshold !== undefined && attack >= intent.chargeThreshold
 }
 
-export function chargedStrikePreview(battle: Battle, { attack, escort } = allocationPower(battle)) {
+export function chargedStrikePreview(battle: Battle, { attack, escort } = allocationPower(battle), hammerArmed = false) {
   const intent = enemyIntentAt(battle)
   if (intent.chargeThreshold === undefined) return null
   const weakened = breaksCharge(intent, attack)
   const turn = battle.turn + 1
-  const next = { ...battle, turn, weakenedStrikeTurn: undefined }
+  const next = { ...battle, turn, weakenedStrikeTurn: undefined, erasedStrikeTurn: undefined }
   const escortSurvives = Boolean(battle.escort && escort < battle.escort.hp)
   const nextIntent = enemyIntentAt(next)
   const fullDamage = attackFor(next, nextIntent, escortSurvives).totalDamage
-  const { totalDamage } = weakened ? attackFor({ ...next, weakenedStrikeTurn: turn }, nextIntent, escortSurvives)
+  const erased = hammerArmed && attack >= intent.chargeThreshold + 3 && nextIntent.id === 'critical'
+  const { totalDamage } = erased ? { totalDamage: 0 } : weakened ? attackFor({ ...next, weakenedStrikeTurn: turn }, nextIntent, escortSurvives)
     : { totalDamage: fullDamage }
-  return { fullDamage, totalDamage, threshold: intent.chargeThreshold, weakened }
+  return { fullDamage, totalDamage, threshold: intent.chargeThreshold, weakened, ...(hammerArmed && { hammerThreshold: intent.chargeThreshold + 3, erased }) }
 }
 
 export function forecast(
@@ -358,7 +361,11 @@ export function spinCounter(battle: Battle, rewards: readonly CounterReward[] = 
   if (battle.phase !== 'counter' || !battle.lastExchange) return battle
 
   const slot = draw(battle.seed, battle.turn, 4) % rewards.length
-  const counter = { slot, ...rewards[slot] }
+  return applyCounterResult(battle, { slot, ...rewards[slot] })
+}
+
+export function applyCounterResult(battle: Battle, counter: CounterResult): Battle {
+  if (battle.phase !== 'counter' || !battle.lastExchange) return battle
   const enemyHp = Math.max(0, battle.enemyHp - counter.damage)
   const resolved = { ...battle, enemyHp, lastExchange: { ...battle.lastExchange, counter } }
   if (enemyHp === 0) return { ...resolved, phase: 'won' }

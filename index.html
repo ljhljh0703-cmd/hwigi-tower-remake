@@ -18,6 +18,23 @@
       <symbol id="icon-map-pin" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 0 1 14 0Z"/><circle cx="12" cy="10" r="2" fill="currentColor" stroke="none"/></symbol>
       <symbol id="icon-map-check" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="m5 12 5 5 9-10"/></symbol>
       <symbol id="icon-map-reward" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M9 4h10v14H9Zm-3 3H3v14h10"/></symbol>
+      <symbol id="icon-treasure-tongs" viewBox="0 0 24 24"><path d="m5 21 9-12 1-6m4 1-1 7-6 10M5 3l5 5m-5-1v4m6-8v4"/></symbol>
+      <symbol id="icon-treasure-mantle" viewBox="0 0 24 24"><path d="M9 3h6l3 4 3 13-6-2-3 3-3-3-6 2L6 7Zm3 2v13"/></symbol>
+      <symbol id="icon-treasure-knot" viewBox="0 0 24 24"><path d="M3 18c9 0 5-12 10-12 6 0 0 13-3 10S16 3 21 6"/></symbol>
+      <symbol id="icon-treasure-hook" viewBox="0 0 24 24"><path d="M17 3v10a6 6 0 0 1-12 0V9m-2 3 2-3 3 3M14 3h6"/></symbol>
+      <symbol id="icon-treasure-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m9 9 6 6m-6 0 6-6"/></symbol>
+      <symbol id="icon-treasure-whetstone" viewBox="0 0 24 24"><path d="M5 7h13l3 5-3 6H5l-2-6Zm0 5h16m-4-8 2-2"/></symbol>
+      <symbol id="icon-treasure-emergency" viewBox="0 0 24 24"><use href="#icon-heart"/><path d="M9 11h6m-3-3v6"/></symbol>
+      <symbol id="icon-treasure-assist" viewBox="0 0 24 24"><use href="#icon-joint"/><path d="M17 4h5m-2.5-2.5v5"/></symbol>
+      <symbol id="icon-treasure-smash" viewBox="0 0 24 24"><path d="m5 14 8-9 7 6-5 6-7-4m1 1-4 7m13-4 3 3M17 3l1-1"/></symbol>
+      <symbol id="icon-treasure-mirror" viewBox="0 0 24 24"><path d="M3 3h17v17H3Zm4 12 5-7m0 7 3-4m-6 9v2m5-2v2"/></symbol>
+      <symbol id="icon-treasure-overflow" viewBox="0 0 24 24"><use href="#icon-shield"/><path d="m8 13 7-6m-4 0h4v4"/></symbol>
+      <symbol id="icon-treasure-incomplete" viewBox="0 0 24 24"><path d="M3 9V4h8m2 0h7v4m0 3v8h-7m-2 0H3v-7m8-8-2 6 5 3-3 6"/></symbol>
+      <symbol id="icon-treasure-heart-die" viewBox="0 0 24 24"><use href="#icon-heart"/><path d="M12 7v12m-4-8h1m6 3h1"/></symbol>
+      <symbol id="icon-treasure-hourglass" viewBox="0 0 24 24"><use href="#icon-turn"/><path d="M4 11h3m10 2h3"/></symbol>
+      <symbol id="icon-treasure-hammer" viewBox="0 0 24 24"><path d="m4 4 4-2 10 7-3 5L5 8Zm7 7-7 9 3 2 7-9m-2-9-2 3 3 1-1 3"/></symbol>
+      <symbol id="icon-treasure-banner" viewBox="0 0 24 24"><path d="M5 22V3l15 2-4 5 4 5-15-2m4 4 2-3"/></symbol>
+      <symbol id="icon-treasure-horn" viewBox="0 0 24 24"><path d="M4 14c5 0 9-3 10-10l7 5c-3 7-9 10-16 9Zm10-10 7 5M4 13v7"/></symbol>
       <symbol id="icon-critical" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="m5 18-3 3m2-7 5 5m-3-3L18 4l2-1-1 4L8 18M11 4v3M9.5 5.5h3M19 13v4m-2-2h4"/></symbol>
       <symbol id="icon-charge" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="m3 4 5 5V5M3 9h5m13-5-5 5V5m5 4h-5M3 20l5-5v4m-5-4h5m13 5-5-5v4m5-4h-5m-4-6 2 3-2 3-2-3Z"/></symbol>
       <symbol id="icon-knockdown" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M12 3v12m-5-5 5 5 5-5M4 20h16"/></symbol>
@@ -192,6 +209,7 @@
         </div>
       </header>
       <div id="reward-strip" role="group" aria-label="보유 보상" hidden></div>
+      <div id="artifact-strip" role="group" aria-label="유물 세 칸" hidden></div>
 
       <section id="ascent-map" aria-label="등반 지도" hidden>
         <div id="map-scroll" role="region" aria-label="층과 연결 경로" tabindex="0">
@@ -322,12 +340,14 @@
             <p id="reward-context"></p>
           </header>
           <div id="reward-cards" role="group" aria-label="보상 카드"></div>
+          <div id="artifact-options" hidden></div>
           <div class="reward-actions">
             <p id="reward-preview" role="status" hidden></p>
             <button id="skip-reward" type="button">건너뛰기</button>
             <button id="confirm-reward" class="primary" type="button" disabled>확인</button>
           </div>
         </section>
+        <div id="treasure-controls" role="group" aria-label="유물과 잔편 조작" hidden></div>
 
         <section id="ascent-event" class="event-panel" aria-label="등반 진행" hidden>
           <p id="map-rest-marker" hidden><svg class="icon" aria-hidden="true"><use href="#icon-map-rest"/></svg><span class="sr-only">정비 경유</span></p>
