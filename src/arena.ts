@@ -106,6 +106,8 @@ export class Arena {
   private strike?: { start: number; joint: boolean }
   private motion?: { start: number; duration: number; hero: readonly PoseFrame[]; enemy: readonly PoseFrame[]; escort: readonly PoseFrame[] }
   private animation = 0
+  private animationSpeed = 1
+  private reducedMotion = false
 
   constructor(frame: HTMLElement, encounter: HTMLElement) {
     this.frame = frame
@@ -207,10 +209,11 @@ export class Arena {
     context.clearRect(0, 0, canvas.width, canvas.height)
     if (!battle || !this.floor) return
     this.drawBackground()
-    const elapsed = strike ? now - strike.start : Infinity
-    const heroPose = motion && poseAt(motion.hero, now - motion.start)
-    const enemyPose = motion && poseAt(motion.enemy, now - motion.start)
-    const escortPose = motion && poseAt(motion.escort, now - motion.start)
+    const elapsed = strike ? (now - strike.start) * this.animationSpeed : Infinity
+    const frameTime = motion ? (now - motion.start) * this.animationSpeed : 0
+    const heroPose = motion && poseAt(motion.hero, frameTime)
+    const enemyPose = motion && poseAt(motion.enemy, frameTime)
+    const escortPose = motion && poseAt(motion.escort, frameTime)
     if (strike?.joint) {
       const x = this.companionHome + (192 - this.companionHome) * strikeProgress(elapsed, 144) ** 3
       context.save()
@@ -231,10 +234,19 @@ export class Arena {
 
   private animate = () => {
     const now = performance.now()
-    if (this.motion && now - this.motion.start >= this.motion.duration) this.motion = undefined
+    if (this.motion && (now - this.motion.start) * this.animationSpeed >= this.motion.duration) this.motion = undefined
     this.draw(now)
-    if (this.motion || (this.strike && now - this.strike.start < 288)) {
+    if (this.motion || (this.strike && (now - this.strike.start) * this.animationSpeed < 288)) {
       this.animation = requestAnimationFrame(this.animate)
+    }
+  }
+
+  setAnimation(speed: number, reducedMotion: boolean) {
+    this.animationSpeed = speed
+    this.reducedMotion = reducedMotion
+    if (reducedMotion) {
+      this.motion = undefined
+      this.finishStrike()
     }
   }
 
@@ -243,11 +255,12 @@ export class Arena {
   }
 
   counterStrike(joint: boolean, animate: boolean) {
-    if (animate) this.strike = { start: performance.now(), joint }
+    if (animate && !this.reducedMotion) this.strike = { start: performance.now(), joint }
     this.playPoses([{ pose: 'attack', duration: 288 }], this.enemyId === 'boss' ? [] : [{ pose: 'hit', duration: 288 }])
   }
 
   private playPoses(hero: readonly PoseFrame[], enemy: readonly PoseFrame[], escort: readonly PoseFrame[] = []) {
+    if (this.reducedMotion) return 0
     const duration = Math.max(...[hero, enemy, escort].map((frames) => frames.reduce((total, frame) => total + frame.duration, 0)))
     this.motion = duration ? { start: performance.now(), duration, hero, enemy, escort } : undefined
     this.restartAnimation()

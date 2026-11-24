@@ -130,6 +130,14 @@ export function loadAscentSave(storage?: SaveStorage): AscentSave | null {
   }
 }
 
+export function clearAscentSave(storage?: Pick<Storage, 'removeItem'>) {
+  try {
+    (storage ?? globalThis.localStorage).removeItem(ASCENT_SAVE_KEY)
+  } catch {
+    // The lobby can be opened even when browser storage is unavailable.
+  }
+}
+
 export function writeAscentSave({ ascent, selected, rewardPreview }: AscentSave, storage?: SaveStorage) {
   try {
     const store = storage ?? globalThis.localStorage

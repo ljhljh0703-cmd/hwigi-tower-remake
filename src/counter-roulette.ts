@@ -64,7 +64,7 @@ export class CounterRoulette {
     this.panel.hidden = !rewards
   }
 
-  async reveal(reward: CounterResult, animate: boolean, onTick: () => void) {
+  async reveal(reward: CounterResult, animate: boolean, onTick: () => void, speed = 1) {
     this.button.disabled = true
     this.action.textContent = '회전 중'
     const angle = 1080 + (360 - reward.slot * this.degreesPerSlot) % 360
@@ -72,7 +72,7 @@ export class CounterRoulette {
     if (animate) {
       const spin = this.wheel.animate(
         [{ transform: 'rotate(0deg)' }, { transform: rotate }],
-        { duration: 920, easing: 'cubic-bezier(.15,.65,.22,1)' },
+        { duration: 920 / speed, easing: 'cubic-bezier(.15,.65,.22,1)' },
       )
       let frame = 0
       let lastSlot = 0

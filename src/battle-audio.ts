@@ -8,25 +8,32 @@ type Track = Effect | 'chamber-loop'
 
 export class BattleAudio {
   private context?: AudioContext
-  private master?: GainNode
+  private musicGain?: GainNode
+  private effectsGain?: GainNode
   private readonly tracks = new Map<Track, Promise<AudioBuffer>>()
   private musicPending = false
   private revision = 0
-  private enabled = true
-
-  get isEnabled() { return this.enabled }
+  private music = true
+  private effects = true
+  private needsResume = false
 
   activate() {
-    if (!this.enabled) return
+    if (!this.music && !this.effects) return
     try {
       if (!this.context) {
         this.context = new AudioContext()
-        this.master = this.context.createGain()
-        this.master.connect(this.context.destination)
-        for (const effect of effects) void this.load(effect).catch(() => {})
+        this.musicGain = this.context.createGain()
+        this.effectsGain = this.context.createGain()
+        this.musicGain.connect(this.context.destination)
+        this.effectsGain.connect(this.context.destination)
+        this.updateGains()
       }
-      void this.context.resume().catch(() => {})
-      if (!this.musicPending) {
+      if (this.needsResume || this.context.state !== 'running') {
+        this.needsResume = false
+        void this.context.resume().catch(() => { this.needsResume = true })
+      }
+      if (this.effects) for (const effect of effects) void this.load(effect).catch(() => {})
+      if (this.music && !this.musicPending) {
         this.musicPending = true
         void this.load('chamber-loop').then((buffer) => {
           this.start(buffer, 0.055, true)
@@ -37,15 +44,31 @@ export class BattleAudio {
     }
   }
 
-  toggle() {
-    this.enabled = !this.enabled
+  setEnabled(music: boolean, effects: boolean) {
+    if (effects !== this.effects) this.revision++
+    this.music = music
+    this.effects = effects
+    this.updateGains()
+  }
+
+  suspend() {
+    if (!this.context) return
+    this.needsResume = true
     this.revision++
-    if (this.master) this.master.gain.value = Number(this.enabled)
-    if (this.enabled) this.activate()
+    void this.context.suspend().catch(() => {})
+  }
+
+  resumeOnGesture() {
+    if (this.context && (this.needsResume || this.context.state !== 'running')) this.activate()
+  }
+
+  private updateGains() {
+    if (this.musicGain) this.musicGain.gain.value = Number(this.music)
+    if (this.effectsGain) this.effectsGain.gain.value = Number(this.effects)
   }
 
   play(effect: Effect) {
-    if (!this.context || !this.enabled) return
+    if (!this.context || !this.effects || this.needsResume) return
     const revision = this.revision
     void this.load(effect).then((buffer) => {
       if (revision === this.revision) this.start(buffer, effect === 'roulette-tick' ? 0.12 : 0.19)
@@ -74,7 +97,7 @@ export class BattleAudio {
     gain.gain.value = volume
     source.buffer = buffer
     source.loop = loop
-    source.connect(gain).connect(this.master!)
+    source.connect(gain).connect((loop ? this.musicGain : this.effectsGain)!)
     source.addEventListener('ended', () => {
       source.disconnect()
       gain.disconnect()

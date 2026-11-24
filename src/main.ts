@@ -1,11 +1,13 @@
 import { ascentFinished, beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn, rewardHealth, rewardOffers, takeAscentReward } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
-import { ASCENT_SAVE_KEY, loadAscentSave, writeAscentSave } from './ascent-save.ts'
+import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, writeAscentSave } from './ascent-save.ts'
 import { Arena } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
 import { BATTLE_GUIDE } from './battle-guide.ts'
 import { COMPANION_LINES, companionDieIndex } from './companion.ts'
 import { enemyForFight } from './enemy-roster.ts'
+import { loadGameSettings, saveGameSettings, toggleMute } from './game-settings.ts'
+import type { GameSettings } from './game-settings.ts'
 import { relicReady, REWARD_CARDS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
 import {
@@ -37,6 +39,14 @@ const ui = {
   returnLobby: element<HTMLButtonElement>('return-lobby'),
   lobbyGuide: element<HTMLButtonElement>('lobby-guide'),
   lobbySound: element<HTMLButtonElement>('lobby-sound'),
+  lobbySettings: element<HTMLButtonElement>('lobby-settings'),
+  battleSettings: element<HTMLButtonElement>('battle-settings'),
+  settings: element<HTMLDialogElement>('settings'),
+  settingsMusic: element<HTMLButtonElement>('settings-music'),
+  settingsEffects: element<HTMLButtonElement>('settings-effects'),
+  settingsSpeed: Array.from(document.querySelectorAll<HTMLInputElement>('input[name="animation-speed"]')),
+  settingsMotion: element<HTMLButtonElement>('settings-motion'),
+  abandonAscent: element<HTMLButtonElement>('abandon-ascent'),
   confirm: element<HTMLDialogElement>('lobby-confirm'),
   confirmTitle: element('lobby-confirm-title'),
   confirmText: element('lobby-confirm-text'),
@@ -226,18 +236,83 @@ let chosenReward: Reward | undefined
 const selected = new Set<number>()
 const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
 const sound = new BattleAudio()
+const systemMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+let settings = loadGameSettings()
+
+function reducedMotion() { return settings.reducedMotion ?? systemMotion.matches }
+function animationSpeed() { return settings.speed === 'fast' ? 2 : 1 }
+function effectDuration(milliseconds: number) { return milliseconds / animationSpeed() }
+
+function renderSettings() {
+  const reduced = reducedMotion()
+  document.documentElement.dataset.reducedMotion = String(reduced)
+  document.documentElement.dataset.animationSpeed = settings.speed
+  arena.setAnimation(animationSpeed(), reduced)
+  if (reduced) {
+    for (const output of [ui.playerDamage, ui.enemyDamage]) {
+      output.getAnimations().forEach((animation) => animation.cancel())
+    }
+  }
+  const switches = [
+    [ui.settingsMusic, settings.music], [ui.settingsEffects, settings.effects], [ui.settingsMotion, reduced],
+  ] as const
+  for (const [button, checked] of switches) {
+    button.setAttribute('aria-checked', String(checked))
+    button.querySelector('strong')!.textContent = checked ? '켬' : '끔'
+  }
+  for (const option of ui.settingsSpeed) option.checked = option.value === settings.speed
+  const muted = !settings.music && !settings.effects
+  for (const button of [ui.soundToggle, ui.lobbySound]) {
+    button.setAttribute('aria-pressed', String(muted))
+    button.querySelector('use')!.setAttribute('href', muted ? '#icon-sound-off' : '#icon-sound-on')
+  }
+  sound.setEnabled(settings.music, settings.effects)
+}
+
+function updateSettings(next: GameSettings, activateAudio = false) {
+  settings = next
+  saveGameSettings(settings)
+  renderSettings()
+  if (activateAudio) sound.activate()
+}
 
 function toggleSound(event: MouseEvent) {
   if (!event.isTrusted) return
-  sound.toggle()
-  for (const button of [ui.soundToggle, ui.lobbySound]) {
-    button.setAttribute('aria-pressed', String(!sound.isEnabled))
-    button.querySelector('use')!.setAttribute('href', sound.isEnabled ? '#icon-sound-on' : '#icon-sound-off')
-  }
+  updateSettings(toggleMute(settings), true)
 }
 
 ui.soundToggle.addEventListener('click', toggleSound)
 ui.lobbySound.addEventListener('click', toggleSound)
+for (const button of [ui.lobbySettings, ui.battleSettings]) {
+  button.addEventListener('click', () => {
+    const phase = ascent?.battle.phase
+    ui.abandonAscent.hidden = phase !== 'assign' && phase !== 'counter'
+    ui.settings.showModal()
+  })
+}
+ui.settings.addEventListener('click', (event) => {
+  if (event.target === ui.settings) ui.settings.close()
+})
+for (const [button, channel] of [[ui.settingsMusic, 'music'], [ui.settingsEffects, 'effects']] as const) {
+  button.addEventListener('click', (event) => {
+    const enabled = !settings[channel]
+    updateSettings({ ...settings, [channel]: enabled, restoreAudio: undefined }, event.isTrusted && enabled)
+  })
+}
+for (const option of ui.settingsSpeed) {
+  option.addEventListener('change', () => updateSettings({ ...settings, speed: option.value === 'fast' ? 'fast' : 'normal' }))
+}
+ui.settingsMotion.addEventListener('click', () => updateSettings({ ...settings, reducedMotion: !reducedMotion() }))
+systemMotion.addEventListener('change', renderSettings)
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) sound.suspend() })
+window.addEventListener('pagehide', () => sound.suspend())
+function resumeAudio(event: Event) {
+  if (event.isTrusted && !document.hidden) sound.resumeOnGesture()
+}
+window.addEventListener('pointerup', (event) => { if (event.pointerType !== 'touch') resumeAudio(event) }, true)
+window.addEventListener('touchend', resumeAudio, { capture: true, passive: true })
+window.addEventListener('keydown', resumeAudio, true)
 
 function saveCurrent(checkpoint = ascent) {
   if (checkpoint) writeAscentSave({ ascent: checkpoint, selected: [...selected], rewardPreview: chosenReward })
@@ -257,6 +332,15 @@ ui.confirm.addEventListener('close', () => {
   const action = onConfirm
   onConfirm = undefined
   if (ui.confirm.returnValue === 'confirm') action?.()
+})
+
+ui.abandonAscent.addEventListener('click', () => {
+  if (ascent?.battle.phase !== 'assign' && ascent?.battle.phase !== 'counter') return
+  confirmLobbyAction('등반을 포기할까요?', '포기하면 현재 등반의 저장이 사라집니다.', '등반 포기', () => {
+    clearAscentSave()
+    ui.settings.close()
+    showLobby(true)
+  })
 })
 
 const arena = new Arena(element('arena'), ui.encounter)
@@ -507,17 +591,17 @@ function showDamage(output: HTMLElement, damage: number, atImpact = false) {
   output.getAnimations().forEach((animation) => animation.cancel())
   output.textContent = `−${damage}`
   output.hidden = damage === 0
-  if (damage && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (damage && !reducedMotion()) {
     output.animate(
       [{ translate: '0 7px', opacity: atImpact ? 1 : 0 }, { translate: '0 0', opacity: 1, offset: 0.15 }, { opacity: 1, offset: 0.75 }, { translate: '0 -9px', opacity: 0 }],
-      { duration: exchangeDuration },
+      { duration: effectDuration(exchangeDuration) },
     )
   }
 }
 
 function hideExchangeAfterDelay() {
   window.clearTimeout(exchangeTimer)
-  exchangeTimer = window.setTimeout(clearExchange, exchangeDuration)
+  exchangeTimer = window.setTimeout(clearExchange, effectDuration(exchangeDuration))
 }
 
 function showExchange(before: YachtBattle, phase: YachtBattle['phase'], exchange: Exchange) {
@@ -542,7 +626,7 @@ function updateEnemyHp(enemyHp: number) {
 }
 
 function wait(milliseconds: number): Promise<void> {
-  return new Promise((finish) => window.setTimeout(finish, milliseconds))
+  return new Promise((finish) => window.setTimeout(finish, effectDuration(milliseconds)))
 }
 
 function renderActivePerk(battle: YachtBattle) {
@@ -678,6 +762,8 @@ function render(presentation: 'normal' | 'exchange' | 'unlock' = 'normal') {
   ui.turn.hidden = !inCombat
   ui.help.hidden = !inCombat
   ui.help.disabled = !showActions
+  ui.battleSettings.hidden = !inCombat
+  ui.battleSettings.disabled = !showActions
   ui.soundToggle.hidden = false
   renderRewardStrip(battle, presentation !== 'normal')
   ui.turn.innerHTML = `${icon('turn')}${turn}`
@@ -794,6 +880,7 @@ function showPerks() {
   ui.fight.hidden = true
   ui.turn.hidden = true
   ui.help.hidden = true
+  ui.battleSettings.hidden = true
   ui.soundToggle.hidden = true
   ui.perks.hidden = false
   const seed = fixedSeed ?? crypto.getRandomValues(new Uint32Array(1))[0]
@@ -960,15 +1047,16 @@ ui.counter.addEventListener('click', async () => {
   saveCurrent(checkpoint)
   const companionJoint = reward.joint && ascent.unlocks.includes('triple')
   ui.help.disabled = true
+  ui.battleSettings.disabled = true
   ui.returnLobby.disabled = true
   ui.rewardStrip.querySelectorAll('button').forEach((button) => { button.disabled = true })
 
-  const animate = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const animate = !reducedMotion()
   if (next.perk?.kind === 'counter') renderActivePerk(next)
-  await roulette.reveal(reward, animate, () => sound.play('roulette-tick'))
+  await roulette.reveal(reward, animate, () => sound.play('roulette-tick'), animationSpeed())
   sound.play('roulette-stop')
   if (companionJoint && animate) {
-    ui.companionFlight.style.setProperty('--flight-duration', `${companionFlightDuration}ms`)
+    ui.companionFlight.style.setProperty('--flight-duration', `${effectDuration(companionFlightDuration)}ms`)
     ui.companionFlight.hidden = false
     await wait(companionImpactTime)
   }
@@ -1031,4 +1119,5 @@ ui.returnLobby.addEventListener('click', () => {
 window.addEventListener('storage', (event) => {
   if ((event.key === ASCENT_SAVE_KEY || event.key === null) && !ui.lobby.hidden) refreshLobbyActions()
 })
+renderSettings()
 showLobby()
