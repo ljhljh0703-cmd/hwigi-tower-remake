@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="적의 다음 수를 보고 주사위를 공격과 방어에 나누는 전투.">
     <link rel="icon" href="data:,">
-    <title>회귀탑</title>
+    <title>회귀자는 탑을 오른다</title>
   </head>
   <body>
     <svg class="icon-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
@@ -108,10 +108,10 @@
     </svg>
     <main data-screen="perks">
       <header class="masthead">
-        <h1>회귀탑</h1>
+        <h1>회귀자는 탑을 오른다</h1>
         <div class="run-status">
           <span id="active-perk" role="img" hidden></span>
-          <span id="companion-status" role="img" aria-label="동료 주사위" title="동료 주사위" hidden>
+          <span id="companion-status" role="img" aria-label="에고 주사위" title="에고 주사위" hidden>
             <svg class="icon" aria-hidden="true"><use href="#icon-companion-awake"/></svg>
           </span>
           <span id="fight" hidden></span>
@@ -123,6 +123,7 @@
             <svg class="icon" aria-hidden="true"><use href="#icon-help"/></svg>
           </button>
         </div>
+        <button id="motion-toggle" type="button" aria-pressed="false">움직임 줄이기</button>
       </header>
 
       <section id="perks" aria-labelledby="perks-heading">
@@ -137,29 +138,40 @@
             <svg class="icon"><use href="#icon-companion-awake"/></svg>
           </div>
           <div class="combatant player">
-            <output id="player-damage" class="damage-float" aria-hidden="true" hidden></output>
+            <output id="player-damage" class="damage-float" aria-hidden="true"></output>
             <div class="vital">
               <label for="player-hp"><svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="player-total"></span></label>
-              <meter id="player-hp" min="0" aria-label="내 체력"></meter>
+              <span class="hp-track"><meter id="player-hp" min="0" aria-label="내 체력"></meter><span class="hp-trail" aria-hidden="true"></span></span>
             </div>
           </div>
           <div class="combatant enemy">
             <p id="intent" role="img"></p>
-            <output id="enemy-damage" class="damage-float" aria-hidden="true" hidden></output>
+            <output id="enemy-damage" class="damage-float" aria-hidden="true"></output>
             <div class="vital">
               <div class="enemy-vital">
                 <span id="enemy-badge" role="img"></span>
                 <div>
                   <label for="enemy-hp"><svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="enemy-total"></span></label>
-                  <meter id="enemy-hp" min="0" aria-label="적 체력"></meter>
+                  <span class="hp-track"><meter id="enemy-hp" min="0" aria-label="적 체력"></meter><span class="hp-trail" aria-hidden="true"></span></span>
+                  <output id="enemy-damage-readout" aria-hidden="true"></output>
                 </div>
               </div>
             </div>
+          </div>
+          <div class="combatant escort-damage">
+            <output id="escort-damage" class="damage-float" aria-hidden="true"></output>
           </div>
           <div id="escort-guard" class="combatant escort-guard" hidden>
             <div id="escort-guard-vital" class="vital" role="img">
               <svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="escort-guard-total"></span>
             </div>
+          </div>
+          <p id="parry-cue" role="img" aria-label="딱 막음" hidden>
+            <span aria-hidden="true"></span><svg class="icon" aria-hidden="true"><use href="#icon-parry"/></svg>
+          </p>
+          <ol id="hit-order" aria-label="연타 결과" hidden></ol>
+          <div id="unlock-impact" class="companion-tile" aria-hidden="true" hidden>
+            <svg class="icon"><use href="#icon-companion-awake"/></svg>
           </div>
           <p id="awakening" class="awakening" role="img" hidden></p>
         </section>
@@ -169,7 +181,7 @@
           <div class="pool" data-dice-zone="pool">
             <svg class="icon" aria-hidden="true"><use href="#icon-die"/></svg>
             <div id="pool-dice" class="dice-row">
-              <span id="locked-die" class="die unlock-hint" role="img" aria-label="잠든 동료 주사위, 같은 눈 셋">
+              <span id="locked-die" class="die unlock-hint" role="img" aria-label="잠든 에고 주사위, 같은 눈 셋">
                 <svg class="icon companion-closed" aria-hidden="true"><use href="#icon-companion-sleep"/></svg>
                 <svg class="icon companion-condition" aria-hidden="true"><use href="#icon-triple"/></svg>
               </span>

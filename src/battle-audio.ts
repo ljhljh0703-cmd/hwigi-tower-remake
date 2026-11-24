@@ -44,11 +44,11 @@ export class BattleAudio {
     if (this.enabled) this.activate()
   }
 
-  play(effect: Effect) {
+  play(effect: Effect, pitch = 1) {
     if (!this.context || !this.enabled) return
     const revision = this.revision
     void this.load(effect).then((buffer) => {
-      if (revision === this.revision) this.start(buffer, effect === 'roulette-tick' ? 0.12 : 0.19)
+      if (revision === this.revision) this.start(buffer, effect === 'roulette-tick' ? 0.12 : 0.19, false, pitch)
     }).catch(() => {})
   }
 
@@ -67,13 +67,14 @@ export class BattleAudio {
     return pending
   }
 
-  private start(buffer: AudioBuffer, volume: number, loop = false) {
+  private start(buffer: AudioBuffer, volume: number, loop = false, pitch = 1) {
     const context = this.context!
     const source = context.createBufferSource()
     const gain = context.createGain()
     gain.gain.value = volume
     source.buffer = buffer
     source.loop = loop
+    source.playbackRate.value = pitch
     source.connect(gain).connect(this.master!)
     source.addEventListener('ended', () => {
       source.disconnect()

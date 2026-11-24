@@ -8,6 +8,8 @@ export class CounterRoulette {
   private readonly action: HTMLElement
   private labels: HTMLElement[] = []
   private degreesPerSlot = 0
+  private spin?: Animation
+  private companionAwake = false
 
   constructor(private readonly panel: HTMLElement, private readonly button: HTMLButtonElement) {
     this.wheel = panel.querySelector<HTMLElement>('#counter-wheel')!
@@ -29,14 +31,17 @@ export class CounterRoulette {
       const text = document.createElement('span')
       text.textContent = String(reward.damage)
       if (reward.joint) {
-        text.insertAdjacentHTML('beforeend', '<svg class="icon" aria-hidden="true"><use href="#icon-joint"/></svg>')
+        label.classList.toggle('locked', !this.companionAwake)
+        const icon = this.companionAwake ? 'joint' : 'lock'
+        text.insertAdjacentHTML('beforeend', `<svg class="icon" aria-hidden="true"><use href="#icon-${icon}"/></svg>`)
       }
       label.append(text)
       return label
     })
     this.wheel.replaceChildren(...this.labels)
     this.paintSegments()
-    const labels = rewards.map(({ damage, joint }) => joint ? `합공 ${damage}` : String(damage))
+    const labels = rewards.map(({ damage, joint }) => joint
+      ? `피해 ${damage}${this.companionAwake ? ' 합공' : ', 합공 동작 잠김'}` : String(damage))
     this.stage.setAttribute('aria-label', `반격 피해 ${labels.join(', ')}`)
   }
 
@@ -50,7 +55,8 @@ export class CounterRoulette {
     this.wheel.style.background = `conic-gradient(from -${this.degreesPerSlot / 2}deg, ${segments.join(', ')}, var(--stone-edge) 359.55deg)`
   }
 
-  setVisible(rewards: readonly CounterReward[] | null) {
+  setVisible(rewards: readonly CounterReward[] | null, companionAwake = false) {
+    this.companionAwake = companionAwake
     if (rewards && this.panel.hidden) {
       this.setRewards(rewards)
       this.wheel.style.transform = ''
@@ -64,6 +70,10 @@ export class CounterRoulette {
     this.panel.hidden = !rewards
   }
 
+  finishMotion() {
+    this.spin?.finish()
+  }
+
   async reveal(reward: CounterResult, animate: boolean, onTick: () => void) {
     this.button.disabled = true
     this.action.textContent = '회전 중'
@@ -74,6 +84,7 @@ export class CounterRoulette {
         [{ transform: 'rotate(0deg)' }, { transform: rotate }],
         { duration: 920, easing: 'cubic-bezier(.15,.65,.22,1)' },
       )
+      this.spin = spin
       let frame = 0
       let lastSlot = 0
       let lastTick = -Infinity
@@ -91,9 +102,10 @@ export class CounterRoulette {
       try {
         await spin.finished
       } catch {
-        // If the animation is interrupted, still reveal the already drawn reward.
+        // 회전이 중단돼도 이미 뽑은 결과를 표시한다.
       } finally {
         cancelAnimationFrame(frame)
+        this.spin = undefined
       }
     }
 
@@ -103,8 +115,9 @@ export class CounterRoulette {
     this.paintSegments(reward.slot)
     this.button.hidden = true
     this.result.hidden = false
-    this.result.querySelector('use')!.setAttribute('href', reward.joint ? '#icon-joint' : '#icon-sword')
-    this.result.setAttribute('aria-label', `${reward.joint ? '합공' : '반격'} 피해 ${reward.damage}`)
+    const joint = reward.joint && this.companionAwake
+    this.result.querySelector('use')!.setAttribute('href', joint ? '#icon-joint' : '#icon-sword')
+    this.result.setAttribute('aria-label', `${joint ? '합공' : '반격'} 피해 ${reward.damage}`)
     this.damage.textContent = String(reward.damage)
   }
 }
