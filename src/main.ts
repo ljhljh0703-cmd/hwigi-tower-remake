@@ -638,15 +638,13 @@ function clearExchange() {
   arena.clearContact()
 }
 
-function showDamage(hit: BattleHit, order?: number) {
+function showDamage(hit: BattleHit) {
   const { target, damage } = hit
   const number = document.createElement('span')
   number.className = 'damage-number'
   number.classList.toggle('heavy', damage >= 5)
   number.textContent = `−${damage}`
   number.style.setProperty('--damage-scale', String(1 + .25 * Math.log2(damage)))
-  number.style.setProperty('--hit-x', `${order === undefined ? 0 : [-40, 0, 38, -54][order % 4]}px`)
-  number.style.setProperty('--hit-y', `${order === undefined ? 0 : [-16, 23, -14, 38][order % 4]}px`)
   damageOutput[target].append(number)
   window.setTimeout(() => number.remove(), effectDuration(damageDuration))
   if (target === 'enemy') {
@@ -729,10 +727,10 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
       await new Promise<void>((finish) => window.setTimeout(finish, remaining))
     }
   }
-  type HitCue = { order?: number; pitch?: number; guarded?: boolean; ordered?: boolean; parry?: boolean }
-  const emit = (hits: BattleHit[], { order, pitch = 1, ...contact }: HitCue = {}) => {
+  type HitCue = { pitch?: number; guarded?: boolean; ordered?: boolean; parry?: boolean }
+  const emit = (hits: BattleHit[], { pitch = 1, ...contact }: HitCue = {}) => {
     arena.contact(hits, contact)
-    for (const hit of hits) showDamage(hit, hit.target === 'player' ? order : undefined)
+    for (const hit of hits) showDamage(hit)
     if (hits.length || contact.guarded) sound.play('stone-hit', pitch)
   }
   const enemyHit: BattleHit[] = dealt ? [{ target: 'enemy', damage: dealt, defeated: after.enemyHp === 0 }] : []
@@ -754,7 +752,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   if (ordered) {
     if (dealt || thorns) {
       if (!reducedMotion()) await at(96)
-      emit([...enemyHit, ...heroHit(thorns, false)], { order: thorns ? incoming : undefined })
+      emit([...enemyHit, ...heroHit(thorns, false)])
       updateEnemy()
       if (thorns) readHit(incoming)
     }
@@ -765,7 +763,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
       const damage = hitsTaken[index]
       const final = index === incoming - 1
       emit(heroHit(damage, final), {
-        order: index, pitch: 1 + index * .08, ordered: true,
+        pitch: 1 + index * .08, ordered: true,
         guarded: damage === 0 && !(exact && final), parry: exact && final,
       })
       readHit(index)
