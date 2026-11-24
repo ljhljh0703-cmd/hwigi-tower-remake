@@ -188,7 +188,7 @@ test('the new roster deterministically changes only its designated seats and obe
   const seal = enemyAt('seal-sentinel', 9)
   const iron = enemyAt('iron-knight', 10)
   assert.deepEqual([shield.hp, seal.hp, iron.hp], [27, 33, 34])
-  assert.deepEqual(shield.intents.map(({ hits }) => hits), [[10], [9], [3, 3]])
+  assert.deepEqual(shield.intents.map(({ hits }) => hits), [[4], [9], [3, 3]])
   assert.deepEqual(seal.intents.map(({ hits }) => hits), [[6, 4], [5, 4], [12], [9]])
   assert.deepEqual(iron.intents.map(({ hits }) => hits), [[4, 5], [6, 5], [], [15], []])
   assert.equal(iron.intents.find((row) => row.matches(5)).hits[0], 6)
@@ -198,6 +198,9 @@ test('the new roster deterministically changes only its designated seats and obe
   assert.equal(iron.intents.find((row) => row.matches(4)).damageTakenMultiplier, 2)
   const start = beginMapAscent(88, undefined, 'odd', 3).battle
   const reactive = { ...start, enemyHp: 27, turn: 2, enemyIntents: shield.intents, enemyAttackGrowth: 1, dice: [5, 3, 2], slots: ['attack', 'attack', 'guard'] }
+  assert.deepEqual(incomingAttack({ ...reactive, turn: 1 }).hits, [4])
+  assert.deepEqual(incomingAttack({ ...reactive, turn: 3 }).hits, [5, 5])
+  assert.deepEqual(incomingAttack({ ...reactive, turn: 4 }).hits, [7])
   assert.deepEqual(incomingAttack(reactive, yachtAllocationTotals(reactive)).hits, [4, 4])
   assert.deepEqual(incomingAttack(reactive, { attack: 7 }).hits, [10])
   assert.deepEqual(forecastYacht(reactive).hits, [2, 4])
