@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- 회귀자는 탑을 오른다 작품 페이지. 처음 보는 사람 기준: 게임 재미, 마일스톤 관리, 자동 플레이 AI QA 순서. 숫자 기준 커밋 dafe1b8 (2026-11-24). mark.todo 는 공개 전에 지운다 -->
+<title>회귀자는 탑을 오른다 | 이주형</title>
+<meta name="description" content="죽으면 처음으로 돌아오는 탑을 주사위 세 개로 오르는 턴제 로그라이크. 기획부터 개발까지 직접 만든 프로젝트 관리 툴로 마일스톤을 관리했고, 밸런스 QA는 AI 플레이어로 자동화했습니다.">
+<link rel="canonical" href="https://ljhljh0703-cmd.github.io/hwigi-tower-remake/portfolio/">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/wanted-sans@1.0.3/fonts/webfonts/variable/split/WantedSansVariable.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap">
+<link rel="stylesheet" href="case/case-paper.css">
+<link rel="stylesheet" href="case/case-easy.css">
+<style>
+/* 새 칸에 더한 모양: 역할 제목, 강조 문장, 작품 정보, 줄글, 결정 카드, 실험 카드, 작은 제목, 판단 순서 */
+.cp-mine>h3{flex:none;margin:0;background:var(--ink);color:var(--slip);font-size:12px;font-weight:800;line-height:1.7;padding:2px 8px}
+.cp-mine>p{margin:0}
+.cp-col .cp-card p,.cp-note,.cp-body p{max-width:56em}
+.cp-fit{max-width:640px;margin:18px 0 0;padding:10px 14px;border-left:4px solid var(--accent);background:var(--slip);font-size:15.5px;font-weight:700;line-height:1.6}
+.cp-facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:3px 14px;margin:14px 0 0;font-size:13px;color:var(--muted)}
+.cp-facts dt{font-weight:800;color:var(--ink)}
+.cp-facts dd{margin:0}
+.cp-prose{max-width:780px}
+.cp-prose p{margin:0 0 12px}
+.cp-h3{margin:34px 0 12px;font-size:19px;line-height:1.4}
+.cp-col{display:grid;gap:14px}
+.cp-grid2{align-items:start}
+.cp-card h3{margin:0 0 6px;font-size:17px;line-height:1.45}
+.cp-card p+p{margin-top:8px}
+.cp-card.long{background:var(--slip);border:1.5px solid var(--ink);padding:20px 22px}
+.cp-card.long p{font-size:15px}
+.cp-kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 14px;margin:10px 0 0;font-size:14px}
+.cp-kv dt{font-weight:800;color:var(--accent)}
+.cp-kv dd{margin:0}
+.cp-num td:first-child{font-weight:800;color:var(--accent);white-space:nowrap}
+.cp-detail>summary h3{margin:0;font-size:18px;line-height:1.5;color:var(--accent)}
+.cp-folds{margin-top:22px}
+.cp-body .cp-table{color:var(--ink)}
+.cp-rules{counter-reset:r;margin-bottom:18px}
+.cp-rules li{counter-increment:r;padding-left:30px}
+.cp-rules li::before{content:counter(r);width:auto;height:auto;top:7px;background:none;font-weight:800;color:var(--accent)}
+.cp-duo{align-items:start}
+@media(max-width:600px){
+  .cp-num td:first-child{white-space:normal}
+  .cp-kv{grid-template-columns:1fr;gap:0}
+  .cp-kv dd{margin-bottom:6px}
+  .cp-card.long{padding:16px 16px}
+}
+/* 첫 화면: 제목, 결과 한 줄, 막대, 버튼만 */
+.cp-hero .cp-bars{max-width:640px;margin-top:16px}
+.cp-cond{max-width:640px;margin:10px 0 0;font-size:12.5px;line-height:1.55;color:var(--muted)}
+#about .cp-lead{margin-top:0}
+@media(max-width:600px){
+  .cp-hero .cp-sticker{display:none}
+  .cp-hero .cp-result span{display:none}
+  .cp-hero .cp-bars{margin-top:12px;gap:8px}
+  .cp-hero .cp-bar .lab small{display:none}
+}
+</style>
+<style>
+.cp-hero{align-items:center}
+.hero-shot{margin:0;justify-self:center}
+.hero-shot video,.hero-shot img{height:auto;width:min(300px,70vw);aspect-ratio:390/844;object-fit:cover;border:2px solid var(--ink);box-shadow:8px 8px 0 var(--accent);display:block}
+.hero-points{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 0;padding:0;list-style:none}
+.hero-points li{background:var(--slip);border:1.5px solid var(--ink);padding:6px 10px;font-size:14px;font-weight:700}
+.cp-figs .cp-fig video{width:100%;height:auto;aspect-ratio:390/844;object-fit:cover;display:block;background:#3a3936}
+.cp-figs .cp-fig img{aspect-ratio:390/844;object-fit:cover;background:#3a3936}
+.ms-shot{margin:18px 0 0;border:1.5px solid var(--ink);background:#f3f4f6}
+.ms-shot img{display:block;width:100%;height:auto}
+.ms-shot figcaption{padding:8px 12px;font-size:13px;background:var(--slip);border-top:1.5px solid var(--ink)}
+.flow5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:18px 0 0;padding:0;list-style:none;counter-reset:f}
+.flow5 li{counter-increment:f;background:var(--slip);border:1.5px solid var(--ink);padding:12px}
+.flow5 li::before{content:counter(f);font-weight:800;color:var(--accent);display:block}
+.flow5 b{display:block;font-size:15px;margin-bottom:4px}
+.flow5 span{font-size:13px;color:var(--muted)}
+.qa-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:18px}
+.qa-card{background:var(--slip);border:1.5px solid var(--ink);padding:16px 18px}
+.qa-card h3{margin:0 0 8px;font-size:17px}
+.qa-card p{margin:0;font-size:15px}
+.band-row{display:grid;grid-template-columns:7em minmax(0,1fr) 4.5em;gap:10px;align-items:center;font-size:14px;margin-top:8px}
+.band-row .track{height:12px;background:#e3ddcf;position:relative}
+.band-row .goal{position:absolute;top:-3px;bottom:-3px;background:rgba(75,74,209,.18);border-left:2px solid var(--accent);border-right:2px solid var(--accent)}
+.band-row .dot{position:absolute;top:-2px;width:4px;height:16px;background:var(--ink)}
+.band-row b{text-align:right}
+mark.todo{background:#ffe08a;color:#1b1a17;padding:0 4px;font-weight:800;font-size:.86em}
+.cp-quote{margin:10px 0 0;padding:8px 12px;border-left:3px solid var(--accent);background:var(--slip);font-size:14px}
+@media(max-width:800px){.flow5{grid-template-columns:repeat(2,minmax(0,1fr))}.qa-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.cp-hero{display:block}.hero-shot{display:flex;justify-content:center;margin:24px 0 0;width:100%;transform:none}.hero-shot video,.hero-shot img{height:auto;width:min(280px,78vw);margin:0 auto}
+#play .cp-figs{grid-template-columns:1fr!important;gap:22px}
+#play .cp-fig video,#play .cp-fig img{width:min(300px,80vw);margin:0 auto}}
+</style>
+</head>
+<body class="cp" data-ink="blue">
+<a class="cp-skip" href="#top">본문으로</a>
+<nav class="cp-nav" aria-label="작품 탐색"><div class="cp-shell">
+<a class="cp-back" href="../../" data-portfolio-back="07-hwigi-tower">작품 모음으로</a>
+<div class="cp-links"><a href="#play">게임</a> <a href="#milestone">마일스톤</a> <a href="#qa">밸런스 QA</a> <a class="opt" href="#limits">한계</a> <a class="opt" href="gdd/">기획서</a> <button type="button" class="easy-open" data-easy-open aria-haspopup="dialog" aria-controls="easy">쉽게 읽기</button></div>
+</div></nav>
+<main class="cp-shell" id="top">
+<article>
+<header class="cp-hero">
+<div>
+<p class="cp-kicker">주사위 턴제 로그라이크, 웹 게임, 1인 개발</p>
+<h1 class="cp-h1">회귀자는<br><b>탑을 오른다</b></h1>
+<p class="cp-lead" style="margin-top:16px;max-width:620px">죽으면 처음으로 돌아오는 탑에서 주사위 세 개를 들고 다시 오릅니다. 적의 다음 공격을 읽고 주사위를 공격과 방어에 나눠 버텨 내는 턴제 로그라이크입니다.</p>
+<ul class="hero-points">
+<li>기획부터 개발까지 마일스톤으로 관리</li>
+<li>밸런스 QA는 AI 플레이어로 자동화</li>
+<li>브라우저에서 바로 플레이</li>
+</ul>
+<div class="cp-actions">
+<a class="cp-btn primary" href="../" target="_blank" rel="noopener">바로 해 보기</a>
+<button type="button" class="easy-hero" data-easy-open aria-haspopup="dialog" aria-controls="easy"><span class="easy-hero-k">처음이라면</span> 카드 5장으로 쉽게 읽기</button>
+<a class="cp-btn" href="gdd/">게임 기획서</a>
+<a class="cp-btn" href="https://github.com/ljhljh0703-cmd/hwigi-tower-remake" target="_blank" rel="noopener noreferrer">저장소</a>
+</div>
+</div>
+<figure class="hero-shot"><video src="shots/clip-block.mp4" poster="shots/clip-block.webp" autoplay muted loop playsinline width="390" height="844" aria-label="적이 9 피해를 예고하자 주사위 4와 5를 방어에, 3을 공격에 놓아 정확히 막고 반격 룰렛을 돌리는 플레이 화면"></video></figure>
+</header>
+
+<section class="cp-section" id="play" aria-labelledby="play-h" data-layer="narrative">
+<div class="cp-head"><h2 id="play-h">이런 게임입니다</h2> <p>코어 루프, 해금 시스템, 런 구조</p></div>
+<p class="cp-lead">슬레이 더 스파이어처럼 적의 다음 행동이 보이고, 다이시 던전처럼 주사위를 칸에 넣어 싸웁니다. 휴대폰으로 10분 안에 한 판을 끝내는 가벼운 로그라이크를 목표로 만들었습니다.</p>
+<div class="cp-figs play-figs" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+<figure class="cp-fig"><video src="shots/clip-block.mp4" poster="shots/clip-block.webp" autoplay muted loop playsinline aria-label="주사위를 방어와 공격에 나눠 정확히 막고 반격 룰렛을 돌리는 장면"></video><figcaption><b>주사위 분배와 정확 방어</b> 적이 9 피해를 예고하자 4와 5를 방어에, 3을 공격에 놓아 피해를 정확히 막고, 반격 룰렛으로 추가 피해를 줍니다.</figcaption></figure>
+<figure class="cp-fig"><video src="shots/clip-unlock.mp4" poster="shots/clip-unlock.webp" autoplay muted loop playsinline aria-label="같은 눈 세 개로 막아 에고 주사위를 해금하는 장면"></video><figcaption><b>주사위 조합으로 해금</b> 3이 세 개 나와 그대로 방어에 쓰자 에고 주사위가 해금되고, 다음 턴부터 주사위 4개로 싸웁니다.</figcaption></figure>
+<figure class="cp-fig"><img src="shots/02-battle.webp" alt="엘리트가 힘을 모아 치명 일격 21을 예고한 전투 화면" loading="lazy"><figcaption><b>엘리트의 치명 일격</b> 2층 엘리트가 힘을 모아 21 피해의 치명 일격을 예고한 턴입니다. 공격으로 힘 모으기를 끊을지, 방어에 몰아 버틸지 골라야 합니다.</figcaption></figure>
+</div>
+<h3 class="cp-h3">해금 시스템</h3>
+<p class="cp-note" style="margin-top:0">같은 주사위 눈이 세 개 나오면 에고 주사위를 얻고, 1, 2, 3처럼 이어지는 눈 세 개를 맞추면 전투마다 한 번 더 굴릴 수 있는 재굴림 주사위가 열리는 등, 주사위 조합으로 새로운 능력을 해금하는 요소를 넣었습니다. 해금할수록 다음 층의 적도 함께 강해져서, 언제 족보를 노릴지가 또 하나의 판단이 됩니다.</p>
+<h3 class="cp-h3">런 구조</h3>
+<p class="cp-note" style="margin-top:0">런을 시작할 때 고른 특전 하나가 끝까지 효과를 내고, 일반 몹, 엘리트, 보스 순서로 3층을 오르며 남은 체력이 다음 층으로 이어집니다. 적마다 주사위를 잠그거나 얼리거나 빼앗는 기믹이 있고, 보스는 힘을 모은 뒤 치명 일격을 날리고 잠시 쓰러지는 패턴을 반복합니다.</p>
+</section>
+
+<section class="cp-section" id="milestone" aria-labelledby="ms-h" data-layer="narrative">
+<div class="cp-head"><h2 id="ms-h">기획부터 개발까지 마일스톤으로 관리했습니다</h2> <p>직접 만든 프로젝트 관리 툴</p></div>
+<p class="cp-lead">회귀자는 탑을 오른다는 2026년 4월 Unity판으로 기획을 시작했고, 11월 21일부터 웹으로 새로 개발했습니다. 개발은 직접 만든 <a href="https://github.com/ljhljh0703-cmd/naeil" target="_blank" rel="noopener noreferrer">프로젝트 관리 툴</a>에 마일스톤 6개, 할 일 29개로 나눠 올리고, 끝날 때마다 표시하며 진행했습니다. 이 툴은 프로젝트마다 할 일을 모으고, 마일스톤별 진행률과 다음 마일스톤을 한 화면에서 보여 줍니다.</p>
+<ol class="flow5">
+<li><b><a href="gdd/">기획서</a></b><span>규칙, 수치, 결정 연표</span></li>
+<li><b>마일스톤</b><span>직접 만든 프로젝트 관리 툴에 M1~M6, 할 일 29개</span></li>
+<li><b>개발</b><span>빌드마다 웹에 올려 링크로 확인</span></li>
+<li><b>밸런스 QA</b><span>AI 플레이어로 수천 판</span></li>
+<li><b>플레이 판정</b><span>빌드마다 직접 플레이하고 다음 마일스톤 결정</span></li>
+</ol>
+<figure class="ms-shot"><img src="shots/05-naeil.webp" alt="직접 만든 프로젝트 관리 툴의 마일스톤 화면. 회귀자는 탑을 오른다 18/29 완료, M1 100%, M3 73%"><figcaption>직접 만든 프로젝트 관리 툴의 마일스톤 화면, 2026-11-24 기준 할 일 29개 중 18개 완료</figcaption></figure>
+<table class="cp-table" style="margin-top:18px"><thead><tr><th>마일스톤</th><th>끝나면</th><th>지금</th></tr></thead><tbody>
+<tr><td>M1 코어 재미 검증(그레이박스)</td><td>그래픽 없이 규칙만으로 한 판이 돌고, 또 하고 싶은지 판정</td><td>5/5</td></tr>
+<tr><td>M2 타격감 및 피드백</td><td>굴림, 놓기, 타격의 반응 연출</td><td>2/3</td></tr>
+<tr><td>M3 버티컬 슬라이스와 밸런스 시뮬레이터</td><td>3전투 런, 해금, 특전, 적 기믹을 한 판으로 완성하고 시뮬레이터로 검증</td><td>8/11</td></tr>
+<tr><td>M4 메타 진행</td><td>런이 끝난 뒤 새 특전과 아이템 해금</td><td>1/4</td></tr>
+<tr><td>M5 아트, 사운드 적용 및 최적화</td><td>픽셀 아트, 사운드, 첫 화면 로딩 속도</td><td>2/4</td></tr>
+<tr><td>M6 포트폴리오 패키징</td><td>이 페이지와 플레이 영상</td><td>0/2</td></tr>
+</tbody></table>
+</section>
+
+<section class="cp-section" id="qa" aria-labelledby="qa-h" data-layer="narrative">
+<div class="cp-head"><h2 id="qa-h">밸런스 QA를 사람 손에서 AI 플레이어로 옮겼습니다</h2> <p>직접 플레이, 시뮬레이터, AI 플레이어</p></div>
+<h3 class="cp-h3" style="margin-top:0">문제</h3>
+<p class="cp-lead">주사위 게임은 운이 커서, 몇 판 해 봐서는 지금 규칙이 쉬운지 어려운지 알 수 없습니다. 시작 특전 6개와 적 8종의 조합마다 난이도가 달라서, 수치 하나를 고칠 때마다 확인할 판이 크게 늘었습니다.</p>
+<ol class="flow5" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+<li><b>직접 플레이</b><span>처음에는 직접 해 보며 밸런스를 봤습니다. 수치를 고칠 때마다 같은 판을 다시 해야 해서 금방 한계가 왔습니다.</span></li>
+<li><b>밸런스 시뮬레이터</b><span>게임 규칙을 화면과 떼어, 화면 없이 수백 판을 돌리는 시뮬레이터를 설계했습니다. 같은 시드면 같은 판이 나와 고치기 전후를 바로 비교합니다.</span></li>
+<li><b>AI 플레이어</b><span>사람처럼 판단하는 AI 플레이어를 붙여, 특전과 적 조합마다 수천 판을 돌리고 그 결과로 적 체력과 공격력을 조정했습니다.</span></li>
+</ol>
+<div class="qa-grid">
+<article class="qa-card"><h3>시뮬레이터로 찾은 것: 리롤 필수 문제</h3>
+<p>첫 전투를 같은 조건으로 512판씩 돌리니, 리롤을 안 쓰면 214판, 상황에 맞춰 쓰면 482판을 이겼습니다. 리롤이 사실상 필수 행동이었습니다. 이를 막지 않고 기본 조작으로 정했습니다.</p></article>
+<article class="qa-card"><h3>시뮬레이터로 확인한 것: 한쪽 몰빵은 통하지 않음</h3>
+<p>주사위를 전부 공격에 넣으면 512판 중 28판, 전부 방어에 넣으면 2판만 이겼습니다. 공격과 방어를 나누는 판단이 게임의 중심에 남아 있습니다.</p></article>
+</div>
+<h3 class="cp-h3">AI 플레이어로 맞춘 난이도 곡선</h3>
+<p class="cp-note" style="margin-top:0">층마다 목표 승률을 먼저 정하고, AI 플레이어가 특전을 골라 4,096번 런을 돈 결과로 맞췄습니다. 색칠한 칸이 목표 승률입니다.</p>
+<div class="band-row"><span>1층 승률</span><span class="track"><i class="goal" style="left:90%;width:6%"></i><i class="dot" style="left:94%"></i></span><b>94%</b></div>
+<div class="band-row"><span>2층 승률</span><span class="track"><i class="goal" style="left:75%;width:10%"></i><i class="dot" style="left:79%"></i></span><b>79%</b></div>
+<div class="band-row"><span>보스 승률</span><span class="track"><i class="goal" style="left:45%;width:15%"></i><i class="dot" style="left:46.6%"></i></span><b>47%</b></div>
+<div class="band-row"><span>클리어율</span><span class="track"><i class="goal" style="left:30%;width:15%"></i><i class="dot" style="left:34.6%"></i></span><b>35%</b></div>
+<p class="cp-note">남은 문제: 보스전이 목표(6~7턴)보다 짧게 끝납니다(평균 5.8턴).</p>
+<h3 class="cp-h3">재미는 직접 판정했습니다</h3>
+<p class="cp-note" style="margin-top:0">AI 플레이어는 승패와 판 길이만 잽니다. 재미는 빌드마다 직접 해 보고 판정해, 세 번에 걸쳐 고쳤습니다.</p>
+<p class="cp-quote">"일단 재미는 있어."<br>"일단 전투가 처음부터 너무 길어."</p>
+<ul class="cp-list">
+<li>적 예고 문구가 길어 긴장감이 떨어져서, 예고를 아이콘과 숫자만으로 바꿨습니다.</li>
+<li>성장하는 재미가 약해서, 야추 다이스 족보처럼 주사위 조합으로 능력을 해금하는 요소를 넣었습니다.</li>
+<li>첫 전투가 길고 적이 공격만 해서 지루했기 때문에, 첫 전투를 줄이고 적 기믹 9종과 보스 패턴을 추가했습니다.</li>
+<li>한 번 쓰고 끝나는 시작 특전이 와닿지 않아서, 런 내내 효과가 이어지는 특전 6종으로 바꿨습니다.</li>
+</ul>
+</section>
+
+<section class="cp-section" id="about" aria-labelledby="about-h" data-layer="fact">
+<div class="cp-head"><h2 id="about-h">역할과 작품 정보</h2> <p>내가 정한 것, AI로 짠 것, 내가 확인한 것</p></div>
+<dl class="cp-who">
+<div><dt>내가 정한 것</dt> <dd>주사위만 쓰는 전투, 야추 다이스식 해금, 리롤을 기본 조작으로 두기, 밸런스 QA 방식, 하지 않을 것(여러 재화와 메뉴)</dd></div>
+<div><dt>AI로 짠 것</dt> <dd>게임 코드(Phaser 3, TypeScript), 밸런스 시뮬레이터와 AI 플레이어, 적과 특전 수치의 초기값(Codex). 그래픽과 사운드(웹 ChatGPT로 생성)</dd></div>
+<div><dt>내가 확인한 것</dt> <dd>밸런스 리포트를 보고 고칠 것 고르기, 빌드마다 직접 플레이 판정(세 번)</dd></div>
+</dl>
+<dl class="cp-facts">
+<dt>만든 사람</dt> <dd>이주형. 팀원 없음</dd>
+<dt>기간</dt> <dd>기획 2026년 4월(Unity판)부터, 웹 리메이크 개발 2026-11-21부터</dd>
+<dt>단계</dt> <dd>브라우저에서 바로 하는 프로토타입. 버티컬 슬라이스(3층 런 한 판) 단계</dd>
+<dt>쓴 도구</dt> <dd>Phaser 3, TypeScript, Vite, GitHub Pages, Codex, 직접 만든 프로젝트 관리 툴</dd>
+</dl>
+</section>
+
+<section class="cp-section" id="limits" aria-labelledby="limits-h" data-layer="narrative">
+<div class="cp-head"><h2 id="limits-h">한계</h2> <p>아직 안 된 것</p></div>
+<ul class="cp-list">
+<li>실제 플레이어 데이터는 없습니다.</li>
+<li>런이 끝난 뒤 새 특전과 아이템을 해금하는 메타 진행은 설계 중입니다.</li>
+<li>보스전이 목표보다 짧습니다. 층 사이 보상으로 맞출 계획입니다.</li>
+<li>타격감 연출(피해 숫자, 히트스톱, 화면 흔들림)은 보강하고 있습니다.</li>
+</ul>
+</section>
+
+<section class="cp-section" id="deep-read" aria-labelledby="deep-h" data-layer="fact">
+<div class="cp-head"><h2 id="deep-h">더 자세히</h2> <button type="button" class="cp-expand" data-expand-all>모두 펼치기</button></div>
+
+<details class="cp-detail" id="tech"><summary><div><h3>기술 정보</h3> <span>도구와 구조</span></div></summary>
+<div class="cp-body">
+<table class="cp-table"><tbody>
+<tr><td>엔진과 언어</td><td>Phaser 3.90, TypeScript 5.9, Vite 7.3</td></tr>
+<tr><td>구조</td><td>규칙 코드와 화면 코드를 분리. 시드를 넣으면 같은 판 재현</td></tr>
+<tr><td>배포</td><td>GitHub Actions에서 시험과 빌드를 통과하면 GitHub Pages에 올림. 로그인 없이 열림</td></tr>
+<tr><td>테스트</td><td>자동 테스트 85개(규칙, 해금, 적, 시드 재현)</td></tr>
+<tr><td>마일스톤 관리</td><td>직접 만든 프로젝트 관리 툴. 할 일 원장을 한 시간마다 가져와 마일스톤별 진행률로 표시</td></tr>
+<tr><td>기준 커밋</td><td class="cp-code">dafe1b8db7f0328f9e509c05e36f0385001ac911</td></tr>
+<tr><td>이전 판</td><td><a href="https://ljhljh0703-cmd.github.io/hwigi-tower-portfolio/Docs/Portfolio/hwigi-tower-steam-portfolio.html">Unity Android 판과 강화학습 밸런스 실험</a></td></tr>
+</tbody></table>
+</div></details>
+</section>
+</article>
+<footer class="cp-foot"><a href="../../" data-portfolio-back="07-hwigi-tower">← 작품 모음으로</a> <a href="../">바로 해 보기</a> <a href="mailto:ljhljh0703@gmail.com">ljhljh0703@gmail.com</a> <span>회귀자는 탑을 오른다, 이주형</span></footer>
+</main>
+
+<dialog class="easy" id="easy" aria-labelledby="easy-title">
+<div class="easy-scraps" aria-hidden="true"><span class="ez-hex h1"></span><span class="ez-hex h2"></span><span class="ez-hex h3"></span><img class="ez-tape t1" src="case/tape.webp" alt=""><img class="ez-tape t2" src="case/tape.webp" alt=""></div>
+<div class="easy-top"><button type="button" class="easy-close" data-easy-close>원래대로 읽기</button><span class="easy-who">이주형, 회귀자는 탑을 오른다</span></div>
+<header class="easy-head">
+<div>
+<h2 id="easy-title" class="ez-h"><span class="ez-strip">회귀자는</span><br><span class="ez-strip">탑을</span><span class="ez-strip accent">오른다</span></h2>
+<p class="ez-lede">죽으면 처음으로 돌아오는 탑을 주사위 세 개로 오르는 턴제 로그라이크입니다. 마일스톤으로 관리하며 만들고, 밸런스 QA는 AI 플레이어로 자동화했습니다.</p>
+<div class="ez-play"><a class="ez-btn main" href="../" target="_blank" rel="noopener">바로 해 보기</a><a class="ez-btn" href="https://github.com/ljhljh0703-cmd/hwigi-tower-remake" target="_blank" rel="noopener noreferrer">저장소</a></div>
+</div>
+<figure class="ez-obj"><video src="shots/clip-block.mp4" poster="shots/clip-block.webp" autoplay muted loop playsinline style="width:200px;height:auto"></video></figure>
+</header>
+<div class="ez-grid">
+<section class="ez-card wide" style="--tilt:-.6deg"><span class="ez-tag">01 한 턴</span>
+<ol class="ez-flow"><li>적의 수 보기</li><li>주사위 나누기</li><li>리롤</li><li class="mine">딱 맞게 막기<b>룰렛</b></li></ol>
+<p class="ez-small">같은 주사위 눈 셋으로 에고 주사위를 얻는 등, 주사위 조합으로 새 능력을 해금하며 일반 몹, 엘리트, 보스 3층을 오릅니다.</p></section>
+<section class="ez-card kraft" style="--tilt:.8deg"><span class="ez-tag">02 마일스톤</span>
+<p class="ez-new">직접 만든 프로젝트 관리 툴로 M1~M6, 할 일 29개 관리</p>
+<p class="ez-small">2026-11-24 기준 18개 완료</p></section>
+<section class="ez-card accent" style="--tilt:-.9deg"><span class="ez-tag">03 내가 맡은 것</span>
+<ul class="ez-list"><li>기획과 전투 규칙</li><li>마일스톤 관리</li><li>밸런스 QA 설계</li><li>직접 플레이 판정</li></ul></section>
+<section class="ez-card wide" style="--tilt:.4deg"><span class="ez-tag">04 밸런스 QA</span><span class="ez-stamp">482</span>
+<p class="ez-band">직접 플레이 → 시뮬레이터 → AI 플레이어. 리롤을 안 쓰면 214승, 쓰면 <b>482승</b>(512판)</p>
+<div class="ez-bars" role="img" aria-label="첫 전투 512판 승리 수 비교"><div><span>공격에만</span><i style="--w:6%"></i><b>28</b></div><div class="mid"><span>안 굴림</span><i style="--w:44%"></i><b>214</b></div><div class="hi"><span>상황 맞춰 굴림</span><i style="--w:100%"></i><b>482</b></div></div>
+<p class="ez-small">이 결과로 리롤을 기본 조작으로 정함</p></section>
+<section class="ez-card wide ez-row" style="--tilt:-.5deg"><span class="ez-tag">05 사람은 재미만</span>
+<p>"일단 재미는 있어." 직접 해 보고 세 번 판정했고, 그때마다 적 예고, 해금, 적 기믹, 특전을 고쳤습니다.</p></section>
+</div>
+<div class="easy-foot"><p>숫자와 기술 정보는 원래 페이지에 있습니다.</p><button type="button" class="ez-btn" data-easy-close>원래대로 읽기</button></div>
+</dialog>
+<script src="case/case-easy.js"></script>
+</body></html>
