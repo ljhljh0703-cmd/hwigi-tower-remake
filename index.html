@@ -228,7 +228,7 @@
       <div id="battle" hidden>
         <section class="encounter" aria-label="전장">
           <div id="arena" aria-hidden="true"></div>
-          <p id="intent" role="img"></p>
+          <p id="intent" role="img" tabindex="0" data-hold-help></p>
           <div id="companion-flight" class="companion-tile" aria-hidden="true" hidden>
             <svg class="icon"><use href="#icon-companion-awake"/></svg>
           </div>
@@ -237,19 +237,15 @@
             <div class="vital">
               <label for="player-hp"><svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="player-total"></span></label>
               <span class="hp-track"><meter id="player-hp" min="0" aria-label="내 체력"></meter><span class="hp-trail" aria-hidden="true"></span></span>
+              <output id="player-damage-readout" class="damage-readout" aria-hidden="true"></output>
             </div>
           </div>
           <div class="combatant enemy">
             <output id="enemy-damage" class="damage-float" aria-hidden="true"></output>
             <div class="vital">
-              <div class="enemy-vital">
-                <span id="enemy-badge" role="img"></span>
-                <div>
-                  <label for="enemy-hp"><svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="enemy-total"></span></label>
-                  <span class="hp-track"><meter id="enemy-hp" min="0" aria-label="적 체력"></meter><span class="hp-trail" aria-hidden="true"></span></span>
-                  <output id="enemy-damage-readout" aria-hidden="true"></output>
-                </div>
-              </div>
+              <label for="enemy-hp"><svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="enemy-total"></span></label>
+              <span class="hp-track"><meter id="enemy-hp" min="0" aria-label="적 체력"></meter><span class="hp-trail" aria-hidden="true"></span></span>
+              <output id="enemy-damage-readout" class="damage-readout" aria-hidden="true"></output>
             </div>
           </div>
           <div class="combatant escort-damage">
@@ -273,29 +269,27 @@
 
         <section id="planning" aria-label="주사위 배치">
           <div class="pool" data-dice-zone="pool">
-            <svg class="icon" aria-hidden="true"><use href="#icon-die"/></svg>
+            <button id="pool-help" type="button" aria-label="놓을 주사위를 여기에서 골라요." data-hold-help>
+              <svg class="icon" aria-hidden="true"><use href="#icon-die"/></svg>
+            </button>
             <div id="pool-dice" class="dice-row">
-              <span id="locked-die" class="die unlock-hint" role="img" aria-label="잠든 에고 주사위, 같은 눈 셋">
-                <svg class="icon companion-closed" aria-hidden="true"><use href="#icon-companion-sleep"/></svg>
-                <svg class="icon companion-condition" aria-hidden="true"><use href="#icon-triple"/></svg>
+              <span id="locked-die" class="die unlock-hint" role="img" tabindex="0" aria-label="같은 눈 셋을 놓으면 에고 주사위가 열려요." data-hold-help>
+                <svg class="icon companion-closed" aria-hidden="true"><use href="#icon-lock"/></svg>
               </span>
             </div>
-            <button id="assign-pool" type="button" aria-label="선택 배치 빼기" title="선택 배치 빼기">
-              <svg class="icon" aria-hidden="true"><use href="#icon-return"/></svg>
-            </button>
-          </div>
-          <div id="tuning-controls" role="group" aria-label="조율 잔편" hidden>
-            <svg class="icon" aria-hidden="true"><use href="#icon-reward-tuning"/></svg>
-            <button id="tune-down" type="button" aria-label="첫 번째 주사위 눈을 1 내리기">−1</button>
-            <button id="tune-up" type="button" aria-label="첫 번째 주사위 눈을 1 올리기">+1</button>
+            <span class="pool-return" aria-label="놓은 주사위를 골라 이 화살표를 누르면 배치를 빼요." data-hold-help>
+              <button id="assign-pool" type="button" aria-label="선택한 주사위 배치 빼기">
+                <svg class="icon" aria-hidden="true"><use href="#icon-return"/></svg>
+              </button>
+            </span>
           </div>
           <div class="slots">
             <section class="slot" aria-label="공격 칸" data-dice-zone="attack">
               <button id="assign-attack" type="button" class="slot-target">
                 <span><svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg>공격 <span id="attack-multiplier" hidden></span></span>
                 <span class="slot-total"><strong id="attack-total">0</strong><small id="attack-bonus" class="slot-bonus" hidden></small><small id="wedge-bonus" class="slot-bonus" hidden></small></span>
+                <span id="blade-meter" hidden><svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg><meter min="0" aria-label="큰 칼 충전"></meter></span>
               </button>
-              <div id="blade-meter" hidden><svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg><meter min="0" aria-label="큰 칼 충전"></meter></div>
               <div id="attack-dice" class="dice-row"></div>
             </section>
             <section class="slot" aria-label="방어 칸" data-dice-zone="guard">
@@ -373,6 +367,22 @@
         </section>
       </div>
     </main>
+    <p id="hold-help" role="tooltip" hidden></p>
+    <dialog id="inventory-detail" aria-labelledby="inventory-title">
+      <form method="dialog">
+        <h2 id="inventory-title"></h2>
+        <p id="inventory-description"></p>
+        <div id="tuning-controls" role="group" aria-label="조율 잔편" hidden>
+          <svg class="icon" aria-hidden="true"><use href="#icon-reward-tuning"/></svg>
+          <button id="tune-down" type="button" aria-label="첫 번째 주사위 눈을 1 내리기">−1</button>
+          <button id="tune-up" type="button" aria-label="첫 번째 주사위 눈을 1 올리기">+1</button>
+        </div>
+        <div class="confirm-actions">
+          <button type="submit" value="cancel" autofocus>닫기</button>
+          <button id="inventory-use" class="primary" type="submit" value="use" hidden></button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="lobby-confirm" aria-labelledby="lobby-confirm-title" aria-describedby="lobby-confirm-text">
       <form method="dialog">
         <h2 id="lobby-confirm-title"></h2>

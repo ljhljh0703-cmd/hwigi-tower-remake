@@ -51,20 +51,19 @@ export const ENEMY_SPRITES = {
 export const ESCORT_SPRITE = enemySprite('escort-guard', 12, 26, 4, [11, 8])
 
 function layoutSprites(sprites: readonly Sprite[], width: number, density: number, spriteHeight: number) {
-  const desired = sprites.map(({ scale, footY }) => Math.max(1, Math.floor(Math.min(scale * density, spriteHeight / footY))))
   const widths = sprites.map(({ reach: [left, right] }) => left + right)
+  // The boss stands taller than regular foes even when the forecast limits the available height.
+  const desired = sprites.map((sprite) => {
+    const height = sprite === boss || sprite === hero
+      ? spriteHeight
+      : Math.min(spriteHeight, 184 * density) / 1.26
+    return Math.max(.5, Math.min(sprite.scale * density, height / sprite.footY))
+  })
   const desiredWidth = widths.reduce((sum, width, i) => sum + width * desired[i], 0)
   const available = width - (sprites.length + 1) * 8 * density
   const fit = Math.min(1, available / desiredWidth)
-  const scales = desired.map((scale) => Math.max(1, Math.floor(scale * fit)))
-  let contentWidth = widths.reduce((sum, width, i) => sum + width * scales[i], 0)
-  // Recover whole pixels lost to rounding, giving the player the first available step.
-  for (const [i, width] of widths.entries()) {
-    const spare = Math.max(0, Math.floor((available - contentWidth) / width))
-    const extra = Math.min(desired[i] - scales[i], spare)
-    scales[i] += extra
-    contentWidth += extra * width
-  }
+  const scales = desired.map((scale) => scale * fit)
+  const contentWidth = desiredWidth * fit
   const gap = Math.max(0, (width - contentWidth) / (sprites.length + 1))
   const travel = Math.max(0, (gap - 3 * density) / 2)
   let start = gap
@@ -136,6 +135,7 @@ export class Arena {
   private readonly frame: HTMLElement
   private readonly encounter: HTMLElement
   private readonly intent: HTMLElement
+  private readonly inventory: HTMLElement
   private readonly canvas = document.createElement('canvas')
   private readonly context = this.canvas.getContext('2d')!
   private readonly flashCanvas = document.createElement('canvas')
@@ -159,14 +159,16 @@ export class Arena {
   private trauma = 0
   private lastFrame = 0
 
-  constructor(frame: HTMLElement, encounter: HTMLElement, intent: HTMLElement) {
+  constructor(frame: HTMLElement, encounter: HTMLElement, intent: HTMLElement, inventory: HTMLElement) {
     this.frame = frame
     this.encounter = encounter
     this.intent = intent
+    this.inventory = inventory
     frame.append(this.canvas)
     const layout = new ResizeObserver(this.resize)
     layout.observe(frame)
     layout.observe(intent)
+    layout.observe(inventory)
     window.addEventListener('resize', this.resize)
     this.watchDensity()
   }
@@ -216,7 +218,7 @@ export class Arena {
     const actors = this.enemyId === 'escort' ? [hero, ESCORT_SPRITE, enemy] : [hero, enemy]
     const intentWidth = this.intent.offsetWidth
     const intentHeight = this.intent.offsetHeight
-    const gap = 7
+    const gap = 8
     const headroom = Math.max(27, intentHeight + gap + 4)
     const { placements, shake } = layoutSprites(actors, this.canvas.width, this.density, this.floor - headroom * this.density)
     this.placements = placements
@@ -226,7 +228,11 @@ export class Arena {
     const headY = (this.floor - enemy.footY * foe.scale) / this.density
     const x = foe.foot / this.density
     const half = intentWidth / 2 + 4
-    const center = Math.max(half, Math.min(x, this.canvas.width / this.density - half))
+    const stage = this.frame.getBoundingClientRect()
+    const rail = this.inventory.getBoundingClientRect()
+    const besideRail = rail.top >= stage.top && rail.bottom > rail.top && rail.top < stage.top + 16
+    const left = besideRail ? Math.max(half, rail.right - stage.left + half) : half
+    const center = Math.min(Math.max(left, x), this.canvas.width / this.density - half)
     this.encounter.style.setProperty('--intent-center', `${center}px`)
     this.encounter.style.setProperty('--intent-top', `${Math.max(4, headY - intentHeight - gap)}px`)
     this.encounter.style.setProperty('--enemy-head-y', `${headY}px`)
