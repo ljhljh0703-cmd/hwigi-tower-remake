@@ -285,11 +285,15 @@
           </div>
           <div class="slots">
             <section class="slot" aria-label="공격 칸" data-dice-zone="attack">
-              <button id="assign-attack" type="button" class="slot-target">
-                <span><svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg>공격 <span id="attack-multiplier" hidden></span></span>
-                <span class="slot-total"><strong id="attack-total">0</strong><small id="attack-bonus" class="slot-bonus" hidden></small><small id="wedge-bonus" class="slot-bonus" hidden></small></span>
-                <span id="blade-meter" hidden><svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg><meter min="0" aria-label="큰 칼 충전"></meter></span>
-              </button>
+              <div class="attack-heading">
+                <button id="assign-attack" type="button" class="slot-target">
+                  <span><svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg>공격 <span id="attack-multiplier" hidden></span></span>
+                  <span class="slot-total"><strong id="attack-total">0</strong><small id="attack-bonus" class="slot-bonus" hidden></small><small id="wedge-bonus" class="slot-bonus" hidden></small></span>
+                </button>
+                <span id="blade-meter" role="group" tabindex="0" data-hold-help hidden>
+                  <meter min="0" aria-label="큰 칼 충전"></meter>
+                </span>
+              </div>
               <div id="attack-dice" class="dice-row"></div>
             </section>
             <section class="slot" aria-label="방어 칸" data-dice-zone="guard">

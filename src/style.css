@@ -863,22 +863,25 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 .slot-target #attack-multiplier { color: #f2ac98; }
 .slot-target strong { font-size: 2rem; line-height: 1; }
 .slot-target .slot-bonus { color: #f6c795; font-size: .78rem; }
-#assign-attack:has(#blade-meter:not([hidden])) {
+.attack-heading { display: grid; grid-template-areas: 'attack'; }
+.attack-heading > * { grid-area: attack; }
+.attack-heading:has(#blade-meter:not([hidden])) .slot-target { padding-block-end: 12px; }
+#blade-meter {
+  --blade-fill: #e9bb87;
   display: grid;
-  grid-template: 24px 16px / minmax(0, 1fr) auto;
-  align-content: center;
-  gap: 0;
+  place-items: center;
+  align-self: end;
+  justify-self: end;
+  min-block-size: 16px;
+  margin-inline-end: 8px;
+  cursor: help;
 }
-#assign-attack #blade-meter {
-  grid-column: 1 / -1;
-  gap: 8px;
-  color: #f6c795;
-}
-#blade-meter .icon { inline-size: 20px; block-size: 20px; }
-#blade-meter meter { inline-size: 48px; block-size: 8px; margin: 0; }
-#blade-meter meter::-webkit-meter-optimum-value { background: #e9bb87; }
-#blade-meter meter::-moz-meter-bar { background: #e9bb87; }
-#assign-attack #blade-meter.charged { color: #ffe5af; filter: drop-shadow(0 0 4px #ffc76d); }
+#blade-meter:focus-visible { outline: 2px solid #f1f0ee; }
+#blade-meter meter { inline-size: 48px; block-size: 4px; margin: 0; border: 0; }
+#blade-meter meter::-webkit-meter-optimum-value { background: var(--blade-fill); }
+#blade-meter meter::-moz-meter-bar { background: var(--blade-fill); }
+#blade-meter.charged { --blade-fill: #ffe5af; }
+#blade-meter.charged meter { box-shadow: 0 0 6px #ffc76d; }
 .reroll-state { font-size: .72rem; }
 #wedge-bonus:not([hidden]) { display: inline-flex; gap: 2px; align-items: center; }
 

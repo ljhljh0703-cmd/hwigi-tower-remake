@@ -405,6 +405,9 @@ for (const type of ['pointerup', 'pointercancel'] as const) document.addEventLis
 document.addEventListener('pointerdown', () => { holdHelp.hidden = true }, { capture: true })
 document.addEventListener('keydown', (event) => { if (event.key === 'Escape') holdHelp.hidden = true })
 element('pool-help').addEventListener('click', (event) => showHelp(event.currentTarget as HTMLElement))
+ui.bladeMeter.addEventListener('click', () => {
+  if (helpTarget !== ui.bladeMeter || holdHelp.hidden) ui.assign.attack.click()
+})
 window.addEventListener('resize', () => { holdHelp.hidden = true })
 
 const arena = new Arena(element('arena'), ui.encounter, ui.intent, document.querySelector<HTMLElement>('.inventory-strip')!)
@@ -849,8 +852,8 @@ function renderActivePerk(battle: YachtBattle) {
     meter.max = START_PERKS.blade.threshold
     meter.value = blade.ready ? meter.max : blade.nextCharge
     meter.setAttribute('aria-label', `큰 칼 충전 ${meter.value}/${meter.max}`)
-    ui.bladeMeter.classList.toggle('charged', blade.ready)
-    ui.bladeMeter.title = `큰 칼 충전 ${meter.value}/${meter.max}`
+    ui.bladeMeter.classList.toggle('charged', meter.value >= meter.max)
+    ui.bladeMeter.setAttribute('aria-label', `큰 칼. 다 차면 다음 공격 피해가 ${START_PERKS.blade.multiplier}배예요.`)
   }
   ui.activePerk.hidden = !perk
   if (!perk) return
