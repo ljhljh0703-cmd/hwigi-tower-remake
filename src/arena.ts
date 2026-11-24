@@ -18,6 +18,7 @@ type Placement = { foot: number; scale: number; travel: number }
 
 const chamberFloor = 136
 const footerHeight = 138
+const actorDisplayScale = .8
 const hero: Sprite = { name: 'hero', footY: 39, poses: { idle: 14, attack: 12, guard: 11, hit: 17 }, scale: 3, reach: [17, 20] }
 const boss: Sprite = { name: 'boss', footY: 47, poses: { idle: 30, charge: 25, attack: 37, knockdown: 36 }, scale: 4, reach: [35, 19], head: [4, 1, 13] }
 const golem: Sprite = { name: 'golem', footY: 39, poses: { idle: 15, charge: 15, attack: 21, hit: 13 }, scale: 5, reach: [18, 17], head: [18, 20] }
@@ -245,6 +246,10 @@ export class Arena {
       }
     }
     const { placements, shake } = layout
+    // Preserve the fitted layout and draw each source pixel at an integer device-pixel size.
+    for (const placement of placements.values()) {
+      placement.scale = Math.max(1, Math.round(placement.scale * actorDisplayScale))
+    }
     this.placements = placements
     this.shake = shake
     const player = placements.get(hero)!
