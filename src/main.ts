@@ -402,9 +402,12 @@ document.addEventListener('pointermove', (event) => {
 for (const type of ['pointerup', 'pointercancel'] as const) document.addEventListener(type, stopHolding)
 document.addEventListener('pointerdown', () => { holdHelp.hidden = true }, { capture: true })
 document.addEventListener('keydown', (event) => { if (event.key === 'Escape') holdHelp.hidden = true })
-element('pool-help').addEventListener('click', (event) => showHelp(event.currentTarget as HTMLElement))
-ui.bladeMeter.addEventListener('click', () => {
-  if (helpTarget !== ui.bladeMeter || holdHelp.hidden) ui.assign.attack.click()
+for (const target of [ui.intent, ui.lockedDie, element('pool-help')]) {
+  target.addEventListener('click', () => showHelp(target))
+}
+ui.bladeMeter.addEventListener('click', (event) => {
+  if (ui.assign.attack.disabled) showHelp(ui.bladeMeter)
+  if (helpTarget === ui.bladeMeter && !holdHelp.hidden) event.stopPropagation()
 })
 window.addEventListener('resize', () => { holdHelp.hidden = true })
 
@@ -416,8 +419,12 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
   button.className = 'die'
   button.id = `die-${index}`
   bindDiceInput(button, {
-    select: () => {
+    select: (source) => {
       if (ui.guide.open || exchangeBusy) return
+      if (source === 'pointer' && ascent?.battle.slots[index]) {
+        place([index], 'pool')
+        return
+      }
       if (!selected.delete(index)) selected.add(index)
       saveCurrent()
       render()
@@ -1506,7 +1513,12 @@ function focusPhase() {
 }
 
 for (const zone of ['pool', 'attack', 'guard', 'escort'] as const) {
-  ui.assign[zone].addEventListener('click', () => place([...selected], zone))
+  const button = ui.assign[zone]
+  button.addEventListener('click', () => place([...selected], zone))
+  if (zone === 'pool') continue
+  ui.dice[zone].parentElement!.addEventListener('click', (event) => {
+    if (event.target instanceof Element && !event.target.closest('button')) button.click()
+  })
 }
 function useReroll(extra: boolean) {
   if (ui.guide.open || exchangeBusy || !ascent) return

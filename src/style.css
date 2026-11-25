@@ -852,6 +852,7 @@ meter::-moz-meter-bar { background: #b5b2ad; }
   min-inline-size: 0;
   background: #393530;
 }
+.slot:has(.slot-target:enabled) { cursor: pointer; touch-action: manipulation; }
 
 .slot-target, .slot-target:disabled {
   justify-content: space-between;
