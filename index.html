@@ -237,7 +237,6 @@
             <div class="vital">
               <label for="player-hp"><svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="player-total"></span></label>
               <span class="hp-track"><meter id="player-hp" min="0" aria-label="내 체력"></meter><span class="hp-trail" aria-hidden="true"></span></span>
-              <output id="player-damage-readout" class="damage-readout" aria-hidden="true"></output>
             </div>
           </div>
           <div class="combatant enemy">
@@ -245,7 +244,6 @@
             <div class="vital">
               <label for="enemy-hp"><svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="enemy-total"></span></label>
               <span class="hp-track"><meter id="enemy-hp" min="0" aria-label="적 체력"></meter><span class="hp-trail" aria-hidden="true"></span></span>
-              <output id="enemy-damage-readout" class="damage-readout" aria-hidden="true"></output>
             </div>
           </div>
           <div class="combatant escort-damage">
@@ -305,7 +303,7 @@
             </section>
             <section id="escort-slot" class="slot" aria-label="호위 공격 칸" data-dice-zone="escort" hidden>
               <button id="assign-escort" type="button" class="slot-target" aria-label="호위 공격">
-                <span><svg class="icon" aria-hidden="true"><use href="#icon-escort"/></svg><span id="escort-hp"></span></span>
+                <span><svg class="icon" aria-hidden="true"><use href="#icon-escort"/></svg>호위 <span id="escort-hp"></span></span>
                 <span class="slot-total"><strong id="escort-total">0</strong><small id="escort-bonus" class="slot-bonus" hidden></small></span>
               </button>
               <div id="escort-dice" class="dice-row"></div>

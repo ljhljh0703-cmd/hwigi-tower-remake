@@ -95,8 +95,6 @@ const ui = {
   playerDamage: element('player-damage'),
   enemyDamage: element('enemy-damage'),
   escortDamage: element('escort-damage'),
-  playerDamageReadout: element('player-damage-readout'),
-  enemyDamageReadout: element('enemy-damage-readout'),
   hitOrder: element('hit-order'),
   parry: element('parry-cue'),
   unlockImpact: element('unlock-impact'),
@@ -437,7 +435,7 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
 })
 
 for (const zone of ['attack', 'guard', 'escort'] as const) {
-  for (let index = 0; index < DIE_COUNT; index++) {
+  for (let index = 0; index <= DIE_COUNT; index++) {
     const seat = document.createElement('span')
     seat.className = 'die-seat'
     seat.setAttribute('aria-hidden', 'true')
@@ -501,10 +499,8 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
   for (const zone of ['attack', 'guard', 'escort'] as const) {
     const row = ui.dice[zone]
     const used = row.querySelectorAll('.die:not([hidden])').length
-    row.parentElement!.classList.toggle('three-dice', used === 3)
-    row.parentElement!.classList.toggle('four-dice', used === 4)
     row.querySelectorAll<HTMLElement>('.die-seat').forEach((seat, index) => {
-      seat.hidden = used + index >= DIE_COUNT
+      seat.hidden = used + index >= battle.dice.length
     })
   }
 
@@ -679,12 +675,10 @@ const companionFlightDuration = 500
 const companionImpactTime = 350
 const incomingContact = 152
 const repeatContact = 248
-const damageReadout = { player: ui.playerDamageReadout, enemy: ui.enemyDamageReadout }
 const damageOutput = { player: ui.playerDamage, enemy: ui.enemyDamage, escort: ui.escortDamage }
 
 function clearExchange() {
   for (const output of Object.values(damageOutput)) output.replaceChildren()
-  for (const output of Object.values(damageReadout)) output.replaceChildren()
   ui.hitOrder.replaceChildren()
   ui.hitOrder.hidden = true
   ui.parry.hidden = true
@@ -701,12 +695,6 @@ function showDamage(hit: BattleHit) {
   number.style.setProperty('--damage-scale', String(1 + .25 * Math.log2(damage)))
   damageOutput[target].append(number)
   window.setTimeout(() => number.remove(), effectDuration(damageDuration))
-  if (target !== 'escort') {
-    const reading = document.createElement('span')
-    reading.textContent = `−${damage}`
-    damageReadout[target].replaceChildren(reading)
-    window.setTimeout(() => reading.remove(), effectDuration(damageDuration))
-  }
 }
 
 function markVital(vital: HTMLElement) {

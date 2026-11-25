@@ -11,17 +11,18 @@ type Sprite = {
   poses: Readonly<Record<string, number>>
   scale: number
   reach: readonly [left: number, right: number]
-  // Distance from the image edge to the first visible row in each resting pose.
-  head?: readonly [idle: number, charge: number, knockdown?: number]
+  // Opaque bounds used for cues and for spacing the two resting actors.
+  head: number
+  restReach?: Sprite['reach']
 }
 type Placement = { foot: number; scale: number; travel: number }
 
 const chamberFloor = 136
-const footerHeight = 138
+const footerHeight = 98
 const actorDisplayScale = .8
-const hero: Sprite = { name: 'hero', footY: 39, poses: { idle: 14, attack: 12, guard: 11, hit: 17 }, scale: 3, reach: [17, 20] }
-const boss: Sprite = { name: 'boss', footY: 47, poses: { idle: 30, charge: 25, attack: 37, knockdown: 36 }, scale: 4, reach: [35, 19], head: [4, 1, 13] }
-const golem: Sprite = { name: 'golem', footY: 39, poses: { idle: 15, charge: 15, attack: 21, hit: 13 }, scale: 5, reach: [18, 17], head: [18, 20] }
+const hero: Sprite = { name: 'hero', footY: 39, poses: { idle: 14, attack: 12, guard: 11, hit: 17 }, scale: 3.75, reach: [17, 20], head: 4, restReach: [11, 15] }
+const boss: Sprite = { name: 'boss', footY: 47, poses: { idle: 30, charge: 25, attack: 37, knockdown: 36 }, scale: 4, reach: [35, 19], head: 1 }
+const golem: Sprite = { name: 'golem', footY: 39, poses: { idle: 15, charge: 15, attack: 21, hit: 13 }, scale: 5, reach: [18, 17], head: 18, restReach: [15, 16] }
 
 type PoseFrame = { pose: string; duration: number }
 export type ImpactTarget = 'player' | 'enemy' | 'escort'
@@ -39,44 +40,57 @@ function enemySprite(name: string, footX: number, footY: number, scale: number, 
 
 export const ENEMY_SPRITES = {
   thorns: golem,
-  lock: enemySprite('lock', 16, 38, 5, [15, 11], [17, 19]),
-  freeze: enemySprite('freeze', 16, 38, 5, [15, 11], [17, 21]),
-  rage: enemySprite('rage', 16, 38, 7, [14, 15], [25, 26]),
-  reaction: enemySprite('reaction', 20, 46, 4, [16, 11], [18, 22]),
-  vitality: enemySprite('vitality', 20, 46, 5, [18, 15], [22, 26]),
-  escort: enemySprite('escort', 20, 46, 4, [18, 13], [14, 15]),
-  'shield-soldier': enemySprite('shield-soldier', 16, 38, 7, [15, 7], [22, 25]),
-  'seal-sentinel': enemySprite('seal-sentinel', 16, 38, 6, [15, 6], [20, 22]),
-  'iron-knight': enemySprite('iron-knight', 20, 46, 6, [19, 6], [27, 30]),
+  lock: enemySprite('lock', 16, 38, 5, [15, 11], 17),
+  freeze: enemySprite('freeze', 16, 38, 5, [15, 11], 17),
+  rage: enemySprite('rage', 16, 38, 7, [14, 15], 22),
+  reaction: enemySprite('reaction', 20, 46, 4, [16, 11], 18),
+  vitality: enemySprite('vitality', 20, 46, 5, [18, 15], 22),
+  escort: enemySprite('escort', 20, 46, 4, [18, 13], 14),
+  'shield-soldier': enemySprite('shield-soldier', 16, 38, 7, [15, 7], 22),
+  'seal-sentinel': enemySprite('seal-sentinel', 16, 38, 6, [15, 6], 20),
+  'iron-knight': enemySprite('iron-knight', 20, 46, 6, [19, 6], 27),
   boss,
 } satisfies Record<AscentEnemyId, Sprite>
 
-export const ESCORT_SPRITE = enemySprite('escort-guard', 12, 26, 4, [11, 8], [15, 15])
+export const ESCORT_SPRITE = enemySprite('escort-guard', 12, 26, 4, [11, 8], 14)
 
-function layoutSprites(sprites: readonly Sprite[], width: number, density: number, spriteHeight: number) {
-  const widths = sprites.map(({ reach: [left, right] }) => left + right)
-  // The boss stands taller than regular foes even when the forecast limits the available height.
-  const desired = sprites.map((sprite) => {
-    const height = sprite === boss || sprite === hero
-      ? spriteHeight
-      : Math.min(spriteHeight, 184 * density) / 1.26
-    return Math.max(.5, Math.min(sprite.scale * density, height / sprite.footY))
+function layoutSprites(sprites: readonly Sprite[], width: number, density: number, headroom: number, forecastHeight: number) {
+  const edge = 8 * density
+  const scales = sprites.map((sprite, index) => {
+    const height = headroom - (index === sprites.length - 1 ? forecastHeight : 0)
+    const preferred = Math.round(sprite.scale * actorDisplayScale * density)
+    return Math.max(1, Math.min(preferred, Math.floor(height / (sprite.footY - sprite.head))))
   })
-  const desiredWidth = widths.reduce((sum, width, i) => sum + width * desired[i], 0)
-  const available = width - (sprites.length + 1) * 8 * density
-  const fit = Math.min(1, available / desiredWidth)
-  const scales = desired.map((scale) => scale * fit)
-  const contentWidth = desiredWidth * fit
-  const gap = Math.max(0, (width - contentWidth) / (sprites.length + 1))
-  const travel = Math.max(0, (gap - 3 * density) / 2)
-  let start = gap
-  const placements = new Map<Sprite, Placement>()
-  for (const [i, sprite] of sprites.entries()) {
-    const scale = scales[i]
-    placements.set(sprite, { foot: Math.round(start + sprite.reach[0] * scale), scale, travel })
-    start += widths[i] * scale + gap
+
+  const footprint = (sprite: Sprite, index: number) => (sprite.reach[0] + sprite.reach[1]) * scales[index]
+  const available = width - (sprites.length + 1) * edge
+  while (sprites.reduce((sum, sprite, index) => sum + footprint(sprite, index), 0) > available) {
+    let widest = -1
+    for (const [index, sprite] of sprites.entries()) {
+      if (scales[index] > 1 && (widest < 0 || footprint(sprite, index) > footprint(sprites[widest], widest))) widest = index
+    }
+    if (widest < 0) break
+    scales[widest]--
   }
-  return { placements, shake: Math.max(0, gap - travel - 2 * density) }
+
+  const resting = sprites.map((sprite) => sprite.restReach ?? sprite.reach)
+  const bodyWidth = resting.reduce((sum, [left, right], index) => sum + (left + right) * scales[index], 0)
+  const last = sprites.length - 1
+  const overhang = Math.max((sprites[0].reach[0] - resting[0][0]) * scales[0],
+    (sprites[last].reach[1] - resting[last][1]) * scales[last])
+  const gap = Math.max(0, Math.min(30 * density, (width - bodyWidth - 2 * (edge + overhang)) / last))
+  let start = (width - bodyWidth - gap * last) / 2
+  const freeEdge = Math.max(0, start - overhang - edge)
+  const travel = Math.min(35 * density, freeEdge / 2)
+  const shake = Math.min(10 * density, freeEdge - travel)
+  const placements = new Map<Sprite, Placement>()
+  for (const [index, sprite] of sprites.entries()) {
+    const [left, right] = resting[index]
+    const scale = scales[index]
+    placements.set(sprite, { foot: Math.round(start + left * scale), scale, travel })
+    start += (left + right) * scale + gap
+  }
+  return { placements, shake }
 }
 
 export function enemyPlanPose(enemyId: AscentEnemyId, battle: YachtBattle) {
@@ -220,47 +234,30 @@ export class Arena {
     const enemy = ENEMY_SPRITES[this.enemyId]
     const actors = this.enemyId === 'escort' ? [hero, ESCORT_SPRITE, enemy] : [hero, enemy]
     const { width: intentWidth, height: intentHeight } = this.intent.getBoundingClientRect()
-    const pose = this.battle ? enemyPlanPose(this.enemyId, this.battle) : 'idle'
-    const headInset = enemy.head?.[pose === 'knockdown' ? 2 : pose === 'charge' ? 1 : 0] ?? 0
-    const gap = 4
-    const half = intentWidth / 2
     const stage = this.frame.getBoundingClientRect()
     const rail = this.inventory.getBoundingClientRect()
-    const fit = (headroom: number) => layoutSprites(actors, this.canvas.width, this.density, this.floor - headroom * this.density)
-    const head = (foe: Placement) => (this.floor - (enemy.footY - headInset) * foe.scale) / this.density
-    const right = stage.width - half - gap
-    const align = (foe: Placement) => Math.min(Math.max(half + gap, foe.foot / this.density), right)
-    let layout = fit(Math.max(27, intentHeight + gap * 2))
-    let foe = layout.placements.get(enemy)!
-    let center = align(foe)
-    const top = stage.top + head(foe) - intentHeight - gap
-    const beyondRail = rail.right - stage.left + half + gap
-    if (rail.height && rail.top < top + intentHeight && rail.bottom > top - gap
-      && center < beyondRail && rail.left < stage.left + center + half) {
-      if (beyondRail <= right && beyondRail - center <= gap * 2) {
-        center = beyondRail
-      } else {
-        layout = fit(rail.bottom - stage.top + intentHeight + gap * 2)
-        foe = layout.placements.get(enemy)!
-        center = align(foe)
-      }
-    }
-    const { placements, shake } = layout
-    // Preserve the fitted layout and draw each source pixel at an integer device-pixel size.
-    for (const placement of placements.values()) {
-      placement.scale = Math.max(1, Math.round(placement.scale * actorDisplayScale))
-    }
+    const gap = 6
+    const top = rail.height ? Math.max(gap, rail.bottom - stage.top + gap) : gap
+    const { placements, shake } = layoutSprites(actors, this.canvas.width, this.density,
+      this.floor - top * this.density, (intentHeight + gap) * this.density)
     this.placements = placements
     this.shake = shake
-    const player = placements.get(hero)!
-    const headY = head(foe)
+
+    const canvasLeft = parseFloat(this.canvas.style.left)
+    const canvasTop = parseFloat(this.canvas.style.top)
+    const x = (sprite: Sprite) => canvasLeft + placements.get(sprite)!.foot / this.density
+    const ground = canvasTop + this.floor / this.density
+    const foe = placements.get(enemy)!
+    const headY = ground - (enemy.footY - enemy.head) * foe.scale / this.density
+    const half = intentWidth / 2
+    const center = Math.max(half + gap, Math.min(x(enemy), stage.width - half - gap))
     this.encounter.style.setProperty('--intent-center', `${center}px`)
-    this.encounter.style.setProperty('--intent-top', `${Math.max(4, headY - intentHeight - gap)}px`)
-    this.encounter.style.setProperty('--enemy-head-y', `${headY}px`)
-    this.encounter.style.setProperty('--ground', `${this.floor / this.density}px`)
-    this.encounter.style.setProperty('--player-x', `${player.foot * 100 / this.canvas.width}%`)
-    this.encounter.style.setProperty('--enemy-x', `${foe.foot * 100 / this.canvas.width}%`)
-    this.encounter.style.setProperty('--player-body', `${(this.floor - hero.footY * player.scale * .51) / this.density}px`)
+    this.encounter.style.setProperty('--intent-top', `${Math.max(gap, headY - intentHeight - gap)}px`)
+    this.encounter.style.setProperty('--ground', `${ground}px`)
+    this.encounter.style.setProperty('--player-x', `${x(hero)}px`)
+    this.encounter.style.setProperty('--enemy-x', `${x(enemy)}px`)
+    this.encounter.style.setProperty('--player-body', `${ground - hero.footY * placements.get(hero)!.scale * .51 / this.density}px`)
+    if (this.enemyId === 'escort') this.encounter.style.setProperty('--escort-x', `${x(ESCORT_SPRITE)}px`)
   }
 
   private drawBackground() {
@@ -384,9 +381,7 @@ export class Arena {
     context.save()
     if (!this.reducedMotion && this.trauma) {
       const strength = this.trauma ** 2 * this.density
-      context.translate(Math.round(Math.sin(now / 29) * Math.min(10 * strength, this.shake)),
-        Math.round(Math.cos(now / 37) * 4 * strength))
-      this.drawBackground()
+      context.translate(Math.round(Math.sin(now / 29) * Math.min(10 * strength, this.shake)), 0)
     }
     for (const shadow of this.shadows) this.drawShadow(now, shadow)
     const enemy = ENEMY_SPRITES[this.enemyId]
