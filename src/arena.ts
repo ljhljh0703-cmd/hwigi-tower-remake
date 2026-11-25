@@ -525,7 +525,8 @@ export class Arena {
       this.enemyId = enemyId
     }
     this.battle = battle
-    this.positionActors()
+    if (this.floor) this.positionActors()
+    else this.resize()
     this.load('chamber')
     this.loadSprite(hero)
     this.loadSprite(ENEMY_SPRITES[enemyId])

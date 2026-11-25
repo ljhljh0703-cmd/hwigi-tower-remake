@@ -33,6 +33,7 @@ import {
 } from './yacht-combat.ts'
 import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput, rerollSelectedDice } from './dice-drag.ts'
+import { playDiceMotion } from './dice-motion.ts'
 import { CounterRoulette } from './counter-roulette.ts'
 import type { DropZone } from './dice-drag.ts'
 import './style.css'
@@ -246,6 +247,7 @@ let ascent: Ascent | null = null
 let chosenReward: Reward | undefined
 let artifactOptions: ArtifactOptions = {}
 let exchangeBusy = false
+let stopDiceMotion: (() => void) | undefined
 const selected = new Set<number>()
 const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
 const sound = new BattleAudio()
@@ -262,7 +264,10 @@ function renderSettings() {
   document.documentElement.dataset.reducedMotion = String(reduced)
   document.documentElement.dataset.animationSpeed = settings.speed
   arena.setAnimation(animationSpeed(), reduced)
-  if (reduced) roulette.finishMotion()
+  if (reduced) {
+    roulette.finishMotion()
+    stopDiceMotion?.()
+  }
   const switches = [
     [ui.settingsMusic, settings.music], [ui.settingsEffects, settings.effects], [ui.settingsMotion, reduced],
   ] as const
@@ -417,7 +422,7 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
   button.id = `die-${index}`
   bindDiceInput(button, {
     select: () => {
-      if (ui.guide.open || exchangeBusy) return
+      if (ui.guide.open || exchangeBusy || stopDiceMotion) return
       if (!selected.delete(index)) selected.add(index)
       saveCurrent()
       render()
@@ -481,10 +486,15 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
     const parent = ui.dice[slot ?? 'pool']
     const fixed = battle.fixedDie?.index === index ? battle.fixedDie.kind : undefined
     const sealed = mechanic?.kind === 'seal' && value === mechanic.value
-    const face = sealed ? `<span class="sealed-face" aria-hidden="true">${icon('seal')}<small>${value}</small></span>` : value
-    button.innerHTML = `${face}${isCompanion ? `<span class="companion-mark">${icon('companion-awake')}</span>` : ''}${fixed ? `<span class="die-status">${icon(fixed)}</span>` : ''}`
     const oathFace = battle.perk?.kind === 'oath' && !sealed && value % 2 === Number(battle.perk.parity === 'odd')
-    button.classList.toggle('altered-face', oathFace)
+    const picked = selected.has(index)
+    const indicators = [
+      picked && icon('map-check'),
+      fixed && icon(fixed),
+      sealed && icon('seal'),
+      oathFace && icon(parityIcons[value % 2 ? 'odd' : 'even']),
+    ].filter(Boolean).join('')
+    button.innerHTML = `<span class="die-face${isCompanion ? ' ego-face' : ''}">${value}</span><span class="die-indicators" aria-hidden="true">${indicators}</span>`
     const place = slot ? { attack: '공격', guard: '방어', escort: '호위 공격' }[slot] : '미배치'
     let faceLabel = ''
     if (oathFace) faceLabel = `, 공격에 놓으면 +${START_PERKS.oath.bonus}`
@@ -492,7 +502,7 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
     if (sealed) faceLabel += ', 봉인된 눈은 합계에서 빠짐'
     const name = isCompanion ? '에고 주사위' : `주사위 ${index + 1}`
     button.setAttribute('aria-label', `${name}, ${value}, ${place}${faceLabel}`)
-    button.setAttribute('aria-pressed', String(selected.has(index)))
+    button.setAttribute('aria-pressed', String(picked))
     if (parent !== button.parentElement) parent.append(button)
   })
 
@@ -1234,7 +1244,8 @@ function renderHealth(hp: number, max: number) {
   ui.mapHealth.setAttribute('aria-label', `체력 ${hp}/${max}`)
 }
 
-function render(presentation: 'normal' | 'unlock' = 'normal') {
+function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) {
+  stopDiceMotion?.()
   if (!ascent) return
   holdHelp.hidden = true
   const { battle, fight, enemy, maxHp, unlocks, newUnlock, route } = ascent
@@ -1362,6 +1373,15 @@ function render(presentation: 'normal' | 'unlock' = 'normal') {
   ui.retry.hidden = !finished
   refreshDice(battle, totals, unlocks)
   arena.refresh(battle, enemy.id)
+  if (rollTurn && !ui.planning.hidden && !reducedMotion()) {
+    const ego = companionDieIndex(battle)
+    stopDiceMotion = playDiceMotion(ui.encounter, battle.dice.map((face, index) => ({
+      button: diceButtons[index], face, ego: index === ego,
+    })), () => {
+      stopDiceMotion = undefined
+      if (document.activeElement === ui.planning) focusPhase()
+    })
+  }
 }
 
 function refreshLobbyActions() {
@@ -1373,6 +1393,7 @@ function refreshLobbyActions() {
 }
 
 function showLobby(focus = false) {
+  stopDiceMotion?.()
   renderCoins()
   ascent = null
   chosenReward = undefined
@@ -1393,6 +1414,7 @@ function showLobby(focus = false) {
 }
 
 function showPerks() {
+  stopDiceMotion?.()
   renderCoins()
   ascent = null
   chosenReward = undefined
@@ -1476,7 +1498,7 @@ function perkButton(symbol: string, name: string, value: string, detail: string,
 }
 
 function place(indices: readonly number[], zone: DropZone) {
-  if (ui.guide.open || exchangeBusy || !ascent || !indices.length || ascent.battle.phase !== 'assign' || ascent.battle.loot?.hourglass) return
+  if (ui.guide.open || exchangeBusy || stopDiceMotion || !ascent || !indices.length || ascent.battle.phase !== 'assign' || ascent.battle.loot?.hourglass) return
   const slot = zone === 'pool' ? null : zone
   const before = ascent.battle
   let battle = before
@@ -1500,7 +1522,10 @@ function focusPhase() {
   }
   else if (ascent.battle.loot?.hourglass || ascent.battle.loot?.counter) ui.treasureControls.querySelector('button')?.focus()
   else if (ascent.battle.phase === 'counter') ui.counter.focus()
-  else if (ascent.battle.phase === 'assign') diceButtons[selected.values().next().value ?? 0].focus()
+  else if (ascent.battle.phase === 'assign') {
+    const target = stopDiceMotion ? ui.planning : diceButtons[selected.values().next().value ?? 0]
+    target.focus({ preventScroll: true })
+  }
   else if (!ui.next.hidden) ui.next.focus()
   else ui.retry.focus()
 }
@@ -1591,7 +1616,7 @@ ui.resolve.addEventListener('click', async () => {
     }
   } finally {
     lockExchange(false)
-    render()
+    render('normal', next.battle.turn !== before.turn)
     if (phase === 'won') sound.play('victory')
     if (phase === 'lost') sound.play('defeat')
     focusPhase()
@@ -1654,7 +1679,7 @@ async function playCounter(choice?: CounterChoice) {
   arena.finishStrike()
   ascent = checkpoint
   counterBusy = false
-  render()
+  render('normal', next.phase === 'assign')
   if (next.phase === 'won') sound.play('victory')
   focusPhase()
 }
@@ -1666,7 +1691,7 @@ function enterFork(id: number) {
   clearExchange()
   ascent = next
   saveCurrent()
-  render()
+  render('normal', true)
   if (ascent.route?.screen === 'battle') sound.play('dice-roll')
   focusPhase()
 }
@@ -1677,7 +1702,7 @@ ui.next.addEventListener('click', () => {
   clearExchange()
   ascent = next
   saveCurrent()
-  render()
+  render('normal', true)
   if (!ascent.route) sound.play('dice-roll')
   focusPhase()
 })
