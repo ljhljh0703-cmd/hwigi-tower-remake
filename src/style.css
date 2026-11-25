@@ -1217,7 +1217,45 @@ meter::-moz-meter-bar { background: #b5b2ad; }
   background: var(--stone-bed);
   border-color: var(--stone-edge);
 }
-#final-unlock { display: inline-flex; align-items: center; gap: 6px; color: #f6c795; }
+body:has(main[data-screen='defeat']) {
+  --page-end: 0px;
+  padding: 0;
+  background: #1e1d1a;
+}
+main[data-screen='defeat'] {
+  inline-size: min(100%, 480px);
+  block-size: 100dvh;
+  background: #24211c;
+}
+[data-screen='defeat'] #battle {
+  flex: 1;
+  grid-template-rows: minmax(100px, 1fr) auto;
+  gap: 0;
+}
+[data-screen='defeat'] .encounter { block-size: auto; background: #28251f; }
+[data-screen='defeat'] :is(.inventory-strip, #feedback),
+[data-screen='defeat'] .encounter > :not(#arena) { display: none; }
+[data-screen='defeat'] .encounter::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(0deg, #24211c, transparent 21%);
+  pointer-events: none;
+}
+#game-over {
+  display: grid;
+  gap: 8px;
+  padding: 18px 18px max(14px, env(safe-area-inset-bottom));
+  color: #f2e9d8;
+}
+#game-over-title { font-size: clamp(29px, 10vw, 38px); line-height: 1.1; letter-spacing: -.055em; }
+#defeat-floor { margin-top: 3px; font-size: 14px; line-height: 1.45; color: #d5c9b2; }
+.game-over-actions { display: grid; gap: 4px; margin-top: 6px; }
+.game-over-actions button { min-block-size: 44px; border: 1px solid transparent; font-size: 14px; }
+#climb-again { background: #79493d; border-color: #ad7760; color: #fff0df; font-weight: 750; }
+#defeat-lobby { background: transparent; color: #d7cbba; font-weight: 400; }
+[data-reduced-motion='false'] #game-over { animation: defeat-arrival 180ms ease-out 180ms backwards; }
+@keyframes defeat-arrival { from { opacity: 0; } to { opacity: 1; } }
 
 
 @media (max-width: 560px) {
