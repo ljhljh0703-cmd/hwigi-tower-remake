@@ -15,13 +15,11 @@ const names: Record<MapNodeKind, string> = {
 export class ForkView {
   private readonly heading: HTMLElement
   private readonly options: HTMLElement
-  private readonly stageOptions: HTMLElement
 
   constructor(panel: HTMLElement, private readonly status: { health: HTMLElement; floor: HTMLElement },
     private readonly icon: (name: string) => string, enter: (id: number) => void) {
     this.heading = panel.querySelector('#fork-heading')!
     this.options = panel.querySelector('#fork-options')!
-    this.stageOptions = panel.querySelector('.fork-stage-options')!
     this.options.addEventListener('click', (event) => {
       const button = (event.target as Element).closest<HTMLButtonElement>('button[data-node]')
       if (button) enter(Number(button.dataset.node))
@@ -34,8 +32,7 @@ export class ForkView {
     this.status.floor.textContent = `${nodes[0]?.floor ?? 1}/${MAP_FLOORS}층`
     this.status.health.innerHTML = `${this.icon('heart')}${ascent.battle.playerHp}/${ascent.maxHp}`
     this.status.health.setAttribute('aria-label', `체력 ${ascent.battle.playerHp}/${ascent.maxHp}`)
-    const stage: HTMLElement[] = []
-    const cards = nodes.map((node) => {
+    this.options.replaceChildren(...nodes.map((node) => {
       const button = document.createElement('button')
       button.type = 'button'
       button.className = `fork-card ${node.kind}`
@@ -49,15 +46,12 @@ export class ForkView {
       const portrait = enemy
         ? `<img class="fork-portrait" alt="" src="${new URL(`art/${ENEMY_SPRITES[enemy.id].name}-idle.png`, document.baseURI).href}">`
         : `<span class="fork-symbol">${this.icon(MAP_NODE_ICONS[node.kind])}</span>`
-      const subject = document.createElement('span')
-      subject.className = 'fork-art'
-      subject.innerHTML = portrait
-      stage.push(subject)
-      button.innerHTML = `<strong>${name}</strong>${hint}`
+      button.innerHTML = `
+        <span class="fork-visual" aria-hidden="true"><span class="fork-art">${portrait}</span></span>
+        <span class="fork-caption"><strong>${name}</strong>${hint}</span>
+      `
       return button
-    })
-    this.stageOptions.replaceChildren(...stage)
-    this.options.replaceChildren(...cards)
+    }))
   }
 
   focusFirst() {

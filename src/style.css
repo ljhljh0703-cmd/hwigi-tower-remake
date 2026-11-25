@@ -270,64 +270,44 @@ button:disabled {
 }
 
 #perks {
-  display: grid;
-  flex: 1;
-  grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr);
-  border: 1px solid #66635a;
-  background: #292826;
-}
-
-.perk-scene, .fork-scene {
-  position: relative;
-  min-block-size: 0;
-  overflow: hidden;
-  background: #302f2b;
-}
-
-.perk-scene > img, .fork-scene > img {
-  position: absolute;
-  display: block;
-  inset: 0;
-  inline-size: 100%;
-  block-size: 100%;
-  object-fit: cover;
-  image-rendering: pixelated;
-}
-
-.perk-scene > img { block-size: 130%; object-position: 46% 0; }
-
-.perk-panel {
-  display: grid;
-  align-content: end;
-  gap: 18px;
-  min-inline-size: 0;
-  padding: clamp(16px, 3.5vw, 34px);
-  padding-block-end: clamp(20px, 8dvh, 72px);
+  width: min(100%, 620px);
+  margin: auto;
+  padding-block: 12px;
 }
 
 #perks h2, #fork-heading {
   color: #eee9dd;
-  font-size: clamp(1.18rem, 3.6vw, 1.7rem);
+  font-size: clamp(1.16rem, 3.3vw, 1.55rem);
   line-height: 1.2;
 }
 
-#perk-choices { display: grid; gap: 7px; }
+#perks h2 { margin-block-end: 13px; }
+
+#perk-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+#perk-choices:has(.perk-back) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .perk-choice {
   display: grid;
-  grid-template: auto auto / 34px minmax(0, 1fr);
-  gap: 4px 10px;
-  min-block-size: 74px;
-  padding: 10px 12px;
+  grid-template-rows: 34px auto 1fr;
+  justify-items: start;
+  align-content: start;
+  gap: 8px;
+  min-block-size: 154px;
+  padding: 12px;
   text-align: start;
-  border: 1px solid #605a50;
+  border: 1px solid #615b52;
   background: #37352f;
 }
 
-.perk-symbol { display: flex; grid-area: 1 / 1 / 3 / 2; align-self: center; color: #d4c6a9; font-size: 1.65rem; }
-.perk-name { grid-column: 2; font-size: 1rem; font-weight: 750; }
-.perk-description { grid-column: 2; color: #d8d3c6; font-size: .89rem; font-weight: 500; line-height: 1.42; }
-.perk-back { justify-self: start; min-inline-size: 44px; }
+.perk-symbol { display: flex; align-self: center; color: #d4c6a9; font-size: 1.65rem; }
+.perk-name { font-size: 1rem; font-weight: 750; }
+.perk-description { color: #d8d3c6; font-size: .89rem; font-weight: 500; line-height: 1.42; }
+.perk-back { grid-column: 1 / -1; justify-self: start; min-inline-size: 44px; }
 .perk-choice:not(:disabled):active, .fork-card:not(:disabled):active { scale: none; }
 
 #battle { display: grid; gap: 16px; }
@@ -365,65 +345,88 @@ main[data-screen='battle'] {
 #map-floor { white-space: nowrap; }
 
 #ascent-fork {
-  display: grid;
-  flex: 1;
-  grid-template-rows: minmax(104px, 1fr) auto;
-  width: min(100%, 720px);
-  margin-inline: auto;
-  border: 1px solid #66635a;
-  background: #292826;
-}
-
-.fork-scene > img { object-position: 50% 76%; }
-
-.fork-stage-options {
-  position: absolute;
-  inset-inline: clamp(11px, 3vw, 20px);
-  inset-block-end: 25%;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  align-items: end;
-  gap: clamp(8px, 2vw, 14px);
-}
-
-.fork-panel {
+  --fork-visual-height: clamp(166px, 61vw, 242px);
   display: grid;
   gap: 12px;
-  padding: clamp(11px, 3vw, 20px);
-  border-block-start: 1px solid #625b4d;
+  width: min(100%, 640px);
+  margin: auto;
+  padding-block: 12px;
+}
+
+.fork-room {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #665f51;
+  background: #302e29;
+}
+
+.fork-backdrop {
+  position: absolute;
+  inset: 0 0 auto;
+  inline-size: 100%;
+  block-size: var(--fork-visual-height);
+  object-fit: cover;
+  object-position: 50% 77%;
+  image-rendering: pixelated;
+  pointer-events: none;
 }
 
 #fork-options {
+  position: relative;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
-  gap: clamp(8px, 2vw, 14px);
 }
 
 .fork-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
+  background: transparent;
+}
+
+.fork-card + .fork-card { border-inline-start: 1px solid #665f51; }
+.fork-card:focus-visible { z-index: 2; outline-offset: -2px; }
+
+.fork-visual {
+  position: relative;
+  block-size: var(--fork-visual-height);
+}
+
+.fork-caption {
+  display: grid;
   justify-items: center;
   align-content: center;
   gap: 4px;
-  min-block-size: 64px;
-  padding: 6px 8px;
+  min-block-size: 62px;
+  padding: 6px;
+  border-block-start: 1px solid #625a4e;
   background: #34322d;
-  border: 1px solid #625a4e;
-  border-block-start-color: #a39478;
 }
-.fork-card:hover { background: #453d35; border-color: #c0a98d; }
-.fork-card:focus-visible { outline-offset: 2px; }
-.fork-card.elite { border-block-start-color: #c28b76; }
+
+.fork-card.elite .fork-caption { border-block-start-color: #b5806b; }
+.fork-card:focus-visible .fork-caption { background: #494238; }
+.fork-card:focus-visible .fork-art::before { background: #8c7b60; }
+
+@media (hover: hover) {
+  .fork-card:hover { filter: none; }
+  .fork-card:hover .fork-caption { background: #494238; }
+  .fork-card:hover .fork-art::before { background: #8c7b60; }
+}
+
 .fork-art {
-  --door-height: clamp(94px, 32dvh, 285px);
-  --door-width: min(88%, 182px);
+  --door-height: clamp(84px, 33vw, 136px);
+  --door-width: min(84%, 152px);
   --door-cut: polygon(0 100%, 0 31%, 7% 31%, 7% 22%, 14% 22%, 14% 14%, 22% 14%, 22% 7%,
     32% 7%, 32% 0, 68% 0, 68% 7%, 78% 7%, 78% 14%, 86% 14%, 86% 22%, 93% 22%, 93% 31%, 100% 31%, 100% 100%);
-  position: relative;
+  position: absolute;
+  inset: auto 0 22%;
   display: grid;
   place-items: end center;
-  min-inline-size: 0;
   min-block-size: var(--door-height);
 }
 .fork-art::before, .fork-art::after {
@@ -438,13 +441,13 @@ main[data-screen='battle'] {
   background: #625d50;
 }
 .fork-art::after {
-  inline-size: calc(var(--door-width) - 16px);
-  block-size: calc(var(--door-height) - 14px);
+  inline-size: calc(var(--door-width) - 13px);
+  block-size: calc(var(--door-height) - 10px);
   background: #24231f;
 }
 .fork-art > :is(img, span) { z-index: 1; }
-.fork-portrait { display: block; max-inline-size: none; image-rendering: pixelated; scale: 3; transform-origin: center bottom; }
-.fork-symbol { display: grid; color: #dfc29f; font-size: 2.4rem; }
+.fork-portrait { display: block; max-inline-size: none; image-rendering: pixelated; scale: 2; transform-origin: center bottom; }
+.fork-symbol { display: grid; margin-block-end: 15px; color: #dfc29f; font-size: 2rem; }
 .fork-hint { display: inline-flex; align-items: center; gap: 5px; color: #d1cabc; font-size: .86rem; }
 #map-rest-marker { display: grid; place-items: center; inline-size: 90px; block-size: 90px; border: 3px double #dbaa7d; background: #44372d; color: #f6c795; font-size: 2.7rem; }
 #event-floor > :is(span, strong) { display: inline-flex; align-items: center; gap: 5px; }
@@ -1312,11 +1315,15 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 
   main:is([data-screen='perks'], [data-screen='fork']) { block-size: auto; }
   [data-screen='perks'] .masthead { min-block-size: 46px; }
-  #perks { grid-template: minmax(94px, 1fr) auto / minmax(0, 1fr); }
-  .perk-scene > img { block-size: 100%; object-position: 54% 65%; }
-  .perk-panel { gap: 10px; padding: 12px 10px; border-block-start: 1px solid #625b4d; }
-  .perk-choice { grid-template-columns: 29px minmax(0, 1fr); min-block-size: 68px; padding: 8px; gap: 3px 8px; }
-  .perk-symbol { font-size: 1.36rem; }
+  #perk-choices, #perk-choices:has(.perk-back) { grid-template-columns: minmax(0, 1fr); }
+  .perk-choice {
+    grid-template: auto auto / 29px minmax(0, 1fr);
+    min-block-size: 68px;
+    padding: 8px;
+    gap: 3px 8px;
+  }
+  .perk-symbol { grid-area: 1 / 1 / 3 / 2; font-size: 1.36rem; }
+  .perk-name, .perk-description { grid-column: 2; }
   .perk-name { font-size: .96rem; }
   .perk-description { font-size: .83rem; }
 
@@ -1364,18 +1371,15 @@ meter::-moz-meter-bar { background: #b5b2ad; }
   .artifact-option { gap: 8px; margin-block-end: 8px; font-size: .82rem; }
 }
 
-@media (max-width: 560px) and (min-height: 650px) {
-  .perk-scene > img { object-position: 54% 34%; }
+@media (max-height: 520px) {
+  #ascent-fork { --fork-visual-height: clamp(106px, 44dvh, 210px); }
+  .fork-art { --door-height: clamp(74px, 27dvh, 136px); }
 }
 
 @media (min-width: 561px) and (max-height: 520px) {
-  #perks { grid-template-columns: minmax(0, .7fr) minmax(0, 1.3fr); }
-  .perk-scene > img { block-size: 100%; object-position: 50% 65%; }
-  .perk-panel { gap: 8px; padding: 10px 14px; }
-  .perk-choice { min-block-size: 57px; padding: 6px 8px; grid-template-columns: 29px minmax(0, 1fr); }
+  .perk-choice { gap: 5px; min-block-size: 110px; padding: 8px; }
   .perk-symbol { font-size: 1.3rem; }
   .perk-description { font-size: .8rem; line-height: 1.33; }
-  .fork-portrait { scale: 2; }
 }
 
 [data-screen='battle'] .inventory-strip {
