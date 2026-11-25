@@ -1,3 +1,4 @@
+import { ENEMY_SPRITES } from './arena.ts'
 import { availableMapNodes } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import { enemyForMapNode, MAP_FLOORS } from './ascent-map.ts'
@@ -14,11 +15,13 @@ const names: Record<MapNodeKind, string> = {
 export class ForkView {
   private readonly heading: HTMLElement
   private readonly options: HTMLElement
+  private readonly stageOptions: HTMLElement
 
   constructor(panel: HTMLElement, private readonly status: { health: HTMLElement; floor: HTMLElement },
     private readonly icon: (name: string) => string, enter: (id: number) => void) {
     this.heading = panel.querySelector('#fork-heading')!
     this.options = panel.querySelector('#fork-options')!
+    this.stageOptions = panel.querySelector('.fork-stage-options')!
     this.options.addEventListener('click', (event) => {
       const button = (event.target as Element).closest<HTMLButtonElement>('button[data-node]')
       if (button) enter(Number(button.dataset.node))
@@ -31,7 +34,8 @@ export class ForkView {
     this.status.floor.textContent = `${nodes[0]?.floor ?? 1}/${MAP_FLOORS}층`
     this.status.health.innerHTML = `${this.icon('heart')}${ascent.battle.playerHp}/${ascent.maxHp}`
     this.status.health.setAttribute('aria-label', `체력 ${ascent.battle.playerHp}/${ascent.maxHp}`)
-    this.options.replaceChildren(...nodes.map((node) => {
+    const stage: HTMLElement[] = []
+    const cards = nodes.map((node) => {
       const button = document.createElement('button')
       button.type = 'button'
       button.className = `fork-card ${node.kind}`
@@ -42,9 +46,18 @@ export class ForkView {
       const hint = enemy ? `<span class="fork-hint" aria-label="적 체력 ${enemy.hp}">${this.icon('heart')}${enemy.hp}</span>`
         : node.kind === 'shop' && ascent.route!.map.rules >= 3
           ? `<span class="fork-hint" aria-label="가격 ${SHOP_PRICES.kit}에서 ${SHOP_PRICES.artifact}동전">${this.icon('ascent-coin')}${SHOP_PRICES.kit}–${SHOP_PRICES.artifact}</span>` : ''
-      button.innerHTML = `<span class="fork-symbol">${this.icon(MAP_NODE_ICONS[node.kind])}</span><strong>${name}</strong>${hint}`
+      const portrait = enemy
+        ? `<img class="fork-portrait" alt="" src="${new URL(`art/${ENEMY_SPRITES[enemy.id].name}-idle.png`, document.baseURI).href}">`
+        : `<span class="fork-symbol">${this.icon(MAP_NODE_ICONS[node.kind])}</span>`
+      const subject = document.createElement('span')
+      subject.className = 'fork-art'
+      subject.innerHTML = portrait
+      stage.push(subject)
+      button.innerHTML = `<strong>${name}</strong>${hint}`
       return button
-    }))
+    })
+    this.stageOptions.replaceChildren(...stage)
+    this.options.replaceChildren(...cards)
   }
 
   focusFirst() {
