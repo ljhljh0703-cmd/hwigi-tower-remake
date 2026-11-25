@@ -4,6 +4,17 @@ interface RollDie {
   ego: boolean
 }
 
+interface Point {
+  x: number
+  y: number
+}
+
+interface PlacedDie extends RollDie {
+  from: Point
+}
+
+type Animate = (target: HTMLElement, frames: Keyframe[], duration: number, delay: number, fill: FillMode) => Animation
+
 const rollMs = 664
 const resultMs = 300
 const suctionMs = 118
@@ -34,14 +45,15 @@ function rollPath(x: number, y: number, reach: number): Keyframe[] {
   ]
 }
 
-function suctionPath(x: number, y: number, dy: number, lean: number): Keyframe[] {
-  const drop = dy - y
+function suctionPath({ x, y }: Point, to: Point, lean: number): Keyframe[] {
+  const dx = to.x - x
+  const dy = to.y - y
   return [
     pose(0, x, y, 0, 1, 1, 'cubic-bezier(.48,0,.79,.67)'),
-    pose(.22, x + lean * .45, y + drop * .1, lean * .52, .98, 1.02, 'cubic-bezier(.49,0,.79,.59)'),
-    pose(.65, x + lean, y + drop * .7, lean, .71, 1.24, 'cubic-bezier(.27,0,.52,1)'),
-    pose(.87, x, dy + 1, 0, .86, .81, 'ease-out'),
-    pose(1, x, dy, 0),
+    pose(.22, x + dx * .1 + lean * .45, y + dy * .1, lean * .52, .98, 1.02, 'cubic-bezier(.49,0,.79,.59)'),
+    pose(.65, x + dx * .7 + lean, y + dy * .7, lean, .71, 1.24, 'cubic-bezier(.27,0,.52,1)'),
+    pose(.87, to.x, to.y + 1, 0, .86, .81, 'ease-out'),
+    pose(1, to.x, to.y, 0),
   ]
 }
 
@@ -58,23 +70,29 @@ function movingDie(kind: 'dice-tumble' | 'dice-echo', ego: boolean) {
   return { wrapper, face }
 }
 
-export function playDiceMotion(encounter: HTMLElement, dice: readonly RollDie[], done: () => void) {
-  const scene = encounter.getBoundingClientRect()
-  const destinations = dice.map(({ button }) => button.getBoundingClientRect())
-  if (!dice.length || !scene.height || destinations.some(({ width }) => !width)) return
+function playSuction(wrapper: HTMLElement, ego: boolean, path: Keyframe[], delay: number, run: Animate, fill: FillMode = 'forwards') {
+  for (const [lag, strength] of [[32, .27], [16, .48]]) {
+    const echo = movingDie('dice-echo', ego)
+    wrapper.before(echo.wrapper)
+    const opacity = [0, strength * .58, strength, 0, 0]
+    run(echo.wrapper, path.map((frame, i) => ({ ...frame, opacity: opacity[i] })), suctionMs, delay + lag, 'both')
+  }
+  return run(wrapper, path, suctionMs, delay, fill).finished
+}
 
+export function dieCenter(button: HTMLButtonElement, scene: DOMRect): Point {
+  const { left, top, width, height } = button.getBoundingClientRect()
+  return { x: left - scene.left + width / 2, y: top - scene.top + height / 2 }
+}
+
+function createMotion(parent: HTMLElement, dice: readonly RollDie[], motionClass: string, done: () => void) {
   const layer = effect('dice-motion')
   layer.setAttribute('aria-hidden', 'true')
-  encounter.append(layer)
+  parent.append(layer)
   const controller = new AbortController()
   const { signal } = controller
-  const timers: number[] = []
   const tracks: Animation[] = []
   const clock = document.timeline.currentTime
-  const arrivals = rollMs + (dice.length - 1) * rollStep + resultMs
-  // The result row sits below the health cards, across the bottom edge of the arena.
-  const y = scene.height
-  const reach = Math.min(68, scene.height * .47)
 
   function run(target: HTMLElement, frames: Keyframe[], duration: number, delay: number, fill: FillMode) {
     const animation = target.animate(frames, { duration, delay, fill })
@@ -86,12 +104,49 @@ export function playDiceMotion(encounter: HTMLElement, dice: readonly RollDie[],
   function cleanUp() {
     if (signal.aborted) return
     controller.abort()
-    for (const timer of timers) window.clearTimeout(timer)
     for (const animation of tracks) animation.cancel()
     layer.remove()
-    for (const { button } of dice) button.classList.remove('die-arriving')
+    for (const { button } of dice) button.classList.remove(motionClass)
     done()
   }
+
+  window.addEventListener('resize', cleanUp, { signal })
+  window.visualViewport?.addEventListener('resize', cleanUp, { signal })
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) cleanUp()
+  }, { signal })
+  return { layer, run, cleanUp }
+}
+
+export function playPlacementMotion(planning: HTMLElement, dice: readonly PlacedDie[], done: () => void) {
+  const scene = planning.getBoundingClientRect()
+  const { layer, run, cleanUp } = createMotion(planning, dice, 'die-placing', done)
+  const finished = dice.map(({ button, face: value, ego, from }, index) => {
+    const { wrapper, face } = movingDie('dice-tumble', ego)
+    face.textContent = String(value)
+    layer.append(wrapper)
+    button.classList.add('die-placing')
+    const path = suctionPath(from, dieCenter(button, scene), leans[index])
+    return playSuction(wrapper, ego, path, suctionDelays[index], run, 'both')
+  })
+  void Promise.all(finished).then(cleanUp, cleanUp)
+  return cleanUp
+}
+
+export function playDiceMotion(encounter: HTMLElement, dice: readonly RollDie[], done: () => void) {
+  const scene = encounter.getBoundingClientRect()
+  const destinations = dice.map(({ button }) => button.getBoundingClientRect())
+  if (!dice.length || !scene.height || destinations.some(({ width }) => !width)) return
+
+  const timers: number[] = []
+  const { layer, run, cleanUp } = createMotion(encounter, dice, 'die-arriving', () => {
+    for (const timer of timers) window.clearTimeout(timer)
+    done()
+  })
+  const arrivals = rollMs + (dice.length - 1) * rollStep + resultMs
+  // The result row sits below the health cards, across the bottom edge of the arena.
+  const y = scene.height
+  const reach = Math.min(68, scene.height * .47)
 
   const finished = dice.map(({ button, face: value, ego }, index) => {
     const slot = destinations[index]
@@ -132,22 +187,11 @@ export function playDiceMotion(encounter: HTMLElement, dice: readonly RollDie[],
       ], duration, Math.round(rollMs * contact) + delay, 'none')
     }
 
-    const path = suctionPath(x, y, dy, leans[index])
-    for (const [lag, strength] of [[32, .27], [16, .48]]) {
-      const echo = movingDie('dice-echo', ego)
-      layer.insertBefore(echo.wrapper, wrapper)
-      const opacity = [0, strength * .58, strength, 0, 0]
-      run(echo.wrapper, path.map((frame, i) => ({ ...frame, opacity: opacity[i] })), suctionMs, arrive + lag, 'both')
-    }
+    const path = suctionPath({ x, y }, { x, y: dy }, leans[index])
     // The delayed track takes over the held roll pose only when suction starts.
-    return run(wrapper, path, suctionMs, arrive, 'forwards').finished
+    return playSuction(wrapper, ego, path, arrive, run)
   })
   void Promise.all(finished).then(cleanUp, cleanUp)
 
-  window.addEventListener('resize', cleanUp, { signal })
-  window.visualViewport?.addEventListener('resize', cleanUp, { signal })
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) cleanUp()
-  }, { signal })
   return cleanUp
 }

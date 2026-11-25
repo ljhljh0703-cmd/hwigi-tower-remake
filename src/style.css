@@ -820,6 +820,7 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 }
 
 #planning {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
@@ -852,6 +853,8 @@ meter::-moz-meter-bar { background: #b5b2ad; }
   min-inline-size: 0;
   background: #393530;
 }
+.slot:has(.slot-target:enabled) { cursor: pointer; touch-action: manipulation; }
+.slot:has(.slot-target:enabled) #blade-meter { cursor: pointer; }
 
 .slot-target, .slot-target:disabled {
   justify-content: space-between;
@@ -965,6 +968,7 @@ button.die:disabled { background: transparent; }
 
 .slot .dice-row { row-gap: 12px; }
 .die-arriving { visibility: hidden; }
+.die-placing :is(.die-face, .die-indicators) { opacity: 0; }
 #planning:focus { outline: none; }
 
 .dice-motion {

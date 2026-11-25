@@ -14,7 +14,7 @@ export function rerollSelectedDice(battle: YachtBattle, selected: Set<number>, e
 export type DropZone = 'pool' | Slot
 
 interface DiceInput {
-  select: () => void
+  select: (source: 'keyboard' | 'pointer') => void
   lift: () => { indices: number[]; faces: string; companion?: boolean }
   drop: (indices: number[], zone: DropZone) => void
 }
@@ -45,7 +45,7 @@ export function bindDiceInput(button: HTMLButtonElement, input: DiceInput) {
   button.addEventListener('click', (event) => {
     // Keyboard and assistive clicks do not have a pointing device.
     if (event.detail === 0 && (!(event instanceof PointerEvent) || !event.pointerType)) {
-      input.select()
+      input.select('keyboard')
     }
   })
 
@@ -91,7 +91,7 @@ export function bindDiceInput(button: HTMLButtonElement, input: DiceInput) {
     if (payload && (zone === 'pool' || zone === 'attack' || zone === 'guard' || zone === 'escort')) {
       input.drop(payload.indices, zone)
     } else if (!payload && button.contains(hit)) {
-      input.select()
+      input.select('pointer')
     }
   })
 

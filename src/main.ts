@@ -33,7 +33,7 @@ import {
 } from './yacht-combat.ts'
 import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput, rerollSelectedDice } from './dice-drag.ts'
-import { playDiceMotion } from './dice-motion.ts'
+import { dieCenter, playDiceMotion, playPlacementMotion } from './dice-motion.ts'
 import { CounterRoulette } from './counter-roulette.ts'
 import type { DropZone } from './dice-drag.ts'
 import './style.css'
@@ -248,6 +248,7 @@ let chosenReward: Reward | undefined
 let artifactOptions: ArtifactOptions = {}
 let exchangeBusy = false
 let stopDiceMotion: (() => void) | undefined
+let stopPlacementMotion: (() => void) | undefined
 const selected = new Set<number>()
 const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
 const sound = new BattleAudio()
@@ -267,6 +268,7 @@ function renderSettings() {
   if (reduced) {
     roulette.finishMotion()
     stopDiceMotion?.()
+    stopPlacementMotion?.()
   }
   const switches = [
     [ui.settingsMusic, settings.music], [ui.settingsEffects, settings.effects], [ui.settingsMotion, reduced],
@@ -407,9 +409,12 @@ document.addEventListener('pointermove', (event) => {
 for (const type of ['pointerup', 'pointercancel'] as const) document.addEventListener(type, stopHolding)
 document.addEventListener('pointerdown', () => { holdHelp.hidden = true }, { capture: true })
 document.addEventListener('keydown', (event) => { if (event.key === 'Escape') holdHelp.hidden = true })
-element('pool-help').addEventListener('click', (event) => showHelp(event.currentTarget as HTMLElement))
-ui.bladeMeter.addEventListener('click', () => {
-  if (helpTarget !== ui.bladeMeter || holdHelp.hidden) ui.assign.attack.click()
+for (const target of [ui.intent, ui.lockedDie, element('pool-help')]) {
+  target.addEventListener('click', () => showHelp(target))
+}
+ui.bladeMeter.addEventListener('click', (event) => {
+  if (ui.assign.attack.disabled) showHelp(ui.bladeMeter)
+  if (helpTarget === ui.bladeMeter && !holdHelp.hidden) event.stopPropagation()
 })
 window.addEventListener('resize', () => { holdHelp.hidden = true })
 
@@ -421,8 +426,12 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
   button.className = 'die'
   button.id = `die-${index}`
   bindDiceInput(button, {
-    select: () => {
+    select: (source) => {
       if (ui.guide.open || exchangeBusy || stopDiceMotion) return
+      if (source === 'pointer' && ascent?.battle.slots[index]) {
+        place([index], 'pool')
+        return
+      }
       if (!selected.delete(index)) selected.add(index)
       saveCurrent()
       render()
@@ -1246,6 +1255,7 @@ function renderHealth(hp: number, max: number) {
 
 function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) {
   stopDiceMotion?.()
+  stopPlacementMotion?.()
   if (!ascent) return
   holdHelp.hidden = true
   const { battle, fight, enemy, maxHp, unlocks, newUnlock, route } = ascent
@@ -1394,6 +1404,7 @@ function refreshLobbyActions() {
 
 function showLobby(focus = false) {
   stopDiceMotion?.()
+  stopPlacementMotion?.()
   renderCoins()
   ascent = null
   chosenReward = undefined
@@ -1415,6 +1426,7 @@ function showLobby(focus = false) {
 
 function showPerks() {
   stopDiceMotion?.()
+  stopPlacementMotion?.()
   renderCoins()
   ascent = null
   chosenReward = undefined
@@ -1503,11 +1515,23 @@ function place(indices: readonly number[], zone: DropZone) {
   const before = ascent.battle
   let battle = before
   for (const index of indices) battle = assignDie(battle, index, slot)
-  if (indices.some((index) => battle.slots[index] !== before.slots[index])) sound.play('dice-place')
+  const moved = indices.filter((index) => battle.slots[index] !== before.slots[index])
+  if (moved.length) sound.play('dice-place')
+  const scene = ui.planning.getBoundingClientRect()
+  const ego = companionDieIndex(battle)
+  const animated = slot && !reducedMotion() ? moved.map((index) => ({
+    button: diceButtons[index],
+    face: battle.dice[index],
+    ego: index === ego,
+    from: dieCenter(diceButtons[index], scene),
+  })) : []
   ascent = { ...ascent, battle }
   selected.clear()
   saveCurrent()
   render()
+  if (animated.length) {
+    stopPlacementMotion = playPlacementMotion(ui.planning, animated, () => { stopPlacementMotion = undefined })
+  }
   const unassigned = battle.slots.indexOf(null)
   if (unassigned < 0) ui.resolve.focus()
   else diceButtons[unassigned].focus()
@@ -1531,7 +1555,12 @@ function focusPhase() {
 }
 
 for (const zone of ['pool', 'attack', 'guard', 'escort'] as const) {
-  ui.assign[zone].addEventListener('click', () => place([...selected], zone))
+  const button = ui.assign[zone]
+  button.addEventListener('click', () => place([...selected], zone))
+  if (zone === 'pool') continue
+  ui.dice[zone].parentElement!.addEventListener('click', (event) => {
+    if (event.target instanceof Element && !event.target.closest('button')) button.click()
+  })
 }
 function useReroll(extra: boolean) {
   if (ui.guide.open || exchangeBusy || !ascent) return
