@@ -1,5 +1,5 @@
-import { attackFor, dieFaceForSlot, enemyIntentAt, PLAYER_HP, roll } from './combat.ts'
-import type { CounterResult, SlotTotals } from './combat.ts'
+import { dieFaceForSlot, enemyIntentAt, PLAYER_HP, roll, splitEnemyDamage } from './combat.ts'
+import type { CounterResult, Slot, SlotTotals } from './combat.ts'
 import { BUCKLE_MAX_SHORTFALL, BUCKLE_REDUCTION, WEIGHT_BONUS } from './rewards.ts'
 import { artifactReady, changeCount, itemUses } from './treasure.ts'
 import type { Artifact, CounterChoice, Item, Preparation, Shard, Treasure, TreasureState } from './treasure.ts'
@@ -115,10 +115,11 @@ export function chooseHourglass(battle: YachtBattle, index: number, useNew: bool
 export function forecastTreasure(battle: YachtBattle, state: TreasureState, base: ReturnType<typeof forecast>, totals: SlotTotals, slots: YachtBattle['slots'], dice: readonly number[]) {
   const { triggered: _last, mirrorDamage, overflowDamage, ...inventory } = state
   let loot: TreasureState = inventory
-  let { hits, damage, dealt, escortDealt } = base
-  const incoming = attackFor(battle, base.intent, Boolean(battle.escort && escortDealt < battle.escort.hp))
+  let { hits, damage } = base
+  let inflicted = { dealt: base.dealt, escortDealt: base.escortDealt }
+  const { incoming } = base
   const mechanic = base.intent.mechanic
-  const faces = (slot: 'attack' | 'guard' | 'escort') => dice.flatMap((face, index) => slots[index] === slot ? [dieFaceForSlot(face, slot, mechanic)] : [])
+  const faces = (slot: Slot) => dice.flatMap((face, index) => slots[index] === slot ? [dieFaceForSlot(face, slot, mechanic)] : [])
   const attack = faces('attack')
   const guard = faces('guard')
   const eligibleAttack = attack.filter((face) => face > 0)
@@ -142,7 +143,7 @@ export function forecastTreasure(battle: YachtBattle, state: TreasureState, base
   }
   if (battle.wedgeArmed) loot = spendItem(loot, 'wedge')
   const hammer = loot.armed?.includes('hammer') && base.intent.chargeThreshold !== undefined
-  const eraseCritical = Boolean(hammer && totals.attack >= base.intent.chargeThreshold! + 3)
+  const eraseCritical = Boolean(hammer && totals.attack - base.escortDealt >= base.intent.chargeThreshold! + 3)
   if (hammer) loot = spendArtifact(loot, 'hammer')
   const shortfall = incoming.totalDamage - totals.guard
   if (shield(BUCKLE_REDUCTION, ready('buckle') && shortfall >= 1 && shortfall <= BUCKLE_MAX_SHORTFALL)) loot = spendItem(loot, 'buckle')
@@ -153,32 +154,32 @@ export function forecastTreasure(battle: YachtBattle, state: TreasureState, base
 
   let theftThreshold: number | undefined
   const addDamage = (amount: number) => {
-    if (!amount || dealt >= battle.enemyHp) return false
-    dealt = Math.min(battle.enemyHp, dealt + amount)
+    if (!amount || inflicted.dealt >= battle.enemyHp) return false
+    inflicted = splitEnemyDamage(battle, amount, inflicted)
     return true
   }
   if (damage < battle.playerHp) {
     if (ready('weight') && eligibleAttack.some((face) => face % 2 === 1) && eligibleAttack.some((face) => face % 2 === 0) && addDamage(WEIGHT_BONUS)) loot = spendItem(loot, 'weight')
     if (ready('rewind') && battle.rerolled && attack.length === 1 && attack[0] >= 4 && addDamage(2)) loot = spendItem(loot, 'rewind')
-    if (loot.prepared.whetstone && base.dealt > 0 && addDamage(2)) loot = spendPrep(loot, 'whetstone')
+    const landedAttack = base.dealt > 0 || base.escortDealt > 0
+    if (loot.prepared.whetstone && landedAttack && addDamage(2)) loot = spendPrep(loot, 'whetstone')
     if (loot.shardArmed === 'smash' && addDamage(Math.min(3, firstAttack))) loot = spendShard(loot, 'smash')
     const delayed = Math.max(mirrorDamage ?? 0, overflowDamage ?? 0)
-    if (base.dealt > 0 && addDamage(delayed)) {
+    if (landedAttack && addDamage(delayed)) {
       loot = { ...loot, triggered: [...(loot.triggered ?? []), delayed === mirrorDamage ? 'mirror' : 'overflow'] }
     }
-    if (dealt < battle.enemyHp && returnsAttack && shortfall < 0 && artifactReady(loot, 'overflow')) {
+    if (ready('hook') && base.escortDealt > 0 && inflicted.escortDealt < (battle.escort?.hp ?? 0) && attack.length === 1 && addDamage(2)) {
+      loot = spendItem(loot, 'hook')
+    }
+    if (inflicted.dealt < battle.enemyHp && returnsAttack && shortfall < 0 && artifactReady(loot, 'overflow')) {
       loot = { ...spendArtifact(loot, 'overflow'), overflowDamage: Math.min(6, -shortfall) }
     }
-    if (dealt < battle.enemyHp && mechanic?.kind === 'steal' && !battle.stolenDie && ready('knot')) {
+    if (inflicted.dealt < battle.enemyHp && mechanic?.kind === 'steal' && !battle.stolenDie && ready('knot')) {
       theftThreshold = Math.max(1, mechanic.value - 2)
       loot = spendItem(loot, 'knot')
     }
-    if (dealt < battle.enemyHp && ready('hook') && escortDealt > 0 && escortDealt < (battle.escort?.hp ?? 0) && faces('escort').length === 1) {
-      escortDealt = Math.min(battle.escort!.hp, escortDealt + 2)
-      loot = spendItem(loot, 'hook')
-    }
   }
-  if (base.counter && dealt < battle.enemyHp) {
+  if (base.counter && inflicted.dealt < battle.enemyHp) {
     const companionIndex = dice.length - 1
     loot = { ...loot, counterFlags: {
       coin: ready('coin') && guard.length === 3 && guard.every(Boolean) && new Set(guard).size === 3,
@@ -186,7 +187,7 @@ export function forecastTreasure(battle: YachtBattle, state: TreasureState, base
       horn: Boolean(battle.fourthDieUnlocked && slots[companionIndex] === 'attack' && dieFaceForSlot(dice[companionIndex], 'attack', mechanic)),
     } }
   }
-  return { ...base, dealt, hits, damage, escortDealt, loot, theftThreshold, eraseCritical }
+  return { ...base, ...inflicted, hits, damage, loot, theftThreshold, eraseCritical }
 }
 
 export function availableCounterChoices(battle: YachtBattle, result = battle.loot?.counter): readonly CounterChoice[] {
@@ -194,7 +195,8 @@ export function availableCounterChoices(battle: YachtBattle, result = battle.loo
   if (!loot || !result) return ['now']
   const choices: CounterChoice[] = ['now']
   const followups = Number(Boolean(loot.counterFlags?.coin)) + Number(Boolean(loot.counterFlags?.assist))
-  if (artifactReady(loot, 'mirror') && result.damage + 2 * followups < battle.enemyHp && Math.min(12, result.damage * 2) > result.damage) choices.push('mirror')
+  const remainingHp = battle.enemyHp + (battle.escort?.hp ?? 0)
+  if (artifactReady(loot, 'mirror') && result.damage + 2 * followups < remainingHp && Math.min(12, result.damage * 2) > result.damage) choices.push('mirror')
   if (artifactReady(loot, 'horn') && loot.counterFlags?.horn && !result.joint && result.damage < 8) choices.push('horn')
   return choices
 }
@@ -210,12 +212,13 @@ export function settleTreasureCounter(battle: YachtBattle, result: CounterResult
     loot = spendArtifact(loot, 'horn')
     counter = { ...result, damage: 8, joint: true }
   }
+  const remainingHp = battle.enemyHp + (battle.escort?.hp ?? 0)
   let damage = counter.damage
-  if (counterFlags?.coin && damage < battle.enemyHp) {
+  if (counterFlags?.coin && damage < remainingHp) {
     damage += 2
     loot = spendItem(loot, 'coin')
   }
-  if (counterFlags?.assist && damage < battle.enemyHp) {
+  if (counterFlags?.assist && damage < remainingHp) {
     damage += 2
     loot = spendShard(loot, 'assist')
   }

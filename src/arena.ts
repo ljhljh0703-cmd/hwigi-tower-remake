@@ -1,4 +1,4 @@
-import { enemyIntentAt, incomingAttack } from './combat.ts'
+import { enemyIntentAt, incomingAttack, splitEnemyDamage } from './combat.ts'
 import type { Exchange } from './combat.ts'
 import type { AscentEnemyId } from './enemy-roster.ts'
 import { yachtAllocationTotals } from './yacht-combat.ts'
@@ -117,10 +117,11 @@ export function enemyExchangePoses(enemyId: AscentEnemyId, before: YachtBattle, 
 
 export function escortExchangePoses(before: YachtBattle, exchange: Exchange) {
   if (!before.escort) return []
-  const dealt = exchange.escortDealt ?? 0
+  const { attack } = yachtAllocationTotals(before, before.slots, exchange.awakenedDice ?? before.dice)
+  const { escortDealt } = splitEnemyDamage(before, attack)
   const poses: PoseFrame[] = []
-  if (dealt) poses.push({ pose: 'hit', duration: 140 })
-  if (dealt < before.escort.hp && enemyAttacked(before, exchange)) poses.push({ pose: 'attack', duration: 160 })
+  if (escortDealt) poses.push({ pose: 'hit', duration: 140 })
+  if (escortDealt < before.escort.hp && enemyAttacked(before, exchange)) poses.push({ pose: 'attack', duration: 160 })
   return poses
 }
 

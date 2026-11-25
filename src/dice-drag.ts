@@ -88,7 +88,7 @@ export function bindDiceInput(button: HTMLButtonElement, input: DiceInput) {
     const hit = document.elementFromPoint(event.clientX, event.clientY)
     const zone = hit?.closest<HTMLElement>('[data-dice-zone]')?.dataset.diceZone
     finish()
-    if (payload && (zone === 'pool' || zone === 'attack' || zone === 'guard' || zone === 'escort')) {
+    if (payload && (zone === 'pool' || zone === 'attack' || zone === 'guard')) {
       input.drop(payload.indices, zone)
     } else if (!payload && button.contains(hit)) {
       input.select('pointer')

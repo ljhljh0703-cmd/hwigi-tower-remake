@@ -22,7 +22,7 @@ import { availableCounterChoices, cancelSeal, chooseHourglass, draftSeal, startH
 import { relicReady, REWARD_CARDS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
 import {
-  allocationPower, assignDie, attackFor, chargedStrikePreview, DIE_COUNT, enemyIntentAt, incomingAttack,
+  allocationPower, assignDie, attackFor, chargedStrikePreview, combatSlots, DIE_COUNT, enemyIntentAt, incomingAttack, splitEnemyDamage,
 } from './combat.ts'
 import type { Exchange, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
@@ -128,13 +128,11 @@ const ui = {
     pool: element('pool-dice'),
     attack: element('attack-dice'),
     guard: element('guard-dice'),
-    escort: element('escort-dice'),
   },
   assign: {
     pool: element<HTMLButtonElement>('assign-pool'),
     attack: element<HTMLButtonElement>('assign-attack'),
     guard: element<HTMLButtonElement>('assign-guard'),
-    escort: element<HTMLButtonElement>('assign-escort'),
   },
   attackTotal: element('attack-total'),
   attackBonus: element('attack-bonus'),
@@ -142,10 +140,6 @@ const ui = {
   attackMultiplier: element('attack-multiplier'),
   guardTotal: element('guard-total'),
   guardBonus: element('guard-bonus'),
-  escortSlot: element('escort-slot'),
-  escortHp: element('escort-hp'),
-  escortTotal: element('escort-total'),
-  escortBonus: element('escort-bonus'),
   reroll: element<HTMLButtonElement>('reroll'),
   rerollCount: element('reroll-count'),
   extraReroll: element<HTMLButtonElement>('extra-reroll'),
@@ -448,7 +442,7 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
   return button
 })
 
-for (const zone of ['attack', 'guard', 'escort'] as const) {
+for (const zone of combatSlots) {
   for (let index = 0; index <= DIE_COUNT; index++) {
     const seat = document.createElement('span')
     seat.className = 'die-seat'
@@ -478,7 +472,7 @@ function renderSlotTotal(total: HTMLElement, bonus: HTMLElement, value: number, 
   return added ? `, 특전 보너스 ${added} 포함` : ''
 }
 
-function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals, unlocks: readonly Hand[]) {
+function refreshDice(battle: YachtBattle, { attack, guard }: SlotTotals, unlocks: readonly Hand[]) {
   const planning = battle.phase === 'assign'
   const pendingUnlock = unlocks.length < 2 ? previewUnlockProgress(battle) : undefined
   const intent = enemyIntentAt(battle)
@@ -504,7 +498,7 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
       oathFace && icon(parityIcons[value % 2 ? 'odd' : 'even']),
     ].filter(Boolean).join('')
     button.innerHTML = `<span class="die-face${isCompanion ? ' ego-face' : ''}">${value}</span><span class="die-indicators" aria-hidden="true">${indicators}</span>`
-    const place = slot ? { attack: '공격', guard: '방어', escort: '호위 공격' }[slot] : '미배치'
+    const place = slot ? { attack: '공격', guard: '방어' }[slot] : '미배치'
     let faceLabel = ''
     if (oathFace) faceLabel = `, 공격에 놓으면 +${START_PERKS.oath.bonus}`
     if (fixed) faceLabel += `, ${fixed === 'lock' ? '잠김' : '얼림'}, 재굴림 불가`
@@ -515,7 +509,7 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
     if (parent !== button.parentElement) parent.append(button)
   })
 
-  for (const zone of ['attack', 'guard', 'escort'] as const) {
+  for (const zone of combatSlots) {
     const row = ui.dice[zone]
     const used = row.querySelectorAll('.die:not([hidden])').length
     row.querySelectorAll<HTMLElement>('.die-seat').forEach((seat, index) => {
@@ -548,18 +542,12 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
   ui.assign.attack.setAttribute('aria-label', `공격 칸, 피해 ${attack}${attackHint}${multiplierHint}${wedgeHint}`)
   const guardHint = renderSlotTotal(ui.guardTotal, ui.guardBonus, guard, guard - withoutPerk.guard)
   ui.assign.guard.setAttribute('aria-label', `방어 칸, 합계 ${guard}${guardHint}`)
-  ui.escortSlot.hidden = !battle.escort
-  ui.escortSlot.parentElement!.classList.toggle('has-escort', Boolean(battle.escort))
-  ui.escortHp.textContent = String(battle.escort?.hp ?? 0)
-  const escortHint = renderSlotTotal(ui.escortTotal, ui.escortBonus, escort, escort - withoutPerk.escort)
-  ui.assign.escort.setAttribute('aria-label', `호위 공격, 피해 ${escort}${escortHint}, 호위 체력 ${battle.escort?.hp ?? 0}`)
   const canPlace = planning && selected.size > 0
   const rerollable = [...selected].filter((index) => canReroll(battle, index))
   ui.assign.pool.disabled = !canPlace || ![...selected].some((index) => battle.slots[index] !== null)
   ui.assign.pool.parentElement!.tabIndex = ui.assign.pool.disabled ? 0 : -1
   ui.assign.attack.disabled = !canPlace
   ui.assign.guard.disabled = !canPlace
-  ui.assign.escort.disabled = !canPlace
   const rerollCost = yachtRerollCost(battle)
   ui.reroll.disabled = !rerollable.length || rerollCost === null || rerollCost >= battle.playerHp
   const freeRolls = Number(rerollCost === 0)
@@ -598,9 +586,15 @@ function hitNumbers(hits: readonly number[]) {
 
 function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) {
   const badge = enemyBadges[enemyId]
-  const display = (symbol: string, value: string, label: string, detail = icon(badge.icon)) => {
-    ui.intent.innerHTML = `<span>${icon(symbol)}${value ? `<strong>${value}</strong>` : ''}</span><span class="intent-detail">${detail}</span>`
+  const { escort } = battle
+  const badgeIcon = escort && badge.icon === 'escort' ? '' : icon(badge.icon)
+  const display = (symbol: string, value: string, label: string, detail = badgeIcon) => {
+    const secondary = detail ? `<span class="intent-detail">${detail}</span>` : ''
+    const priority = escort ? `<span class="intent-detail intent-escort" aria-hidden="true">${icon('sword')}${icon('next')}${icon('escort')}<span class="intent-escort-hp">${escort.hp}</span></span>` : ''
+    ui.intent.innerHTML = `<span>${icon(symbol)}${value ? `<strong>${value}</strong>` : ''}</span>${secondary}${priority}`
     ui.intent.setAttribute('aria-label', label)
+    if (escort) ui.intent.setAttribute('aria-description', `공격 대상 1순위 호위병 · 생존 시 적 공격 +${escort.bonus}`)
+    else ui.intent.removeAttribute('aria-description')
   }
   const { phase } = battle
   ui.intent.hidden = phase === 'won' || phase === 'lost'
@@ -613,8 +607,8 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
       const { threshold, totalDamage, hammerThreshold } = charge
       const secondary = hammerThreshold ? `${icon('treasure-hammer')}${hammerThreshold}` : `${icon('break-charge')}${threshold}`
       display('charge', String(totalDamage), hammerThreshold
-        ? `공격 합이 ${hammerThreshold} 이상이면 망치가 다음 큰 공격을 막아요.`
-        : `공격 합이 ${threshold} 이상이면 다음 큰 공격을 약하게 만들어요.`, secondary)
+        ? `본체에 닿는 공격 피해가 ${hammerThreshold} 이상이면 망치가 다음 큰 공격을 막아요.`
+        : `본체에 닿는 공격 피해가 ${threshold} 이상이면 다음 큰 공격을 약하게 만들어요.`, secondary)
       return
     }
     if (intent.damageTakenMultiplier !== undefined) {
@@ -629,7 +623,7 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
       return
     }
     let label = hits.length ? `피해 ${hitNumbers(hits)}의 공격이 와요.` : intent.name
-    let detail = icon(badge.icon)
+    let detail = badgeIcon
     if (mechanic) {
       switch (mechanic.kind) {
         case 'lock':
@@ -670,15 +664,11 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
           break
         case 'escort':
           if (!battle.escort) {
-            detail = `${icon('escort')}1`
-            label = `호위가 나타나요. 호위가 살아 있으면 적 공격이 ${mechanic.bonus}만큼 세져요.`
+            detail = `${icon('escort')}${mechanic.hp}`
+            label = `호위병 소환 · 체력 ${mechanic.hp} · 생존 시 적 공격 +${mechanic.bonus}`
           }
           break
       }
-    }
-    if (battle.escort && !mechanic) {
-      detail = `${icon('escort')}${battle.escort.bonus}`
-      label = `호위가 살아 있으면 적 공격이 ${battle.escort.bonus}만큼 세져요.`
     }
     display(hits.length ? (intent.id === 'critical' ? 'critical' : 'sword') : badge.icon, hits.length ? hitNumbers(hits) : '0', label, detail)
   }
@@ -694,6 +684,7 @@ const companionFlightDuration = 500
 const companionImpactTime = 350
 const incomingContact = 152
 const repeatContact = 248
+const escortDefeatPause = 160
 const damageOutput = { player: ui.playerDamage, enemy: ui.enemyDamage, escort: ui.escortDamage }
 
 function clearExchange() {
@@ -744,6 +735,18 @@ function updateVital(meter: HTMLMeterElement, label: HTMLElement, hp: number, ma
   ], { duration: effectDuration(140), delay: effectDuration(chipDelay), fill: 'backwards', easing: 'ease-out' })
 }
 
+function updateEscortVital(hp: number) {
+  ui.escortGuardTotal.textContent = String(hp)
+  ui.escortGuardVital.setAttribute('aria-label', `호위병 체력 ${hp}`)
+  if (hp === 0) {
+    ui.intent.querySelector('.intent-escort')?.remove()
+    ui.intent.removeAttribute('aria-description')
+  } else {
+    const previewHp = ui.intent.querySelector('.intent-escort-hp')
+    if (previewHp) previewHp.textContent = String(hp)
+  }
+}
+
 function showParry() {
   ui.parry.hidden = false
   sound.play('perfect-block')
@@ -757,8 +760,10 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   const { dealt, hitsTaken, awakenedDice, escortDealt } = exchange
   const taken = hitsTaken.reduce((sum, value) => sum + value, 0)
   const totals = yachtAllocationTotals(before, before.slots, awakenedDice ?? before.dice)
+  const opening = splitEnemyDamage(before, totals.attack)
+  const lateEscortDamage = (escortDealt ?? 0) - opening.escortDealt
   // 아이템 추가 피해가 적을 쓰러뜨려도 원래 확정된 공격 타수는 표시한다.
-  const incoming = totals.attack < before.enemyHp
+  const incoming = opening.dealt < before.enemyHp
     ? Math.min(hitsTaken.length, incomingAttack(before, totals).hits.length) : 0
   const thorns = hitsTaken.length > incoming ? hitsTaken.at(-1)! : 0
   const exact = after.phase === 'counter'
@@ -795,6 +800,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     if (hits.length || contact.guarded) sound.play('stone-hit', pitch)
   }
   const enemyHit: BattleHit[] = dealt ? [{ target: 'enemy', damage: dealt, defeated: after.enemyHp === 0 }] : []
+  const earlyEnemyHit = lateEscortDamage ? [] : enemyHit
   const heroHit = (damage: number, final = true): BattleHit[] => damage ? [{ target: 'player', damage, defeated: final && after.playerHp === 0 }] : []
   const updatePlayer = () => updateVital(ui.playerHp, ui.playerTotal, after.playerHp)
   const updateEnemy = () => updateVital(ui.enemyHp, ui.enemyTotal, after.enemyHp)
@@ -803,18 +809,20 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   ui.awakening.innerHTML = awakenedDice ? `${icon('die')}${awakenedDice.map((face) => `<span>${face}</span>`).join('')}` : ''
   ui.awakening.setAttribute('aria-label', awakenedDice ? `각성 ${awakenedDice.join(', ')}` : '')
 
-  if (escortDealt) {
+  const hitEscort = (damage: number, hp: number) => {
+    emit([{ target: 'escort', damage, defeated: hp === 0 }])
+    updateEscortVital(hp)
+  }
+  if (opening.escortDealt && before.escort) {
     if (!reducedMotion()) await at(45)
-    emit([{ target: 'escort', damage: escortDealt, defeated: !after.escort }])
-    ui.escortGuardTotal.textContent = String(after.escort?.hp ?? 0)
-    ui.escortGuardVital.setAttribute('aria-label', `호위병 체력 ${after.escort?.hp ?? 0}`)
+    hitEscort(opening.escortDealt, before.escort.hp - opening.escortDealt)
   }
   if (incoming) arena.queueShadow(start + effectDuration(incomingContact), false)
   if (ordered) {
-    if (dealt || thorns) {
+    if (earlyEnemyHit.length || thorns) {
       if (!reducedMotion()) await at(96)
-      emit([...enemyHit, ...heroHit(thorns, false)])
-      updateEnemy()
+      emit([...earlyEnemyHit, ...heroHit(thorns, false)])
+      if (earlyEnemyHit.length) updateEnemy()
       if (thorns) readHit(incoming)
     }
     for (let index = 0; index < incoming; index++) {
@@ -830,11 +838,21 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
       readHit(index)
       if (final) updatePlayer()
     }
-  } else if (incoming || dealt || thorns) {
+  } else if (incoming || earlyEnemyHit.length || thorns) {
     if (!reducedMotion()) await at(incoming ? incomingContact : 96)
-    emit([...enemyHit, ...heroHit(taken)], { parry: exact, guarded: incoming > 0 && hitsTaken[0] === 0 && !exact })
-    updateEnemy()
+    emit([...earlyEnemyHit, ...heroHit(taken)], { parry: exact, guarded: incoming > 0 && hitsTaken[0] === 0 && !exact })
+    if (earlyEnemyHit.length) updateEnemy()
     updatePlayer()
+  }
+  if (lateEscortDamage > 0) {
+    const lastContact = incoming ? incomingContact + (incoming - 1) * repeatContact : 96
+    if (!reducedMotion()) await at(lastContact + 70)
+    hitEscort(lateEscortDamage, after.escort?.hp ?? 0)
+    if (dealt) {
+      if (!reducedMotion()) await at(lastContact + 140)
+      emit(enemyHit)
+      updateEnemy()
+    }
   }
   ui.feedback.textContent = `적 피해 ${dealt}, 내 피해 ${taken}${escortDealt ? `, 호위 피해 ${escortDealt}` : ''}${awakenedDice ? `, 각성 ${awakenedDice.join(', ')}` : ''}`
   if (ordered) window.setTimeout(() => {
@@ -847,6 +865,8 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     showParry()
     await wait(parryDuration)
     ui.parry.hidden = true
+  } else if (escortDealt && !after.escort && after.phase === 'assign' && !reducedMotion()) {
+    await wait(escortDefeatPause)
   }
 }
 
@@ -1312,10 +1332,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   updateVital(ui.enemyHp, ui.enemyTotal, enemyHp, enemy.hp)
   ui.escortGuard.hidden = !battle.escort || enemyHp <= 0
   ui.encounter.classList.toggle('escort-room', enemy.id === 'escort')
-  if (battle.escort) {
-    ui.escortGuardTotal.textContent = String(battle.escort.hp)
-    ui.escortGuardVital.setAttribute('aria-label', `호위병 체력 ${battle.escort.hp}`)
-  }
+  if (battle.escort) updateEscortVital(battle.escort.hp)
   ui.newUnlock.hidden = !atUnlock
   showCompanionLine(ui.companionAwakenLine, atUnlock && newUnlock === 'triple' ? COMPANION_LINES.awaken : '')
   if (atUnlock) {
@@ -1554,7 +1571,7 @@ function focusPhase() {
   else ui.retry.focus()
 }
 
-for (const zone of ['pool', 'attack', 'guard', 'escort'] as const) {
+for (const zone of ['pool', ...combatSlots] as const) {
   const button = ui.assign[zone]
   button.addEventListener('click', () => place([...selected], zone))
   if (zone === 'pool') continue
@@ -1662,7 +1679,9 @@ async function playCounter(choice?: CounterChoice) {
   if (!reward) return
   counterBusy = true
   saveCurrent(checkpoint)
-  const dealt = ascent.battle.enemyHp - next.enemyHp
+  const before = ascent.battle
+  const dealt = before.enemyHp - next.enemyHp
+  const escortDealt = (before.escort?.hp ?? 0) - (next.escort?.hp ?? 0)
   const companionJoint = reward.joint && ascent.unlocks.includes('triple')
   ui.help.disabled = true
   ui.battleSettings.disabled = true
@@ -1688,11 +1707,19 @@ async function playCounter(choice?: CounterChoice) {
     ui.companionFlight.style.setProperty('--flight-duration', `${effectDuration(companionFlightDuration)}ms`)
     ui.companionFlight.hidden = false
     await wait(companionImpactTime)
-  } else if (dealt && !reducedMotion()) {
+  } else if ((dealt || escortDealt) && !reducedMotion()) {
     arena.counterStrike()
     await wait(128)
   }
   clearExchange()
+  if (escortDealt > 0) {
+    const hit = { target: 'escort', damage: escortDealt, defeated: !next.escort } as const
+    arena.contact([hit], { counter: true })
+    showDamage(hit)
+    updateEscortVital(next.escort?.hp ?? 0)
+    sound.play('stone-hit')
+    if (dealt && animate) await wait(70)
+  }
   if (dealt > 0) {
     const hit = { target: 'enemy', damage: dealt, defeated: next.enemyHp === 0 } as const
     arena.contact([hit], { counter: true })
@@ -1704,7 +1731,7 @@ async function playCounter(choice?: CounterChoice) {
     await wait(companionFlightDuration - companionImpactTime)
     ui.companionFlight.hidden = true
   }
-  await wait(reducedMotion() || !dealt ? 320 : damageDuration)
+  await wait(reducedMotion() || !(dealt || escortDealt) ? 320 : damageDuration)
   arena.finishStrike()
   ascent = checkpoint
   counterBusy = false
