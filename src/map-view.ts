@@ -1,7 +1,8 @@
 import { availableMapNodes } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
-import { enemyForMapNode, MAP_FLOORS } from './ascent-map.ts'
+import { enemyForMapNode, MAP_FLOORS, RULES_SIX_BADGES } from './ascent-map.ts'
 import type { MapNodeKind } from './ascent-map.ts'
+import type { AscentEnemyId } from './enemy-roster.ts'
 import { SHOP_PRICES } from './map-treasure.ts'
 
 export const MAP_NODE_ICONS: Record<MapNodeKind, string> = {
@@ -10,6 +11,7 @@ export const MAP_NODE_ICONS: Record<MapNodeKind, string> = {
 const names: Record<MapNodeKind, string> = {
   fight: '전투', elite: '강적', rest: '휴식', boss: '보스', event: '이벤트', shop: '상인',
 }
+const rulesSixBadges: Partial<Record<AscentEnemyId, { label: string }>> = RULES_SIX_BADGES
 
 export class ForkView {
   private readonly heading: HTMLElement
@@ -39,10 +41,13 @@ export class ForkView {
       button.dataset.kind = node.kind
       const name = names[node.kind]
       const enemy = enemyForMapNode(node, ascent.route!.map.rules)
-      const hint = enemy ? `<span class="fork-hint" aria-label="적 체력 ${enemy.hp}">${this.icon('heart')}${enemy.hp}</span>`
+      const rulesSix = ascent.route!.map.rules === 6
+      const label = rulesSix && node.enemyId ? rulesSixBadges[node.enemyId]?.label : undefined
+      const reward = rulesSix && node.kind === 'elite' ? `<span class="fork-relic" role="img" aria-label="유물 보상">${this.icon('map-reward')}</span>` : ''
+      const hint = enemy ? `<span class="fork-hint" aria-label="${label ? `${label}, ` : ''}적 체력 ${enemy.hp}">${this.icon('heart')}${enemy.hp}</span>`
         : node.kind === 'shop' && ascent.route!.map.rules >= 3
           ? `<span class="fork-hint" aria-label="가격 ${SHOP_PRICES.kit}에서 ${SHOP_PRICES.artifact}동전">${this.icon('ascent-coin')}${SHOP_PRICES.kit}–${SHOP_PRICES.artifact}</span>` : ''
-      button.innerHTML = `<span class="fork-symbol">${this.icon(MAP_NODE_ICONS[node.kind])}</span><strong>${name}</strong>${hint}`
+      button.innerHTML = `<span class="fork-symbol">${this.icon(MAP_NODE_ICONS[node.kind])}</span><strong>${node.enemyId === 'chain-warden' ? label : name}</strong>${hint}${reward}`
       return button
     }))
   }

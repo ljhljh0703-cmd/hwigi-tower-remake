@@ -100,10 +100,22 @@ export const BATTLE_GUIDE: readonly GuideSection[] = [
     ],
   },
   {
+    title: '적의 빈틈',
+    entries: [
+      ['sword', '발목 걸기', '공격에 1을 놓으면 적의 다음 공격을 한 번 끊어요.'],
+      ['stacked-pair', '갑옷 벗기기', '같은 눈 두 개를 공격에 놓으면 다음 턴부터 공격 칸 피해가 1.5배예요.'],
+      ['shield', '되돌아온 철추', '방어에 5를 놓으면 예고한 철추 피해를 적이 받아요. 반사한 공격으로는 룰렛이 열리지 않아요.'],
+      ['knockdown', '넘어뜨리기', '공격에 3을 놓으면 적이 다음 턴에 공격을 쉬고 공격 칸 피해를 두 배로 받아요.'],
+      ['escort', '호위 퇴각', '호위가 살아 있을 때 공격에 2를 놓으면 호위가 물러나고 같은 턴에 본체를 공격해요.'],
+    ],
+  },
+  {
     title: '전투 보상',
     entries: [
-      ...(Object.keys(REWARD_CARDS) as Reward[]).map(key => [REWARD_CARDS[key].icon, REWARD_CARDS[key].name, REWARD_TEXT[key]] as const),
+      ...(Object.keys(REWARD_CARDS) as Reward[]).map(key => [REWARD_CARDS[key].icon, REWARD_CARDS[key].name,
+        isBossRelic(key) ? BOSS_RELIC_CARDS[key].description : REWARD_TEXT[key]] as const),
       ['completion-seal', '완주 인장', '탑의 문지기를 쓰러뜨리면 결과 화면에 완주 인장을 표시합니다.'],
     ],
   },
 ]
+import { BOSS_RELIC_CARDS, isBossRelic } from './boss-relic.ts'

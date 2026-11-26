@@ -1,5 +1,6 @@
 import { ascentBattleSeed, ascentFinished, availableMapNodes, FIGHT_COUNT, mapRewardOffers, rewardOffers } from './ascent.ts'
 import type { Ascent, MapProgress } from './ascent.ts'
+import { BOSS_RELICS, isBossRelic } from './boss-relic.ts'
 import { CURRENT_MAP_RULES, enemyForMapNode, generateAscentMap, MAP_FIGHTS, MAP_FLOORS, mapPathIsValid, victoryCoins } from './ascent-map.ts'
 import { COUNTER_REWARDS, DIE_COUNT, draw, PLAYER_HP } from './combat.ts'
 import { enemyForFight } from './enemy-roster.ts'
@@ -10,6 +11,7 @@ import { isArtifact, isItem, isPreparation, isShard, itemUses } from './treasure
 import type { ArtifactOptions } from './treasure.ts'
 import { artifactOptionsRecord, treasureRecord } from './treasure-save.ts'
 import { yachtCounterRewards } from './yacht-combat.ts'
+import { GIMMICK_REQUIREMENTS } from './yacht-combat.ts'
 import type { Hand, YachtBattle } from './yacht-combat.ts'
 
 export const ASCENT_SAVE_KEY = 'hwigi-tower.ascent'
@@ -85,11 +87,26 @@ function combatRewards(value: unknown): value is CombatRewards | undefined {
     (tuning === undefined || tuning === 'ready' || tuning === 'spent')
 }
 
-function battleRecord(value: unknown, seed: number, enemy: Ascent['enemy'], rulesTwo: boolean): value is SavedBattle {
+function battleRecord(value: unknown, seed: number, enemy: Ascent['enemy'], rulesTwo: boolean, rulesSix: boolean): value is SavedBattle {
   if (!record(value)) return false
   const { phase, turn, dice, slots, playerHp, enemyHp, fixedDie, stolenDie, escort, lastExchange } = value
+  const { bossRelic, armorBroken, interrupted, crownUsed } = value
+  if (value.rulesSix !== (rulesSix ? true : undefined)) return false
+  if (!rulesSix && [bossRelic, armorBroken, interrupted, crownUsed].some((field) => field !== undefined)) return false
+  if (bossRelic !== undefined && !(record(bossRelic) && isBossRelic(bossRelic.id) &&
+    (bossRelic.heartUsed === undefined || bossRelic.heartUsed === true && bossRelic.id === 'revived-heart'))) return false
+  if (armorBroken !== undefined && armorBroken !== true) return false
+  if (crownUsed !== undefined && !(crownUsed === true && record(bossRelic) && bossRelic.id === 'brake-crown')) return false
+  if (record(lastExchange)) {
+    const { gimmick, heartRevived, crownTriggered } = lastExchange
+    if (gimmick !== undefined && !(rulesSix && typeof gimmick === 'string' && Object.hasOwn(GIMMICK_REQUIREMENTS, gimmick))) return false
+    if (heartRevived !== undefined && !(heartRevived === true && record(bossRelic) && bossRelic.heartUsed === true)) return false
+    if (crownTriggered !== undefined && !(crownTriggered === true && crownUsed === true)) return false
+  }
   if (value.seed !== seed || !integer(turn, 1) || !integer(playerHp, 1, PLAYER_HP) || !integer(enemyHp, 0, enemy.hp)) return false
   if (phase !== 'assign' && phase !== 'counter' && phase !== 'won') return false
+  if (interrupted !== undefined && !(record(interrupted) && (interrupted.kind === 'trip' || interrupted.kind === 'topple') &&
+    interrupted.turn === (phase === 'assign' ? turn : turn + 1))) return false
   if ((phase === 'won') !== (enemyHp === 0) || !faces(dice) || !Array.isArray(slots) || slots.length !== dice.length) return false
   if (!slots.every((slot) => slot === 'attack' || slot === 'guard' || slot === 'escort' || (phase === 'assign' && slot === null))) return false
   if (lastExchange === null ? phase !== 'assign' : !exchange(lastExchange, rulesTwo)) return false
@@ -117,7 +134,7 @@ function acquiredRewards(rewards: CombatRewards | undefined): readonly Reward[] 
 }
 
 function mapCheckpoint(seed: number, fight: number, value: unknown) {
-  if (!record(value) || (value.rules !== 1 && value.rules !== 2 && value.rules !== 3 && value.rules !== 4 && value.rules !== CURRENT_MAP_RULES) || !Array.isArray(value.completed)) return null
+  if (!record(value) || (value.rules !== 1 && value.rules !== 2 && value.rules !== 3 && value.rules !== 4 && value.rules !== 5 && value.rules !== CURRENT_MAP_RULES) || !Array.isArray(value.completed)) return null
   const { completed, screen, node, offers, rules, bossMaxHp, coins, shopPurchase } = value
   if (completed.length >= MAP_FLOORS || !completed.every((id) => integer(id))) return null
   const room = screen === 'rest' || (rules >= 2 && (screen === 'event' || screen === 'shop'))
@@ -129,11 +146,13 @@ function mapCheckpoint(seed: number, fight: number, value: unknown) {
   const path = active === null ? completed : [...completed, active]
   if (!mapPathIsValid(map, path)) return null
   if (active !== null && (room ? map.byId[active].kind !== screen : !map.byId[active].enemyId)) return null
-  if (screen === 'reward' && map.byId[active!].kind === 'boss') return null
   const lastCompleted = completed.at(-1)
+  if (screen === 'reward' && map.byId[active!].floor === MAP_FLOORS) return null
+  const bossReward = (screen === 'reward' || screen === 'return') && map.byId[(screen === 'reward' ? active : lastCompleted)!]?.enemyId === 'chain-warden'
   if (screen === 'return' && (lastCompleted === undefined || (rules === 1 && map.byId[lastCompleted].kind === 'rest'))) return null
   const hasOffers = screen === 'reward' || screen === 'return' || (rules >= 2 && room)
-  if (hasOffers ? !Array.isArray(offers) || offers.length > 3 || new Set(offers).size !== offers.length || !offers.every(rules >= 2 ? isReward : isLegacyReward) : offers !== undefined) return null
+  if (bossReward ? !sameList(offers, BOSS_RELICS) : hasOffers ? !Array.isArray(offers) || offers.length > 3 ||
+    new Set(offers).size !== offers.length || !offers.every((offer) => !isBossRelic(offer) && (rules >= 2 ? isReward(offer) : isLegacyReward(offer))) : offers !== undefined) return null
   if (rules >= 3) {
     const price = shopPurchase === 'kit' || isArtifact(shopPurchase) ? shopPrice(shopPurchase) : 0
     if (shopPurchase !== undefined && (!price || !completed.some((id) => map.byId[id].kind === 'shop'))) return null
@@ -177,7 +196,8 @@ function readCheckpoint(raw: unknown): AscentSave | null {
   const enemy = mapped?.enemy ?? enemyForFight(seed, fight)
   const fightSeed = mapped?.fightSeed ?? ascentBattleSeed(seed, fight)
   const rulesTwo = !!mapped && mapped.route.map.rules >= 2
-  if (!battleRecord(battle, fightSeed, enemy, rulesTwo)) return null
+  const rulesSix = mapped?.route.map.rules === 6
+  if (!battleRecord(battle, fightSeed, enemy, rulesTwo, rulesSix)) return null
   if (rewardChoice !== undefined && rewardChoice !== 'skip' && !isReward(rewardChoice)) return null
   if (rewardChoice !== undefined && (battle.phase !== 'won' || (!rulesTwo && rewardChoice !== 'skip' && !isLegacyReward(rewardChoice)))) return null
   if (rulesTwo && battle.loot) {
@@ -197,6 +217,10 @@ function readCheckpoint(raw: unknown): AscentSave | null {
   }
   if (mapped) {
     const { route, acquired } = mapped
+    const bossDefeated = route.completed.some((id) => route.map.byId[id].enemyId === 'chain-warden')
+    if (Boolean(battle.bossRelic) !== bossDefeated || isBossRelic(rewardChoice) &&
+      (route.map.byId[route.completed.at(-1)!]?.enemyId !== 'chain-warden' || battle.bossRelic?.id !== rewardChoice)) return null
+    if (route.screen === 'return' && route.map.byId[route.completed.at(-1)!]?.enemyId === 'chain-warden' && !isBossRelic(rewardChoice)) return null
     const expectsVictory = route.screen !== 'battle' && fight > 0
     if ((battle.phase === 'won') !== expectsVictory || (route.screen === 'return') !== (rewardChoice !== undefined)) return null
     if (isArtifact(route.shopPurchase) && !battle.loot?.acquired.includes(route.shopPurchase)) return null
@@ -224,7 +248,8 @@ function readCheckpoint(raw: unknown): AscentSave | null {
     ...(mapped && { route: mapped.route }),
     ...(rewardChoice && { rewardChoice }),
   }
-  if (rulesTwo && mapped?.route.offers && mapped.route.node !== null && !sameList(mapped.route.offers, treasureOffers(ascent, mapped.route.map.byId[mapped.route.node]))) return null
+  if (rulesTwo && mapped?.route.offers && mapped.route.node !== null && mapped.enemy.id !== 'chain-warden' &&
+    !sameList(mapped.route.offers, treasureOffers(ascent, mapped.route.map.byId[mapped.route.node]))) return null
   const pending = restoredBattle.loot?.counter
   if (pending) {
     const table = yachtCounterRewards(restoredBattle)

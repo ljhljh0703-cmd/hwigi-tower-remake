@@ -368,6 +368,8 @@ main[data-screen='battle'] {
 .fork-symbol { display: grid; color: #f6c795; font-size: clamp(2rem, 8vw, 3.25rem); }
 .fork-card.elite .fork-symbol { color: #efa28b; }
 .fork-hint { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: .86rem; }
+.fork-card { position: relative; }
+.fork-relic { position: absolute; inset: 8px 8px auto auto; color: #d7baff; }
 #map-rest-marker { display: grid; place-items: center; inline-size: 90px; block-size: 90px; border: 3px double #dbaa7d; background: #44372d; color: #f6c795; font-size: 2.7rem; }
 #event-floor > :is(span, strong) { display: inline-flex; align-items: center; gap: 5px; }
 
@@ -450,6 +452,27 @@ main[data-screen='battle'] {
 .reward-card:focus-visible { outline-offset: 2px; }
 .empty-reward { opacity: .5; }
 
+#reward-panel.boss-reward { inline-size: min(100%, 540px); gap: 8px; }
+.boss-reward #reward-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.boss-reward .reward-card {
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  justify-items: start;
+  align-content: center;
+  column-gap: 6px;
+  inline-size: 100%;
+  min-block-size: 55px;
+  aspect-ratio: auto;
+  padding: 5px 7px;
+  text-align: left;
+  font-size: .88rem;
+  background: #423528;
+  color: #ffe0ae;
+}
+.boss-reward .reward-card .icon { grid-row: span 2; inline-size: 22px; block-size: 22px; }
+.boss-reward .reward-card small { color: #ddc3a3; }
+.reward-actions:has(#skip-reward[hidden]) { grid-template-columns: 1fr; }
+
 #reward-preview {
   display: grid;
   align-content: start;
@@ -504,6 +527,11 @@ main[data-screen='battle'] {
 }
 :is(#reward-strip, #artifact-strip) .spent { opacity: .5; }
 #artifact-strip [aria-pressed='true'], #artifact-strip .triggered { background: #5d416f; color: #fff0ff; }
+#boss-relic-slot { order: -2; min-inline-size: 46px; padding-inline-end: 4px; border-inline-end: 1px solid #ac855a; }
+#boss-relic-slot button { position: relative; min-block-size: 44px; inline-size: 42px; padding: 0; background: #443729; color: #f6d198; }
+#boss-relic-slot .spent { color: #b5a18c; }
+#boss-relic-slot [data-cracked]::after { content: ''; position: absolute; background: #dcb48a; inline-size: 15px; block-size: 2px; transform: rotate(-54deg); }
+#boss-relic-slot.crown-ready button { outline: 1px solid #ffe4a5; box-shadow: inset 0 0 12px #e5ad6455; }
 #reward-strip .triggered { color: #f6c795; }
 .use-dots { display: grid; grid-template-columns: repeat(2, auto); gap: 4px; }
 .use-dots:has(i:only-child) { grid-template-columns: auto; }
@@ -619,6 +647,29 @@ main[data-screen='battle'] {
 #intent span { display: inline-flex; align-items: center; gap: 4px; }
 #intent .intent-detail { font-size: .57em; color: #e4d5c5; }
 #intent .intent-escort { color: #f6c795; white-space: nowrap; }
+#encounter-name { position: absolute; z-index: 1; inset: 10px auto auto 10px; color: #f9d9ab; font-size: .9rem; }
+#intent .gimmick-mark { gap: 2px; padding-inline: 2px; color: #ffdf9f; }
+.gimmick-mark i {
+  display: grid;
+  place-items: center;
+  inline-size: 23px;
+  block-size: 24px;
+  background: #302922;
+  border: 1px dashed #c09964;
+}
+#intent .gimmick-mark .icon { inline-size: 16px; block-size: 16px; }
+.gimmick-mark[data-ready='true'] i { border-style: solid; border-color: #ffe2a0; background: #665237; }
+#intent .gimmick-die { display: grid; grid-template: repeat(3, 3px) / repeat(3, 3px); place-items: center; gap: 1px; }
+.gimmick-die b { inline-size: 3px; block-size: 3px; background: currentColor; border-radius: 50%; }
+.gimmick-die b:first-child { grid-area: 2 / 2; }
+.gimmick-die[data-face='2'] b:first-child, .gimmick-die[data-face='5'] b:first-child { grid-area: 1 / 1; }
+.gimmick-die b:nth-child(2) { grid-area: 3 / 3; }
+.gimmick-die[data-face='3'] b:nth-child(3), .gimmick-die[data-face='5'] b:nth-child(3) { grid-area: 1 / 1; }
+.gimmick-die[data-face='5'] b:nth-child(3) { grid-area: 2 / 2; }
+.gimmick-die b:nth-child(4) { grid-area: 1 / 3; }
+.gimmick-die b:nth-child(5) { grid-area: 3 / 1; }
+.gimmick-ready #intent { filter: drop-shadow(0 0 4px #c4884e55); }
+.armor-broken .enemy .vital { border-color: #9f6845; }
 
 .vital {
   position: absolute;

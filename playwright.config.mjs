@@ -8,6 +8,7 @@ export default defineConfig({
   workers: 1,
   use: {
     browserName: 'chromium',
+    channel: process.env.HWIGI_SMOKE_CHANNEL || undefined,
     headless: true,
     isMobile: true,
     hasTouch: true,

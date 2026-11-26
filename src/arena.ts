@@ -49,6 +49,7 @@ export const ENEMY_SPRITES = {
   'shield-soldier': enemySprite('shield-soldier', 16, 38, 7, [15, 7], 22),
   'seal-sentinel': enemySprite('seal-sentinel', 16, 38, 6, [15, 6], 20),
   'iron-knight': enemySprite('iron-knight', 20, 46, 6, [19, 6], 27),
+  'chain-warden': { ...enemySprite('chain-warden', 29, 42, 5, [29, 10], 15), restReach: [16, 10] },
   boss,
 } satisfies Record<AscentEnemyId, Sprite>
 
@@ -96,6 +97,10 @@ function layoutSprites(sprites: readonly Sprite[], width: number, density: numbe
 export function enemyPlanPose(enemyId: AscentEnemyId, battle: YachtBattle) {
   const intent = enemyIntentAt(battle)
   if (enemyId === 'boss' && intent.id === 'knockdown') return 'knockdown'
+  if (intent.id === 'knockdown' || intent.id === 'stunned') return 'hit' in ENEMY_SPRITES[enemyId].poses ? 'hit' : 'idle'
+  if (enemyId === 'chain-warden' && battle.phase === 'assign') {
+    return intent.gimmick === 'reflect' || intent.chargeThreshold !== undefined || intent.id === 'critical' ? 'charge' : 'idle'
+  }
   if (battle.phase === 'assign' && (intent.chargeThreshold !== undefined || (enemyId !== 'boss' && intent.hits.length))) return 'charge'
   return 'idle'
 }
@@ -117,6 +122,7 @@ export function enemyExchangePoses(enemyId: AscentEnemyId, before: YachtBattle, 
 
 export function escortExchangePoses(before: YachtBattle, exchange: Exchange) {
   if (!before.escort) return []
+  if (exchange.gimmick === 'retreat') return [{ pose: 'hit', duration: 160 }]
   const { attack } = yachtAllocationTotals(before, before.slots, exchange.awakenedDice ?? before.dice)
   const { escortDealt } = splitEnemyDamage(before, attack)
   const poses: PoseFrame[] = []
@@ -128,6 +134,7 @@ export function escortExchangePoses(before: YachtBattle, exchange: Exchange) {
 export function heroExchangePoses(before: YachtBattle, exchange: Exchange) {
   const frames: PoseFrame[] = []
   if (before.slots.includes('attack')) frames.push({ pose: 'attack', duration: 160 })
+  if (exchange.gimmick === 'reflect') return [{ pose: 'guard', duration: 160 }, ...frames]
   if (exchange.dealt < before.enemyHp) {
     const totals = yachtAllocationTotals(before, before.slots, exchange.awakenedDice ?? before.dice)
     if (totals.guard > 0 && incomingAttack(before, totals).totalDamage > 0) {

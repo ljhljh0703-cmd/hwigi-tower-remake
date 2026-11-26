@@ -2,9 +2,10 @@ import { START_PERKS } from './perks.ts'
 import type { Parity, StartPerk } from './perks.ts'
 import { BANDAGE_HEAL, BUCKLE_MAX_SHORTFALL, BUCKLE_REDUCTION, WEIGHT_BONUS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward } from './rewards.ts'
+import type { BossRelic } from './boss-relic.ts'
 import { REST_HEAL } from './treasure.ts'
 
-export const REWARD_TEXT: Readonly<Record<Reward, string>> = {
+export const REWARD_TEXT: Readonly<Record<Exclude<Reward, BossRelic>, string>> = {
   bandage: `고르면 체력을 ${BANDAGE_HEAL} 회복해요.`,
   weight: `공격 칸에 홀수와 짝수를 함께 놓으면 피해 ${WEIGHT_BONUS}를 더 줘요. 하나당 전투마다 한 번이에요.`,
   buckle: `방어가 적의 공격보다 1~${BUCKLE_MAX_SHORTFALL} 모자라면 받는 피해를 최대 ${BUCKLE_REDUCTION} 줄여요. 하나당 전투마다 한 번이에요.`,

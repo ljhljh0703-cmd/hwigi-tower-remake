@@ -8,6 +8,7 @@ export type Slot = (typeof combatSlots)[number]
 export type Phase = 'assign' | 'counter' | 'won' | 'lost'
 
 export type DieInterference = 'lock' | 'freeze'
+export type Gimmick = 'trip' | 'armor' | 'reflect' | 'topple' | 'retreat'
 export type EnemyMechanic =
   | { readonly kind: DieInterference }
   | { readonly kind: 'thorns' | 'rage' | 'seal' | 'steal'; readonly value: number }
@@ -23,6 +24,7 @@ export interface EnemyIntent {
   readonly chargeThreshold?: number
   readonly damageTakenMultiplier?: number
   readonly mechanic?: EnemyMechanic
+  readonly gimmick?: Gimmick
 }
 
 // The first matching row takes precedence.
@@ -65,6 +67,9 @@ export interface Exchange {
   readonly awakenedDice?: readonly number[]
   readonly escortDealt?: number
   readonly chargeBroken?: true
+  readonly gimmick?: Gimmick
+  readonly heartRevived?: true
+  readonly crownTriggered?: true
 }
 
 export interface Battle {
@@ -87,6 +92,8 @@ export interface Battle {
   readonly escort?: { readonly hp: number; readonly bonus: number }
   readonly weakenedStrikeTurn?: number
   readonly erasedStrikeTurn?: number
+  readonly armorBroken?: true
+  readonly interrupted?: { readonly turn: number; readonly kind: 'trip' | 'topple' }
 }
 
 export function draw(seed: number, turn: number, channel: number): number {
@@ -131,9 +138,15 @@ function selectEnemyIntent<T extends EnemyIntent>(turn: number, intents: readonl
   return intent
 }
 
-type IntentContext = Pick<Battle, 'turn' | 'enemyIntents'>
+type IntentContext = Pick<Battle, 'turn' | 'enemyIntents' | 'interrupted'>
 
-export function enemyIntentAt({ turn, enemyIntents = ENEMY_INTENTS }: IntentContext): EnemyIntent {
+export function enemyIntentAt({ turn, enemyIntents = ENEMY_INTENTS, interrupted }: IntentContext): EnemyIntent {
+  if (interrupted?.turn === turn && interrupted.kind === 'topple') {
+    return { id: 'knockdown', name: '넉다운', hits: [], damageTakenMultiplier: 2, matches: () => true }
+  }
+  if (interrupted?.turn === turn && selectEnemyIntent(turn, enemyIntents).hits.length) {
+    return { id: 'stunned', name: '기절', hits: [], matches: () => true }
+  }
   return selectEnemyIntent(turn, enemyIntents)
 }
 
@@ -194,9 +207,8 @@ export function allocationTotals(battle: Battle, slots = battle.slots, dice = ba
 export type SlotTotals = ReturnType<typeof allocationTotals>
 
 export function allocationPower(battle: Battle, totals = allocationTotals(battle), attackMultiplier?: number): SlotTotals {
-  const enemyMultiplier = enemyIntentAt(battle).damageTakenMultiplier
-  const multiplier = attackMultiplier === undefined ? enemyMultiplier : Math.max(attackMultiplier, enemyMultiplier ?? 1)
-  return multiplier === undefined ? totals : { ...totals, attack: Math.floor(totals.attack * multiplier) }
+  const multiplier = Math.max(attackMultiplier ?? 1, enemyIntentAt(battle).damageTakenMultiplier ?? 1, battle.armorBroken ? 1.5 : 1)
+  return multiplier === 1 ? totals : { ...totals, attack: Math.floor(totals.attack * multiplier) }
 }
 
 export function respondingIntent(intent: EnemyIntent, attack: number): EnemyIntent {
@@ -276,10 +288,19 @@ export function chargedStrikePreview(battle: Battle, { attack } = allocationPowe
 export function forecast(
   battle: Battle, slots = battle.slots, dice = battle.dice,
   { attack, guard } = allocationPower(battle, allocationTotals(battle, slots, dice)),
+  suppress?: 'reflect' | number,
 ) {
   const intent = respondingIntent(enemyIntentAt(battle), attack)
-  const { dealt, escortDealt } = splitEnemyDamage(battle, attack)
-  const incoming = attackFor(battle, intent, escortDealt < (battle.escort?.hp ?? 0))
+  const inflicted = splitEnemyDamage(battle, attack)
+  const actual = attackFor(battle, intent, inflicted.escortDealt < (battle.escort?.hp ?? 0))
+  const { dealt, escortDealt } = suppress === 'reflect' ? splitEnemyDamage(battle, actual.totalDamage, inflicted) : inflicted
+  let remainingAbsorption = typeof suppress === 'number' ? suppress : 0
+  const incoming = suppress === 'reflect' ? { ...actual, hits: [], totalDamage: 0 }
+    : typeof suppress === 'number' ? { ...actual, hits: actual.hits.map((hit) => {
+      const blocked = Math.min(hit, remainingAbsorption)
+      remainingAbsorption -= blocked
+      return hit - blocked
+    }).filter(Boolean), totalDamage: Math.max(0, actual.totalDamage - suppress) } : actual
   const thorns = intent.mechanic?.kind === 'thorns'
     ? slots.filter((slot) => slot === 'attack').length * intent.mechanic.value : 0
 
@@ -300,7 +321,7 @@ export function forecast(
     chargeBroken: breaksCharge(intent, attack - escortDealt),
     hits,
     damage: attackDamage + retaliation,
-    counter: dealt < battle.enemyHp && incoming.totalDamage > 0 && guard === incoming.totalDamage,
+    counter: suppress === undefined && dealt < battle.enemyHp && incoming.totalDamage > 0 && guard === incoming.totalDamage,
   }
 }
 

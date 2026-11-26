@@ -1,10 +1,12 @@
 import { isNewTreasure, TREASURE_CARDS } from './treasure.ts'
 import type { Treasure } from './treasure.ts'
+import { BOSS_RELIC_CARDS, isBossRelic } from './boss-relic.ts'
+import type { BossRelic } from './boss-relic.ts'
 
 export const RELICS = ['weight', 'buckle', 'rewind', 'wedge'] as const
 export type Relic = (typeof RELICS)[number]
 export type LegacyReward = Relic | 'bandage' | 'tuning'
-export type Reward = Treasure
+export type Reward = Treasure | BossRelic
 export type RewardChoice = Reward | 'skip'
 
 export interface CombatRewards {
@@ -22,6 +24,7 @@ export const WEDGE_BONUS = 3
 
 export const REWARD_CARDS = {
   ...TREASURE_CARDS,
+  ...BOSS_RELIC_CARDS,
   bandage: { name: '약초 붕대', icon: 'reward-bandage', value: `+${BANDAGE_HEAL}`, description: `체력이 ${BANDAGE_THRESHOLD} 이하이면 이 카드를 골랐을 때 체력을 ${BANDAGE_HEAL} 회복합니다.` },
   weight: { name: '저울추', icon: 'reward-weight', value: `+${WEIGHT_BONUS}`, description: `공격 칸에 봉인되지 않은 홀수 눈과 짝수 눈이 하나 이상씩 있으면 턴 끝에 본체에 추가 피해 ${WEIGHT_BONUS}를 줍니다. 한 개마다 전투당 한 번 발동합니다.` },
   buckle: { name: '받침 버클', icon: 'reward-buckle', value: `−${BUCKLE_REDUCTION}`, description: `방어 합이 적의 예고 피해보다 1~${BUCKLE_MAX_SHORTFALL} 낮으면 그 공격에서 잃는 체력을 최대 ${BUCKLE_REDUCTION} 줄입니다. 한 개마다 전투당 한 번 발동합니다.` },
@@ -42,4 +45,4 @@ export function isLegacyReward(value: unknown): value is LegacyReward {
   return value === 'tuning' || value === 'bandage' || isRelic(value)
 }
 
-export function isReward(value: unknown): value is Reward { return isLegacyReward(value) || isNewTreasure(value) }
+export function isReward(value: unknown): value is Reward { return isLegacyReward(value) || isNewTreasure(value) || isBossRelic(value) }

@@ -1,7 +1,7 @@
 import { allocationTotals, attackFor, chargedStrikePreview, combatSlots, enemyIntentAt, incomingAttack } from './combat.ts'
 import type { Slot } from './combat.ts'
 import { adaptAndReroll, expectedReward } from './simulate.ts'
-import { canReroll, classifyYachtHand, forecastYacht, yachtAllocationTotals, yachtCounterRewards } from './yacht-combat.ts'
+import { canReroll, classifyYachtHand, emperorShieldActive, forecastYacht, yachtAllocationTotals, yachtCounterRewards, yachtGimmick } from './yacht-combat.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 
 export const yachtPolicies = ['adaptive', 'attackHand', 'guardHand'] as const
@@ -84,6 +84,22 @@ export function chooseAllocation(
   battle: YachtBattle, policy: YachtPolicy, damageWeight = carriedHealthWeight, perkAware = true,
 ): readonly Slot[] {
   if (policy === 'guardFirst') {
+    if (battle.rulesSix && (yachtGimmick(battle) || emperorShieldActive(battle))) {
+      let best = allocationsFor(battle)[0]
+      let bestScore = -Infinity
+      for (const plan of allocationsFor(battle)) {
+        const outcome = forecastYacht(battle, plan)
+        const gimmick = yachtGimmick(battle, plan)
+        const reward = !gimmick?.ready ? 0 : { trip: 8, armor: 9, reflect: 0, topple: 12, retreat: 4 }[gimmick.kind]
+        const score = outcome.damage >= battle.playerHp ? -1000 + outcome.dealt
+          : outcome.dealt === battle.enemyHp ? 1000 : outcome.dealt + outcome.escortDealt + reward + Number(outcome.counter) * 3 - outcome.damage * 4
+        if (score > bestScore) {
+          best = plan
+          bestScore = score
+        }
+      }
+      return best
+    }
     const target = attackFor(battle, enemyIntentAt(battle)).totalDamage
     let best: readonly Slot[] = []
     let bestCost = Infinity
@@ -124,6 +140,15 @@ export function chooseReroll(battle: YachtBattle, policy: YachtPolicy, extra: bo
     indices = [...new Set([...indices, ...battle.dice.flatMap((face, index) => face === mechanic.value ? [index] : [])])]
   }
   indices = indices.filter((index) => canReroll(battle, index))
+  if (battle.rulesSix && yachtGimmick(battle)) {
+    const plan = chooseAllocation(battle, policy)
+    const gimmick = yachtGimmick(battle, plan)
+    if (gimmick?.ready) {
+      const matching = battle.dice.filter((_, index) => plan[index] === gimmick.slot)
+      const face = gimmick.face ?? matching.find((value, index) => matching.indexOf(value) < index)
+      indices = indices.filter((index) => plan[index] !== gimmick.slot || battle.dice[index] !== face)
+    }
+  }
   const perk = battle.perk?.kind
   if (perkAware && (perk === 'shield' || perk === 'counter' || (perk === 'reroll' && battle.rerolled))) {
     const plan = chooseAllocation(battle, policy)

@@ -64,15 +64,15 @@ export function changeCount<T extends string>(counts: Counts<T>, id: T, delta: 1
   return next
 }
 
-export function equipArtifact(state: TreasureState, artifact: Artifact, options: ArtifactOptions): TreasureState | null {
-  if (state.acquired.includes(artifact)) return null
+export function equipArtifact(state: TreasureState, artifact: Artifact, options: ArtifactOptions, allowReequip = false): TreasureState | null {
+  if (state.equipped.includes(artifact) || !allowReequip && state.acquired.includes(artifact)) return null
   const full = state.equipped.length === ARTIFACT_SLOTS
   if (full ? !options.replace || !state.equipped.includes(options.replace) : options.replace !== undefined) return null
   if (artifact === 'heart-die' && options.parity !== 'odd' && options.parity !== 'even') return null
   if (artifact === 'incomplete' && options.hand !== 'triple' && options.hand !== 'straight') return null
   const equipped = full ? state.equipped.map((id) => id === options.replace ? artifact : id) : [...state.equipped, artifact]
   return {
-    ...state, equipped, acquired: [...state.acquired, artifact],
+    ...state, equipped, acquired: state.acquired.includes(artifact) ? state.acquired : [...state.acquired, artifact],
     ...(artifact === 'heart-die' && { heartParity: options.parity }),
     ...(artifact === 'incomplete' && { sealHand: options.hand }),
   }

@@ -35,11 +35,12 @@ test('the hero recoils from thorns after a finishing blow without showing a guar
 
 test('every enemy and the summoned guard have complete native-size artwork', () => {
   const [ordinary, elite, [boss]] = ASCENT_ENEMIES
-  assert.deepEqual(Object.keys(ENEMY_SPRITES).sort(), [...ASCENT_ENEMIES.flat(), ...MAP_ENEMIES].map(({ id }) => id).sort())
+  assert.deepEqual(Object.keys(ENEMY_SPRITES).sort(), [...ASCENT_ENEMIES.flat(), ...MAP_ENEMIES].map(({ id }) => id).concat('chain-warden').sort())
   for (const [sprites, size] of [
     [[...ordinary, ...MAP_ENEMIES.filter(({ attackPerUnlock }) => !attackPerUnlock)].map(({ id }) => ENEMY_SPRITES[id]), [32, 40]],
     [[...elite, ...MAP_ENEMIES.filter(({ attackPerUnlock }) => attackPerUnlock)].map(({ id }) => ENEMY_SPRITES[id]), [40, 48]],
     [[ENEMY_SPRITES[boss.id]], [48, 48]],
+    [[ENEMY_SPRITES['chain-warden']], [40, 44]],
     [[ESCORT_SPRITE], [24, 28]],
   ]) {
     for (const { name, poses, footY } of sprites) {

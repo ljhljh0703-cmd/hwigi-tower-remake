@@ -4,6 +4,9 @@ import {
   startBattle,
 } from './combat.ts'
 import type { Battle, Enemy, EnemyMechanic, Slot } from './combat.ts'
+import type { Gimmick } from './combat.ts'
+import { EMPEROR_SHIELD_CAP, HEART_REVIVAL_HP } from './boss-relic.ts'
+import type { BossRelicState } from './boss-relic.ts'
 import { collectorBonus, START_PERKS } from './perks.ts'
 import type { CollectedHand, PerkState } from './perks.ts'
 import { BUCKLE_MAX_SHORTFALL, BUCKLE_REDUCTION, relicReady, WEDGE_BONUS, WEIGHT_BONUS } from './rewards.ts'
@@ -33,6 +36,9 @@ export interface YachtBattle extends Battle {
   readonly rewards?: CombatRewards
   readonly wedgeArmed?: true
   readonly loot?: TreasureState
+  readonly rulesSix?: true
+  readonly bossRelic?: BossRelicState
+  readonly crownUsed?: true
 }
 
 const FOURTH_DIE_CHANNEL = 8
@@ -85,7 +91,7 @@ function openYachtDice(battle: YachtBattle): YachtBattle {
 
 export function startYachtBattle(
   seed: number, playerHp: number, fourthDie: boolean, extraReroll: boolean, perk?: PerkState,
-  enemy?: Enemy, enemyAttackBuff = 0, loot?: TreasureState,
+  enemy?: Enemy, enemyAttackBuff = 0, loot?: TreasureState, rulesSix?: true, bossRelic?: BossRelicState,
 ): YachtBattle {
   const battle: YachtBattle = {
     ...startBattle(seed, enemy?.intents),
@@ -96,6 +102,8 @@ export function startYachtBattle(
     ...(perk && { perk }),
     ...(fourthDie && { fourthDieUnlocked: true }),
     ...(loot && { loot }),
+    ...(rulesSix && { rulesSix }),
+    ...(bossRelic && { bossRelic }),
   }
   return openYachtDice(battle)
 }
@@ -221,9 +229,34 @@ export function yachtAllocationTotals(battle: YachtBattle, slots = battle.slots,
 
 type YachtForecast = ReturnType<typeof forecast> & { usedRelics: Relic[]; loot?: TreasureState; theftThreshold?: number; eraseCritical?: boolean }
 
-export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = battle.dice): YachtForecast {
+export const GIMMICK_REQUIREMENTS = {
+  trip: { slot: 'attack', face: 1, name: '발목 걸기' },
+  armor: { slot: 'attack', face: null, name: '갑옷 벗기기' },
+  reflect: { slot: 'guard', face: 5, name: '되돌아온 철추' },
+  topple: { slot: 'attack', face: 3, name: '넘어뜨리기' },
+  retreat: { slot: 'attack', face: 2, name: '호위 퇴각' },
+} as const satisfies Record<Gimmick, { slot: Slot; face: number | null; name: string }>
+
+export function yachtGimmick(battle: YachtBattle, slots = battle.slots, dice = battle.dice) {
+  const intent = enemyIntentAt(battle)
+  const kind = intent.gimmick ?? (battle.rulesSix && battle.escort && intent.id !== 'knockdown' ? 'retreat' : undefined)
+  if (!kind || (kind === 'armor' && battle.armorBroken)) return null
+  const requirement = GIMMICK_REQUIREMENTS[kind]
+  const faces = facesInSlot(dice, slots, requirement.slot)
+  const ready = requirement.face === null ? new Set(faces).size < faces.length : faces.includes(requirement.face)
+  return { kind, ...requirement, ready }
+}
+
+export function emperorShieldActive(battle: YachtBattle) {
+  return battle.bossRelic?.id === 'emperor-shield' && battle.turn === 1
+}
+
+export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = battle.dice,
+  gimmick: ReturnType<typeof yachtGimmick> = yachtGimmick(battle, slots, dice)): YachtForecast {
+  if (gimmick?.ready && gimmick.kind === 'retreat') battle = { ...battle, escort: undefined }
   const totals = yachtAllocationTotals(battle, slots, dice)
-  const base = forecast(battle, slots, dice, totals)
+  const suppress = gimmick?.ready && gimmick.kind === 'reflect' ? 'reflect' : emperorShieldActive(battle) ? EMPEROR_SHIELD_CAP : undefined
+  const base = forecast(battle, slots, dice, totals, suppress)
   if (battle.loot) return { ...forecastTreasure(battle, battle.loot, base, totals, slots, dice), usedRelics: [] }
   const usedRelics: Relic[] = battle.wedgeArmed ? ['wedge'] : []
   const { rewards } = battle
@@ -350,7 +383,7 @@ export function yachtCounterRewards(battle: YachtBattle) {
 
 function resolvePerk(battle: YachtBattle, planned: ReturnType<typeof forecastYacht>, dice: readonly number[], enemyHp: number) {
   const { perk, slots } = battle
-  if (perk?.kind === 'shield' && planned.intent.hits.length > 0 && enemyHp > 0 && !(planned.intent.id === 'critical' && battle.erasedStrikeTurn === battle.turn)) {
+  if (perk?.kind === 'shield' && planned.incoming.totalDamage > 0 && enemyHp > 0) {
     return { ...perk, bonus: planned.counter ? perk.bonus + START_PERKS.shield.step : 0 }
   }
   const blade = bladeChargePreview(battle, dice)
@@ -380,6 +413,8 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
   }
 
   const planned = forecastYacht(battle)
+  const gimmick = yachtGimmick(battle)
+  const activated = gimmick?.ready ? gimmick.kind : undefined
   const inCrisis = planned.damage >= battle.playerHp || battle.playerHp * 10 <= PLAYER_HP * 3
   const awakened = !battle.awakened && inCrisis && draw(battle.seed, battle.turn, 5) / 0x100000000 < 0.1
   const mechanic = enemyIntentAt(battle).mechanic
@@ -387,15 +422,17 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
     battle.fixedDie?.index === index || (mechanic?.kind === 'seal' && face === mechanic.value) ? face : 6,
   ) : undefined
   const dice = awakenedDice ?? battle.dice
-  const result = awakenedDice ? forecastYacht(battle, battle.slots, awakenedDice) : planned
+  const result = awakenedDice ? forecastYacht(battle, battle.slots, awakenedDice, gimmick) : planned
   const hand = battle.loot?.sealDraft ? draftHand(battle, battle.dice, planned.counter) : turnHand(battle, dice, result.counter)
-  const playerHp = Math.max(0, battle.playerHp - result.damage)
+  const heartRevived = result.damage >= battle.playerHp && battle.bossRelic?.id === 'revived-heart' && !battle.bossRelic.heartUsed
+  const playerHp = heartRevived ? HEART_REVIVAL_HP : Math.max(0, battle.playerHp - result.damage)
   const enemyHp = battle.enemyHp - result.dealt
   const effect = enemyHp > 0 && playerHp > 0 ? result.intent.mechanic : undefined
-  const { stolenDie: previousTheft, escort: previousEscort, weakenedStrikeTurn: _weakenedStrikeTurn, erasedStrikeTurn: _erased, wedgeArmed: _wedgeArmed, ...rest } = battle
+  const { stolenDie: previousTheft, escort: previousEscort, weakenedStrikeTurn: _weakenedStrikeTurn,
+    erasedStrikeTurn: _erased, wedgeArmed: _wedgeArmed, interrupted: interruptedBefore, ...rest } = battle
   const stolenDie = effect?.kind === 'steal' && !previousTheft
     ? { remaining: result.theftThreshold ?? effect.value } : damageToStolenDie(battle, result.dealt)
-  const escort = previousEscort ? escortAfterDamage(previousEscort, result.escortDealt)
+  const escort = previousEscort ? activated === 'retreat' ? undefined : escortAfterDamage(previousEscort, result.escortDealt)
     : effect?.kind === 'escort' ? { hp: effect.hp, bonus: effect.bonus } : undefined
   const perk = resolvePerk(battle, planned, dice, enemyHp)
   let loot = result.loot
@@ -408,6 +445,13 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
     dice,
     playerHp,
     enemyHp,
+    ...(heartRevived && { bossRelic: { id: 'revived-heart', heartUsed: true } }),
+    ...(activated === 'armor' && enemyHp > 0 && { armorBroken: true }),
+    ...(interruptedBefore && activated === undefined && interruptedBefore.kind === 'trip' &&
+      enemyIntentAt({ ...battle, interrupted: undefined }).hits.length === 0 &&
+      { interrupted: { ...interruptedBefore, turn: battle.turn + 1 } }),
+    ...((activated === 'trip' || activated === 'topple') && enemyHp > 0 &&
+      { interrupted: { kind: activated, turn: battle.turn + 1 } }),
     ...(perk && { perk }),
     ...(loot && { loot }),
     ...(battle.rewards && result.usedRelics.length && { rewards: { ...battle.rewards, spent: [...battle.rewards.spent, ...result.usedRelics] } }),
@@ -426,6 +470,8 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
       ...(awakenedDice && { awakenedDice }),
       ...(result.escortDealt > 0 && { escortDealt: result.escortDealt }),
       ...(result.chargeBroken && { chargeBroken: true }),
+      ...(activated && { gimmick: activated }),
+      ...(heartRevived && { heartRevived: true }),
     },
   }
 
@@ -457,10 +503,16 @@ export function spinYachtCounter(battle: YachtBattle, choice?: CounterChoice): Y
   const { stolenDie: _stolenDie, ...rest } = { ...beforeSpin, ...spun }
   const stolenDie = damageToStolenDie(battle, battle.enemyHp - spun.enemyHp)
   const perk = battle.perk
+  const crownTriggered = battle.bossRelic?.id === 'brake-crown' && !battle.crownUsed && spun.turn > battle.turn
   const next = {
     ...rest,
     ...(loot && { loot }),
     ...(stolenDie && { stolenDie }),
+    ...(crownTriggered && {
+      crownUsed: true as const,
+      interrupted: { turn: spun.turn, kind: 'topple' as const },
+      lastExchange: { ...spun.lastExchange!, crownTriggered: true as const },
+    }),
     ...(perk?.kind === 'counter' && { perk: { ...perk, rewards, growth: perk.growth + START_PERKS.counter.step } }),
   }
   return next.turn > battle.turn ? openYachtDice(next) : expireBattleTreasure(next)

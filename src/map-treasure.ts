@@ -24,10 +24,11 @@ function rotate<T>(values: readonly T[], order: number): readonly T[] {
   return [...values.slice(index), ...values.slice(0, index)]
 }
 
-export function artifactChoices(run: Ascent, node: MapNode) {
+export function artifactChoices(run: Ascent, node: MapNode, previouslyAcquired = false) {
   const loot = run.battle.loot!
   return rotate(ARTIFACTS, draw(run.seed, node.id, 89)).filter((id) =>
-    !loot.acquired.includes(id) && (id !== 'incomplete' || run.unlocks.length < 2) &&
+    (previouslyAcquired ? loot.acquired.includes(id) && !loot.equipped.includes(id) : !loot.acquired.includes(id)) &&
+    (id !== 'incomplete' || run.unlocks.length < 2 && (run.route?.map.rules !== 6 || !loot.sealUsed)) &&
     (id !== 'heart-die' && id !== 'horn' || run.unlocks.includes('triple')),
   )
 }
@@ -56,6 +57,10 @@ export function treasureOffers(run: Ascent, node: MapNode): readonly Treasure[] 
     const stock = artifactChoices(run, node)
     return stock.length ? ['kit', stock[draw(run.seed, node.id, 85) % stock.length]] : ['kit']
   }
+  if (node.kind === 'elite' && run.route?.map.rules === 6) {
+    const fresh = artifactChoices(run, node)
+    return (fresh.length ? fresh : artifactChoices(run, node, true)).slice(0, 2)
+  }
 
   const { battle } = run
   const preferred = battle.perk?.kind === 'shield' || battle.perk?.kind === 'counter' ? 'buckle' : 'weight'
@@ -64,7 +69,8 @@ export function treasureOffers(run: Ascent, node: MapNode): readonly Treasure[] 
   const artifact = node.kind === 'elite' ? artifactChoices(run, node)[0] : undefined
   const seats: (Treasure | undefined)[] = [artifact ?? preferred, battle.playerHp <= BANDAGE_THRESHOLD ? 'bandage' : undefined, shard]
   const escortAhead = hasEscortAhead(run, node)
-  const fillers: Treasure[] = rotate(ITEMS, order).filter((id) => !seats.includes(id) && ((id !== 'knot' && id !== 'hook') || escortAhead))
+  const fillers: Treasure[] = rotate(ITEMS, order).filter((id) => !seats.includes(id) &&
+    (run.route?.map.rules !== 6 || id !== 'tongs' && id !== 'knot') && ((id !== 'knot' && id !== 'hook') || escortAhead))
   fillers.push(...PREPARATIONS)
   return seats.map((id) => id ?? fillers.shift()!)
 }
@@ -95,7 +101,7 @@ export function grantTreasure(run: Ascent, choice: Treasure, options: ArtifactOp
   if (!treasureEnabled(run, choice)) return null
   if (isArtifact(choice)) {
     if (choice === 'incomplete' && options.hand && run.unlocks.includes(options.hand)) return null
-    const equipped = equipArtifact(loot, choice, options)
+    const equipped = equipArtifact(loot, choice, options, run.route?.map.rules === 6 && currentTreasureRoom(run)?.kind === 'elite')
     if (!equipped) return null
     loot = equipped
   } else if (isItem(choice)) loot = { ...loot, items: changeCount(loot.items, choice, 1) }

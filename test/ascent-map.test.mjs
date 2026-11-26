@@ -4,7 +4,7 @@ import {
   ascentFinished, availableMapNodes, beginAscent, beginMapAscent, enterMapNode, resolveAscentTurn,
   returnToMap, rewardOffers, spinAscentCounter, takeAscentReward,
 } from '../src/ascent.ts'
-import { CURRENT_MAP_RULES, enemyForMapNode, generateAscentMap, MAP_FLOORS, MAP_START, mapPathIsValid, nextMapNodes } from '../src/ascent-map.ts'
+import { enemyForMapNode, generateAscentMap, MAP_FLOORS, MAP_START, mapPathIsValid, nextMapNodes } from '../src/ascent-map.ts'
 import { ASCENT_SAVE_KEY, loadAscentSave, readAscentSave, writeAscentSave } from '../src/ascent-save.ts'
 import { assignDie, attackFor, draw, enemyIntentAt } from '../src/combat.ts'
 import { ASCENT_ENEMIES } from '../src/enemy-roster.ts'
@@ -228,7 +228,7 @@ test('fork rules give distinct choices on floors 2–10, preserve the rest and b
   for (let seed = 0; seed < 4096; seed++) {
     const map = generateAscentMap(seed, 4)
     assert.deepEqual(generateAscentMap(seed, 4), map)
-    assert.deepEqual(generateAscentMap(seed, CURRENT_MAP_RULES).nodes, map.nodes)
+    assert.deepEqual(generateAscentMap(seed, 5).nodes, map.nodes)
     const merchant = map.nodes.filter(({ kind }) => kind === 'shop')
     assert.equal(merchant.length, 1)
     merchantFloors.add(merchant[0].floor)
@@ -248,8 +248,8 @@ test('fork rules give distinct choices on floors 2–10, preserve the rest and b
   assert(eventFloors.size > 2)
 })
 
-test('new map rules remove unlock damage while preserving elite and boss stats and bandage healing', () => {
-  const rules = CURRENT_MAP_RULES
+test('rules five remove unlock damage while preserving elite and boss stats and bandage healing', () => {
+  const rules = 5
   const map = generateAscentMap(0, rules)
   for (const node of map.nodes) {
     const enemy = enemyForMapNode(node, rules)

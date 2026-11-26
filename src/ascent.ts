@@ -1,5 +1,6 @@
 import { enemyForMapNode, generateAscentMap, MAP_FLOORS, MAP_REWARD_CHANNEL, MAP_START, nextMapNodes, victoryCoins } from './ascent-map.ts'
 import type { AscentMap, MapNode, MapRules } from './ascent-map.ts'
+import { BOSS_RELICS, isBossRelic } from './boss-relic.ts'
 import { draw, PLAYER_HP } from './combat.ts'
 import { ASCENT_ENEMIES, enemyForFight } from './enemy-roster.ts'
 import { startPerk } from './perks.ts'
@@ -65,7 +66,7 @@ export function beginMapAscent(seed: number, perk?: StartPerk, parity: Parity = 
   const enemy = enemyForMapNode(first, rules)!
   return {
     seed, fight: 0, enemy, maxHp: PLAYER_HP, unlocks: [], newUnlock: null,
-    battle: startYachtBattle(first.battleSeed, PLAYER_HP, false, false, startPerk(perk, parity), enemy, 0, rules >= 2 ? emptyTreasure : undefined),
+    battle: startYachtBattle(first.battleSeed, PLAYER_HP, false, false, startPerk(perk, parity), enemy, 0, rules >= 2 ? emptyTreasure : undefined, rules === 6 ? true : undefined),
     route: { map, completed: [], node: null, screen: 'map', ...(rules >= 3 && { coins: 0 }) },
   }
 }
@@ -81,6 +82,7 @@ function enterBattle(ascent: Ascent, enemy: Ascent['enemy'], fightSeed: number):
   const battle = startYachtBattle(
     fightSeed, previousBattle.playerHp, unlocks.includes('triple'), unlocks.includes('straight'), perk,
     enemy, unlocks.length * enemy.attackPerUnlock, previousBattle.loot && nextTreasureBattle(previousBattle.loot),
+    previousBattle.rulesSix, previousBattle.bossRelic,
   )
   const { rewards } = previousBattle
   return {
@@ -121,7 +123,8 @@ export function mapRewardOffers(seed: number, id: number, battle: YachtBattle): 
 }
 
 function settleBattle(ascent: Ascent): Ascent {
-  const { route, battle } = ascent
+  const { route } = ascent
+  let { battle } = ascent
   if (route?.screen !== 'battle' || route.node === null) return ascent
   const wallet = route.map.rules >= 3 ? { coins: 0 } : {}
   if (battle.phase === 'lost') return { ...ascent, route: { ...route, screen: 'finished', ...wallet } }
@@ -130,9 +133,12 @@ function settleBattle(ascent: Ascent): Ascent {
   if (node.floor === MAP_FLOORS) {
     return { ...ascent, route: { ...completeMapNode(route, 'finished'), ...wallet } }
   }
-  const offers = route.map.rules >= 2 ? treasureOffers(ascent, node) : mapRewardOffers(ascent.seed, route.node, battle)
+  const refill = battle.bossRelic?.id === 'healing-scepter' && (node.kind === 'fight' || node.kind === 'elite')
+  if (refill) battle = { ...battle, playerHp: ascent.maxHp }
+  const offers = node.enemyId === 'chain-warden' ? BOSS_RELICS
+    : route.map.rules >= 2 ? treasureOffers({ ...ascent, battle }, node) : mapRewardOffers(ascent.seed, route.node, battle)
   const coins = route.map.rules >= 3 ? { coins: (route.coins ?? 0) + victoryCoins(node.kind) } : {}
-  return { ...ascent, route: { ...route, screen: 'reward', offers, ...coins } }
+  return { ...ascent, battle, route: { ...route, screen: 'reward', offers, ...coins } }
 }
 
 export function resolveAscentTurn(ascent: Ascent): Ascent {
@@ -183,6 +189,14 @@ export function takeAscentReward(ascent: Ascent, choice: RewardChoice, options: 
   const atRoom = route && route.map.rules >= 2 && (route.screen === 'rest' || route.screen === 'event' || route.screen === 'shop')
   const atReward = route ? route.screen === 'reward' || atRoom : offers.length > 0
   if (!atReward || (choice !== 'skip' && !offers.includes(choice))) return ascent
+  const node = route?.node != null ? route.map.byId[route.node] : undefined
+  if (route && node?.enemyId === 'chain-warden') {
+    if (!isBossRelic(choice) || battle.bossRelic) return ascent
+    const playerHp = choice === 'healing-scepter' ? ascent.maxHp : battle.playerHp
+    return { ...ascent, rewardChoice: choice, battle: { ...battle, playerHp, bossRelic: { id: choice } },
+      route: { ...completeMapNode(route, 'return'), offers } }
+  }
+  if (isBossRelic(choice) || choice === 'skip' && route?.map.rules === 6 && node?.kind === 'elite' && offers.length) return ascent
   const purchase = route && route.map.rules >= 3 && route.screen === 'shop' && choice !== 'skip'
     ? { coins: (route.coins ?? 0) - shopPrice(choice), shopPurchase: choice } : {}
   const grantedAscent = { ...ascent, rewardChoice: choice, ...(route && { route: { ...completeMapNode(route, 'return'), offers, ...purchase } }) }

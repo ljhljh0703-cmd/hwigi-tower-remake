@@ -40,6 +40,9 @@
       <symbol id="icon-charge" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="m3 4 5 5V5M3 9h5m13-5-5 5V5m5 4h-5M3 20l5-5v4m-5-4h5m13 5-5-5v4m5-4h-5m-4-6 2 3-2 3-2-3Z"/></symbol>
       <symbol id="icon-knockdown" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M12 3v12m-5-5 5 5 5-5M4 20h16"/></symbol>
       <symbol id="icon-shield" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M12 3c2.5 2 5 3 8 3v6c0 4-3.5 7-8 9-4.5-2-8-5-8-9V6c3 0 5.5-1 8-3Z"/></symbol>
+      <symbol id="icon-crown" viewBox="0 0 24 24"><path d="m3 6 4 4 5-6 5 6 4-4-2 13H5Zm2 9h14"/></symbol>
+      <symbol id="icon-scepter" viewBox="0 0 24 24"><path d="m4 21 10-11m-3-3 5-5 5 5-5 5Zm-5 8 3 3"/></symbol>
+      <symbol id="icon-stacked-pair" viewBox="0 0 24 24"><path d="M8 4h12v12h-3M4 8h12v12H4Z"/><circle cx="10" cy="14" r="1.4" fill="currentColor" stroke="none"/></symbol>
       <symbol id="icon-parry" viewBox="0 0 24 24"><use href="#icon-shield"/><path vector-effect="non-scaling-stroke" d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
       <symbol id="icon-heart" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M12 20.5 4.7 13.4C-2 7 7 1 12 7c5-6 14 0 7.3 6.4Z"/></symbol>
       <symbol id="icon-die" viewBox="0 0 24 24">
@@ -213,6 +216,7 @@
       <div class="inventory-strip">
         <div id="reward-strip" role="group" aria-label="보유 보상" hidden></div>
         <div id="artifact-strip" role="group" aria-label="유물 세 칸" hidden></div>
+        <div id="boss-relic-slot" role="group" aria-label="보스 유물 한 칸" hidden></div>
       </div>
 
       <section id="ascent-fork" aria-labelledby="fork-heading" hidden>
@@ -228,6 +232,7 @@
       <div id="battle" hidden>
         <section class="encounter" aria-label="전장">
           <div id="arena" aria-hidden="true"></div>
+          <strong id="encounter-name" hidden></strong>
           <p id="intent" role="img" tabindex="0" data-hold-help></p>
           <div id="companion-flight" class="companion-tile" aria-hidden="true" hidden>
             <svg class="icon"><use href="#icon-companion-awake"/></svg>

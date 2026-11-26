@@ -161,7 +161,7 @@ export function forecastTreasure(battle: YachtBattle, state: TreasureState, base
   if (damage < battle.playerHp) {
     if (ready('weight') && eligibleAttack.some((face) => face % 2 === 1) && eligibleAttack.some((face) => face % 2 === 0) && addDamage(WEIGHT_BONUS)) loot = spendItem(loot, 'weight')
     if (ready('rewind') && battle.rerolled && attack.length === 1 && attack[0] >= 4 && addDamage(2)) loot = spendItem(loot, 'rewind')
-    const landedAttack = base.dealt > 0 || base.escortDealt > 0
+    const landedAttack = totals.attack > 0 && (base.dealt > 0 || base.escortDealt > 0)
     if (loot.prepared.whetstone && landedAttack && addDamage(2)) loot = spendPrep(loot, 'whetstone')
     if (loot.shardArmed === 'smash' && addDamage(Math.min(3, firstAttack))) loot = spendShard(loot, 'smash')
     const delayed = Math.max(mirrorDamage ?? 0, overflowDamage ?? 0)
