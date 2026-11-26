@@ -1,4 +1,4 @@
-import { SEVEN_CROWN_MULTIPLIER } from './boss-relic.ts'
+import { SEVEN_CROWN_DAMAGE_BONUS } from './boss-relic.ts'
 
 export const PLAYER_HP = 22
 const MAX_ENEMY_DAMAGE = PLAYER_HP - 1
@@ -25,6 +25,7 @@ export interface EnemyIntent {
   readonly matches: (turn: number) => boolean
   readonly chargeThreshold?: number
   readonly damageTakenMultiplier?: number
+  readonly damageTakenBonus?: number
   readonly mechanic?: EnemyMechanic
   readonly gimmick?: Gimmick
 }
@@ -147,8 +148,9 @@ type IntentContext = Pick<Battle, 'turn' | 'enemyIntents' | 'interrupted'> & {
 
 export function enemyIntentAt({ turn, enemyIntents = ENEMY_INTENTS, interrupted, itemsSeven, lastExchange }: IntentContext): EnemyIntent {
   if (interrupted?.turn === turn && interrupted.kind === 'topple') {
-    const damageTakenMultiplier = itemsSeven && lastExchange?.crownTriggered ? SEVEN_CROWN_MULTIPLIER : 2
-    return { id: 'knockdown', name: '넉다운', hits: [], damageTakenMultiplier, matches: () => true }
+    const damage = itemsSeven && lastExchange?.crownTriggered
+      ? { damageTakenBonus: SEVEN_CROWN_DAMAGE_BONUS } : { damageTakenMultiplier: 2 }
+    return { id: 'knockdown', name: '넉다운', hits: [], ...damage, matches: () => true }
   }
   if (interrupted?.turn === turn && selectEnemyIntent(turn, enemyIntents).hits.length) {
     return { id: 'stunned', name: '기절', hits: [], matches: () => true }
@@ -213,8 +215,10 @@ export function allocationTotals(battle: Battle, slots = battle.slots, dice = ba
 export type SlotTotals = ReturnType<typeof allocationTotals>
 
 export function allocationPower(battle: Battle, totals = allocationTotals(battle), attackMultiplier?: number): SlotTotals {
-  const multiplier = Math.max(attackMultiplier ?? 1, enemyIntentAt(battle).damageTakenMultiplier ?? 1, battle.armorBroken ? 1.5 : 1)
-  return multiplier === 1 ? totals : { ...totals, attack: Math.floor(totals.attack * multiplier) }
+  const intent = enemyIntentAt(battle)
+  const multiplier = Math.max(attackMultiplier ?? 1, intent.damageTakenMultiplier ?? 1, battle.armorBroken ? 1.5 : 1)
+  const bonus = totals.attack > 0 ? (intent.damageTakenBonus ?? 0) : 0
+  return multiplier === 1 && bonus === 0 ? totals : { ...totals, attack: Math.floor(totals.attack * multiplier) + bonus }
 }
 
 export function respondingIntent(intent: EnemyIntent, attack: number): EnemyIntent {

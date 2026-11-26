@@ -38,7 +38,7 @@ export function treasureRecord(value: unknown, dice: readonly number[], companio
   if (armed !== undefined && (!artifacts(armed) || !armed.every((id) => (id === 'banner' || id === 'hammer') && equipped.includes(id)))) return false
   if (shardArmed !== undefined && (shardArmed !== 'assist' && shardArmed !== 'smash')) return false
   const mirrorCap = seven ? SEVEN_ITEM_VALUES.mirrorCap : 12
-  const overflowCap = seven ? SEVEN_ITEM_VALUES.overflowCap : 6
+  const overflowCap = seven ? Math.max(12, SEVEN_ITEM_VALUES.overflowCap) : 6
   if (mirrorDamage !== undefined && !integer(mirrorDamage, 1, mirrorCap) || overflowDamage !== undefined && !integer(overflowDamage, 1, overflowCap)) return false
   if (counter !== undefined && (phase !== 'counter' || !object(counter) || !integer(counter.slot, 0, 5) || !integer(counter.damage, 1) || typeof counter.joint !== 'boolean')) return false
   if (counterFlags !== undefined && (phase !== 'counter' || !object(counterFlags) || !['coin', 'assist', 'horn'].every((field) => typeof counterFlags[field] === 'boolean'))) return false

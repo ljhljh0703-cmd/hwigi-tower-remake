@@ -5,7 +5,7 @@ import {
 } from './combat.ts'
 import type { Battle, CounterResult, Enemy, EnemyMechanic, Slot } from './combat.ts'
 import type { Gimmick } from './combat.ts'
-import { EMPEROR_SHIELD_CAP, HEART_REVIVAL_HP, SEVEN_HEART_REVIVAL_HP } from './boss-relic.ts'
+import { EMPEROR_SHIELD_CAP, HEART_REVIVAL_HP, SEVEN_HEART_REVIVAL_HP, SEVEN_SCEPTER_REROLL_COST } from './boss-relic.ts'
 import type { BossRelicState } from './boss-relic.ts'
 import { collectorBonus, START_PERKS } from './perks.ts'
 import type { CollectedHand, PerkState } from './perks.ts'
@@ -128,12 +128,13 @@ export function canReroll(battle: YachtBattle, index: number): boolean {
 }
 
 export function rerollYachtDice(battle: YachtBattle, indices: readonly number[]): YachtBattle {
-  const cost = yachtRerollCost(battle)
-  if (cost === null || cost >= battle.playerHp || !indices.length || !indices.every((index) => canReroll(battle, index))) {
+  const reroll = nextYachtReroll(battle)
+  if (!reroll || reroll.cost >= battle.playerHp || !indices.length || !indices.every((index) => canReroll(battle, index))) {
     return battle
   }
+  const basic = reroll.kind === 'basic'
   const chosen = new Set(indices)
-  const channels = cost > 0 ? paidRerollChannels : basicRerollChannels
+  const channels = basic ? basicRerollChannels : paidRerollChannels
   let drawIndex = 0
   const dice = battle.dice.map((face, index) => {
     if (!chosen.has(index)) return face
@@ -141,24 +142,28 @@ export function rerollYachtDice(battle: YachtBattle, indices: readonly number[])
     return battle.fourthDieUnlocked && index === battle.dice.length - 1 ? companionFace(battle, next) : next
   })
   const rolled: YachtBattle = {
-    ...battle, dice, playerHp: battle.playerHp - cost, rerolled: true,
-    ...(cost > 0 && { paidRerollSpent: true }),
+    ...battle, dice, playerHp: battle.playerHp - reroll.cost, rerolled: true,
+    ...(!basic && { paidRerollSpent: true }),
   }
-  return battle.itemsSeven && cost === 0 ? startReserveRoll(battle, rolled, chosen) : rolled
+  return battle.itemsSeven && basic ? startReserveRoll(battle, rolled, chosen) : rolled
 }
 
-export function yachtRerollCost(battle: YachtBattle): number | null {
+export function nextYachtReroll(battle: YachtBattle): { kind: 'basic' | 'perk'; cost: number } | null {
   if (battle.phase !== 'assign' || battle.loot?.sealDraft || battle.loot?.hourglass || battle.loot?.reserveRoll) return null
-  if (!battle.rerolled && basicRerollLimit(battle) > 0) return 0
-  return battle.perk?.kind === 'reroll' && !battle.paidRerollSpent ? START_PERKS.reroll.cost : null
+  if (!battle.rerolled) return { kind: 'basic', cost: basicRerollCost(battle) }
+  return battle.perk?.kind === 'reroll' && !battle.paidRerollSpent ? { kind: 'perk', cost: START_PERKS.reroll.cost } : null
 }
 
-export function basicRerollLimit(battle: YachtBattle) {
-  return Math.max(0, 1 - Number(Boolean(battle.itemsSeven && battle.bossRelic?.id === 'healing-scepter')))
+export function yachtRerollCost(battle: YachtBattle) {
+  return nextYachtReroll(battle)?.cost ?? null
+}
+
+function basicRerollCost(battle: YachtBattle) {
+  return battle.itemsSeven && battle.bossRelic?.id === 'healing-scepter' && battle.turn === 1 ? SEVEN_SCEPTER_REROLL_COST : 0
 }
 
 export function canUseExtraReroll(battle: YachtBattle) {
-  return battle.extraRerollAvailable && (battle.rerolled || basicRerollLimit(battle) === 0)
+  return battle.extraRerollAvailable && (battle.rerolled || basicRerollCost(battle) >= battle.playerHp)
 }
 
 export function spendExtraReroll(battle: YachtBattle, index: number): YachtBattle {

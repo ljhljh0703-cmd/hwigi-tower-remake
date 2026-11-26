@@ -114,7 +114,8 @@ function battleRecord(value: unknown, seed: number, enemy: Ascent['enemy'], rule
   if (lastExchange === null ? phase !== 'assign' : !exchange(lastExchange, rulesTwo)) return false
   if (!integer(value.enemyAttackBuff) || value.enemyAttackGrowth !== enemy.attackGrowth || !perk(value.perk) || !combatRewards(value.rewards)) return false
   if (seven && record(value.perk)) {
-    if (value.perk.kind === 'shield' && value.perk.bonus !== 0 && value.perk.bonus !== 4 && value.perk.bonus !== SEVEN_ITEM_VALUES.shieldStock) return false
+    if (value.perk.kind === 'shield' && value.perk.bonus !== 0 && value.perk.bonus !== 4 &&
+      value.perk.bonus !== 9 && value.perk.bonus !== SEVEN_ITEM_VALUES.shieldStock) return false
     if (value.perk.kind === 'counter' && !integer(value.perk.growth, 0, SEVEN_ITEM_VALUES.counterLimit)) return false
     if (value.perk.kind === 'collector' && !(Array.isArray(value.perk.hands) && value.perk.hands.every(hand))) return false
   }

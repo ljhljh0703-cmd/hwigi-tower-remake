@@ -670,12 +670,17 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
       display('knockdown', `×${multiplier}`, `적이 쓰러져 있어 이번 공격이 ${multiplier}배예요.`)
       return
     }
+    if (intent.damageTakenBonus !== undefined) {
+      const bonus = intent.damageTakenBonus
+      display('knockdown', `+${bonus}`, `적이 쓰러져 있어 이번 공격 피해가 ${bonus} 올라요.`)
+      return
+    }
     const mechanic = intent.mechanic
     const { hits } = incomingAttack(attackingBattle, totals)
     if (emperorShieldActive(battle) && hits.length) {
       const remaining = forecastYacht(battle).incoming
       display('shield', remaining.hits.length ? hitNumbers(remaining.hits) : '0', battle.itemsSeven
-        ? '첫 턴 막고 남은 적 공격 피해를 최대 7 줄입니다.' : `황제의 방패 적용 · 남은 공격 ${remaining.totalDamage}`,
+        ? `첫 턴 막고 남은 적 공격 피해를 최대 ${SEVEN_EMPEROR_SHIELD_CAP} 줄입니다.` : `황제의 방패 적용 · 남은 공격 ${remaining.totalDamage}`,
       battle.itemsSeven ? `${icon('shield')}−${SEVEN_EMPEROR_SHIELD_CAP}` : '')
       return
     }

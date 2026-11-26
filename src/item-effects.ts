@@ -30,7 +30,7 @@ export function canSelectItemDie(battle: YachtBattle, index: number) {
 export function toggleConsumable(battle: YachtBattle, id: ArmedConsumable): YachtBattle {
   const { loot } = battle
   if (!battle.itemsSeven || battle.phase !== 'assign' || !loot || !consumableReady(loot, id) || loot.reserveRoll) return battle
-  if (id === 'reserve-gauge' && (battle.rerolled || battle.bossRelic?.id === 'healing-scepter')) return battle
+  if (id === 'reserve-gauge' && battle.rerolled) return battle
   return { ...battle, loot: { ...loot, consumableArmed: loot.consumableArmed === id ? undefined : id } }
 }
 
@@ -90,7 +90,7 @@ export function boostSevenAllocation(battle: YachtBattle, totals: SlotTotals, sl
   const highest = Math.max(0, ...attack)
   const armed = loot?.consumableArmed
   const whetstone = battle.turn === 1 && Boolean(loot?.prepared.whetstone) ? SEVEN_ITEM_VALUES.whetstonePips * attack.length : 0
-  const banner = loot?.armed?.includes('banner') ? Math.floor(highest * SEVEN_ITEM_VALUES.bannerMultiplier) : 0
+  const banner = loot?.armed?.includes('banner') ? highest * SEVEN_ITEM_VALUES.bannerMultiplier : 0
   let item: ArmedConsumable | undefined
   let bonus = 0
   if (armed === 'weight' && highest) {
@@ -142,8 +142,7 @@ export function forecastSevenTreasure(battle: YachtBattle, base: ReturnType<type
     if (inflicted.dealt < battle.enemyHp) {
       if (base.incoming.totalDamage > 0 && allocation.totals.guard > base.incoming.totalDamage && artifactReady(loot, 'overflow')) {
         const surplus = allocation.totals.guard - base.incoming.totalDamage
-        loot = { ...spendSevenArtifact(loot, 'overflow'),
-          overflowDamage: Math.min(SEVEN_ITEM_VALUES.overflowCap, Math.floor(surplus * SEVEN_ITEM_VALUES.overflowMultiplier)) }
+        loot = { ...spendSevenArtifact(loot, 'overflow'), overflowDamage: Math.min(SEVEN_ITEM_VALUES.overflowCap, surplus) }
       }
       if (loot.latchDraft !== undefined && canSelectItemDie(battle, loot.latchDraft)) {
         loot = { ...spendSevenArtifact(loot, 'die-latch'), latched: { index: loot.latchDraft, face: battle.dice[loot.latchDraft] } }

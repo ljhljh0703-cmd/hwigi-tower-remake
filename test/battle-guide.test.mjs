@@ -40,6 +40,6 @@ test('the rules-seven guide replaces the retired loot and its own relic text', (
   }
   assert.match(current, /쌍금 틀/)
   assert.match(current, /룰렛 피해는 절반/)
-  assert.match(current, /기본 재굴림이 1회/)
+  assert.match(current, /기본 재굴림에 체력 1/)
   assert.match(JSON.stringify(battleGuideFor(6)), /호위 갈고리/)
 })

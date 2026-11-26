@@ -4,6 +4,7 @@ import { expect, test } from '@playwright/test'
 import { availableMapNodes, beginMapAscent, enterMapNode, rewardOffers } from '../src/ascent.ts'
 import { generateAscentMap } from '../src/ascent-map.ts'
 import { ASCENT_SAVE_KEY } from '../src/ascent-save.ts'
+import { BOSS_RELICS, SEVEN_BOSS_RELICS } from '../src/boss-relic.ts'
 import { treasureOffers } from '../src/map-treasure.ts'
 import { checkpoint, eliteWithThreeArtifacts, encounter, mapBefore } from './rules-six-fixtures.mjs'
 
@@ -141,7 +142,9 @@ test('규칙판 7 보상을 받아 쓰고 강적·보스·상점을 거쳐 문�
   const bossCards = page.locator('#reward-cards button')
   await expect(bossCards).toHaveCount(4)
   await expect(card(page, 'revived-heart').locator('.relic-cost use')).toHaveAttribute('href', '#icon-healing')
-  await expect(bossCards.locator('.relic-cost')).toHaveText(['½', '½', '0', '−1'])
+  await expect(bossCards.locator('.relic-cost')).toHaveText(BOSS_RELICS.map((id) => SEVEN_BOSS_RELICS[id].cost[1]))
+  await card(page, 'healing-scepter').tap()
+  await expect(page.locator('#reward-preview')).toContainText('기본 재굴림에 체력 1')
   await card(page, 'emperor-shield').tap()
   await expect(page.locator('#reward-preview')).toContainText('룰렛 피해는 절반')
   await shot(page, info, 'boss-relics', [...await bossCards.all(), choose(page)])
@@ -291,4 +294,20 @@ test('예비 눈금의 선택과 새긴 동전의 두 번째 칸을 새로고침
   await page.getByRole('button', { name: '지금 룰렛 피해 주기' }).tap()
   await expect.poll(async () => (await saved(page)).battle.lastExchange.counter?.slot).toBe(second.slot)
   expect((await saved(page)).battle.loot.consumables).toEqual({})
+})
+
+test('회복 왕홀을 장착하면 기본 재굴림에서 체력 1을 한 번 내고 그 상태로 재진입한다', async ({ page }) => {
+  const run = encounter('shield-soldier', 8, 7)
+  await resume(page, { ...run, battle: { ...run.battle, playerHp: 12, bossRelic: { id: 'healing-scepter' } } })
+  await page.getByRole('button', { name: /^주사위 1,/ }).tap()
+  const reroll = page.getByRole('button', { name: '다시 굴리기, 체력 1 소모' })
+  await expect(reroll).toBeEnabled()
+  await reroll.tap()
+  await expect.poll(async () => (await saved(page)).battle.playerHp).toBe(11)
+  await reloadRun(page)
+  const restored = (await saved(page)).battle
+  expect(restored.playerHp).toBe(11)
+  expect(restored.rerolled).toBe(true)
+  expect(restored.paidRerollSpent).toBeUndefined()
+  await expect(page.locator('#reroll')).toBeDisabled()
 })

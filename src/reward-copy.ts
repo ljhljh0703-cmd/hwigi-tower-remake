@@ -46,7 +46,7 @@ export const SEVEN_REWARD_VALUES: Readonly<Partial<Record<Treasure, string>>> = 
   weight: '+최고 눈', buckle: '−3', wedge: '+3', coin: '↻1', tuning: '±1', whetstone: `+${SEVEN_ITEM_VALUES.whetstonePips}/개`, lining: '−4',
   incomplete: '2→3', hourglass: '−2 · 1~6', banner: `최고 눈 ×${SEVEN_ITEM_VALUES.bannerMultiplier}`, horn: `→${SEVEN_ITEM_VALUES.hornDamage}`, bandage: '+5',
   mirror: `×${SEVEN_ITEM_VALUES.mirrorMultiplier} → ≤${SEVEN_ITEM_VALUES.mirrorCap}`,
-  overflow: `×${SEVEN_ITEM_VALUES.overflowMultiplier} → ≤${SEVEN_ITEM_VALUES.overflowCap}`,
+  overflow: `≤${SEVEN_ITEM_VALUES.overflowCap} →`,
 }
 
 const SEVEN_REWARD_TEXT: Readonly<Partial<Record<Treasure, string>>> = {
@@ -59,10 +59,10 @@ const SEVEN_REWARD_TEXT: Readonly<Partial<Record<Treasure, string>>> = {
   lining: '다음 전투에서 처음 받는 적 공격 피해를 최대 4 줄입니다.',
   incomplete: '등반당 한 번, 공격 칸의 같은 눈 둘로 에고 주사위를 해금합니다.',
   hourglass: '전투당 한 번, 체력 2를 내고 일반 주사위 하나를 원하는 눈으로 맞춥니다.',
-  banner: `전투당 한 번, 공격 칸의 가장 높은 눈의 ${SEVEN_ITEM_VALUES.bannerMultiplier}배(내림)를 방어 합에 더합니다.`,
+  banner: `전투당 한 번, 공격 칸의 가장 높은 눈의 ${SEVEN_ITEM_VALUES.bannerMultiplier}배를 방어 합에 더합니다.`,
   horn: `전투당 한 번, 낮은 일반 반격을 에고 합공 피해 ${SEVEN_ITEM_VALUES.hornDamage}로 바꿉니다.`,
   mirror: `전투당 한 번, 룰렛 피해를 미뤄 다음 턴 공격에 ${SEVEN_ITEM_VALUES.mirrorMultiplier}배(최대 ${SEVEN_ITEM_VALUES.mirrorCap})로 더합니다.`,
-  overflow: `전투당 한 번, 초과 방어의 ${SEVEN_ITEM_VALUES.overflowMultiplier}배(최대 ${SEVEN_ITEM_VALUES.overflowCap})를 다음 턴 공격 피해에 더합니다.`,
+  overflow: `전투당 한 번, 초과 방어만큼(최대 ${SEVEN_ITEM_VALUES.overflowCap}) 다음 턴 공격 피해를 더합니다.`,
   bandage: '체력 14 이하에서 고르면 체력이 5 오릅니다.',
 }
 

@@ -1,6 +1,6 @@
 import { enemyForMapNode, generateAscentMap, MAP_FLOORS, MAP_REWARD_CHANNEL, MAP_START, nextMapNodes, victoryCoins } from './ascent-map.ts'
 import type { AscentMap, MapNode, MapRules } from './ascent-map.ts'
-import { BOSS_RELICS, isBossRelic } from './boss-relic.ts'
+import { BOSS_RELICS, isBossRelic, SEVEN_SCEPTER_HEAL } from './boss-relic.ts'
 import { draw, PLAYER_HP } from './combat.ts'
 import { ASCENT_ENEMIES, enemyForFight } from './enemy-roster.ts'
 import { startPerk } from './perks.ts'
@@ -138,11 +138,17 @@ function settleBattle(ascent: Ascent): Ascent {
     return { ...ascent, route: { ...completeMapNode(route, 'finished'), ...wallet } }
   }
   const refill = battle.bossRelic?.id === 'healing-scepter' && (node.kind === 'fight' || node.kind === 'elite')
-  if (refill) battle = { ...battle, playerHp: ascent.maxHp }
+  if (refill) {
+    battle = { ...battle, playerHp: scepterHealing(ascent, battle) }
+  }
   const offers = node.enemyId === 'chain-warden' ? BOSS_RELICS
     : route.map.rules >= 2 ? treasureOffers({ ...ascent, battle }, node) : mapRewardOffers(ascent.seed, route.node, battle)
   const coins = route.map.rules >= 3 ? { coins: (route.coins ?? 0) + victoryCoins(node.kind) } : {}
   return { ...ascent, battle, route: { ...route, screen: 'reward', offers, ...coins } }
+}
+
+function scepterHealing(ascent: Ascent, battle: YachtBattle) {
+  return battle.itemsSeven ? Math.min(ascent.maxHp, battle.playerHp + SEVEN_SCEPTER_HEAL) : ascent.maxHp
 }
 
 export function resolveAscentTurn(ascent: Ascent): Ascent {
@@ -212,7 +218,7 @@ export function takeAscentReward(ascent: Ascent, choice: RewardChoice, options: 
   const node = route?.node != null ? route.map.byId[route.node] : undefined
   if (route && node?.enemyId === 'chain-warden') {
     if (!isBossRelic(choice) || battle.bossRelic) return ascent
-    const playerHp = choice === 'healing-scepter' ? ascent.maxHp : battle.playerHp
+    const playerHp = choice === 'healing-scepter' ? scepterHealing(ascent, battle) : battle.playerHp
     return { ...ascent, rewardChoice: choice, battle: { ...battle, playerHp, bossRelic: { id: choice } },
       route: { ...completeMapNode(route, 'return'), offers } }
   }
