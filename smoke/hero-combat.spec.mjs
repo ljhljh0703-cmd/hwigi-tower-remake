@@ -95,6 +95,7 @@ async function resume(page, run) {
   await page.evaluate(({ key, json }) => localStorage.setItem(key, json), { key: ASCENT_SAVE_KEY, json })
   await page.reload()
   await page.locator('#continue-ascent').tap()
+  await expect(page.locator('#room-transition')).toBeHidden()
   await expect(page.locator('#resolve')).toBeVisible()
 }
 

@@ -13,6 +13,7 @@ async function resume(page, run, preview) {
   await page.evaluate(({ key, json }) => localStorage.setItem(key, json), { key: ASCENT_SAVE_KEY, json })
   await page.reload()
   await page.getByRole('button', { name: '이어 하기' }).tap()
+  await expect(page.locator('#room-transition')).toBeHidden()
 }
 
 async function photograph(page, name, info, root = process.env.HWIGI_RETURN_SHOTS) {

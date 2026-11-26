@@ -14,6 +14,7 @@ const save = (page) => page.evaluate((key) => JSON.parse(localStorage.getItem(ke
 const progress = (page) => page.evaluate((key) => JSON.parse(localStorage.getItem(key)), FIRST_RUN_KEY)
 
 async function checkNote(page, id, text, photo, info) {
+  await expect(page.locator('#room-transition')).toBeHidden()
   await expect(note(page)).toHaveAttribute('data-guide', id)
   await expect(line(page)).toHaveText(text)
   await expect(note(page)).toBeInViewport({ ratio: 1 })
@@ -42,6 +43,7 @@ async function resume(page, run) {
   await page.evaluate(({ key, json }) => localStorage.setItem(key, json), { key: ASCENT_SAVE_KEY, json })
   await page.reload()
   await page.locator('#continue-ascent').tap()
+  await expect(page.locator('#room-transition')).toBeHidden()
 }
 
 test('첫 등반에서 첫 공격을 하고 정확 방어 뒤 룰렛, 보상, 갈림길과 기믹을 본다', async ({ page }, info) => {
@@ -199,6 +201,7 @@ test('키보드로 배치하고 재개할 수 있고 건너뛰기와 다시 보�
   expect((await progress(page)).complete).toBe(true)
   await page.reload()
   await page.locator('#continue-ascent').press('Enter')
+  await expect(page.locator('#room-transition')).toBeHidden()
   await expect(note(page)).toBeHidden()
   const current = await save(page)
   await page.locator('#battle-settings').press('Enter')
