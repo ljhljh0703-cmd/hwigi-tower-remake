@@ -39,6 +39,8 @@ interface Note {
 interface Lesson extends Note {
   marks: readonly HTMLElement[]
   from?: HTMLElement
+  arrows?: readonly HTMLElement[]
+  guardGoal?: number
   to?: HTMLElement
 }
 
@@ -60,6 +62,7 @@ export class FirstRunGuide {
   private note = document.querySelector<HTMLElement>('#first-run-note')!
   private line = document.querySelector<HTMLElement>('#first-run-line')!
   private pointer = document.querySelector<HTMLElement>('#first-run-point')!
+  private guardGoal = document.querySelector<HTMLElement>('#guard-goal')!
   private status = document.querySelector<HTMLElement>('#first-run-status')!
   private skipButton = document.querySelector<HTMLButtonElement>('#skip-first-run')!
   private active?: Note
@@ -135,6 +138,7 @@ export class FirstRunGuide {
     this.available = []
     this.note.hidden = true
     this.pointer.hidden = true
+    this.guardGoal.hidden = true
     this.status.textContent = ''
   }
 
@@ -142,6 +146,8 @@ export class FirstRunGuide {
     window.clearTimeout(this.timer)
     for (const mark of this.lesson?.marks ?? []) delete mark.dataset.firstRunTarget
     this.lesson = lesson
+    this.guardGoal.hidden = lesson.guardGoal === undefined
+    if (lesson.guardGoal !== undefined) this.guardGoal.textContent = `/${lesson.guardGoal}`
     for (const mark of lesson.marks) mark.dataset.firstRunTarget = ''
     this.show(lesson)
   }
@@ -198,7 +204,26 @@ export class FirstRunGuide {
     beside?.classList.toggle('below-first-run-note', !fitsBeside)
     this.note.style.left = `${Math.max(fitsBeside ? besideLeft : 6, Math.min(box.left + (box.width - width) / 2, lastLeft))}px`
 
-    const { from, to } = this.lesson ?? {}
+    const { from, arrows, to } = this.lesson ?? {}
+    if (arrows?.length && to) {
+      this.pointer.hidden = false
+      this.pointer.dataset.mode = 'arrows'
+      this.pointer.style.left = '0'
+      this.pointer.style.top = '0'
+      const seats = to.querySelectorAll('.die-seat')
+      this.pointer.querySelector('g')!.innerHTML = arrows.map((die, index) => {
+        const source = die.getBoundingClientRect()
+        const seat = (seats[index] ?? to).getBoundingClientRect()
+        const x = source.left + source.width / 2
+        const y = source.bottom + 3
+        const endX = seat.left + seat.width / 2
+        const endY = seat.top + seat.height / 2
+        const bend = (y + endY) / 2
+        return `<path d="M${x},${y} C${x},${bend} ${endX},${bend} ${endX},${endY}" marker-end="url(#first-run-arrow)"/>`
+      }).join('')
+      return
+    }
+    delete this.pointer.dataset.mode
     this.pointer.hidden = !from || !to
     if (!from || !to) return
     const source = from.getBoundingClientRect()

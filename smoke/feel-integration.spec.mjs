@@ -99,6 +99,20 @@ for (const [kind, dice, time, glyph] of [
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     await page.addInitScript(() => {
       localStorage.setItem('hwigi-tower.settings', JSON.stringify({ music: false, effects: false }))
+      const animate = Element.prototype.animate
+      Element.prototype.animate = function (...args) {
+        const animation = animate.apply(this, args)
+        if (this.id === 'parry-flash') {
+          animation.pause()
+          animation.currentTime = 32
+          window.parryFlashFrame = animation
+        } else if (this.id === 'counter-wheel') {
+          animation.pause()
+          animation.currentTime = 180
+          window.rouletteSpinFrame = animation
+        }
+        return animation
+      }
     })
     const run = withBattle(encounter('thorns', 1), { dice, slots: ['guard', 'guard', 'guard'] })
     await resume(page, run)
@@ -109,12 +123,25 @@ for (const [kind, dice, time, glyph] of [
     await expect(cue.locator('use')).toHaveAttribute('href', `#icon-${glyph}`)
     const panel = page.locator('#counter-panel')
     await expect(panel).toBeHidden()
-    if (kind === 'exact') await expect(cue.locator('span')).not.toHaveCSS('display', 'none')
-    else await expect(cue.locator('span')).toHaveCSS('display', 'none')
+    await expect(page.locator('#resolve')).toBeDisabled()
+    if (kind === 'exact') {
+      await expect(cue.locator('span')).not.toHaveCSS('display', 'none')
+      await expect(page.locator('#parry-flash')).toBeVisible()
+    } else {
+      await expect(cue.locator('span').first()).toHaveCSS('display', 'none')
+      await expect(cue.locator('.guard-amount')).toHaveText('0+4')
+      await expect(page.locator('#player-hp')).toHaveJSProperty('value', 22)
+    }
     await photograph(page, info, `guard-${kind}`)
     if (kind === 'exact') {
+      await page.evaluate(() => window.parryFlashFrame.finish())
       await page.clock.resume()
       await expect(panel).toHaveAttribute('data-roll-state', 'spinning')
+      await expect(page.locator('#counter-auto')).toBeVisible()
+      await expect(page.locator('#counter-range')).toHaveText(/\d+–\d+/)
+      await expect(page.locator('#counter-wheel')).toHaveCSS('background-image', /wheel-locked|rgb\(22, 21, 18\)/)
+      await photograph(page, info, 'roulette-spinning')
+      await page.evaluate(() => window.rouletteSpinFrame.finish())
     }
     expect(await page.evaluate(() => window.playedEffects)).toEqual([])
   })
@@ -127,16 +154,41 @@ for (const [impact, face, enemyHp, scale] of [
 ]) {
   test(`피해 숫자의 ${impact} 표시가 실제 피해와 격파에 맞는다`, async ({ page }, info) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.addInitScript(() => {
+      const animate = Element.prototype.animate
+      Element.prototype.animate = function (...args) {
+        const animation = animate.apply(this, args)
+        if (this.id === 'intent') {
+          animation.pause()
+          animation.currentTime = 90
+          window.intentFrame = animation
+        }
+        return animation
+      }
+    })
     await resume(page, withBattle(encounter('thorns', 1), {
       dice: [face, 3, 4], slots: ['attack', 'guard', 'guard'], enemyHp,
     }))
     await stopAtContact(page, 115)
     const number = page.locator('#enemy-damage .damage-number')
-    await expect(number).toHaveText(`적−${face}`)
+    await expect(number).toHaveText(`−${face}`)
     await expect(number).toHaveAttribute('data-impact', impact)
     await expect(number).toHaveCSS('--damage-scale', scale)
     await expect(page.locator('#enemy-hp')).toHaveJSProperty('value', enemyHp - face)
+    if (impact !== 'finisher') {
+      const intent = page.locator('#intent')
+      await expect(intent).toHaveCSS('opacity', '0.37')
+      expect((await number.boundingBox()).y).toBeLessThan((await page.locator('.enemy .vital').boundingBox()).y)
+    }
     await photograph(page, info, `impact-${impact}`)
+    await page.evaluate(() => window.intentFrame.finish())
+    if (impact === 'finisher') {
+      await expect(page.locator('#enemy-hp')).toHaveAttribute('data-empty', '')
+      await expect(page.locator('#enemy-hp + .hp-trail')).toBeHidden()
+      await page.clock.runFor(260)
+      await expect(number).toBeVisible()
+      await photograph(page, info, 'finisher-down')
+    }
   })
 }
 
@@ -161,8 +213,9 @@ test('로비부터 1층 평타의 타점과 소리를 확인한다', async ({ pa
   await page.touchscreen.tap(x + width / 2, y + height / 2)
   await page.clock.runFor(115)
   await expect(page.locator('#intent .intent-attack-label')).toHaveText('적 공격')
-  await expect(page.locator('#intent strong')).toHaveText('7 + 2')
-  await expect(page.locator('#enemy-damage .damage-number')).toHaveText('적−12')
+  await expect(page.locator('#intent strong')).toHaveText('9')
+  await expect(page.locator('#intent .intent-equation')).toHaveText('7 + 2')
+  await expect(page.locator('#enemy-damage .damage-number')).toHaveText('−12')
   await expect(page.locator('#hit-order')).toBeHidden()
   await photograph(page, info, 'attack')
   await page.clock.runFor(75)
@@ -204,13 +257,21 @@ test('가시 골렘 정확 방어 자세가 룰렛 동안 정지하고 자동 �
   await panel.evaluate((el) => {
     const canvas = document.querySelector('#arena canvas')
     const enemyHp = document.querySelector('#enemy-hp')
+    const enemyDamage = document.querySelector('#enemy-damage')
     window.roulettePoses = {}
     window.rouletteHp = {}
+    window.counterImpact = null
     new MutationObserver(() => {
       if (el.hidden || !el.dataset.rollState) return
       window.roulettePoses[el.dataset.rollState] = canvas.toDataURL()
       window.rouletteHp[el.dataset.rollState] = enemyHp.value
     }).observe(el, { attributeFilter: ['data-roll-state'] })
+    new MutationObserver(() => {
+      const number = enemyDamage.querySelector('.damage-number')
+      if (number) window.counterImpact = {
+        hp: enemyHp.value, pose: canvas.toDataURL(), visible: number.getBoundingClientRect().height > 0,
+      }
+    }).observe(enemyDamage, { childList: true })
   })
   await page.locator('#resolve').tap()
   await expect(page.locator('#parry-cue')).toHaveAttribute('data-guard', 'exact')
@@ -230,9 +291,9 @@ test('가시 골렘 정확 방어 자세가 룰렛 동안 정지하고 자동 �
   expect(locked).toBe(spinning)
   expect(await page.evaluate(() => window.rouletteHp)).toEqual({ spinning: run.battle.enemyHp, locked: run.battle.enemyHp })
   await expect(page.locator('#counter-damage')).toHaveText(String(expected.lastExchange.counter.damage))
-  await expect(page.locator('#enemy-damage .damage-number')).toBeVisible()
-  expect(await pose()).not.toBe(spinning)
-  await photograph(page, info, 'counter')
+  await expect.poll(() => page.evaluate(() => window.counterImpact)).toMatchObject({ hp: expected.enemyHp, visible: true })
+  expect(await page.evaluate(() => window.counterImpact.pose)).not.toBe(spinning)
+  if (await page.locator('#enemy-damage .damage-number').isVisible()) await photograph(page, info, 'counter')
   await expect(page.getByRole('meter', { name: '적 체력' })).toHaveJSProperty('value', expected.enemyHp)
   await expect(page.getByRole('meter', { name: '내 체력' })).toHaveJSProperty('value', expected.playerHp)
   await expect(page.locator('#turn')).toHaveAttribute('aria-label', '2턴')
@@ -374,7 +435,7 @@ test('시드 0에서 선제 처치하면 가시 피해 없이 살아남고 적�
   await page.touchscreen.tap(x + width / 2, y + height / 2)
   await page.clock.runFor(155)
   await expect(page.locator('#enemy-hp')).toHaveJSProperty('value', 0)
-  await expect(page.locator('#enemy-damage .damage-number')).toHaveText('적−5')
+  await expect(page.locator('#enemy-damage .damage-number')).toHaveText('−5')
   await expect(page.locator('#player-hp')).toHaveJSProperty('value', 13)
   await expect(page.locator('#player-damage .damage-number')).toHaveCount(0)
   await expect(page.locator('#hit-order')).toBeHidden()

@@ -27,7 +27,7 @@ import { availableCounterChoices, cancelSeal, chooseHourglass, draftSeal, startH
 import { relicReady, REWARD_CARDS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
 import {
-  allocationPower, assignDie, attackFor, chargedStrikePreview, combatSlots, DIE_COUNT, enemyIntentAt, incomingAttack, respondingIntent,
+  allocationPower, assignDie, attackFor, chargedStrikePreview, combatSlots, DIE_COUNT, enemyIntentAt, incomingAttack, respondingIntent, splitEnemyDamage,
 } from './combat.ts'
 import type { CounterResult, Exchange, Gimmick, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
@@ -475,13 +475,13 @@ function showUnlockConditions(hand: Hand) {
     return `<div class="unlock-example" role="img" aria-label="${label}">
       <span class="unlock-example-slot" data-slot="${slot}" aria-hidden="true">
         ${icon(slot === 'attack' ? 'sword' : exact ? 'parry' : 'shield')}
-        <span>${faces.map((face) => `<span class="unlock-example-die">${pips(face)}</span>`).join('')}</span>
-      </span>${icon('next')}
+        <span>${faces.map((face) => `<span class="die-face unlock-example-die" data-face="${face}">${face}</span>`).join('')}</span>
+      </span>
     </div>`
-  }).join('')
+  }).join('<span class="unlock-or">또는</span>')
   unlockResult.innerHTML = triple
-    ? `<span class="companion-tile unlock-result-ego" aria-hidden="true">${icon('companion-awake')}</span><strong>에고</strong>`
-    : `<span class="unlock-result-reroll" aria-hidden="true"><span class="unlock-example-die">${pips(5)}</span>${icon('reroll')}</span><strong>재굴림</strong>`
+    ? `<span class="companion-tile unlock-result-ego" aria-hidden="true">${icon('companion-awake')}</span><strong>${name}</strong>`
+    : `<span class="unlock-result-reroll" aria-hidden="true"><span class="die-face unlock-example-die">5</span>${icon('reroll')}</span><strong>${name}</strong>`
   unlockConditions.showModal()
 }
 
@@ -650,6 +650,8 @@ function renderEnemyStatus(battle: YachtBattle) {
   ui.enemyStatus.hidden = !statuses.length
 }
 
+const chargeStop = element('charge-stop')
+
 function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['enemy']['id']) {
   const badge = (battle.rulesSix && rulesSixBadges[enemyId]) || enemyBadges[enemyId]
   const clause = battle.phase === 'assign' ? yachtGimmick(battle) : null
@@ -669,17 +671,18 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['
   if (effect) ui.intent.dataset.helpText = effect.help
   else delete ui.intent.dataset.helpText
   ui.intent.setAttribute('role', effect ? 'button' : 'img')
-  const display = (symbol: string, value: string, label: string, detail = badgeIcon, mode = '') => {
+  const display = (symbol: string, value: string, label: string, detail = badgeIcon, mode = '', equation = '') => {
     ui.intent.dataset.intent = mode
     const secondary = detail ? `<span class="intent-detail">${detail}</span>` : ''
     const priority = escort ? `<span class="intent-detail intent-escort" aria-hidden="true">${icon('sword')}${icon('next')}${icon('escort')}<span class="intent-escort-hp">${escort.hp}</span></span>` : ''
-    ui.intent.innerHTML = `<span>${icon(symbol)}${value ? `<strong>${value}</strong>` : ''}</span>${secondary}${mark}${priority}`
+    ui.intent.innerHTML = `<span>${icon(symbol)}${value ? `<strong>${value}</strong>` : ''}${equation ? `<small class="intent-equation">${equation}</small>` : ''}</span>${secondary}${mark}${priority}`
     const condition = clause ? ` · ${clause.name} · ${clause.slot === 'attack' ? '공격' : '방어'} ${clause.face ?? '같은 눈 둘'}${ready ? ' · 성립' : ''}` : ''
     ui.intent.setAttribute('aria-label', `${badge.label} · ${label}${condition}${effect ? ` · ${effect.help}` : ''}`)
     if (escort) ui.intent.setAttribute('aria-description', `공격 대상 1순위 호위병 · 생존 시 적 공격 +${escort.bonus}`)
     else ui.intent.removeAttribute('aria-description')
   }
   const { phase } = battle
+  chargeStop.hidden = true
   ui.intent.hidden = phase === 'won' || phase === 'lost'
   if (phase === 'counter') {
     display('parry', '', '정확히 막았어요. 룰렛으로 반격할 수 있어요.')
@@ -689,12 +692,19 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['
     const charge = chargedStrikePreview(attackingBattle, totals, battle.loot?.armed?.includes('hammer'))
     if (charge) {
       const { threshold, totalDamage, hammerThreshold } = charge
-      const secondary = hammerThreshold ? `${icon('treasure-hammer')}${hammerThreshold}` : `${icon('break-charge')}${threshold}`
-      const nextAttack = `<span class="intent-next">${icon('next')}<b>${totalDamage}</b></span>`
+      const goal = hammerThreshold ?? threshold
+      const applied = Math.min(goal, totals.attack - splitEnemyDamage(attackingBattle, totals.attack).escortDealt)
+      const remaining = goal - applied
+      chargeStop.hidden = false
+      chargeStop.dataset.ready = String(remaining === 0)
+      chargeStop.style.setProperty('--charge-remaining', `${100 * remaining / goal}%`)
+      chargeStop.setAttribute('aria-label', `힘 모으기 저지 피해 ${goal}, 남은 피해 ${remaining}`)
+      chargeStop.innerHTML = `${icon(hammerThreshold ? 'treasure-hammer' : 'break-charge')}<span class="charge-track"></span><b>${goal}</b>`
+      const nextAttack = `<span class="intent-next">${icon('next')}${icon('turn')}<b>${totalDamage}</b></span>`
       const condition = hammerThreshold
         ? `본체에 닿는 공격 피해가 ${hammerThreshold} 이상이면 망치가 다음 큰 공격을 막아요.`
         : `본체에 닿는 공격 피해가 ${threshold} 이상이면 다음 큰 공격을 약하게 만들어요.`
-      display('charge', '0', `힘 모으기 · 이번 턴 피해 0 · 다음 턴 피해 ${totalDamage} · ${condition}`, nextAttack + secondary, 'charge')
+      display('charge', '0', `힘 모으기 · 이번 턴 피해 0 · 다음 턴 피해 ${totalDamage} · ${condition}`, nextAttack, 'charge')
       return
     }
     if (intent.damageTakenMultiplier !== undefined) {
@@ -703,11 +713,11 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['
       return
     }
     const mechanic = intent.mechanic
-    const { hits } = incomingAttack(attackingBattle, totals)
+    const { hits, totalDamage } = incomingAttack(attackingBattle, totals)
     if (emperorShieldActive(battle) && hits.length) {
       const remaining = forecastYacht(battle).incoming
-      display('shield', remaining.hits.length ? hitNumbers(remaining.hits) : '0',
-        `황제의 방패 적용 · 남은 공격 ${remaining.totalDamage}`, '', 'attack')
+      display('shield', String(remaining.totalDamage),
+        `황제의 방패 적용 · 남은 공격 ${remaining.totalDamage}`, '', 'attack', remaining.hits.length > 1 ? hitNumbers(remaining.hits) : '')
       return
     }
     if (intent.id === 'stunned') {
@@ -767,9 +777,9 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['
       }
     }
     const damage = hits.length ? hitNumbers(hits) : '0'
-    const accessible = [hits.length ? `이번 턴 공격 ${damage}` : intent.name, label].filter(Boolean).join(' · ')
+    const accessible = [hits.length ? `이번 턴 공격 ${totalDamage}${hits.length > 1 ? ` (${damage})` : ''}` : intent.name, label].filter(Boolean).join(' · ')
     display(hits.length ? (intent.id === 'critical' ? 'critical' : 'sword') : badge.icon,
-      damage, accessible, detail, hits.length ? 'attack' : '')
+      String(totalDamage), accessible, detail, hits.length ? 'attack' : '', hits.length > 1 ? damage : '')
   }
 }
 
@@ -787,6 +797,7 @@ const incomingContact = 152
 const repeatContact = 248
 const escortDefeatPause = 160
 const damageOutput = { player: ui.playerDamage, enemy: ui.enemyDamage, escort: ui.escortDamage }
+const parryFlash = element('parry-flash')
 
 function clearExchange() {
   for (const output of Object.values(damageOutput)) output.replaceChildren()
@@ -794,6 +805,7 @@ function clearExchange() {
   ui.hitOrder.hidden = true
   window.clearTimeout(guardCueTimer)
   ui.parry.hidden = true
+  parryFlash.hidden = true
   ui.awakening.hidden = true
   arena.clearContact()
 }
@@ -803,9 +815,12 @@ function showDamage(hit: BattleHit) {
   const number = document.createElement('span')
   number.className = 'damage-number'
   number.dataset.impact = battleImpactTier(hit)
-  const targetName = document.createElement('small')
-  targetName.textContent = { player: '나', enemy: '적', escort: '호위' }[target]
-  number.append(targetName, `−${damage}`)
+  if (target !== 'enemy') {
+    const targetName = document.createElement('small')
+    targetName.textContent = target === 'player' ? '나' : '호위'
+    number.append(targetName)
+  }
+  number.append(`−${damage}`)
   damageOutput[target].append(number)
   window.setTimeout(() => number.remove(), effectDuration(damageDuration))
 }
@@ -823,14 +838,16 @@ function updateVital(meter: HTMLMeterElement, label: HTMLElement, hp: number, ma
   const previous = meter.max === max ? meter.value : hp
   meter.max = max
   meter.value = hp
+  meter.toggleAttribute('data-empty', hp === 0)
   label.textContent = `${hp}/${max}`
   if (hp >= previous) return
+  const trail = meter.nextElementSibling as HTMLElement
+  trail.getAnimations().forEach((animation) => animation.cancel())
+  if (hp === 0) return
   if (reducedMotion()) {
     markVital(meter.closest<HTMLElement>('.vital')!)
     return
   }
-  const trail = meter.nextElementSibling as HTMLElement
-  trail.getAnimations().forEach((animation) => animation.cancel())
   trail.style.left = `${hp / max * 100}%`
   trail.animate([
     { width: `${(previous - hp) / max * 100}%` },
@@ -850,17 +867,27 @@ function updateEscortVital(hp: number) {
   }
 }
 
-function showGuardCue(kind: 'ordinary' | 'exact') {
+function showGuardCue(kind: 'ordinary' | 'exact', blocked = false, extra = 0) {
   window.clearTimeout(guardCueTimer)
   ui.parry.dataset.guard = kind
   ui.parry.setAttribute('aria-label', kind === 'exact' ? '정확 방어' : '방어')
   ui.parry.querySelector('use')?.setAttribute('href', kind === 'exact' ? '#icon-parry' : '#icon-shield')
+  ui.parry.querySelector('.guard-amount')?.remove()
+  if (blocked) {
+    ui.parry.insertAdjacentHTML('beforeend', `<output class="guard-amount">0${extra > 0 ? `<small>+${extra}</small>` : ''}</output>`)
+    ui.parry.setAttribute('aria-label', extra ? `방어 피해 0, 초과 방어 ${extra}` : '방어 피해 0')
+  }
   ui.parry.hidden = false
   if (kind === 'ordinary') guardCueTimer = window.setTimeout(() => { ui.parry.hidden = true }, effectDuration(210))
 }
 
 function showParry(authored = false) {
   showGuardCue('exact')
+  parryFlash.getAnimations().forEach((animation) => animation.cancel())
+  parryFlash.hidden = false
+  const opacity = reducedMotion() ? [.62, .62] : [.85, 0]
+  const flash = parryFlash.animate(opacity.map((value) => ({ opacity: value })), { duration: effectDuration(155), fill: 'forwards' })
+  void flash.finished.then(() => { parryFlash.hidden = true; flash.cancel() }, () => {})
   sound.play('perfect-block', authored ? .94 : 1, authored ? .32 : .19, authored ? undefined : effectDuration(120) / 1000)
 }
 
@@ -949,7 +976,14 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   ui.intent.classList.toggle('parry-in-progress', golemParry)
   if (!golemParry) {
     arena.playExchange(before, exchange, incoming, intent)
-    if (opening.dealt || opening.escortDealt) sound.play('swish', 1, .09, effectDuration(opening.escortDealt ? 45 : 96) / 1000)
+    if (opening.dealt || opening.escortDealt) {
+      if (!reducedMotion()) {
+        const fade = [{ opacity: .37 }, { opacity: .37, offset: .74 }, { opacity: 1 }]
+        ui.intent.animate(fade, effectDuration(148))
+        if (!chargeStop.hidden) chargeStop.animate(fade, effectDuration(148))
+      }
+      sound.play('swish', 1, .09, effectDuration(opening.escortDealt ? 45 : 96) / 1000)
+    }
   }
   ui.awakening.hidden = !awakenedDice
   ui.awakening.innerHTML = awakenedDice ? `${icon('die')}${awakenedDice.map((face) => `<span>${face}</span>`).join('')}` : ''
@@ -997,7 +1031,10 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     await at(time)
     const damage = hitsTaken[index]
     const final = index === incoming - 1
-    if (!exact && totals.guard > 0 && damage < incomingHits[index]) showGuardCue('ordinary')
+    if (!exact && totals.guard > 0 && damage < incomingHits[index]) {
+      const extra = final ? totals.guard - outcome.incoming.totalDamage : 0
+      showGuardCue('ordinary', damage === 0, extra)
+    }
     emit(heroHit(damage, final && !exchange.defeatedByThorns), { delay: reducedMotion() ? index * 40 : 0, incoming: true, ordered, final,
       guarded: damage === 0 && !(exact && final), parry: exact && final })
     readHit(index)
@@ -1056,6 +1093,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     }
     arena.holdFieldParry()
     ui.parry.hidden = true
+    parryFlash.hidden = true
   } else if (escortDealt && !after.escort && after.phase === 'assign' && !reducedMotion()) {
     await wait(escortDefeatPause)
   }
@@ -1526,10 +1564,11 @@ function teachOpening({ battle }: Ascent) {
     const damage = outcome.incoming.totalDamage
     const text = outcome.counter ? `방어 ${damage} = 적 공격 ${damage} → 정확 방어` : '표시한 주사위를 방어에 놓아요.'
     firstRun.teach({ id: 'defend', text, symbol: 'shield', anchor: ui.firstRunAnchor,
-      marks: [ui.intent, ui.assign.guard, ...guard], from: guard[0], to: ui.assign.guard })
+      marks: [ui.intent, ui.assign.guard, ...guard], arrows: guard, to: ui.dice.guard, guardGoal: damage })
   } else {
     const text = outcome.counter ? '턴을 끝내 반격 룰렛을 열어요.' : '턴 끝내기를 눌러요.'
-    firstRun.teach({ id: 'end-turn', text, symbol: 'turn', anchor: ui.firstRunAnchor, marks: [ui.resolve] })
+    firstRun.teach({ id: 'end-turn', text, symbol: 'turn', anchor: ui.firstRunAnchor, marks: [ui.resolve],
+      guardGoal: outcome.counter ? outcome.incoming.totalDamage : undefined })
   }
 }
 
@@ -1633,8 +1672,8 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.turn.innerHTML = `${icon('turn')}${turn}`
   ui.turn.setAttribute('aria-label', `${turn}턴`)
   const totals = yachtAllocationTotals(battle)
-  ui.encounterName.hidden = enemy.id !== 'chain-warden'
-  ui.encounterName.textContent = enemy.id === 'chain-warden' ? RULES_SIX_BADGES[enemy.id].label : ''
+  ui.encounterName.hidden = enemy.id !== 'chain-warden' && enemy.id !== 'boss'
+  ui.encounterName.textContent = enemy.id === 'boss' ? '황제' : enemy.id === 'chain-warden' ? RULES_SIX_BADGES[enemy.id].label : ''
   renderIntent(battle, totals, enemy.id)
   renderEnemyStatus(battle)
   updateVital(ui.playerHp, ui.playerTotal, playerHp, maxHp)
@@ -1642,6 +1681,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.escortGuard.hidden = !battle.escort || enemyHp <= 0
   ui.encounter.classList.toggle('escort-room', enemy.id === 'escort')
   ui.encounter.classList.toggle('boss-room', enemy.id === 'boss')
+  ui.enemyHp.closest('.vital')?.querySelector('label use')?.setAttribute('href', enemy.id === 'boss' ? '#icon-crown' : '#icon-heart')
   if (battle.escort) updateEscortVital(battle.escort.hp)
   ui.newUnlock.hidden = !atUnlock
   showCompanionLine(ui.companionAwakenLine, atUnlock && newUnlock === 'triple' ? COMPANION_LINES.awaken : '')
@@ -1672,7 +1712,9 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.intent.classList.toggle('parry-in-progress', fieldCounter)
   roulette.setVisible(showActions && phase === 'counter' ? yachtCounterRewards(battle) : null, companionAwake)
   if (fieldCounter) {
-    ui.counter.hidden = !firstRun.includes(ascent) || Boolean(battle.loot?.counter)
+    const automatic = !firstRun.includes(ascent)
+    ui.counter.hidden = automatic || Boolean(battle.loot?.counter)
+    roulette.setAutomatic(automatic)
     if (battle.loot?.counter && ui.counterPanel.dataset.rollState !== 'locked') {
       void roulette.reveal(battle.loot.counter, false, () => {})
     }
@@ -2050,6 +2092,7 @@ function lockExchange(locked: boolean) {
   ui.artifactStrip.inert = locked
   ui.bossRelicSlot.inert = locked
   if (!locked) return
+  ui.resolve.disabled = true
   ui.help.disabled = true
   ui.battleSettings.disabled = true
   ui.returnLobby.disabled = true
@@ -2298,7 +2341,8 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
 ui.counter.addEventListener('click', () => void playCounter())
 
 const roomCover = element('room-transition')
-async function transitionToBattle(scene: HTMLElement, entrance: HTMLElement, show: () => void, ready: () => void) {
+const roomFloor = element('room-floor')
+async function transitionToBattle(scene: HTMLElement, entrance: HTMLElement, show: () => void, ready: () => void, floor?: number) {
   if (!roomCover.hidden) return
   const reduced = reducedMotion()
   const approachMs = reduced ? 65 : 205
@@ -2308,6 +2352,7 @@ async function transitionToBattle(scene: HTMLElement, entrance: HTMLElement, sho
   const x = (bounds.left + bounds.width / 2 - door.left - door.width / 2) * .22
   const y = (bounds.top + bounds.height / 2 - door.top - door.height / 2) * .22
   ui.main.inert = true
+  if (floor !== undefined) ui.fork.setAttribute('data-entering', '')
   roomCover.hidden = false
   const approach = reduced ? undefined : scene.animate([
     { transform: 'none' }, { transform: `translate(${x}px, ${y}px) scale(1.22)` },
@@ -2315,6 +2360,13 @@ async function transitionToBattle(scene: HTMLElement, entrance: HTMLElement, sho
   const darken = roomCover.animate([{ opacity: 0 }, { opacity: 1 }], { duration: approachMs, easing: 'ease-in', fill: 'forwards' })
   try {
     await darken.finished.catch(() => {})
+    if (floor !== undefined) {
+      roomFloor.textContent = `${floor}층`
+      roomFloor.hidden = false
+      const floorTitle = roomFloor.animate([{ opacity: .7 }, { opacity: 1 }], { duration: reduced ? 70 : 95 })
+      await floorTitle.finished.catch(() => {})
+      roomFloor.hidden = true
+    }
     show()
     const reveal = roomCover.animate([{ opacity: 1 }, { opacity: 0 }], { duration: revealMs, easing: 'ease-out', fill: 'forwards' })
     darken.cancel()
@@ -2324,6 +2376,8 @@ async function transitionToBattle(scene: HTMLElement, entrance: HTMLElement, sho
     approach?.cancel()
     darken.cancel()
     roomCover.hidden = true
+    roomFloor.hidden = true
+    ui.fork.removeAttribute('data-entering')
     ui.main.inert = false
   }
   ready()
@@ -2340,7 +2394,7 @@ function enterFork(id: number) {
   const room = ui.fork.querySelector<HTMLElement>('.fork-room')!
   const entrance = room.querySelector<HTMLElement>(`[data-node="${id}"] .fork-art`)
   if (next.route?.screen === 'battle' && entrance) {
-    void transitionToBattle(room, entrance, showEnteredRoom, focusPhase)
+    void transitionToBattle(room, entrance, showEnteredRoom, focusPhase, next.route.map.byId[id].floor)
   } else {
     showEnteredRoom()
     focusPhase()

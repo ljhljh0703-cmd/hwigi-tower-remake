@@ -6,6 +6,8 @@ export class CounterRoulette {
   private readonly wheel: HTMLElement
   private readonly result: HTMLElement
   private readonly damage: HTMLElement
+  private readonly range: HTMLElement
+  private readonly auto: HTMLElement
   private readonly stage: HTMLElement
   private readonly action: HTMLElement
   private readonly medallion: HTMLElement
@@ -21,6 +23,8 @@ export class CounterRoulette {
     this.wheel = panel.querySelector<HTMLElement>('#counter-wheel')!
     this.result = panel.querySelector<HTMLElement>('#counter-result')!
     this.damage = panel.querySelector<HTMLElement>('#counter-damage')!
+    this.range = panel.querySelector<HTMLElement>('#counter-range')!
+    this.auto = panel.querySelector<HTMLElement>('#counter-auto')!
     this.stage = panel.querySelector<HTMLElement>('.roulette-stage')!
     this.action = button.querySelector<HTMLElement>('#counter-action')!
     this.medallion = panel.querySelector<HTMLElement>('#counter-medallion')!
@@ -59,16 +63,21 @@ export class CounterRoulette {
     })
     this.wheel.replaceChildren(...this.labels)
     this.paintSegments()
+    const values = rewards.map(({ damage }) => damage)
+    this.range.textContent = `${Math.min(...values)}–${Math.max(...values)}`
+    this.result.setAttribute('aria-label', `가능한 반격 피해 ${this.range.textContent}`)
     const labels = rewards.map(({ damage, joint }) => joint
       ? `피해 ${damage}${this.companionAwake ? ' 합공' : ', 합공 동작 잠김'}` : String(damage))
     this.stage.setAttribute('aria-label', `반격 피해 ${labels.join(', ')}`)
   }
 
   private paintSegments(winner?: number) {
-    const segments = this.labels.map((_, index) => {
+    const segments = this.labels.map((label, index) => {
       const start = index * this.degreesPerSlot
       const end = start + this.degreesPerSlot
-      const shade = index === winner ? 'var(--wheel-winner, var(--rust))'
+      const shade = label.classList.contains('locked')
+        ? index === winner ? 'var(--wheel-locked-winner, #493127)' : 'var(--wheel-locked, #161512)'
+        : index === winner ? 'var(--wheel-winner, var(--rust))'
         : index % 2 === 0 ? 'var(--wheel-face, var(--stone-bed))' : 'var(--wheel-inset, var(--stone-bed))'
       return `var(--wheel-divider, var(--stone-edge)) ${start - 0.45}deg ${start + 0.45}deg, ${shade} ${start + 0.45}deg ${end - 0.45}deg`
     })
@@ -81,7 +90,8 @@ export class CounterRoulette {
       this.setRewards(rewards)
       this.wheel.style.transform = ''
       this.wheel.style.removeProperty('--label-turn')
-      this.result.hidden = true
+      this.range.hidden = false
+      this.damage.hidden = true
       this.damage.textContent = ''
       this.medallion.textContent = ''
       delete this.panel.dataset.rollState
@@ -94,6 +104,10 @@ export class CounterRoulette {
 
   finishMotion() {
     this.spin?.finish()
+  }
+
+  setAutomatic(automatic: boolean) {
+    this.auto.hidden = !automatic
   }
 
   async reveal(reward: CounterResult, animate: boolean, onTick: () => void, speed = 1) {
@@ -138,7 +152,8 @@ export class CounterRoulette {
     this.labels[reward.slot].classList.add('winner')
     this.paintSegments(reward.slot)
     this.button.hidden = true
-    this.result.hidden = false
+    this.range.hidden = true
+    this.damage.hidden = false
     if (animate) this.panel.querySelector('.roulette-pointer')?.animate(
       [{ rotate: '-9deg' }, { rotate: '4deg' }, { rotate: '0deg' }], { duration: 95 / speed })
 

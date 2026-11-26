@@ -43,6 +43,7 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
       ['map-pin', '갈림길', '보상 후 다음 층 길을 고릅니다. 시작·휴식·보스 앞에서는 길이 하나뿐입니다.'],
       ['map-check', '완료한 층', '등반 결과에 통과한 층 수를 표시합니다.'],
       ['map-reward', '전리품', '보스 전 전투에서 이기면 전리품을 고르거나 건너뜁니다.'],
+      ['map-relic', '유물 보상', '유물 보상이 있는 강적 방을 표시합니다.'],
     ],
   },
   { title: '아이템과 유물', entries: (Object.keys(TREASURE_CARDS) as (keyof typeof TREASURE_CARDS)[]).map(rewardEntry) },

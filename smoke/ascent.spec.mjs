@@ -31,6 +31,12 @@ test('선택한 문으로 다가간 뒤 전장을 열고 움직임 줄이기는 
           window.roomFrames.push(animation)
         }
       }
+      if (this.id === 'room-floor') {
+        window.roomMotion.push([this.id, options.duration])
+        animation.pause()
+        animation.currentTime = 65
+        window.roomFloorFrame = animation
+      }
       return animation
     }
   })
@@ -42,6 +48,8 @@ test('선택한 문으로 다가간 뒤 전장을 열고 움직임 줄이기는 
   const main = page.locator('main')
   await expect(main).toHaveAttribute('data-screen', 'fork')
   await expect(main).toHaveAttribute('inert', '')
+  await expect(page.locator('#fork-heading')).toBeHidden()
+  await expect(page.locator('#fork-preview')).toBeHidden()
   await expect(page.locator('.fork-room')).not.toHaveCSS('transform', 'none')
   const cover = page.locator('#room-transition')
   const opacity = await cover.evaluate((element) => Number(getComputedStyle(element).opacity))
@@ -52,10 +60,16 @@ test('선택한 문으로 다가간 뒤 전장을 열고 움직임 줄이기는 
     await page.screenshot({ path: join(process.env.HWIGI_PLAYTEST_SHOTS, `${info.project.name}-room-transition.png`) })
   }
   await page.evaluate(() => window.roomFrames.forEach((animation) => animation.finish()))
+  await expect(page.locator('#room-floor')).toHaveText('1층')
+  await expect(page.locator('#room-floor')).toBeVisible()
+  if (process.env.HWIGI_PLAYTEST_SHOTS) {
+    await page.screenshot({ path: join(process.env.HWIGI_PLAYTEST_SHOTS, `${info.project.name}-room-floor.png`) })
+  }
+  await page.evaluate(() => window.roomFloorFrame.finish())
   await expect(cover).toBeHidden()
   await expect(main).toHaveAttribute('data-screen', 'battle')
   const watched = await page.evaluate(() => window.roomMotion)
-  expect(watched).toEqual([['fork-room', 205], ['room-transition', 205], ['room-transition', 180]])
+  expect(watched).toEqual([['fork-room', 205], ['room-transition', 205], ['room-floor', 95], ['room-transition', 180]])
 
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.reload()
@@ -214,6 +228,8 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     await eliteRoute.tap()
     await checkScreen('fork', [eliteRoute, fightRoute, enter])
     await expect(eliteRoute).toHaveAttribute('aria-pressed', 'true')
+    await expect(eliteRoute.locator('.fork-hint')).toHaveText('2714')
+    await expect(eliteRoute.locator('.fork-relic use')).toHaveAttribute('href', '#icon-map-relic')
     await expect(page.locator('.fork-preview-portrait')).toBeVisible()
     await expect(page.locator('.fork-preview-stats')).toContainText('27')
     expect(await readSave()).toBe(checkpoint)
