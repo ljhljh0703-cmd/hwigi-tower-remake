@@ -8,12 +8,14 @@
     "build": "tsc --noEmit && vite build --base=./",
     "preview": "vite preview",
     "test": "node --test",
+    "smoke": "playwright test --config playwright.config.mjs",
     "bot": "node scripts/bot.mjs"
   },
   "dependencies": {
     "phaser": "3.90.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.1",
     "typescript": "5.9.3",
     "vite": "7.3.8"
   }
