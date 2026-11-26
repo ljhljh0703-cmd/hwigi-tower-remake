@@ -36,7 +36,6 @@ export interface YachtBattle extends Battle {
   readonly rewards?: CombatRewards
   readonly wedgeArmed?: true
   readonly loot?: TreasureState
-  readonly rulesSix?: true
   readonly bossRelic?: BossRelicState
   readonly crownUsed?: true
 }

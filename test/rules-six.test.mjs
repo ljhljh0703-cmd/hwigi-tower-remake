@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { availableMapNodes, beginMapAscent, enterMapNode, returnToMap, rewardOffers, spinAscentCounter, takeAscentReward } from '../src/ascent.ts'
+import { availableMapNodes, beginMapAscent, enterMapNode, resolveAscentTurn, returnToMap, rewardOffers, spinAscentCounter, takeAscentReward } from '../src/ascent.ts'
 import { CURRENT_MAP_RULES, enemyForMapNode } from '../src/ascent-map.ts'
 import { BOSS_RELICS, EMPEROR_SHIELD_CAP, HEART_REVIVAL_HP } from '../src/boss-relic.ts'
 import { attackFor, draw, enemyIntentAt } from '../src/combat.ts'
@@ -11,23 +11,41 @@ import { checkpoint, encounter, finishRoom, mapBefore, playWith } from '../smoke
 
 const a = 'attack', g = 'guard'
 
-test('시드 0의 가시 동시 사망은 가시로 기록하고 선제 처치에는 적의 타격이 없어요', () => {
+test('규칙판 6 시드 0의 선제 처치는 새 등반과 이어 하기 모두 가시 없이 승리한다', () => {
   const start = beginMapAscent(0, 'shield', 'odd', 6)
   const golem = enterMapNode(start, availableMapNodes(start)[0].id)
   assert.deepEqual(golem.battle.dice, [6, 6, 5])
   const afterOne = playWith(golem, golem.battle.dice, [a, a, a])
   assert.deepEqual([afterOne.battle.playerHp, afterOne.battle.enemyHp], [13, 5])
   assert.deepEqual(afterOne.battle.dice, [2, 4, 3])
-  const both = playWith(afterOne, afterOne.battle.dice, [a, a, a]).battle
-  assert.deepEqual([both.phase, both.playerHp, both.enemyHp, both.lastExchange.hitsTaken, both.lastExchange.defeatedByThorns],
-    ['lost', 0, 0, [18], true])
-
-  const survive = playWith(afterOne, afterOne.battle.dice, [g, a, a]).battle
-  assert.deepEqual([survive.phase, survive.playerHp, survive.enemyHp, survive.lastExchange.hitsTaken, survive.lastExchange.defeatedByThorns],
-    ['won', 1, 0, [12], undefined])
+  const pending = { ...afterOne, battle: { ...afterOne.battle, slots: [a, a, a] } }
+  for (const run of [pending, checkpoint(pending).restored.ascent]) {
+    const won = resolveAscentTurn(run)
+    const { phase, playerHp, enemyHp, lastExchange } = checkpoint(won).restored.ascent.battle
+    assert.deepEqual([phase, playerHp, enemyHp, lastExchange.hitsTaken, lastExchange.defeatedByThorns],
+      ['won', 13, 0, [], undefined])
+  }
 
   const direct = playWith(golem, golem.battle.dice, [a, g, g], { playerHp: 1, enemyHp: 6, awakened: true }).battle
   assert.deepEqual([direct.phase, direct.playerHp, direct.enemyHp, direct.lastExchange.hitsTaken], ['won', 1, 0, []])
+})
+
+test('살아 있는 골렘의 가시는 발동하고 이전 규칙판에서는 처치 때도 적용된다', () => {
+  const current = encounter('thorns', 1)
+  const turnTwo = { ...current.battle, turn: 2, playerHp: 13, enemyHp: 5, dice: [2, 4, 3], slots: [g, g, a], awakened: true }
+  const live = resolveYachtTurn(turnTwo).battle
+  assert.deepEqual([live.phase, live.playerHp, live.enemyHp, live.lastExchange.hitsTaken], ['assign', 4, 2, [0, 3, 6]])
+  const late = resolveYachtTurn({ ...turnTwo, loot: { ...turnTwo.loot, prepared: { whetstone: 1 } } }).battle
+  assert.deepEqual([late.phase, late.playerHp, late.enemyHp, late.lastExchange.hitsTaken], ['won', 4, 0, [0, 3, 6]])
+
+  for (const rules of [1, 2, 3, 4, 5]) {
+    const map = beginMapAscent(0, 'shield', 'odd', rules)
+    const golem = enterMapNode(map, availableMapNodes(map)[0].id)
+    const pending = { ...golem, battle: { ...golem.battle, turn: 2, playerHp: 13, enemyHp: 5, dice: [2, 4, 3], slots: [a, a, a], awakened: true } }
+    const { phase, playerHp, enemyHp, lastExchange } = resolveAscentTurn(checkpoint(pending).restored.ascent).battle
+    assert.deepEqual([phase, playerHp, enemyHp, lastExchange.hitsTaken, lastExchange.defeatedByThorns],
+      ['lost', 0, 0, [18], true], `규칙판 ${rules}`)
+  }
 })
 
 test('선제 처치에서 철추 반사 피해는 추가되지 않고 숫돌 처치는 적 공격 뒤예요', () => {

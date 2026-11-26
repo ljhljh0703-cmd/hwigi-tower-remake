@@ -736,7 +736,7 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
           break
         case 'thorns':
           detail = `${icon('thorns')}${mechanic.value}`
-          label = `공격에 놓은 주사위마다 가시 피해 ${mechanic.value}를 받아요.`
+          label = `${battle.rulesSix ? '공격 칸 피해로 적을 쓰러뜨리지 못하면 ' : ''}공격에 놓은 주사위마다 가시 피해 ${mechanic.value}를 받아요.`
           break
         case 'rage':
           detail = `${icon('rage')}${mechanic.value}`

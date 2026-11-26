@@ -31,3 +31,9 @@ test('only rules 1–5 describe removed mechanics and their rewards', () => {
     for (const icon of removed) assert.ok(legacy.some(([symbol]) => symbol === icon), `rules ${rules}: ${icon}`)
   }
 })
+
+test('the guide describes the thorns rule for the current or saved rule set', () => {
+  const thorns = (rules) => battleGuideFor(rules).find(({ title }) => title === '적 기믹').entries.find(([icon]) => icon === 'thorns')[2]
+  assert.match(thorns(6), /공격 칸 피해로 적을 쓰러뜨리면 발동하지 않습니다/)
+  for (const rules of [1, 2, 3, 4, 5]) assert.match(thorns(rules), /적을 쓰러뜨려도 발동합니다/)
+})

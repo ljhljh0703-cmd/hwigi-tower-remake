@@ -95,6 +95,7 @@ export interface Battle {
   readonly erasedStrikeTurn?: number
   readonly armorBroken?: true
   readonly interrupted?: { readonly turn: number; readonly kind: 'trip' | 'topple' }
+  readonly rulesSix?: true
 }
 
 export function draw(seed: number, turn: number, channel: number): number {
@@ -302,7 +303,7 @@ export function forecast(
       remainingAbsorption -= blocked
       return hit - blocked
     }).filter(Boolean), totalDamage: Math.max(0, actual.totalDamage - suppress) } : actual
-  const thorns = intent.mechanic?.kind === 'thorns'
+  const thorns = intent.mechanic?.kind === 'thorns' && (!battle.rulesSix || inflicted.dealt < battle.enemyHp)
     ? slots.filter((slot) => slot === 'attack').length * intent.mechanic.value : 0
 
   let shield = guard
