@@ -14,6 +14,7 @@ export class BattleAudio {
   private musicGain?: GainNode
   private effectsGain?: GainNode
   private readonly tracks = new Map<Track, Promise<AudioBuffer>>()
+  private readonly decoded = new Map<Track, AudioBuffer>()
   private musicPending = false
   private revision = 0
   private readonly voices = new Set<AudioBufferSourceNode>()
@@ -79,6 +80,11 @@ export class BattleAudio {
 
   play(effect: Effect, pitch = 1, volume = effect === 'roulette-tick' ? .12 : .19, seconds?: number) {
     if (!this.context || !this.effects || this.needsResume) return
+    const loaded = this.decoded.get(effect)
+    if (loaded) {
+      this.start(loaded, volume, false, pitch, seconds)
+      return
+    }
     const revision = this.revision
     void this.load(effect).then((buffer) => {
       if (revision === this.revision) this.start(buffer, volume, false, pitch, seconds)
@@ -92,7 +98,10 @@ export class BattleAudio {
       pending = fetch(new URL(`sfx/${track}.${extension}`, document.baseURI)).then((response) => {
         if (!response.ok) throw new Error(`Audio unavailable: ${track}`)
         return response.arrayBuffer()
-      }).then((bytes) => this.context!.decodeAudioData(bytes)).catch((error: unknown) => {
+      }).then((bytes) => this.context!.decodeAudioData(bytes)).then(buffer => {
+        this.decoded.set(track, buffer)
+        return buffer
+      }).catch((error: unknown) => {
         this.tracks.delete(track)
         throw error
       })

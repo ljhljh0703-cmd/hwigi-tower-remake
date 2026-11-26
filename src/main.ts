@@ -406,9 +406,10 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
         place([index], 'pool')
         return
       }
+      if (!ascent) return
       if (!selected.delete(index)) selected.add(index)
       saveCurrent()
-      render()
+      refreshSelection(ascent)
     },
     lift: () => {
       const indices = selected.has(index) ? [...selected].sort((a, b) => a - b) : [index]
@@ -780,8 +781,6 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   const golemParry = exact && incoming === 1 && !dealt && !escortDealt && arena.beginGolemParry(start)
   type HitCue = { delay?: number; incoming?: boolean; final?: boolean; guarded?: boolean; ordered?: boolean; parry?: boolean }
   const emit = (hits: BattleHit[], contact: HitCue = {}) => {
-    arena.contact(hits, contact)
-    for (const hit of hits) showDamage(hit)
     const material = () => {
       if (contact.parry) showParry(golemParry)
       else if (contact.guarded) sound.play('block')
@@ -791,6 +790,8 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     }
     if (contact.delay) feel.after(effectDuration(contact.delay), material)
     else material()
+    arena.contact(hits, contact)
+    for (const hit of hits) showDamage(hit)
     if (hits.some(hit => hit.target !== 'player')) feel.after(effectDuration(105), () => sound.play('grit', 1, .085))
   }
   const enemyHit: BattleHit[] = dealt ? [{ target: 'enemy', damage: dealt, defeated: after.enemyHp === 0 }] : []
@@ -1571,6 +1572,12 @@ function perkButton(symbol: string, name: string, description: string) {
   return button
 }
 
+function refreshSelection(run: Ascent) {
+  refreshDice(run.battle, yachtAllocationTotals(run.battle), run.unlocks)
+  renderRewardStrip(run.battle, false)
+  renderTreasureControls(run.battle, true)
+}
+
 function place(indices: readonly number[], zone: DropZone) {
   if (ui.guide.open || exchangeBusy || stopDiceMotion || !ascent || !indices.length || ascent.battle.phase !== 'assign' || ascent.battle.loot?.hourglass) return
   const slot = zone === 'pool' ? null : zone
@@ -1594,7 +1601,8 @@ function place(indices: readonly number[], zone: DropZone) {
   ascent = { ...ascent, battle }
   selected.clear()
   saveCurrent()
-  render()
+  if (moved.length) render()
+  else refreshSelection(ascent)
   if (animated.length) {
     stopPlacementMotion = playPlacementMotion(ui.planning, animated, () => { stopPlacementMotion = undefined }, seat, animationSpeed())
   } else if (moved.length) seat()
