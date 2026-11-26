@@ -11,7 +11,7 @@ import { GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
 import type { BattleHit } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
 import { BATTLE_GUIDE } from './battle-guide.ts'
-import { oathDescription, PERK_TEXT, REWARD_TEXT } from './reward-copy.ts'
+import { oathDescription, PERK_TEXT, REWARD_FACE, REWARD_REQUIREMENT, REWARD_TEXT } from './reward-copy.ts'
 import { COMPANION_LINES, companionDieIndex } from './companion.ts'
 import { enemyForFight } from './enemy-roster.ts'
 import { loadGameSettings, saveGameSettings, toggleMute } from './game-settings.ts'
@@ -961,7 +961,11 @@ function renderRewardPreview(run: Ascent) {
   const payment = price ? ` 동전 ${price}개를 내요.` : ''
   const gain = heal ? `${icon('heart')}+${heal}` : `${icon(card.icon)}+1`
   const exchange = room?.kind === 'event' ? `<span class="reward-exchange"><span aria-label="얻음">얻음 ${gain}</span>${cost ? `<span aria-label="잃음">잃음 ${icon('heart')}−${cost}</span>` : ''}</span>` : ''
-  ui.rewardPreview.innerHTML = `<strong>${card.name}</strong><span>${effect}${payment}</span>${exchange}`
+  if (ui.rewardPanel.classList.contains('battle-reward')) {
+    ui.rewardPreview.textContent = heal ? `체력 ${run.battle.playerHp} → ${Math.min(run.maxHp, run.battle.playerHp + heal)}` : effect
+  } else {
+    ui.rewardPreview.innerHTML = `<strong>${card.name}</strong><span>${effect}${payment}</span>${exchange}`
+  }
 }
 
 function renderArtifactOptions(run: Ascent, artifact: Artifact) {
@@ -1018,7 +1022,17 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
     card.classList.toggle('artifact-card', isArtifact(reward))
     card.dataset.reward = reward
     card.setAttribute('aria-label', name)
-    card.innerHTML = icon(symbol)
+    if (atRoom) card.innerHTML = icon(symbol)
+    else {
+      const [frame, summary] = REWARD_FACE[reward]
+      const heal = healingFor(reward, room, run.route?.map.rules)
+      const effect = heal ? `체력 ${heal} 회복` : summary
+      card.style.setProperty('--icon-offset', `${-32 * frame}px`)
+      const requirement = REWARD_REQUIREMENT[reward]
+      const gate = requirement ? `<small class="card-requirement" id="require-${reward}">${requirement}</small>` : ''
+      card.setAttribute('aria-describedby', [requirement && `require-${reward}`, `effect-${reward}`].filter(Boolean).join(' '))
+      card.innerHTML = `<i class="reward-pixel" aria-hidden="true"></i><span class="card-copy"><span class="card-name"><strong>${name}</strong>${gate}</span><small id="effect-${reward}">${effect}</small></span><span class="card-check" aria-hidden="true">${icon('map-check')}</span>`
+    }
     card.addEventListener('click', () => {
       chosenReward = chosenReward === reward ? undefined : reward
       artifactOptions = {}
@@ -1066,6 +1080,18 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   }
   renderRewardPreview(run)
 }
+
+ui.rewardCards.addEventListener('keydown', (event) => {
+  if (!ui.rewardPanel.classList.contains('battle-reward') || !(event.target instanceof HTMLButtonElement)) return
+  const cards = Array.from(ui.rewardCards.querySelectorAll<HTMLButtonElement>('button:enabled'))
+  const index = cards.indexOf(event.target)
+  if (index < 0) return
+  const next = { ArrowDown: index + 1, ArrowRight: index + 1, ArrowUp: index - 1, ArrowLeft: index - 1,
+    Home: 0, End: cards.length - 1 }[event.key]
+  if (next === undefined) return
+  event.preventDefault()
+  cards[(next + cards.length) % cards.length].focus()
+})
 
 const inventoryDetail = element<HTMLDialogElement>('inventory-detail')
 const inventoryUse = element<HTMLButtonElement>('inventory-use')

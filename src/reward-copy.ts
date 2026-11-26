@@ -4,6 +4,45 @@ import { BANDAGE_HEAL, BUCKLE_MAX_SHORTFALL, BUCKLE_REDUCTION, WEIGHT_BONUS, WED
 import type { Reward } from './rewards.ts'
 import { REST_HEAL } from './treasure.ts'
 
+// Frame numbers refer to the 16px cells in art/reward-icons.png.
+export const REWARD_FACE: Readonly<Record<Reward, readonly [number, string]>> = {
+  'bandage': [0, '즉시 체력 회복'],
+  'weight': [1, '홀짝을 함께 공격에 놓으면 피해 +2'],
+  'buckle': [2, '방어 1~3 부족 시 피해 최대 2 감소'],
+  'rewind': [3, '재굴림 후 눈 4 이상 단독 공격 +2'],
+  'wedge': [4, '쐐기를 켜면 이번 공격 +3'],
+  'tuning': [5, '첫 일반 주사위 눈 ±1'],
+  'tongs': [6, '유효한 눈 2개로 방어 시 피해 −2까지'],
+  'mantle': [7, '공격 1개·방어 2개 이상이면 피해 감소'],
+  'knot': [8, '빼앗긴 주사위는 피해 8에 회수'],
+  'hook': [9, '눈 1개로 친 호위병이 생존하면 +2'],
+  'coin': [10, '다른 세 눈으로 정확 방어 시 피해 +2'],
+  'medicine': [11, '즉시 체력 회복'],
+  'kit': [12, '즉시 체력 회복'],
+  'whetstone': [13, '다음 전투 첫 적중에 피해 +2'],
+  'lining': [14, '다음 전투 첫 피격 피해 최대 −2'],
+  'emergency': [15, '다음 전투 체력 8 이하일 때 2 회복'],
+  'assist': [16, '켜고 첫 일반 눈 공격·정확 방어 시 +2'],
+  'smash': [17, '켜고 첫 일반 눈으로 공격 시 최대 +3'],
+  'mirror': [18, '반격을 미뤄 다음 공격에 두 배'],
+  'overflow': [19, '초과 방어를 다음 공격에 최대 +6'],
+  'incomplete': [20, '고른 미해금 족보를 맞출 때 눈 ±2'],
+  'heart-die': [21, '에고 주사위를 홀수나 짝수로 고정'],
+  'hourglass': [22, '체력 2를 내고 두 눈을 다시 선택'],
+  'hammer': [23, '켜고 목표 공격을 채우면 강타 차단'],
+  'banner': [24, '켜고 공격 시 최저 눈만큼 피해 감소'],
+  'horn': [25, '정확 방어 후 약한 반격을 피해 8로'],
+}
+
+export const REWARD_REQUIREMENT: Partial<Record<Reward, string>> = {
+  assist: '에고 필요',
+  mantle: '연타를 받을 때',
+  tongs: '봉인 턴',
+  hourglass: '재굴림 후 · 체력 4 이상',
+  hammer: '적 충전 중',
+  horn: '에고 눈 공격',
+}
+
 export const REWARD_TEXT: Readonly<Record<Reward, string>> = {
   bandage: `고르면 체력을 ${BANDAGE_HEAL} 회복해요.`,
   weight: `공격 칸에 홀수와 짝수를 함께 놓으면 피해 ${WEIGHT_BONUS}를 더 줘요. 하나당 전투마다 한 번이에요.`,
@@ -21,7 +60,7 @@ export const REWARD_TEXT: Readonly<Record<Reward, string>> = {
   whetstone: '다음 전투에서 적을 처음 맞히면 피해 2를 더 줘요.',
   lining: '다음 전투에서 적에게 처음 피해를 받을 때 최대 2를 줄여요.',
   emergency: '다음 전투에서 차례를 시작할 때 체력이 8 이하면, 처음 한 번 체력을 2 회복해요.',
-  assist: '에고 주사위가 열렸다면 이 잔편을 켜고 첫 일반 주사위로 공격하세요. 적의 공격만큼 막으면 룰렛 뒤 피해 2를 더 줘요.',
+  assist: '에고 주사위를 해금한 뒤 협공 잔편을 켜세요. 첫 일반 주사위로 공격하면서 정확 방어에 성공하면 룰렛 반격 뒤 피해 2를 더 줘요.',
   smash: '이 잔편을 켜고 첫 일반 주사위로 공격하면, 그 눈만큼 피해를 더 줘요. 최대 3이에요.',
   mirror: '룰렛 뒤 거울을 고르면, 그 피해를 미뤘다가 다음 차례 공격에 두 배(최대 12)로 더해요. 전투마다 한 번이에요.',
   overflow: '적이 때릴 때 방어가 남으면, 다음 차례에 적을 맞혀 남은 만큼(최대 6) 피해를 더 줘요. 전투마다 한 번이에요.',
