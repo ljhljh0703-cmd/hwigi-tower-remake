@@ -1,10 +1,12 @@
+const wheelEffects = ['roulette-engage', 'roulette-ratchet', 'roulette-latch'] as const
 const effects = [
   'dice-roll', 'dice-place', 'stone-hit', 'perfect-block', 'roulette-tick',
-  'roulette-stop', 'unlock', 'victory', 'defeat',
+  'roulette-stop', 'unlock', 'victory', 'defeat', ...wheelEffects,
 ] as const
 
 type Effect = (typeof effects)[number]
 type Track = Effect | 'chamber-loop'
+const waveFiles = new Set<Track>(wheelEffects)
 
 export class BattleAudio {
   private context?: AudioContext
@@ -67,18 +69,19 @@ export class BattleAudio {
     if (this.effectsGain) this.effectsGain.gain.value = Number(this.effects)
   }
 
-  play(effect: Effect, pitch = 1) {
+  play(effect: Effect, pitch = 1, volume = effect === 'roulette-tick' ? .12 : .19) {
     if (!this.context || !this.effects || this.needsResume) return
     const revision = this.revision
     void this.load(effect).then((buffer) => {
-      if (revision === this.revision) this.start(buffer, effect === 'roulette-tick' ? 0.12 : 0.19, false, pitch)
+      if (revision === this.revision) this.start(buffer, volume, false, pitch)
     }).catch(() => {})
   }
 
   private load(track: Track) {
     let pending = this.tracks.get(track)
     if (!pending) {
-      pending = fetch(new URL(`sfx/${track}.mp3`, document.baseURI)).then((response) => {
+      const extension = waveFiles.has(track) ? 'wav' : 'mp3'
+      pending = fetch(new URL(`sfx/${track}.${extension}`, document.baseURI)).then((response) => {
         if (!response.ok) throw new Error(`Audio unavailable: ${track}`)
         return response.arrayBuffer()
       }).then((bytes) => this.context!.decodeAudioData(bytes)).catch((error: unknown) => {
