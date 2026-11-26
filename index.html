@@ -353,13 +353,21 @@
         </section>
         <div id="treasure-controls" role="group" aria-label="유물과 잔편 조작" hidden></div>
 
+        <section id="game-over" aria-labelledby="game-over-title" hidden>
+          <h2 id="game-over-title" tabindex="-1" aria-describedby="defeat-floor">게임 오버</h2>
+          <p id="defeat-floor"></p>
+          <div class="game-over-actions">
+            <button id="climb-again" type="button">다시 오르기</button>
+            <button id="defeat-lobby" type="button" aria-haspopup="dialog" aria-controls="lobby-confirm">로비로</button>
+          </div>
+        </section>
+
         <section id="ascent-event" class="event-panel" aria-label="등반 진행" hidden>
           <p id="map-rest-marker" hidden><svg class="icon" aria-hidden="true"><use href="#icon-map-rest"/></svg><span class="sr-only">정비 경유</span></p>
           <p id="event-floor" role="img"></p>
-          <p id="result" role="status" hidden></p>
+          <p id="result" role="status" hidden>성공</p>
           <p id="completion-seal" hidden><svg class="icon" aria-hidden="true"><use href="#icon-completion-seal"/></svg>완주 인장</p>
           <p id="owned-unlocks" role="img" hidden></p>
-          <p id="final-unlock" role="status" hidden></p>
           <p id="companion-sleep-line" class="companion-line" role="status" hidden></p>
           <button id="next" class="primary" type="button" hidden>다음 전투 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
           <button id="retry" class="primary" type="button" hidden>다시 <svg class="icon" aria-hidden="true"><use href="#icon-retry"/></svg></button>

@@ -414,10 +414,57 @@ export class Arena {
     }
   }
 
+  private drawDefeat(battle: YachtBattle) {
+    const { context, canvas } = this
+    // Frame the same chamber in portrait, keeping both silhouettes on its floor.
+    const pixel = Math.min(canvas.height / 164, canvas.width / 104)
+    const width = canvas.width / pixel
+    const height = canvas.height / pixel
+    const ground = Math.round(height * 122 / 164)
+    context.save()
+    context.scale(pixel, pixel)
+    const room = this.images.get('chamber')
+    if (room?.naturalWidth) {
+      const roomWidth = Math.max(132, width)
+      context.drawImage(room, 0, 24, room.width, room.height - 24, (width - roomWidth) / 2, 0, roomWidth, height)
+    }
+    context.fillStyle = 'rgba(33, 31, 25, .4)'
+    context.fillRect(0, 0, width, height)
+
+    const drawSurvivor = (sprite: Sprite, center: number) => {
+      const pose = frame(sprite.name, 'ready')
+      const { cell, atlas } = atlasCell(pose)
+      const foot = center + atlas.pivot[0] - cell.bounds[0] - cell.bounds[2] / 2
+      this.drawCell(pose, Math.round(foot), ground, 1)
+    }
+    context.globalAlpha = .47
+    if (battle.enemyHp > 0) {
+      drawSurvivor(ENEMY_SPRITES[this.enemyId], width * .85)
+      if (battle.escort) drawSurvivor(ESCORT_SPRITE, width * .59)
+    }
+    context.globalAlpha = 1
+    const x = Math.round(width * .30)
+    context.fillStyle = '#332e25'
+    context.fillRect(x - 24, ground, 45, 3)
+    context.fillRect(x - 20, ground + 3, 35, 1)
+    const fallen = this.images.get('hero-hit')
+    if (fallen?.naturalWidth) {
+      context.translate(x, ground - 7)
+      context.scale(1, .53)
+      context.rotate(-Math.PI / 2)
+      context.drawImage(fallen, -16, -21)
+    }
+    context.restore()
+  }
+
   private draw(now = performance.now()) {
     const { battle, canvas, context } = this
     context.clearRect(0, 0, canvas.width, canvas.height)
     if (!battle || !this.floor || !this.placements.size) return
+    if (battle.phase === 'lost') {
+      this.drawDefeat(battle)
+      return
+    }
     this.drawBackground()
     context.save()
     if (!this.reducedMotion && this.trauma) {

@@ -106,7 +106,11 @@ const ui = {
   unlockHeading: element('unlock-heading'),
   unlockReveal: element('unlock-reveal'),
   ownedUnlocks: element('owned-unlocks'),
-  finalUnlock: element('final-unlock'),
+  gameOver: element('game-over'),
+  gameOverTitle: element('game-over-title'),
+  defeatFloor: element('defeat-floor'),
+  climbAgain: element<HTMLButtonElement>('climb-again'),
+  defeatLobby: element<HTMLButtonElement>('defeat-lobby'),
   ascentEvent: element('ascent-event'),
   eventFloor: element('event-floor'),
   result: element('result'),
@@ -1299,14 +1303,15 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   const finished = ascentFinished(ascent)
   const offers = presentation === 'normal' ? rewardOffers(ascent) : []
   const atRewards = presentation === 'normal' && (route ? route.screen === 'reward' || atTreasureRoom : offers.length > 0)
-  const atEvent = presentation === 'normal' && !atRewards && (between || finished)
+  const defeated = finished && phase === 'lost' && presentation === 'normal'
+  const atEvent = presentation === 'normal' && !defeated && !atRewards && (between || finished)
   const atUnlock = presentation === 'unlock' && newUnlock !== null
-  const inCombat = !atMap && !atEvent && !atUnlock && !atRewards
+  const inCombat = !atMap && !atEvent && !atUnlock && !atRewards && !defeated
   const showActions = presentation === 'normal' && inCombat
   const companionAwake = unlocks.includes('triple')
-  ui.main.dataset.screen = atMap ? 'fork' : atRewards ? 'reward' : atEvent ? 'event' : atUnlock ? 'unlock' : 'battle'
+  ui.main.dataset.screen = defeated ? 'defeat' : atMap ? 'fork' : atRewards ? 'reward' : atEvent ? 'event' : atUnlock ? 'unlock' : 'battle'
   ui.lobby.hidden = true
-  ui.masthead.hidden = false
+  ui.masthead.hidden = defeated
   ui.returnLobby.disabled = presentation !== 'normal'
   ui.returnLobby.setAttribute('aria-haspopup', 'dialog')
   ui.perks.hidden = true
@@ -1316,10 +1321,13 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   if (!atMap) renderHealth(playerHp, maxHp)
   ui.mapFloor.hidden = !atMap
   renderCoins(route?.coins)
-  ui.encounter.hidden = !inCombat
+  ui.encounter.hidden = !inCombat && !defeated
+  ui.encounter.setAttribute('aria-label', defeated ? '돌바닥에 쓰러진 회귀자의 마지막 전장' : '전장')
   ui.fight.hidden = atMap || (!inCombat && !atRewards)
   const floor = route ? (route.node === null ? route.completed.length : route.map.byId[route.node].floor) : fight
   const floors = route ? MAP_FLOORS : FIGHT_COUNT
+  ui.gameOver.hidden = !defeated
+  if (defeated) ui.defeatFloor.textContent = `${floor}층에서 쓰러졌습니다.`
   ui.fight.textContent = `${floor}/${floors} 층`
   renderActivePerk(battle)
   ui.turn.hidden = !inCombat
@@ -1399,13 +1407,10 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
     ui.ownedUnlocks.setAttribute('aria-label', unlocks.map((hand) => unlockInfo[hand].label).join(', '))
   }
   showCompanionLine(ui.companionSleepLine, companionFallsAsleep ? COMPANION_LINES.sleep : '')
-  const wins = route?.completed.length ?? (phase === 'lost' ? fight - 1 : fight)
+  const wins = route?.completed.length ?? fight
   if (atRest) {
     ui.eventFloor.innerHTML = `<strong>${floor}/${floors}</strong><span>${icon('heart')}${playerHp}/${maxHp}</span>`
     ui.eventFloor.setAttribute('aria-label', `${floor}층 정비, 체력 ${playerHp}/${maxHp}`)
-  } else if (route && finished && phase === 'lost') {
-    ui.eventFloor.innerHTML = `<span>${icon('map-check')}${wins}/${floors}</span><strong>${icon('critical')}${floor}/${floors}</strong>`
-    ui.eventFloor.setAttribute('aria-label', `완료 ${wins}층, 실패 ${floor}층`)
   } else {
     ui.eventFloor.innerHTML = between
       ? `<span>${floor}/${floors}</span>${icon('next')}<strong>${floor + 1}/${floors}</strong>` : `<strong>${wins}/${floors}</strong>`
@@ -1413,11 +1418,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   }
   ui.ascentEvent.classList.toggle('finished', finished)
   ui.result.hidden = !atEvent || !finished
-  ui.result.textContent = phase === 'won' ? '성공' : '실패'
   ui.completionSeal.hidden = !atEvent || !finished || phase !== 'won'
-  const finalUnlock = atEvent && phase === 'lost' && newUnlock ? unlockInfo[newUnlock] : null
-  ui.finalUnlock.hidden = !finalUnlock
-  ui.finalUnlock.innerHTML = finalUnlock ? `${icon(finalUnlock.icon)}해금 · ${finalUnlock.label}` : ''
   ui.next.hidden = !between || !atEvent
   ui.next.innerHTML = route ? `다음 층 ${icon('next')}` : `다음 전투 ${icon('next')}`
   ui.retry.hidden = !finished
@@ -1613,7 +1614,8 @@ function place(indices: readonly number[], zone: DropZone) {
 
 function focusPhase() {
   if (!ascent) return
-  if (!ui.fork.hidden) forkView.focusFirst()
+  if (!ui.gameOver.hidden) ui.gameOverTitle.focus()
+  else if (!ui.fork.hidden) forkView.focusFirst()
   else if (!ui.rewardPanel.hidden) {
     const target = ui.rewardCards.querySelector<HTMLButtonElement>('[aria-pressed="true"]') ?? ui.rewardCards.querySelector('button:not(:disabled)') ?? ui.skipReward
     target.focus()
@@ -1781,7 +1783,9 @@ ui.resolve.addEventListener('click', async () => {
       await arena.finishExchange()
       for (const output of Object.values(damageOutput)) output.replaceChildren()
     }
-    if (next.newUnlock) {
+    if (phase === 'lost') {
+      clearExchange()
+    } else if (next.newUnlock) {
       if (next.newUnlock === 'triple') {
         feel.animate(ui.lockedDie, [{ boxShadow: 'inset 0 -2px #c4b48b' }, { boxShadow: 'inset 0 -8px #ffe7ab, 0 4px 9px #a49579' }], 220)
         sound.play('rise')
@@ -1804,7 +1808,7 @@ ui.resolve.addEventListener('click', async () => {
       }
       sound.play('unlock')
       await wait(next.newUnlock === 'triple' ? companionAwakenDuration : unlockDuration)
-    } else if (phase === 'won' || phase === 'lost') {
+    } else if (phase === 'won') {
       await wait(reducedMotion() ? 320 : damageDuration)
     }
   } finally {
@@ -2013,6 +2017,7 @@ ui.next.addEventListener('click', () => {
   focusPhase()
 })
 ui.retry.addEventListener('click', showPerks)
+ui.climbAgain.addEventListener('click', showPerks)
 ui.continueAscent.addEventListener('click', (event) => {
   const checkpoint = loadAscentSave()
   if (!checkpoint) {
@@ -2034,7 +2039,7 @@ ui.newAscent.addEventListener('click', () => {
     confirmLobbyAction('새로 하기', '새 등반을 시작하면 저장된 등반을 덮어씁니다.', '새로 하기', showPerks)
   } else showPerks()
 })
-ui.returnLobby.addEventListener('click', () => {
+function returnToLobby() {
   if (exchangeBusy || counterBusy) return
   if (!ascent) showLobby(true)
   else {
@@ -2047,7 +2052,9 @@ ui.returnLobby.addEventListener('click', () => {
       })
     }
   }
-})
+}
+ui.returnLobby.addEventListener('click', returnToLobby)
+ui.defeatLobby.addEventListener('click', returnToLobby)
 window.addEventListener('storage', (event) => {
   if ((event.key === ASCENT_SAVE_KEY || event.key === null) && !ui.lobby.hidden) refreshLobbyActions()
 })
