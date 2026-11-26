@@ -1,6 +1,7 @@
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
+import { ENEMY_SPRITES, enemyPlanPose } from '../src/arena.ts'
 import { availableMapNodes, enterMapNode } from '../src/ascent.ts'
 import { ASCENT_SAVE_KEY } from '../src/ascent-save.ts'
 import { checkpoint, encounter, mapBefore, nodeFor } from './rules-six-fixtures.mjs'
@@ -14,23 +15,22 @@ async function resume(page, run, preview) {
   await page.getByRole('button', { name: '이어 하기' }).tap()
 }
 
-async function photograph(page, name, info) {
+async function photograph(page, name, info, root = process.env.HWIGI_RETURN_SHOTS) {
   await expect.poll(() => page.evaluate(() => {
     const root = document.scrollingElement
     return [root.scrollWidth - root.clientWidth, root.scrollHeight - root.clientHeight]
   })).toEqual([0, 0])
-  const root = process.env.HWIGI_RETURN_SHOTS
   if (!root) return
   await mkdir(root, { recursive: true })
   await page.screenshot({ path: join(root, `${info.project.name}-${name}.png`), animations: 'disabled' })
 }
 
 const examples = [
-  ['trip', 'freeze', 2, 2, [1, 3, 3, 6], 'attack', 'stun', '', /다음 공격/],
-  ['armor', 'reaction', undefined, 2, [2, 2, 4, 6], 'attack', 'armor-break', '×1.5', /1\.5배/],
-  ['reflect', 'vitality', undefined, 2, [5, 4, 3, 6], 'guard', 'reflect', '', /철추 피해/],
-  ['topple', 'seal-sentinel', 9, 2, [3, 4, 5, 6], 'attack', 'knockdown', '×2', /2배/],
-  ['retreat', 'escort', undefined, 4, [2, 4, 5, 6], 'attack', 'escort-exit', '', /호위가 물러나고/],
+  ['trip', 'freeze', 2, 2, [1, 3, 3, 6], 'attack', 'stun', '', /다음 공격/, '에 1 → 적 다음 공격 건너뜀'],
+  ['armor', 'reaction', undefined, 2, [2, 2, 4, 6], 'attack', 'armor-break', '×1.5', /1\.5배/, '에 같은 눈 둘 → 갑옷 파괴 ×1.5'],
+  ['reflect', 'chain-warden', 6, 2, [5, 4, 3, 6], 'guard', 'reflect', '', /철추 피해/, '에 5 → 큰 한 방 반사'],
+  ['topple', 'seal-sentinel', 9, 2, [3, 4, 5, 6], 'attack', 'knockdown', '×2', /2배/, '에 3 → 넘어짐(쉼·×2)'],
+  ['retreat', 'escort', undefined, 4, [2, 4, 5, 6], 'attack', 'escort-exit', '', /호위가 물러나고/, '에 2 → 호위 퇴장'],
 ]
 
 test('다섯 예고는 조건과 효과를 표시하며 눈을 넣고 빼면 함께 밝아지고 어두워진다', async ({ page }, info) => {
@@ -38,14 +38,45 @@ test('다섯 예고는 조건과 효과를 표시하며 눈을 넣고 빼면 함
   page.on('pageerror', (error) => errors.push(error.message))
   const intent = page.locator('#intent')
   const tooltip = page.getByRole('tooltip')
-  for (const [kind, enemy, floor, turn, dice, slot, symbol, value, help] of examples) {
+  for (const [kind, enemy, floor, turn, dice, slot, symbol, value, help, caption] of examples) {
     const run = encounter(enemy, floor)
     const battle = { ...run.battle, turn, dice, slots: dice.map(() => null), ...(kind === 'retreat' && { escort: { hp: 5, bonus: 3 } }) }
+    const asset = `${ENEMY_SPRITES[enemy].name}-${enemyPlanPose(enemy, battle)}.png`
+    const sprite = page.waitForResponse((response) => response.url().endsWith(`/art/${asset}`) && response.ok())
     await resume(page, { ...run, battle })
+    await sprite
     const firstLook = page.locator('#first-run-note')
     await expect(firstLook).toBeVisible()
+    await expect(firstLook).toBeInViewport({ ratio: 1 })
     await expect(firstLook).toHaveAttribute('data-guide', `gimmick-${kind}`)
-    await expect(firstLook).toHaveText(help)
+    await expect(firstLook.locator('#first-run-line')).toHaveText(caption)
+    await expect(firstLook.locator('use')).toHaveAttribute('href', `#icon-${slot === 'guard' ? 'shield' : 'sword'}`)
+    await expect(page.locator('#first-run-status')).toHaveText(`${slot === 'guard' ? '방어' : '공격'} 칸${caption}`)
+    const bounds = await firstLook.evaluate((element) => {
+      const text = document.createRange()
+      text.selectNodeContents(element.querySelector('#first-run-line > span'))
+      const box = element.getBoundingClientRect()
+      const bottomWithTail = box.bottom + 7
+      const rect = (selector) => document.querySelector(selector).getBoundingClientRect()
+      const overlap = (a, b) => {
+        const width = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+        const height = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
+        return width * height
+      }
+      const noteBox = { left: box.left, right: box.right, top: box.top, bottom: bottomWithTail }
+      return {
+        lines: text.getClientRects().length,
+        canvasOverlap: overlap(noteBox, rect('#arena')),
+        intentOverlap: overlap(noteBox, rect('#intent')),
+        inventoryOverlap: overlap(noteBox, rect('.inventory-strip')),
+        healthOverlap: overlap(rect('.player .vital'), rect('.enemy .vital')),
+      }
+    })
+    expect(bounds).toEqual({ lines: 1, canvasOverlap: 0, intentOverlap: 0, inventoryOverlap: 0, healthOverlap: 0 })
+    console.log(`${info.project.name} ${caption} · 전장 겹침 ${bounds.canvasOverlap}px² · 예고 겹침 ${bounds.intentOverlap}px²`)
+    if (kind !== 'trip' && process.env.HWIGI_FIRST_RUN_SHOTS) {
+      await photograph(page, `gimmick-${kind}`, info, process.env.HWIGI_FIRST_RUN_SHOTS)
+    }
     const mark = page.locator(`#intent [data-kind="${kind}"]`)
     await expect(mark).toBeInViewport({ ratio: 1 })
     await expect(mark).toHaveAttribute('data-ready', 'false')

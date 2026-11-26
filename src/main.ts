@@ -46,6 +46,7 @@ function element<T extends HTMLElement>(id: string): T {
 
 const ui = {
   main: document.querySelector('main')!,
+  inventory: document.querySelector<HTMLElement>('.inventory-strip')!,
   lobby: element('lobby'),
   masthead: element('masthead'),
   continueAscent: element<HTMLButtonElement>('continue-ascent'),
@@ -102,6 +103,8 @@ const ui = {
   enemyDamage: element('enemy-damage'),
   escortDamage: element('escort-damage'),
   hitOrder: element('hit-order'),
+  hitOrderLabel: element('hit-order-label'),
+  hitResults: element('hit-results'),
   parry: element('parry-cue'),
   unlockImpact: element('unlock-impact'),
   awakening: element('awakening'),
@@ -244,12 +247,12 @@ const enemyBadges: Record<string, { icon: string; label: string }> = {
 }
 const rulesSixBadges: Partial<typeof enemyBadges> = RULES_SIX_BADGES
 const gimmickEffects = {
-  trip: { icon: 'stun', help: '적의 다음 공격을 한 번 건너뛰어요.' },
-  armor: { icon: 'armor-break', value: '×1.5', help: '다음 턴부터 공격 피해가 1.5배예요.' },
-  reflect: { icon: 'reflect', help: '철추 피해를 적에게 돌려줘요.' },
-  topple: { icon: 'knockdown', value: '×2', help: '다음 턴에 적이 쉬고 공격 피해가 2배예요.' },
-  retreat: { icon: 'escort-exit', help: '호위가 물러나고 공격이 본체에 닿아요.' },
-} satisfies Record<Gimmick, { icon: string; value?: string; help: string }>
+  trip: { icon: 'stun', intro: '적 다음 공격 건너뜀', help: '적의 다음 공격을 한 번 건너뛰어요.' },
+  armor: { icon: 'armor-break', value: '×1.5', intro: '갑옷 파괴 ×1.5', help: '다음 턴부터 공격 피해가 1.5배예요.' },
+  reflect: { icon: 'reflect', intro: '큰 한 방 반사', help: '철추 피해를 적에게 돌려줘요.' },
+  topple: { icon: 'knockdown', value: '×2', intro: '넘어짐(쉼·×2)', help: '다음 턴에 적이 쉬고 공격 피해가 2배예요.' },
+  retreat: { icon: 'escort-exit', intro: '호위 퇴장', help: '호위가 물러나고 공격이 본체에 닿아요.' },
+} satisfies Record<Gimmick, { icon: string; value?: string; intro: string; help: string }>
 
 let ascent: Ascent | null = null
 let chosenReward: Reward | undefined
@@ -435,7 +438,7 @@ ui.bladeMeter.addEventListener('click', (event) => {
 })
 window.addEventListener('resize', () => { holdHelp.hidden = true })
 
-const arena = new Arena(element('arena'), ui.encounter, ui.intent, document.querySelector<HTMLElement>('.inventory-strip')!)
+const arena = new Arena(element('arena'), ui.encounter, ui.intent, ui.inventory)
 
 const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
   const button = document.createElement('button')
@@ -741,6 +744,7 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
 }
 
 const damageDuration = 700
+const hitOrderDuration = 1500
 const chipDelay = 350
 const parryDuration = 120
 const unlockImpactDuration = 300
@@ -755,7 +759,7 @@ const damageOutput = { player: ui.playerDamage, enemy: ui.enemyDamage, escort: u
 
 function clearExchange() {
   for (const output of Object.values(damageOutput)) output.replaceChildren()
-  ui.hitOrder.replaceChildren()
+  ui.hitResults.replaceChildren()
   ui.hitOrder.hidden = true
   ui.parry.hidden = true
   ui.awakening.hidden = true
@@ -831,8 +835,9 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   const opening = splitEnemyDamage(retreat ? { ...before, escort: undefined } : before, totals.attack)
   const lateEscortDamage = (escortDealt ?? 0) - opening.escortDealt
   // 아이템 추가 피해가 적을 쓰러뜨려도 원래 확정된 공격 타수는 표시한다.
-  const incoming = opening.dealt < before.enemyHp
-    ? Math.min(hitsTaken.length, forecastYacht(before, before.slots, awakenedDice ?? before.dice, yachtGimmick(before)).incoming.hits.length) : 0
+  const incomingHits = opening.dealt < before.enemyHp
+    ? forecastYacht(before, before.slots, awakenedDice ?? before.dice, yachtGimmick(before)).incoming.hits.slice(0, hitsTaken.length) : []
+  const incoming = incomingHits.length
   const thorns = hitsTaken.length > incoming ? hitsTaken.at(-1)! : 0
   const exact = after.phase === 'counter'
   const ordered = incoming > 1
@@ -840,18 +845,22 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     const item = document.createElement('li')
     const label = index < incoming ? `${index + 1}타` : '가시'
     item.setAttribute('aria-label', `${label} · 대기`)
-    item.innerHTML = `${icon(index < incoming ? 'sword' : 'thorns')}<span aria-hidden="true">…</span>`
+    item.innerHTML = `${icon(index < incoming ? 'heart' : 'thorns')}<span aria-hidden="true">…</span>`
     return { item, label }
   }) : []
-  ui.hitOrder.replaceChildren(...entries.map(({ item }) => item))
+  ui.hitOrderLabel.textContent = `${exchange.turn}턴 내 피해`
+  ui.hitResults.replaceChildren(...entries.map(({ item }) => item))
   ui.hitOrder.hidden = !ordered
   const readHit = (index: number) => {
     const entry = entries[index]
     if (!entry) return
     const damage = hitsTaken[index]
-    const symbol = index >= incoming ? 'thorns' : damage ? 'sword' : 'shield'
-    entry.item.setAttribute('aria-label', `${entry.label} · ${damage ? `피해 ${damage}` : '막음 0'}`)
-    entry.item.innerHTML = `${icon(symbol)}<span aria-hidden="true">${damage}</span>`
+    const expected = incomingHits[index]
+    const symbol = index >= incoming ? 'thorns' : damage ? 'heart' : 'shield'
+    const preview = expected === undefined ? '' : ` · 예고 ${expected}`
+    const reduced = expected !== undefined && expected !== damage ? `<span class="hit-before">${expected}→</span>` : ''
+    entry.item.setAttribute('aria-label', `${entry.label}${preview} · ${damage ? `내 피해 ${damage}` : '막음, 내 피해 0'}`)
+    entry.item.innerHTML = `${icon(symbol)}<span aria-hidden="true">${reduced}${damage}</span>`
     entry.item.dataset.result = damage ? 'damage' : 'blocked'
   }
   const start = performance.now()
@@ -945,11 +954,11 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   }
   ui.feedback.textContent = `적 피해 ${dealt}, 내 피해 ${taken}${escortDealt ? `, 호위 피해 ${escortDealt}` : ''}${awakenedDice ? `, 각성 ${awakenedDice.join(', ')}` : ''}`
   if (ordered) window.setTimeout(() => {
-    if (entries[0].item.parentElement === ui.hitOrder) {
+    if (entries[0].item.parentElement === ui.hitResults) {
       ui.hitOrder.hidden = true
-      ui.hitOrder.replaceChildren()
+      ui.hitResults.replaceChildren()
     }
-  }, effectDuration(damageDuration))
+  }, hitOrderDuration)
   if (exact) {
     showParry()
     if (before.bossRelic?.id === 'brake-crown' && !before.crownUsed) {
@@ -1472,9 +1481,10 @@ function renderFirstRun(run: Ascent) {
   } else if (!ui.battle.hidden && !ui.planning.hidden) {
     const gimmick = yachtGimmick(battle)
     const hand = classifyYachtHand(battle, battle.dice)
+    const condition = gimmick && `에 ${gimmick.face ?? '같은 눈 둘'} → ${gimmickEffects[gimmick.kind].intro}`
     firstRun.discover([
-      ...(gimmick ? [{ id: `gimmick-${gimmick.kind}`, symbol: gimmickEffects[gimmick.kind].icon,
-        text: gimmickEffects[gimmick.kind].help, anchor: ui.intent, below: true }] : []),
+      ...(gimmick && condition ? [{ id: `gimmick-${gimmick.kind}`, symbol: gimmick.slot === 'guard' ? 'shield' : 'sword',
+        text: condition, spoken: `${gimmick.slot === 'guard' ? '방어' : '공격'} 칸${condition}`, anchor: ui.encounter, beside: ui.inventory }] : []),
       ...(hand && !unlocks.includes(hand) ? [{ id: `unlock-${hand}`, symbol: 'unlock', anchor: ui.firstRunAnchor,
         text: hand === 'triple' ? '같은 눈 셋을 공격에 놓아 해금해요.' : '이어지는 눈 셋을 한 칸에 놓아요.' }] : []),
     ])
@@ -1612,6 +1622,9 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.next.innerHTML = route ? `다음 층 ${icon('next')}` : `다음 전투 ${icon('next')}`
   ui.retry.hidden = !finished
   refreshDice(battle, totals, unlocks)
+  const gimmick = ui.encounter.dataset.gimmick
+  ui.encounter.classList.toggle('gimmick-intro', !ui.planning.hidden && !!gimmick &&
+    !firstRun.includes(ascent) && firstRun.needsSpace(`gimmick-${gimmick}`))
   arena.refresh(battle, enemy.id)
   if (rollTurn && !ui.planning.hidden && !reducedMotion()) {
     const ego = companionDieIndex(battle)

@@ -268,7 +268,10 @@
           <p id="parry-cue" role="img" aria-label="딱 막음" hidden>
             <span aria-hidden="true"></span><svg class="icon" aria-hidden="true"><use href="#icon-parry"/></svg>
           </p>
-          <ol id="hit-order" aria-label="연타 결과" hidden></ol>
+          <div id="hit-order" hidden>
+            <span id="hit-order-label"></span>
+            <ol id="hit-results" aria-labelledby="hit-order-label"></ol>
+          </div>
           <div id="unlock-impact" class="companion-tile" aria-hidden="true" hidden>
             <svg class="icon"><use href="#icon-companion-awake"/></svg>
           </div>

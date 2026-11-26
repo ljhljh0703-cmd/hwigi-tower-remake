@@ -300,6 +300,7 @@ button:disabled {
 #battle { display: grid; gap: 16px; }
 main[data-screen='battle'] {
   --battle-header: 48px;
+  --gimmick-intro-space: 36px;
   display: grid;
   grid-template: var(--battle-header) minmax(0, 1fr) / minmax(0, 1fr);
 }
@@ -368,7 +369,8 @@ main[data-screen='battle'] {
 }
 
 #first-run-note[data-below='true']::after { top: -5px; bottom: auto; rotate: 225deg; }
-#first-run-note:has(#skip-first-run[hidden]) { padding: 7px 10px; }
+#first-run-note:has(#skip-first-run[hidden]) { padding: var(--discovery-padding, 7px) 10px; }
+#first-run-note[data-guide^='gimmick-'] { --discovery-padding: 4px; }
 #first-run-line { display: inline-flex; align-items: center; gap: 5px; }
 #first-run-line > .icon { color: var(--guide-gold); }
 #skip-first-run {
@@ -656,11 +658,19 @@ main[data-screen='battle'] {
 
 .encounter {
   position: relative;
-  block-size: clamp(224px, calc(52dvh - 51px), 420px);
+  --arena-height: clamp(224px, calc(52dvh - 51px), 420px);
+  block-size: var(--arena-height);
   --arena-footer: 98px;
   --vital-offset: 40px;
   --hit-order-offset: 76px;
   background: linear-gradient(180deg, #434240 0%, var(--stone-bed) 96%);
+}
+
+.encounter.gimmick-intro {
+  --vital-center: 50%;
+  --vital-gap: 3px;
+  margin-block-start: var(--gimmick-intro-space);
+  block-size: calc(var(--arena-height) - var(--gimmick-intro-space));
 }
 
 .encounter::before {
@@ -718,6 +728,12 @@ main[data-screen='battle'] {
 .enemy { --actor-x: var(--enemy-x, 73%); }
 .escort-room .combatant { --card-width: clamp(72px, 24vw, 104px); }
 .escort-guard, .escort-damage { --actor-x: var(--escort-x, 50%); }
+.gimmick-intro .player { --actor-x: min(var(--player-x, 26%), calc(var(--vital-center) - var(--card-half) - var(--vital-gap))); }
+.gimmick-intro .enemy { --actor-x: max(var(--enemy-x, 73%), calc(var(--vital-center) + var(--card-half) + var(--vital-gap))); }
+.gimmick-intro.escort-room {
+  --vital-center: var(--escort-x, 50%);
+  --vital-gap: calc(clamp(22px, 7vw, 32px) + 3px);
+}
 
 #intent {
   position: absolute;
@@ -898,36 +914,38 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 #hit-order {
   position: absolute;
   z-index: 1;
-  inset: calc(var(--ground) + var(--hit-order-offset, 114px)) 4px auto;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
+  inset: calc(var(--ground) + var(--hit-order-offset, 114px)) auto auto 8px;
+  display: flex;
+  align-items: stretch;
   gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+  font-size: .72rem;
+  font-weight: 700;
+  white-space: nowrap;
   pointer-events: none;
 }
 
-#hit-order li {
-  display: flex;
-  justify-content: center;
+#hit-order-label, #hit-results li {
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 4px;
+  padding: 2px 5px;
   border: 1px solid var(--stone-edge);
   border-radius: 4px;
   background: #211e1b;
-  color: #e9e3dd;
-  font-size: .72rem;
-  font-weight: 700;
-  line-height: 1.25;
-  text-align: center;
+  color: #eee6df;
 }
 
-#hit-order li .icon { inline-size: 1.25em; block-size: 1.25em; }
-#hit-order li[data-result='blocked'] { border-color: #a0a9b3; }
-#hit-order li[data-result='damage'] { border-color: #b68278; }
+#hit-results {
+  display: flex;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#hit-results li { gap: 4px; }
+#hit-results li[data-result='blocked'] { border-color: #a0a9b3; color: #d7e6f4; }
+#hit-results li[data-result='damage'] { border-color: #a9766b; color: #ffd8ce; }
+.hit-before { color: #d0c4ba; font-weight: 550; }
 
 #parry-cue {
   position: absolute;
@@ -1530,6 +1548,10 @@ button.die:disabled { background: transparent; }
   inline-size: max-content;
   max-inline-size: calc(100% - 12px);
   gap: 4px;
+}
+
+[data-screen='battle']:has(.gimmick-intro) .inventory-strip.below-first-run-note {
+  margin-block-start: calc(14px + var(--gimmick-intro-space));
 }
 
 [data-screen='battle'] .inventory-strip:has(#reward-strip:not([hidden])) { inline-size: min(188px, 100% - 12px); }

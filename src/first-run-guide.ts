@@ -15,8 +15,9 @@ interface Note {
   id: string
   symbol: string
   text: string
+  spoken?: string
   anchor: HTMLElement
-  below?: boolean
+  beside?: HTMLElement
 }
 
 interface Lesson extends Note {
@@ -113,6 +114,7 @@ export class FirstRunGuide {
   clear() {
     window.clearTimeout(this.timer)
     for (const mark of this.lesson?.marks ?? []) delete mark.dataset.firstRunTarget
+    this.active?.beside?.classList.remove('below-first-run-note')
     this.lesson = undefined
     this.active = undefined
     this.available = []
@@ -127,6 +129,10 @@ export class FirstRunGuide {
     this.lesson = lesson
     for (const mark of lesson.marks) mark.dataset.firstRunTarget = ''
     this.show(lesson)
+  }
+
+  needsSpace(id: string) {
+    return this.active?.id === id || !this.progress.seen.includes(id)
   }
 
   discover(notes: readonly Note[]) {
@@ -155,21 +161,27 @@ export class FirstRunGuide {
     this.skipButton.hidden = !this.lesson
     this.note.dataset.guide = note.id
     this.line.innerHTML = `${this.icon(note.symbol)}<span>${note.text}</span>`
-    if (this.status.textContent !== note.text) this.status.textContent = note.text
+    const spoken = note.spoken ?? note.text
+    if (this.status.textContent !== spoken) this.status.textContent = spoken
     this.note.hidden = false
     this.position()
   }
 
   private position = () => {
     if (!this.active) return
-    const { anchor, below } = this.active
+    const { anchor, beside } = this.active
     const box = anchor.getBoundingClientRect()
     const { offsetWidth: width, offsetHeight: height } = this.note
-    const placeBelow = below || box.top < height + 12
-    const top = placeBelow ? box.bottom + 7 : box.top - height - 7
-    this.note.dataset.below = String(Boolean(placeBelow))
+    const placeBelow = box.top < height + 12
+    const top = placeBelow ? box.bottom + 8 : box.top - height - 8
+    this.note.dataset.below = String(placeBelow)
     this.note.style.top = `${Math.max(4, Math.min(top, window.innerHeight - height - 4))}px`
-    this.note.style.left = `${Math.max(6, Math.min(box.left + (box.width - width) / 2, window.innerWidth - width - 6))}px`
+    const lastLeft = window.innerWidth - width - 6
+    const rail = beside?.getBoundingClientRect()
+    const besideLeft = rail?.height ? rail.right + 6 : 6
+    const fitsBeside = besideLeft <= lastLeft
+    beside?.classList.toggle('below-first-run-note', !fitsBeside)
+    this.note.style.left = `${Math.max(fitsBeside ? besideLeft : 6, Math.min(box.left + (box.width - width) / 2, lastLeft))}px`
 
     const { from, to } = this.lesson ?? {}
     this.pointer.hidden = !from || !to
