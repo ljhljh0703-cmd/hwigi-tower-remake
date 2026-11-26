@@ -23,7 +23,6 @@ test('unlock progress distinguishes partial, complete, and invalid hands', () =>
   assert.deepEqual(previewUnlockProgress(filled([5, 3, 4], ['attack', 'attack', 'attack'])).straight, { progress: 3 })
   const noProgress = { triple: { progress: 0 }, straight: { progress: 0 } }
   assert.deepEqual(previewUnlockProgress(filled([6, 1, 2], ['attack', 'attack', null])), noProgress)
-  assert.deepEqual(previewUnlockProgress(filled([2, 2, 3], ['escort', 'escort', null])), noProgress)
   const sealed = { id: 'seal', name: '봉인', hits: [7], mechanic: { kind: 'seal', value: 4 }, matches: () => true }
   assert.deepEqual(previewUnlockProgress(filled([5, 3, 1], ['attack', 'attack', null], { enemyIntents: [sealed] })), noProgress)
 })
@@ -54,7 +53,6 @@ test('unlock previews follow the same attack and exact guard conditions as turn 
     [filled([5, 5, 5], guard), null],
     [filled([3, 3, 3], guard), null],
     [filled([4, 4, 4, 6], [...guard, 'attack'], { enemyHp: 6 }), null],
-    [filled([2, 2, 2], ['escort', 'escort', 'escort']), null],
   ]) {
     assert.deepEqual(previewYachtHand(battle), hand)
     assert.deepEqual(resolveYachtTurn(battle).hand, hand)
@@ -66,7 +64,7 @@ test('unlock previews follow the same attack and exact guard conditions as turn 
 })
 
 test('descending and rerolled straights unlock in any one available slot', () => {
-  for (const slot of ['attack', 'guard', 'escort']) {
+  for (const slot of ['attack', 'guard']) {
     const battle = filled([6, 5, 4, 1], [slot, slot, slot, 'attack'], { escort: { hp: 5, bonus: 2 } })
     assert.deepEqual(previewUnlockProgress(battle).straight, { progress: 3 })
     assert.deepEqual(resolveYachtTurn(battle).hand, { hand: 'straight', slot })

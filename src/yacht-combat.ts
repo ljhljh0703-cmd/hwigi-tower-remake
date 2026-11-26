@@ -1,6 +1,6 @@
 import {
-  allocationPower, allocationTotals, applyCounterResult, attackFor, COUNTER_REWARDS, DIE_COUNT, dieFaceForSlot, draw, enemyIntentAt, forecast, openTurn, PLAYER_HP,
-  rerollChannels, roll, spinCounter,
+  allocationPower, allocationTotals, applyCounterResult, combatSlots, COUNTER_REWARDS, DIE_COUNT, dieFaceForSlot, draw,
+  enemyIntentAt, escortAfterDamage, forecast, openTurn, PLAYER_HP, rerollChannels, roll, spinCounter, splitEnemyDamage,
   startBattle,
 } from './combat.ts'
 import type { Battle, Enemy, EnemyMechanic, Slot } from './combat.ts'
@@ -39,7 +39,6 @@ const FOURTH_DIE_CHANNEL = 8
 const basicRerollChannels = [...rerollChannels, 9]
 const EXTRA_REROLL_CHANNEL = 10
 const paidRerollChannels = [11, 12, 13, 14]
-const combatSlots = ['attack', 'guard', 'escort'] as const
 const dieFaces = [1, 2, 3, 4, 5, 6] as const
 
 export function classifyHand(faces: readonly number[]): Hand | null {
@@ -230,9 +229,10 @@ export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = 
   const { rewards } = battle
   if (!rewards?.relics.length || base.dealt === battle.enemyHp) return { ...base, usedRelics }
 
-  let { hits, damage, dealt } = base
+  let { hits, damage } = base
+  let inflicted = { dealt: base.dealt, escortDealt: base.escortDealt }
   if (relicReady(rewards, 'buckle')) {
-    const incoming = attackFor(battle, base.intent, Boolean(battle.escort && base.escortDealt < battle.escort.hp))
+    const { incoming } = base
     const shortfall = incoming.totalDamage - totals.guard
     if (shortfall >= 1 && shortfall <= BUCKLE_MAX_SHORTFALL) {
       let reduction = Math.min(shortfall, BUCKLE_REDUCTION)
@@ -249,15 +249,15 @@ export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = 
   if (damage < battle.playerHp) {
     const faces = facesInSlot(dice, slots, 'attack', base.intent.mechanic)
     const addDamage = (relic: Relic, bonus: number) => {
-      if (!relicReady(rewards, relic) || dealt === battle.enemyHp) return
-      dealt = Math.min(battle.enemyHp, dealt + bonus)
+      if (!relicReady(rewards, relic) || inflicted.dealt === battle.enemyHp) return
+      inflicted = splitEnemyDamage(battle, bonus, inflicted)
       usedRelics.push(relic)
     }
     const mixedParity = faces.some((face) => face % 2 === 1) && faces.some((face) => face > 0 && face % 2 === 0)
     if (mixedParity) addDamage('weight', WEIGHT_BONUS)
     if (battle.rerolled && faces.length === 1 && faces[0] >= 4) addDamage('rewind', 2)
   }
-  return { ...base, dealt, hits, damage, usedRelics }
+  return { ...base, ...inflicted, hits, damage, usedRelics }
 }
 
 function turnHand(battle: YachtBattle, dice: readonly number[], counter: boolean): UsedHand | null {
@@ -266,7 +266,6 @@ function turnHand(battle: YachtBattle, dice: readonly number[], counter: boolean
 
   // 연속 눈은 플레이어가 턴을 끝낼 때 놓아 둔 눈으로 검사한다.
   for (const slot of combatSlots) {
-    if (slot === 'escort' && !battle.escort) continue
     const hand = usedHand(battle, battle.dice, slot)
     if (hand?.hand === 'straight') return hand
   }
@@ -278,7 +277,7 @@ function draftHand(battle: YachtBattle, dice: readonly number[], counter: boolea
   const hand = battle.loot?.sealHand
   if (!draft || !hand) return null
   const slot = battle.slots[draft.index]
-  if (!slot || (slot === 'escort' && !battle.escort)) return null
+  if (!slot) return null
   if (hand === 'triple' && slot !== 'attack' && !(slot === 'guard' && counter)) return null
   if (usedHand(battle, hand === 'straight' ? battle.dice : dice, slot)?.hand !== hand) return null
   const original = [...dice]
@@ -303,7 +302,6 @@ export function previewUnlockProgress(battle: YachtBattle): Record<Hand, UnlockH
   if (battle.phase !== 'assign') return hints
   const mechanic = enemyIntentAt(battle).mechanic
   for (const slot of combatSlots) {
-    if (slot === 'escort' && !battle.escort) continue
     const placed = facesInSlot(battle.dice, battle.slots, slot)
     const faces = unsealedFaces(placed, mechanic)
     const complete = includedHand(faces)
@@ -316,11 +314,11 @@ export function previewUnlockProgress(battle: YachtBattle): Record<Hand, UnlockH
       continue
     }
     const sealed = mechanic?.kind === 'seal' ? includedHand(placed) : null
-    if (sealed && (slot !== 'escort' || sealed === 'straight')) hints[sealed] = { progress: 0, blocked: 'seal' }
+    if (sealed) hints[sealed] = { progress: 0, blocked: 'seal' }
     if (faces.length < 2) continue
     for (const face of unsealedFaces(dieFaces, mechanic)) {
       const hand = includedHand([...faces, face])
-      if (hand && (slot !== 'escort' || hand === 'straight') && hints[hand].progress === 0 && !hints[hand].blocked) hints[hand] = { progress: 2 }
+      if (hand && hints[hand].progress === 0 && !hints[hand].blocked) hints[hand] = { progress: 2 }
     }
   }
   return hints
@@ -394,12 +392,11 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
   const playerHp = Math.max(0, battle.playerHp - result.damage)
   const enemyHp = battle.enemyHp - result.dealt
   const effect = enemyHp > 0 && playerHp > 0 ? result.intent.mechanic : undefined
-  const escortHp = (battle.escort?.hp ?? 0) - result.escortDealt
   const { stolenDie: previousTheft, escort: previousEscort, weakenedStrikeTurn: _weakenedStrikeTurn, erasedStrikeTurn: _erased, wedgeArmed: _wedgeArmed, ...rest } = battle
   const stolenDie = effect?.kind === 'steal' && !previousTheft
     ? { remaining: result.theftThreshold ?? effect.value } : damageToStolenDie(battle, result.dealt)
-  const escort = previousEscort && escortHp > 0 ? { ...previousEscort, hp: escortHp }
-    : effect?.kind === 'escort' && !previousEscort ? { hp: effect.hp, bonus: effect.bonus } : undefined
+  const escort = previousEscort ? escortAfterDamage(previousEscort, result.escortDealt)
+    : effect?.kind === 'escort' ? { hp: effect.hp, bonus: effect.bonus } : undefined
   const perk = resolvePerk(battle, planned, dice, enemyHp)
   let loot = result.loot
   if (loot?.sealDraft) {
@@ -456,7 +453,8 @@ export function spinYachtCounter(battle: YachtBattle, choice?: CounterChoice): Y
     spun = { ...spun, lastExchange: { ...spun.lastExchange!, counter: result.counter } }
   } else spun = spinCounter(battle, rewards)
   if (spun === battle) return battle
-  const { stolenDie: _stolenDie, ...rest } = { ...battle, ...spun }
+  const { escort: _escort, ...beforeSpin } = battle
+  const { stolenDie: _stolenDie, ...rest } = { ...beforeSpin, ...spun }
   const stolenDie = damageToStolenDie(battle, battle.enemyHp - spun.enemyHp)
   const perk = battle.perk
   const next = {

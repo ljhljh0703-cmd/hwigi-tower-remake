@@ -70,7 +70,7 @@ test('a summoned guard recoils and only joins the attack if it survives', () => 
   const elite = ASCENT_ENEMIES[1].find(({ id }) => id === 'escort')
   const before = {
     ...startYachtBattle(91, 22, false, false, undefined, elite),
-    turn: 4, dice: [2, 4, 5], slots: ['escort', 'guard', 'guard'], escort: { hp: 5, bonus: 3 },
+    turn: 4, dice: [2, 4, 5], slots: ['attack', 'guard', 'guard'], escort: { hp: 5, bonus: 3 },
   }
   const resolvePoses = (battle) => escortExchangePoses(battle, resolveYachtTurn(battle).battle.lastExchange).map(({ pose }) => pose)
   assert.deepEqual(resolvePoses(before), ['hit', 'attack'])

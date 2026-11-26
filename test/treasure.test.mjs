@@ -69,7 +69,7 @@ test('buckle, tongs, mantle and lining share a protection cap while banner only 
 
 test('knot and hook affect only a new theft and a surviving escort, and finishing skips delayed consumables', () => {
   const gear = { items: { knot: 2, hook: 1 }, prepared: { whetstone: 1, lining: 1 } }
-  const theft = put([2, 2, 2], ['escort', 'guard', 'guard'], gear, {
+  const theft = put([2, 2, 2], ['attack', 'guard', 'guard'], { ...gear, prepared: {} }, {
     escort: { hp: 5, bonus: 3 }, enemyIntents: [attack([3], { kind: 'steal', value: 10 })],
   })
   const after = resolveYachtTurn(theft).battle
@@ -78,10 +78,26 @@ test('knot and hook affect only a new theft and a surviving escort, and finishin
   assert.equal(itemUses(after.loot, 'knot'), 1)
   const repeat = forecastYacht({ ...theft, stolenDie: { remaining: 3 } })
   assert.equal(repeat.theftThreshold, undefined)
-  const kill = resolveYachtTurn({ ...theft, dice: [3, 6, 6], slots: ['attack', 'attack', 'attack'], enemyHp: 3 }).battle
+  const kill = resolveYachtTurn({ ...theft, loot: { ...theft.loot, ...gear }, dice: [3, 6, 6], slots: ['attack', 'attack', 'attack'], enemyHp: 3 }).battle
   assert.equal(kill.phase, 'won')
   assert.deepEqual(kill.loot.prepared, {})
   assert.deepEqual(kill.loot.spentItems, {})
+})
+
+test('delayed attack bonuses spill through the escort after the enemy attack has resolved', () => {
+  const battle = put([4, 2, 2], ['attack', 'guard', 'guard'], { items: { hook: 1 } }, {
+    escort: { hp: 5, bonus: 3 }, enemyIntents: [attack([3, 1])],
+  })
+  for (const gear of [{ items: { hook: 1 } }, { prepared: { whetstone: 1 } }, { mirrorDamage: 2 }, { overflowDamage: 2 }]) {
+    const after = resolveYachtTurn({ ...battle, loot: { ...emptyTreasure, ...gear } }).battle
+    assert.deepEqual(after.lastExchange.hitsTaken, [2, 1])
+    assert.equal(after.lastExchange.escortDealt, 5)
+    assert.equal(after.lastExchange.dealt, 1)
+    assert.equal(after.escort, undefined)
+  }
+  const legacy = resolveYachtTurn({ ...battle, loot: undefined, rerolled: true, rewards: { relics: ['rewind'], spent: [] } }).battle
+  assert.equal(legacy.lastExchange.escortDealt, 5)
+  assert.equal(legacy.lastExchange.dealt, 1)
 })
 
 function counterBoard(state, enemyHp = 30, slot = 1) {
@@ -91,6 +107,18 @@ function counterBoard(state, enemyHp = 30, slot = 1) {
     lastExchange: { turn: 1, dealt: 4, hitsTaken: [0], counter: null, awakened: false },
   })
 }
+
+test('roulette follow-up hits finish the escort before spilling into the main enemy', () => {
+  const battle = {
+    ...counterBoard({ items: { coin: 1 }, shards: { assist: 1 }, counterFlags: { coin: true, assist: true } }, 2),
+    escort: { hp: 5, bonus: 3 },
+  }
+  const result = spinYachtCounter(battle)
+  assert.equal(result.escort, undefined)
+  assert.equal(result.enemyHp, 1)
+  assert.equal(result.loot.spentItems.coin, 1)
+  assert.equal(result.loot.shards.assist, undefined)
+})
 
 test('mirror and horn offer one saved result, grow a counter perk once and cannot both pay', () => {
   const state = { ...equipped('mirror', 'horn'), counterFlags: { horn: true, coin: false, assist: false } }

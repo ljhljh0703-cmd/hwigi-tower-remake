@@ -90,7 +90,7 @@ export const TREASURE_CARDS = {
   tongs: { name: '봉인집게', icon: 'treasure-tongs', value: '−2', description: '봉인 턴에 봉인되지 않은 주사위 두 개 이상으로 방어하면 적 공격으로 잃는 체력을 최대 2 줄입니다.' },
   mantle: { name: '분할 망토', icon: 'treasure-mantle', value: '−2', description: '연타를 맞는 턴에 공격 주사위 한 개와 방어 주사위 두 개 이상을 쓰면 적 공격으로 잃는 체력을 최대 2 줄입니다.' },
   knot: { name: '회수 매듭', icon: 'treasure-knot', value: '10→8', description: '주사위를 빼앗길 때 한 개를 써서 그 주사위를 되찾는 피해 문턱을 10에서 8로 내립니다.' },
-  hook: { name: '호위 갈고리', icon: 'treasure-hook', value: '+2', description: '주사위 한 개로 호위에게 피해를 주면 턴 끝에 살아 있는 호위에게 피해 2를 더 줍니다.' },
+  hook: { name: '호위 갈고리', icon: 'treasure-hook', value: '+2', description: '공격 칸의 주사위 한 개로 호위병을 맞혀 호위병이 살아 있으면 턴 끝에 피해 2를 더 줍니다. 넘친 피해는 본체에 들어갑니다.' },
   coin: { name: '새긴 동전', icon: 'treasure-coin', value: '+2', description: '서로 다른 눈 세 개로 정확히 막으면 룰렛 뒤 살아 있는 본체에 피해 2를 더 줍니다.' },
   medicine: { name: '약봉지', icon: 'reward-bandage', value: '+3', description: '확정하면 체력을 3 회복합니다. 체력이 가득 차 있으면 사용할 수 없습니다.' },
   kit: { name: '치료 도구', icon: 'reward-bandage', value: `+${REST_HEAL}`, description: `확정하면 체력을 ${REST_HEAL} 회복합니다. 최대 체력을 넘길 수 없습니다.` },

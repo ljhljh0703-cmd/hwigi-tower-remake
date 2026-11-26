@@ -6,6 +6,7 @@ import type { Ascent } from './ascent.ts'
 import { CURRENT_MAP_RULES, MAP_ENEMY_BADGES, MAP_FLOORS } from './ascent-map.ts'
 import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, writeAscentSave } from './ascent-save.ts'
 import { Arena } from './arena.ts'
+import { GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
 import type { BattleHit } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
 import { BATTLE_GUIDE } from './battle-guide.ts'
@@ -22,7 +23,7 @@ import { availableCounterChoices, cancelSeal, chooseHourglass, draftSeal, startH
 import { relicReady, REWARD_CARDS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
 import {
-  allocationPower, assignDie, attackFor, chargedStrikePreview, DIE_COUNT, enemyIntentAt, incomingAttack,
+  allocationPower, assignDie, attackFor, chargedStrikePreview, combatSlots, DIE_COUNT, enemyIntentAt, incomingAttack, splitEnemyDamage,
 } from './combat.ts'
 import type { Exchange, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
@@ -33,6 +34,7 @@ import {
 } from './yacht-combat.ts'
 import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput, rerollSelectedDice } from './dice-drag.ts'
+import { dieCenter, playDiceMotion, playPlacementMotion } from './dice-motion.ts'
 import { CounterRoulette } from './counter-roulette.ts'
 import type { DropZone } from './dice-drag.ts'
 import './style.css'
@@ -127,13 +129,11 @@ const ui = {
     pool: element('pool-dice'),
     attack: element('attack-dice'),
     guard: element('guard-dice'),
-    escort: element('escort-dice'),
   },
   assign: {
     pool: element<HTMLButtonElement>('assign-pool'),
     attack: element<HTMLButtonElement>('assign-attack'),
     guard: element<HTMLButtonElement>('assign-guard'),
-    escort: element<HTMLButtonElement>('assign-escort'),
   },
   attackTotal: element('attack-total'),
   attackBonus: element('attack-bonus'),
@@ -141,10 +141,6 @@ const ui = {
   attackMultiplier: element('attack-multiplier'),
   guardTotal: element('guard-total'),
   guardBonus: element('guard-bonus'),
-  escortSlot: element('escort-slot'),
-  escortHp: element('escort-hp'),
-  escortTotal: element('escort-total'),
-  escortBonus: element('escort-bonus'),
   reroll: element<HTMLButtonElement>('reroll'),
   rerollCount: element('reroll-count'),
   extraReroll: element<HTMLButtonElement>('extra-reroll'),
@@ -219,8 +215,12 @@ let ascent: Ascent | null = null
 let chosenReward: Reward | undefined
 let artifactOptions: ArtifactOptions = {}
 let exchangeBusy = false
+let stopDiceMotion: (() => void) | undefined
+let stopPlacementMotion: (() => void) | undefined
 const selected = new Set<number>()
 const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
+const counterPanelHome = ui.counterPanel.parentElement!
+const counterPanelNext = ui.counterPanel.nextElementSibling
 const sound = new BattleAudio()
 const systemMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 let settings = loadGameSettings()
@@ -235,7 +235,11 @@ function renderSettings() {
   document.documentElement.dataset.reducedMotion = String(reduced)
   document.documentElement.dataset.animationSpeed = settings.speed
   arena.setAnimation(animationSpeed(), reduced)
-  if (reduced) roulette.finishMotion()
+  if (reduced) {
+    roulette.finishMotion()
+    stopDiceMotion?.()
+    stopPlacementMotion?.()
+  }
   const switches = [
     [ui.settingsMusic, settings.music], [ui.settingsEffects, settings.effects], [ui.settingsMotion, reduced],
   ] as const
@@ -375,9 +379,12 @@ document.addEventListener('pointermove', (event) => {
 for (const type of ['pointerup', 'pointercancel'] as const) document.addEventListener(type, stopHolding)
 document.addEventListener('pointerdown', () => { holdHelp.hidden = true }, { capture: true })
 document.addEventListener('keydown', (event) => { if (event.key === 'Escape') holdHelp.hidden = true })
-element('pool-help').addEventListener('click', (event) => showHelp(event.currentTarget as HTMLElement))
-ui.bladeMeter.addEventListener('click', () => {
-  if (helpTarget !== ui.bladeMeter || holdHelp.hidden) ui.assign.attack.click()
+for (const target of [ui.intent, ui.lockedDie, element('pool-help')]) {
+  target.addEventListener('click', () => showHelp(target))
+}
+ui.bladeMeter.addEventListener('click', (event) => {
+  if (ui.assign.attack.disabled) showHelp(ui.bladeMeter)
+  if (helpTarget === ui.bladeMeter && !holdHelp.hidden) event.stopPropagation()
 })
 window.addEventListener('resize', () => { holdHelp.hidden = true })
 
@@ -389,8 +396,12 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
   button.className = 'die'
   button.id = `die-${index}`
   bindDiceInput(button, {
-    select: () => {
-      if (ui.guide.open || exchangeBusy) return
+    select: (source) => {
+      if (ui.guide.open || exchangeBusy || stopDiceMotion) return
+      if (source === 'pointer' && ascent?.battle.slots[index]) {
+        place([index], 'pool')
+        return
+      }
       if (!selected.delete(index)) selected.add(index)
       saveCurrent()
       render()
@@ -407,7 +418,7 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
   return button
 })
 
-for (const zone of ['attack', 'guard', 'escort'] as const) {
+for (const zone of combatSlots) {
   for (let index = 0; index <= DIE_COUNT; index++) {
     const seat = document.createElement('span')
     seat.className = 'die-seat'
@@ -437,7 +448,7 @@ function renderSlotTotal(total: HTMLElement, bonus: HTMLElement, value: number, 
   return added ? `, 특전 보너스 ${added} 포함` : ''
 }
 
-function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals, unlocks: readonly Hand[]) {
+function refreshDice(battle: YachtBattle, { attack, guard }: SlotTotals, unlocks: readonly Hand[]) {
   const planning = battle.phase === 'assign'
   const pendingUnlock = unlocks.length < 2 ? previewUnlockProgress(battle) : undefined
   const intent = enemyIntentAt(battle)
@@ -454,22 +465,27 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
     const parent = ui.dice[slot ?? 'pool']
     const fixed = battle.fixedDie?.index === index ? battle.fixedDie.kind : undefined
     const sealed = mechanic?.kind === 'seal' && value === mechanic.value
-    const face = sealed ? `<span class="sealed-face" aria-hidden="true">${icon('seal')}<small>${value}</small></span>` : value
-    button.innerHTML = `${face}${isCompanion ? `<span class="companion-mark">${icon('companion-awake')}</span>` : ''}${fixed ? `<span class="die-status">${icon(fixed)}</span>` : ''}`
     const oathFace = battle.perk?.kind === 'oath' && !sealed && value % 2 === Number(battle.perk.parity === 'odd')
-    button.classList.toggle('altered-face', oathFace)
-    const place = slot ? { attack: '공격', guard: '방어', escort: '호위 공격' }[slot] : '미배치'
+    const picked = selected.has(index)
+    const indicators = [
+      picked && icon('map-check'),
+      fixed && icon(fixed),
+      sealed && icon('seal'),
+      oathFace && icon(parityIcons[value % 2 ? 'odd' : 'even']),
+    ].filter(Boolean).join('')
+    button.innerHTML = `<span class="die-face${isCompanion ? ' ego-face' : ''}">${value}</span><span class="die-indicators" aria-hidden="true">${indicators}</span>`
+    const place = slot ? { attack: '공격', guard: '방어' }[slot] : '미배치'
     let faceLabel = ''
     if (oathFace) faceLabel = `, 공격에 놓으면 +${START_PERKS.oath.bonus}`
     if (fixed) faceLabel += `, ${fixed === 'lock' ? '잠김' : '얼림'}, 재굴림 불가`
     if (sealed) faceLabel += ', 봉인된 눈은 합계에서 빠짐'
     const name = isCompanion ? '에고 주사위' : `주사위 ${index + 1}`
     button.setAttribute('aria-label', `${name}, ${value}, ${place}${faceLabel}`)
-    button.setAttribute('aria-pressed', String(selected.has(index)))
+    button.setAttribute('aria-pressed', String(picked))
     if (parent !== button.parentElement) parent.append(button)
   })
 
-  for (const zone of ['attack', 'guard', 'escort'] as const) {
+  for (const zone of combatSlots) {
     const row = ui.dice[zone]
     const used = row.querySelectorAll('.die:not([hidden])').length
     row.querySelectorAll<HTMLElement>('.die-seat').forEach((seat, index) => {
@@ -502,18 +518,12 @@ function refreshDice(battle: YachtBattle, { attack, guard, escort }: SlotTotals,
   ui.assign.attack.setAttribute('aria-label', `공격 칸, 피해 ${attack}${attackHint}${multiplierHint}${wedgeHint}`)
   const guardHint = renderSlotTotal(ui.guardTotal, ui.guardBonus, guard, guard - withoutPerk.guard)
   ui.assign.guard.setAttribute('aria-label', `방어 칸, 합계 ${guard}${guardHint}`)
-  ui.escortSlot.hidden = !battle.escort
-  ui.escortSlot.parentElement!.classList.toggle('has-escort', Boolean(battle.escort))
-  ui.escortHp.textContent = String(battle.escort?.hp ?? 0)
-  const escortHint = renderSlotTotal(ui.escortTotal, ui.escortBonus, escort, escort - withoutPerk.escort)
-  ui.assign.escort.setAttribute('aria-label', `호위 공격, 피해 ${escort}${escortHint}, 호위 체력 ${battle.escort?.hp ?? 0}`)
   const canPlace = planning && selected.size > 0
   const rerollable = [...selected].filter((index) => canReroll(battle, index))
   ui.assign.pool.disabled = !canPlace || ![...selected].some((index) => battle.slots[index] !== null)
   ui.assign.pool.parentElement!.tabIndex = ui.assign.pool.disabled ? 0 : -1
   ui.assign.attack.disabled = !canPlace
   ui.assign.guard.disabled = !canPlace
-  ui.assign.escort.disabled = !canPlace
   const rerollCost = yachtRerollCost(battle)
   ui.reroll.disabled = !rerollable.length || rerollCost === null || rerollCost >= battle.playerHp
   const freeRolls = Number(rerollCost === 0)
@@ -552,9 +562,15 @@ function hitNumbers(hits: readonly number[]) {
 
 function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) {
   const badge = enemyBadges[enemyId]
-  const display = (symbol: string, value: string, label: string, detail = icon(badge.icon)) => {
-    ui.intent.innerHTML = `<span>${icon(symbol)}${value ? `<strong>${value}</strong>` : ''}</span><span class="intent-detail">${detail}</span>`
+  const { escort } = battle
+  const badgeIcon = escort && badge.icon === 'escort' ? '' : icon(badge.icon)
+  const display = (symbol: string, value: string, label: string, detail = badgeIcon) => {
+    const secondary = detail ? `<span class="intent-detail">${detail}</span>` : ''
+    const priority = escort ? `<span class="intent-detail intent-escort" aria-hidden="true">${icon('sword')}${icon('next')}${icon('escort')}<span class="intent-escort-hp">${escort.hp}</span></span>` : ''
+    ui.intent.innerHTML = `<span>${icon(symbol)}${value ? `<strong>${value}</strong>` : ''}</span>${secondary}${priority}`
     ui.intent.setAttribute('aria-label', label)
+    if (escort) ui.intent.setAttribute('aria-description', `공격 대상 1순위 호위병 · 생존 시 적 공격 +${escort.bonus}`)
+    else ui.intent.removeAttribute('aria-description')
   }
   const { phase } = battle
   ui.intent.hidden = phase === 'won' || phase === 'lost'
@@ -567,8 +583,8 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
       const { threshold, totalDamage, hammerThreshold } = charge
       const secondary = hammerThreshold ? `${icon('treasure-hammer')}${hammerThreshold}` : `${icon('break-charge')}${threshold}`
       display('charge', String(totalDamage), hammerThreshold
-        ? `공격 합이 ${hammerThreshold} 이상이면 망치가 다음 큰 공격을 막아요.`
-        : `공격 합이 ${threshold} 이상이면 다음 큰 공격을 약하게 만들어요.`, secondary)
+        ? `본체에 닿는 공격 피해가 ${hammerThreshold} 이상이면 망치가 다음 큰 공격을 막아요.`
+        : `본체에 닿는 공격 피해가 ${threshold} 이상이면 다음 큰 공격을 약하게 만들어요.`, secondary)
       return
     }
     if (intent.damageTakenMultiplier !== undefined) {
@@ -583,7 +599,7 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
       return
     }
     let label = hits.length ? `피해 ${hitNumbers(hits)}의 공격이 와요.` : intent.name
-    let detail = icon(badge.icon)
+    let detail = badgeIcon
     if (mechanic) {
       switch (mechanic.kind) {
         case 'lock':
@@ -624,15 +640,11 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
           break
         case 'escort':
           if (!battle.escort) {
-            detail = `${icon('escort')}1`
-            label = `호위가 나타나요. 호위가 살아 있으면 적 공격이 ${mechanic.bonus}만큼 세져요.`
+            detail = `${icon('escort')}${mechanic.hp}`
+            label = `호위병 소환 · 체력 ${mechanic.hp} · 생존 시 적 공격 +${mechanic.bonus}`
           }
           break
       }
-    }
-    if (battle.escort && !mechanic) {
-      detail = `${icon('escort')}${battle.escort.bonus}`
-      label = `호위가 살아 있으면 적 공격이 ${battle.escort.bonus}만큼 세져요.`
     }
     display(hits.length ? (intent.id === 'critical' ? 'critical' : 'sword') : badge.icon, hits.length ? hitNumbers(hits) : '0', label, detail)
   }
@@ -648,6 +660,7 @@ const companionFlightDuration = 500
 const companionImpactTime = 350
 const incomingContact = 152
 const repeatContact = 248
+const escortDefeatPause = 160
 const damageOutput = { player: ui.playerDamage, enemy: ui.enemyDamage, escort: ui.escortDamage }
 
 function clearExchange() {
@@ -698,9 +711,22 @@ function updateVital(meter: HTMLMeterElement, label: HTMLElement, hp: number, ma
   ], { duration: effectDuration(140), delay: effectDuration(chipDelay), fill: 'backwards', easing: 'ease-out' })
 }
 
-function showParry() {
+function updateEscortVital(hp: number) {
+  ui.escortGuardTotal.textContent = String(hp)
+  ui.escortGuardVital.setAttribute('aria-label', `호위병 체력 ${hp}`)
+  if (hp === 0) {
+    ui.intent.querySelector('.intent-escort')?.remove()
+    ui.intent.removeAttribute('aria-description')
+  } else {
+    const previewHp = ui.intent.querySelector('.intent-escort-hp')
+    if (previewHp) previewHp.textContent = String(hp)
+  }
+}
+
+function showParry(authored = false) {
+  ui.parry.classList.toggle('sr-only', authored)
   ui.parry.hidden = false
-  sound.play('perfect-block')
+  sound.play('perfect-block', authored ? .94 : 1, authored ? .32 : .19)
 }
 
 function wait(milliseconds: number): Promise<void> {
@@ -711,8 +737,10 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   const { dealt, hitsTaken, awakenedDice, escortDealt } = exchange
   const taken = hitsTaken.reduce((sum, value) => sum + value, 0)
   const totals = yachtAllocationTotals(before, before.slots, awakenedDice ?? before.dice)
+  const opening = splitEnemyDamage(before, totals.attack)
+  const lateEscortDamage = (escortDealt ?? 0) - opening.escortDealt
   // 아이템 추가 피해가 적을 쓰러뜨려도 원래 확정된 공격 타수는 표시한다.
-  const incoming = totals.attack < before.enemyHp
+  const incoming = opening.dealt < before.enemyHp
     ? Math.min(hitsTaken.length, incomingAttack(before, totals).hits.length) : 0
   const thorns = hitsTaken.length > incoming ? hitsTaken.at(-1)! : 0
   const exact = after.phase === 'counter'
@@ -749,26 +777,31 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     if (hits.length || contact.guarded) sound.play('stone-hit', pitch)
   }
   const enemyHit: BattleHit[] = dealt ? [{ target: 'enemy', damage: dealt, defeated: after.enemyHp === 0 }] : []
+  const earlyEnemyHit = lateEscortDamage ? [] : enemyHit
   const heroHit = (damage: number, final = true): BattleHit[] => damage ? [{ target: 'player', damage, defeated: final && after.playerHp === 0 }] : []
   const updatePlayer = () => updateVital(ui.playerHp, ui.playerTotal, after.playerHp)
   const updateEnemy = () => updateVital(ui.enemyHp, ui.enemyTotal, after.enemyHp)
-  arena.playExchange(before, exchange)
+  const golemParry = exact && incoming === 1 && !dealt && !escortDealt && arena.beginGolemParry(start)
+  ui.intent.classList.toggle('parry-in-progress', golemParry)
+  if (!golemParry) arena.playExchange(before, exchange)
   ui.awakening.hidden = !awakenedDice
   ui.awakening.innerHTML = awakenedDice ? `${icon('die')}${awakenedDice.map((face) => `<span>${face}</span>`).join('')}` : ''
   ui.awakening.setAttribute('aria-label', awakenedDice ? `각성 ${awakenedDice.join(', ')}` : '')
 
-  if (escortDealt) {
+  const hitEscort = (damage: number, hp: number) => {
+    emit([{ target: 'escort', damage, defeated: hp === 0 }])
+    updateEscortVital(hp)
+  }
+  if (opening.escortDealt && before.escort) {
     if (!reducedMotion()) await at(45)
-    emit([{ target: 'escort', damage: escortDealt, defeated: !after.escort }])
-    ui.escortGuardTotal.textContent = String(after.escort?.hp ?? 0)
-    ui.escortGuardVital.setAttribute('aria-label', `호위병 체력 ${after.escort?.hp ?? 0}`)
+    hitEscort(opening.escortDealt, before.escort.hp - opening.escortDealt)
   }
   if (incoming) arena.queueShadow(start + effectDuration(incomingContact), false)
   if (ordered) {
-    if (dealt || thorns) {
+    if (earlyEnemyHit.length || thorns) {
       if (!reducedMotion()) await at(96)
-      emit([...enemyHit, ...heroHit(thorns, false)])
-      updateEnemy()
+      emit([...earlyEnemyHit, ...heroHit(thorns, false)])
+      if (earlyEnemyHit.length) updateEnemy()
       if (thorns) readHit(incoming)
     }
     for (let index = 0; index < incoming; index++) {
@@ -784,11 +817,21 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
       readHit(index)
       if (final) updatePlayer()
     }
-  } else if (incoming || dealt || thorns) {
-    if (!reducedMotion()) await at(incoming ? incomingContact : 96)
-    emit([...enemyHit, ...heroHit(taken)], { parry: exact, guarded: incoming > 0 && hitsTaken[0] === 0 && !exact })
-    updateEnemy()
+  } else if (incoming || earlyEnemyHit.length || thorns) {
+    if (!reducedMotion()) await at(golemParry ? GOLEM_PARRY.contact : incoming ? incomingContact : 96)
+    emit([...earlyEnemyHit, ...heroHit(taken)], { parry: exact, guarded: incoming > 0 && hitsTaken[0] === 0 && !exact })
+    if (earlyEnemyHit.length) updateEnemy()
     updatePlayer()
+  }
+  if (lateEscortDamage > 0) {
+    const lastContact = incoming ? incomingContact + (incoming - 1) * repeatContact : 96
+    if (!reducedMotion()) await at(lastContact + 70)
+    hitEscort(lateEscortDamage, after.escort?.hp ?? 0)
+    if (dealt) {
+      if (!reducedMotion()) await at(lastContact + 140)
+      emit(enemyHit)
+      updateEnemy()
+    }
   }
   ui.feedback.textContent = `적 피해 ${dealt}, 내 피해 ${taken}${escortDealt ? `, 호위 피해 ${escortDealt}` : ''}${awakenedDice ? `, 각성 ${awakenedDice.join(', ')}` : ''}`
   if (ordered) window.setTimeout(() => {
@@ -798,9 +841,17 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     }
   }, effectDuration(damageDuration))
   if (exact) {
-    showParry()
-    await wait(parryDuration)
+    showParry(golemParry)
+    if (golemParry) {
+      await at(GOLEM_PARRY.landing)
+      if (!reducedMotion()) sound.play('stone-hit', .84, .13)
+      await at(GOLEM_PARRY.end)
+    } else {
+      await wait(parryDuration)
+    }
     ui.parry.hidden = true
+  } else if (escortDealt && !after.escort && after.phase === 'assign' && !reducedMotion()) {
+    await wait(escortDefeatPause)
   }
 }
 
@@ -1207,7 +1258,9 @@ function renderHealth(hp: number, max: number) {
   ui.mapHealth.setAttribute('aria-label', `체력 ${hp}/${max}`)
 }
 
-function render(presentation: 'normal' | 'unlock' = 'normal') {
+function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) {
+  stopDiceMotion?.()
+  stopPlacementMotion?.()
   if (!ascent) return
   holdHelp.hidden = true
   const { battle, fight, enemy, maxHp, unlocks, newUnlock, route } = ascent
@@ -1264,10 +1317,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal') {
   updateVital(ui.enemyHp, ui.enemyTotal, enemyHp, enemy.hp)
   ui.escortGuard.hidden = !battle.escort || enemyHp <= 0
   ui.encounter.classList.toggle('escort-room', enemy.id === 'escort')
-  if (battle.escort) {
-    ui.escortGuardTotal.textContent = String(battle.escort.hp)
-    ui.escortGuardVital.setAttribute('aria-label', `호위병 체력 ${battle.escort.hp}`)
-  }
+  if (battle.escort) updateEscortVital(battle.escort.hp)
   ui.newUnlock.hidden = !atUnlock
   showCompanionLine(ui.companionAwakenLine, atUnlock && newUnlock === 'triple' ? COMPANION_LINES.awaken : '')
   if (atUnlock) {
@@ -1288,6 +1338,13 @@ function render(presentation: 'normal' | 'unlock' = 'normal') {
   ui.planning.hidden = !showActions || phase !== 'assign'
   ui.tuneDown.disabled = tuneYachtDie(battle, -1) === battle
   ui.tuneUp.disabled = tuneYachtDie(battle, 1) === battle
+  const fieldCounter = showActions && phase === 'counter' && arena.golemParryHeld && !battle.loot?.counter
+  if (fieldCounter && ui.counterPanel.parentElement !== ui.encounter) ui.encounter.append(ui.counterPanel)
+  if (!fieldCounter && ui.counterPanel.parentElement !== counterPanelHome) {
+    counterPanelHome.insertBefore(ui.counterPanel, counterPanelNext)
+  }
+  ui.counterPanel.classList.toggle('counter-over-field', fieldCounter)
+  ui.intent.classList.toggle('parry-in-progress', fieldCounter)
   roulette.setVisible(showActions && phase === 'counter' ? yachtCounterRewards(battle) : null, companionAwake)
   if (showActions && phase === 'counter') {
     ui.counter.hidden = Boolean(battle.loot?.counter)
@@ -1335,6 +1392,15 @@ function render(presentation: 'normal' | 'unlock' = 'normal') {
   ui.retry.hidden = !finished
   refreshDice(battle, totals, unlocks)
   arena.refresh(battle, enemy.id)
+  if (rollTurn && !ui.planning.hidden && !reducedMotion()) {
+    const ego = companionDieIndex(battle)
+    stopDiceMotion = playDiceMotion(ui.encounter, battle.dice.map((face, index) => ({
+      button: diceButtons[index], face, ego: index === ego,
+    })), () => {
+      stopDiceMotion = undefined
+      if (document.activeElement === ui.planning) focusPhase()
+    })
+  }
 }
 
 function refreshLobbyActions() {
@@ -1346,6 +1412,8 @@ function refreshLobbyActions() {
 }
 
 function showLobby(focus = false) {
+  stopDiceMotion?.()
+  stopPlacementMotion?.()
   renderCoins()
   ascent = null
   chosenReward = undefined
@@ -1366,6 +1434,8 @@ function showLobby(focus = false) {
 }
 
 function showPerks() {
+  stopDiceMotion?.()
+  stopPlacementMotion?.()
   renderCoins()
   ascent = null
   chosenReward = undefined
@@ -1448,16 +1518,28 @@ function perkButton(symbol: string, name: string, description: string) {
 }
 
 function place(indices: readonly number[], zone: DropZone) {
-  if (ui.guide.open || exchangeBusy || !ascent || !indices.length || ascent.battle.phase !== 'assign' || ascent.battle.loot?.hourglass) return
+  if (ui.guide.open || exchangeBusy || stopDiceMotion || !ascent || !indices.length || ascent.battle.phase !== 'assign' || ascent.battle.loot?.hourglass) return
   const slot = zone === 'pool' ? null : zone
   const before = ascent.battle
   let battle = before
   for (const index of indices) battle = assignDie(battle, index, slot)
-  if (indices.some((index) => battle.slots[index] !== before.slots[index])) sound.play('dice-place')
+  const moved = indices.filter((index) => battle.slots[index] !== before.slots[index])
+  if (moved.length) sound.play('dice-place')
+  const scene = ui.planning.getBoundingClientRect()
+  const ego = companionDieIndex(battle)
+  const animated = slot && !reducedMotion() ? moved.map((index) => ({
+    button: diceButtons[index],
+    face: battle.dice[index],
+    ego: index === ego,
+    from: dieCenter(diceButtons[index], scene),
+  })) : []
   ascent = { ...ascent, battle }
   selected.clear()
   saveCurrent()
   render()
+  if (animated.length) {
+    stopPlacementMotion = playPlacementMotion(ui.planning, animated, () => { stopPlacementMotion = undefined })
+  }
   const unassigned = battle.slots.indexOf(null)
   if (unassigned < 0) ui.resolve.focus()
   else diceButtons[unassigned].focus()
@@ -1472,13 +1554,21 @@ function focusPhase() {
   }
   else if (ascent.battle.loot?.hourglass || ascent.battle.loot?.counter) ui.treasureControls.querySelector('button')?.focus()
   else if (ascent.battle.phase === 'counter') ui.counter.focus()
-  else if (ascent.battle.phase === 'assign') diceButtons[selected.values().next().value ?? 0].focus()
+  else if (ascent.battle.phase === 'assign') {
+    const target = stopDiceMotion ? ui.planning : diceButtons[selected.values().next().value ?? 0]
+    target.focus({ preventScroll: true })
+  }
   else if (!ui.next.hidden) ui.next.focus()
   else ui.retry.focus()
 }
 
-for (const zone of ['pool', 'attack', 'guard', 'escort'] as const) {
-  ui.assign[zone].addEventListener('click', () => place([...selected], zone))
+for (const zone of ['pool', ...combatSlots] as const) {
+  const button = ui.assign[zone]
+  button.addEventListener('click', () => place([...selected], zone))
+  if (zone === 'pool') continue
+  ui.dice[zone].parentElement!.addEventListener('click', (event) => {
+    if (event.target instanceof Element && !event.target.closest('button')) button.click()
+  })
 }
 function useReroll(extra: boolean) {
   if (ui.guide.open || exchangeBusy || !ascent) return
@@ -1562,11 +1652,13 @@ ui.resolve.addEventListener('click', async () => {
       await wait(reducedMotion() ? 320 : damageDuration)
     }
   } finally {
+    ui.intent.classList.remove('parry-in-progress')
     lockExchange(false)
-    render()
+    render('normal', next.battle.turn !== before.turn)
     if (phase === 'won') sound.play('victory')
     if (phase === 'lost') sound.play('defeat')
-    focusPhase()
+    if (phase === 'counter' && arena.golemParryHeld) void playCounter()
+    else focusPhase()
   }
 })
 let counterBusy = false
@@ -1580,7 +1672,9 @@ async function playCounter(choice?: CounterChoice) {
   if (!reward) return
   counterBusy = true
   saveCurrent(checkpoint)
-  const dealt = ascent.battle.enemyHp - next.enemyHp
+  const before = ascent.battle
+  const dealt = before.enemyHp - next.enemyHp
+  const escortDealt = (before.escort?.hp ?? 0) - (next.escort?.hp ?? 0)
   const companionJoint = reward.joint && ascent.unlocks.includes('triple')
   ui.help.disabled = true
   ui.battleSettings.disabled = true
@@ -1590,10 +1684,18 @@ async function playCounter(choice?: CounterChoice) {
   ui.treasureControls.hidden = true
 
   const animate = !reducedMotion()
+  const fieldCounter = animate && arena.golemParryHeld
   if (next.perk?.kind === 'counter') renderActivePerk(next)
   if (!choice) {
-    await roulette.reveal(reward, animate, () => sound.play('roulette-tick'), animationSpeed())
-    sound.play('roulette-stop')
+    if (fieldCounter) {
+      ui.counter.hidden = true
+      sound.play('roulette-engage', 1, .26)
+      sound.play('roulette-ratchet', animationSpeed(), .23)
+    }
+    await roulette.reveal(reward, animate, () => sound.play('roulette-tick'), animationSpeed() * (fieldCounter ? 1.24 : 1))
+    if (fieldCounter) sound.play('roulette-latch', 1, .37)
+    else sound.play('roulette-stop')
+    if (fieldCounter && !pending) await wait(245)
   }
   if (pending) {
     ascent = checkpoint
@@ -1602,31 +1704,45 @@ async function playCounter(choice?: CounterChoice) {
     focusPhase()
     return
   }
-  if (companionJoint && !reducedMotion()) {
+  const choreographed = fieldCounter && !companionJoint && !escortDealt && dealt > 0 && arena.beginGolemCounter(next.enemyHp === 0)
+  if (choreographed) {
+    ui.counterPanel.hidden = true
+    await wait(GOLEM_COUNTER.contact)
+  } else if (companionJoint && animate) {
     ui.companionFlight.style.setProperty('--flight-duration', `${effectDuration(companionFlightDuration)}ms`)
     ui.companionFlight.hidden = false
     await wait(companionImpactTime)
-  } else if (dealt && !reducedMotion()) {
+  } else if ((dealt || escortDealt) && animate) {
     arena.counterStrike()
     await wait(128)
   }
-  clearExchange()
-  if (dealt > 0) {
-    const hit = { target: 'enemy', damage: dealt, defeated: next.enemyHp === 0 } as const
+  if (!choreographed) clearExchange()
+  if (escortDealt > 0) {
+    const hit = { target: 'escort', damage: escortDealt, defeated: !next.escort } as const
     arena.contact([hit], { counter: true })
     showDamage(hit)
+    updateEscortVital(next.escort?.hp ?? 0)
     sound.play('stone-hit')
+    if (dealt && animate) await wait(70)
+  }
+  if (dealt > 0) {
+    const hit = { target: 'enemy', damage: dealt, defeated: next.enemyHp === 0 } as const
+    if (!choreographed) arena.contact([hit], { counter: true })
+    showDamage(hit)
+    if (choreographed) ui.feedback.textContent = `반격 피해 ${dealt}`
+    sound.play('stone-hit', choreographed ? .80 : 1, choreographed ? .31 : .19)
   }
   updateVital(ui.enemyHp, ui.enemyTotal, next.enemyHp)
   if (!ui.companionFlight.hidden) {
     await wait(companionFlightDuration - companionImpactTime)
     ui.companionFlight.hidden = true
   }
-  await wait(reducedMotion() || !dealt ? 320 : damageDuration)
+  await wait(choreographed ? GOLEM_COUNTER.end - GOLEM_COUNTER.contact : reducedMotion() || !(dealt || escortDealt) ? 320 : damageDuration)
+  if (choreographed) clearExchange()
   arena.finishStrike()
   ascent = checkpoint
   counterBusy = false
-  render()
+  render('normal', next.phase === 'assign')
   if (next.phase === 'won') sound.play('victory')
   focusPhase()
 }
@@ -1638,7 +1754,7 @@ function enterFork(id: number) {
   clearExchange()
   ascent = next
   saveCurrent()
-  render()
+  render('normal', true)
   if (ascent.route?.screen === 'battle') sound.play('dice-roll')
   focusPhase()
 }
@@ -1649,7 +1765,7 @@ ui.next.addEventListener('click', () => {
   clearExchange()
   ascent = next
   saveCurrent()
-  render()
+  render('normal', true)
   if (!ascent.route) sound.play('dice-roll')
   focusPhase()
 })

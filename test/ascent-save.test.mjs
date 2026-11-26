@@ -14,6 +14,22 @@ function memoryStorage() {
   }
 }
 
+test('a pre-update escort slot resumes in attack with its die and selection intact', () => {
+  const storage = memoryStorage()
+  const seed = Array.from({ length: 30 }, (_, index) => index)
+    .find((index) => nextAscentFight({ ...beginAscent(index), battle: { ...beginAscent(index).battle, phase: 'won' } }).enemy.id === 'escort')
+  const first = beginAscent(seed)
+  const escortFight = nextAscentFight({ ...first, battle: { ...first.battle, phase: 'won' } })
+  const battle = { ...escortFight.battle, escort: { hp: 5, bonus: 3 }, slots: ['attack', 'guard', null] }
+  writeAscentSave({ ascent: { ...escortFight, battle }, selected: [0, 2] }, storage)
+  const raw = JSON.parse(storage.getItem(ASCENT_SAVE_KEY))
+  raw.ascent.battle.slots[0] = 'escort'
+  storage.setItem(ASCENT_SAVE_KEY, JSON.stringify(raw))
+  const restored = loadAscentSave(storage)
+  assert.deepEqual(restored?.ascent.battle, battle)
+  assert.deepEqual(restored?.selected, [0, 2])
+})
+
 test('a deterministic save round-trips the pending counter and an in-progress turn with its companion', () => {
   const storage = memoryStorage()
   const first = beginAscent(3, 'reroll')

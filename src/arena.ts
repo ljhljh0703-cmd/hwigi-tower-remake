@@ -1,8 +1,9 @@
-import { enemyIntentAt, incomingAttack } from './combat.ts'
+import { enemyIntentAt, incomingAttack, splitEnemyDamage } from './combat.ts'
 import type { Exchange } from './combat.ts'
 import type { AscentEnemyId } from './enemy-roster.ts'
 import { yachtAllocationTotals } from './yacht-combat.ts'
 import type { YachtBattle } from './yacht-combat.ts'
+import { drawGolemCounter, drawGolemParry, GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
 
 // Horizontal reach, in source pixels, includes the opaque bounds of every pose.
 type Sprite = {
@@ -117,10 +118,11 @@ export function enemyExchangePoses(enemyId: AscentEnemyId, before: YachtBattle, 
 
 export function escortExchangePoses(before: YachtBattle, exchange: Exchange) {
   if (!before.escort) return []
-  const dealt = exchange.escortDealt ?? 0
+  const { attack } = yachtAllocationTotals(before, before.slots, exchange.awakenedDice ?? before.dice)
+  const { escortDealt } = splitEnemyDamage(before, attack)
   const poses: PoseFrame[] = []
-  if (dealt) poses.push({ pose: 'hit', duration: 140 })
-  if (dealt < before.escort.hp && enemyAttacked(before, exchange)) poses.push({ pose: 'attack', duration: 160 })
+  if (escortDealt) poses.push({ pose: 'hit', duration: 140 })
+  if (escortDealt < before.escort.hp && enemyAttacked(before, exchange)) poses.push({ pose: 'attack', duration: 160 })
   return poses
 }
 
@@ -165,6 +167,8 @@ export class Arena {
   private battle?: YachtBattle
   private enemyId: AscentEnemyId = 'thorns'
   private strike?: { start: number }
+  private golemParry?: number
+  private golemCounter?: { start: number; defeated: boolean }
   private motion?: { start: number; duration: number; hero: readonly PoseFrame[]; enemy: readonly PoseFrame[]; escort: readonly PoseFrame[] }
   private animation = 0
   private animationSpeed = 1
@@ -383,6 +387,23 @@ export class Arena {
       const strength = this.trauma ** 2 * this.density
       context.translate(Math.round(Math.sin(now / 29) * Math.min(10 * strength, this.shake)), 0)
     }
+    const parryArt = this.images.get(GOLEM_PARRY.art)
+    const counterArt = this.images.get(GOLEM_COUNTER.art)
+    if (this.golemCounter && parryArt?.naturalWidth && counterArt?.naturalWidth) {
+      const elapsed = Math.min(GOLEM_COUNTER.end, (now - this.golemCounter.start) * this.animationSpeed)
+      drawGolemCounter(context, counterArt, parryArt, elapsed, this.floor, this.density,
+        this.placements.get(hero)!, this.placements.get(golem)!, this.golemCounter.defeated)
+      context.restore()
+      return
+    }
+    const restingGolem = this.enemyId === 'thorns' && battle.playerHp > 0 && battle.enemyHp > 0
+      && !motion && !strike && !reaction && !this.impacts.length
+    if (parryArt?.naturalWidth && (this.golemParry !== undefined || restingGolem)) {
+      const elapsed = this.golemParry === undefined ? 0 : Math.min(GOLEM_PARRY.end, (now - this.golemParry) * this.animationSpeed)
+      drawGolemParry(context, parryArt, elapsed, this.floor, this.density, this.placements.get(hero)!, this.placements.get(golem)!)
+      context.restore()
+      return
+    }
     for (const shadow of this.shadows) this.drawShadow(now, shadow)
     const enemy = ENEMY_SPRITES[this.enemyId]
     if (battle.playerHp > 0 || heroPose) {
@@ -414,13 +435,15 @@ export class Arena {
       if (this.strike) this.strike.start += duration
       this.frozen = undefined
     }
+    const parryIsPlaying = this.golemParry !== undefined && (now - this.golemParry) * this.animationSpeed < GOLEM_PARRY.end
+    const counterIsPlaying = this.golemCounter && (now - this.golemCounter.start) * this.animationSpeed < GOLEM_COUNTER.end
     if (!this.frozen && this.motion && (now - this.motion.start) * this.animationSpeed >= this.motion.duration) this.motion = undefined
     if (this.strike && (now - this.strike.start) * this.animationSpeed >= 288 && !this.frozen) this.strike = undefined
     if (this.reaction && now >= this.reaction.until) this.reaction = undefined
     this.shadows = this.shadows.filter(({ at }) => (now - at) * this.animationSpeed < 80 + shadowFade)
     this.impacts = this.impacts.filter((hit) => now - hit.start < (this.reducedMotion ? 144 : debrisDuration / this.animationSpeed))
     this.draw(now)
-    if (this.motion || this.strike || this.impacts.length || this.frozen || this.reaction || this.shadows.length || this.trauma) {
+    if (parryIsPlaying || counterIsPlaying || this.motion || this.strike || this.impacts.length || this.frozen || this.reaction || this.shadows.length || this.trauma) {
       this.animation = requestAnimationFrame(this.animate)
     }
   }
@@ -431,6 +454,8 @@ export class Arena {
     this.reducedMotion = reducedMotion
     if (reducedMotion) {
       this.trauma = 0
+      this.golemParry = undefined
+      this.golemCounter = undefined
       this.motion = undefined
       this.reaction = undefined
       this.strike = undefined
@@ -441,6 +466,8 @@ export class Arena {
   }
 
   clearContact() {
+    this.golemParry = undefined
+    this.golemCounter = undefined
     this.impacts = []
     this.reaction = undefined
     this.frozen = undefined
@@ -470,7 +497,7 @@ export class Arena {
     for (const hit of hits) {
       this.impacts.push({ ...hit, start: now, markedUntil: now + (this.reducedMotion ? 144 : 95 / this.animationSpeed) })
     }
-    if (this.reducedMotion) {
+    if (this.reducedMotion || (parry && this.golemParry !== undefined)) {
       this.restartAnimation()
       return
     }
@@ -485,6 +512,14 @@ export class Arena {
     else this.restartAnimation()
   }
 
+  beginGolemParry(now: number) {
+    if (this.reducedMotion || this.enemyId !== 'thorns' || !this.images.get(GOLEM_PARRY.art)?.naturalWidth) return false
+    this.motion = undefined
+    this.golemParry = now
+    this.restartAnimation()
+    return true
+  }
+
   playExchange(before: YachtBattle, exchange: Exchange) {
     if (this.reducedMotion) return
     const heroFrames = before.slots.includes('attack') ? [{ pose: 'attack', duration: 160 }]
@@ -493,8 +528,20 @@ export class Arena {
     this.playPoses(heroFrames, enemyFrames)
   }
 
+  get golemParryHeld() {
+    return this.golemParry !== undefined && !this.reducedMotion
+  }
+
+  beginGolemCounter(defeated: boolean) {
+    if (!this.golemParryHeld || !this.images.get(GOLEM_COUNTER.art)?.naturalWidth) return false
+    this.golemCounter = { start: performance.now(), defeated }
+    this.restartAnimation()
+    return true
+  }
+
   counterStrike() {
     if (this.reducedMotion) return
+    this.golemParry = undefined
     this.strike = { start: performance.now() }
     this.playPoses([{ pose: 'attack', duration: 288 }], [])
   }
@@ -525,10 +572,16 @@ export class Arena {
       this.enemyId = enemyId
     }
     this.battle = battle
-    this.positionActors()
+    if (battle.phase !== 'counter') this.golemParry = undefined
+    if (this.floor) this.positionActors()
+    else this.resize()
     this.load('chamber')
     this.loadSprite(hero)
     this.loadSprite(ENEMY_SPRITES[enemyId])
+    if (enemyId === 'thorns') {
+      this.load(GOLEM_PARRY.art)
+      this.load(GOLEM_COUNTER.art)
+    }
     if (enemyId === 'escort') this.loadSprite(ESCORT_SPRITE)
     this.draw()
   }

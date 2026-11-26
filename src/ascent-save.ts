@@ -25,7 +25,9 @@ export interface AscentSave {
 }
 
 type SaveStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
-type SavedBattle = Omit<YachtBattle, 'enemyIntents'>
+type SavedBattle = Omit<YachtBattle, 'enemyIntents' | 'slots'> & {
+  readonly slots: readonly (YachtBattle['slots'][number] | 'escort')[]
+}
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -187,7 +189,12 @@ function readCheckpoint(raw: unknown): AscentSave | null {
   }
   if (battle.phase !== 'won' && Boolean(battle.fourthDieUnlocked) !== unlocks.includes('triple')) return null
   if (battle.phase === 'assign' && battle.dice.length !== DIE_COUNT + Number(Boolean(battle.fourthDieUnlocked)) - Number(Boolean(battle.stolenDie))) return null
-  const restoredBattle: YachtBattle = { ...battle, enemyIntents: enemy.intents, enemyAttackGrowth: enemy.attackGrowth }
+  const restoredBattle: YachtBattle = {
+    ...battle,
+    slots: battle.slots.map((slot) => slot === 'escort' ? 'attack' : slot),
+    enemyIntents: enemy.intents,
+    enemyAttackGrowth: enemy.attackGrowth,
+  }
   if (mapped) {
     const { route, acquired } = mapped
     const expectsVictory = route.screen !== 'battle' && fight > 0

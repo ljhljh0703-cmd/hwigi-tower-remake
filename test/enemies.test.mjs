@@ -113,7 +113,7 @@ test('seal applies only on the boss turn after knockdown and blocks sums and sea
 test('a sealed five shows zero only once placed in a slot, matching its contribution', () => {
   const sealed = enemyIntentAt(start('boss', { turn: 5 })).mechanic
   assert.equal(dieFaceForSlot(5, null, sealed), 5)
-  for (const slot of ['attack', 'guard', 'escort']) {
+  for (const slot of ['attack', 'guard']) {
     assert.equal(dieFaceForSlot(5, slot, sealed), 0)
     assert.equal(dieFaceForSlot(4, slot, sealed), 4)
     assert.equal(dieFaceForSlot(5, slot), 5)
@@ -159,20 +159,49 @@ test('each charge returns an unrecovered stolen die before rolling, with or with
   }
 })
 
-test('escort damage is independent of main damage and removing it cancels its attack bonus immediately', () => {
+test('an escort intercepts attack damage, with only the excess reaching the main enemy', () => {
   const battle = start('escort', { turn: 2 })
-  assert.equal(assignDie(battle, 0, 'escort'), battle)
   const summoned = resolve(battle, [1, 6, 6], ['attack', 'guard', 'guard'])
-  const escorted = resolve(summoned, [6, 6, 1], attack)
-  assert.equal(escorted.escort.hp, 5)
-  assert.equal(incomingAttack(escorted).totalDamage,
-    Math.floor(Math.min(21, enemyIntentAt(escorted).hits[0] + 3) / 2))
-  const split = resolve(escorted, [5, 3, 6], ['escort', 'attack', 'guard'])
+  assert.deepEqual(summoned.escort, { hp: 5, bonus: 3 })
+  assert.equal(summoned.lastExchange.dealt, 1)
+  assert.equal(assignDie(summoned, 0, 'escort'), summoned)
+  const absorbed = resolve(summoned, [3, 6, 6], ['attack', 'guard', 'guard'])
+  assert.equal(absorbed.escort.hp, 2)
+  assert.equal(absorbed.lastExchange.escortDealt, 3)
+  assert.equal(absorbed.enemyHp, summoned.enemyHp)
+  const split = resolve(absorbed, [5, 6, 6], ['attack', 'guard', 'guard'])
   assert.equal(split.escort, undefined)
-  assert.equal(split.lastExchange.escortDealt, 5)
+  assert.equal(split.lastExchange.escortDealt, 2)
   assert.equal(split.lastExchange.dealt, 3)
-  const damage = split.lastExchange.hitsTaken.reduce((sum, hit) => sum + hit, 0)
-  assert.equal(damage, incomingAttack({ ...escorted, escort: undefined }).totalDamage - 6)
+  assert.equal(split.enemyHp, summoned.enemyHp - 3)
+})
+
+test('the escort adds three to the first enemy hit and exact lethal attack removes the bonus before the combo', () => {
+  const battle = start('escort', { turn: 5, escort: { hp: 5, bonus: 3 } })
+  const slots = ['attack', 'guard', 'guard']
+  const surviving = forecastYacht(battle, slots, [4, 4, 5])
+  const lethal = forecastYacht(battle, slots, [5, 4, 5])
+  assert.deepEqual(surviving.incoming.hits, [11, 2])
+  assert.deepEqual(lethal.incoming.hits, [8, 2])
+  assert.deepEqual(surviving.hits, [2, 2])
+  assert.deepEqual(lethal.hits, [0, 1])
+  const resolved = resolve(battle, [5, 4, 5], slots)
+  assert.equal(resolved.escort, undefined)
+  assert.equal(resolved.enemyHp, battle.enemyHp)
+  assert.deepEqual(resolved.lastExchange.hitsTaken, lethal.hits)
+})
+
+test('a counter hits the escort before advancing stolen-die recovery with overflow damage', () => {
+  for (const [wheelSlot, hp, bodyDamage, remaining] of [[1, 3, 0, 3], [5, undefined, 3, undefined]]) {
+    const seed = Array.from({ length: 30 }, (_, index) => index).find((index) => draw(index, 5, 4) % 6 === wheelSlot)
+    const opening = start('escort', { seed, turn: 5, escort: { hp: 5, bonus: 3 }, stolenDie: { remaining: 3 } })
+    const exact = resolve(opening, [4, 4, 5], guard)
+    assert.equal(exact.phase, 'counter')
+    const result = spinYachtCounter(exact)
+    assert.equal(result.escort?.hp, hp)
+    assert.equal(result.enemyHp, opening.enemyHp - bodyDamage)
+    assert.equal(result.stolenDie?.remaining, remaining)
+  }
 })
 
 test('the charging elite and boss halve the next critical at exactly twelve attack', () => {
@@ -197,9 +226,12 @@ test('an attack of eleven or damage aimed at the escort leaves the next critical
   assert.equal(full.lastExchange.chargeBroken, undefined)
   assert.equal(incomingAttack(full).totalDamage, chargedStrikePreview(boss).fullDamage)
   const elite = start('escort', { turn: 3, escort: { hp: 5, bonus: 3 } })
-  const split = resolve(elite, [6, 4, 2], ['escort', 'attack', 'attack'])
+  const split = resolve(elite, [6, 4, 2], attack)
   assert.equal(split.lastExchange.chargeBroken, undefined)
   assert.equal(incomingAttack(split).totalDamage, incomingAttack({ ...elite, turn: 4, escort: undefined }).totalDamage)
+  const broken = resolve(elite, [6, 6, 5], attack)
+  assert.equal(broken.lastExchange.chargeBroken, true)
+  assert.equal(broken.lastExchange.dealt, 12)
 })
 
 test('matching the weakened critical exactly opens one roulette and the weakening then expires', () => {
@@ -271,7 +303,9 @@ test('the ascent policy conserves carry-over health even above the crisis thresh
   assert.equal(forecastYacht(battle, chooseAllocation(battle, 'adaptive', 0.85)).damage, 6)
 })
 
-test('escort dice do not grant a hand unlock', () => {
-  const battle = start('escort', { turn: 3, escort: { hp: 5, bonus: 3 }, dice: [4, 4, 4], slots: ['escort', 'escort', 'escort'] })
-  assert.equal(resolveYachtTurn(battle).hand, null)
+test('attack dice still unlock a hand when the escort intercepts their damage', () => {
+  const battle = start('escort', { turn: 3, escort: { hp: 5, bonus: 3 }, dice: [1, 1, 1], slots: attack })
+  const result = resolveYachtTurn(battle)
+  assert.deepEqual(result.hand, { hand: 'triple', slot: 'attack' })
+  assert.equal(result.battle.enemyHp, battle.enemyHp)
 })

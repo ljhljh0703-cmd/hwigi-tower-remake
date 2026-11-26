@@ -1,4 +1,4 @@
-import { allocationTotals, attackFor, chargedStrikePreview, enemyIntentAt, incomingAttack } from './combat.ts'
+import { allocationTotals, attackFor, chargedStrikePreview, combatSlots, enemyIntentAt, incomingAttack } from './combat.ts'
 import type { Slot } from './combat.ts'
 import { adaptAndReroll, expectedReward } from './simulate.ts'
 import { canReroll, classifyYachtHand, forecastYacht, yachtAllocationTotals, yachtCounterRewards } from './yacht-combat.ts'
@@ -13,11 +13,10 @@ function enumerateAllocations(diceCount: number, slots: readonly Slot[]): Slot[]
   )
 }
 
-const allocations = [2, 3, 4].map((count) => enumerateAllocations(count, ['attack', 'guard']))
-const escortAllocations = [2, 3, 4].map((count) => enumerateAllocations(count, ['attack', 'guard', 'escort']))
+const allocations = [2, 3, 4].map((count) => enumerateAllocations(count, combatSlots))
 
 function allocationsFor(battle: YachtBattle): readonly Slot[][] {
-  return (battle.escort ? escortAllocations : allocations)[battle.dice.length - 2]
+  return allocations[battle.dice.length - 2]
 }
 
 const carriedHealthWeight = 1.8
@@ -26,7 +25,8 @@ function allocationScore(battle: YachtBattle, plan: readonly Slot[], damageWeigh
   const { dealt, damage, counter, escortDealt, chargeBroken } = forecastYacht(battle, plan)
   if (damage >= battle.playerHp) return -1000 + dealt
   if (dealt >= battle.enemyHp) return 1000
-  const expectedCounter = counter ? expectedReward(battle.enemyHp - dealt, yachtCounterRewards(battle)) : 0
+  const remainingHp = battle.enemyHp - dealt + (battle.escort?.hp ?? 0) - escortDealt
+  const expectedCounter = counter ? expectedReward(remainingHp, yachtCounterRewards(battle)) : 0
   const charge = chargeBroken ? chargedStrikePreview(battle, yachtAllocationTotals(battle, plan)) : null
   const chargeValue = charge ? charge.fullDamage - charge.totalDamage : 0
   return dealt + escortDealt * 0.85 + expectedCounter + chargeValue - damage * damageWeight
@@ -145,10 +145,11 @@ export function chooseReroll(battle: YachtBattle, policy: YachtPolicy, extra: bo
 
 export function countYachtTradeoffs(battle: YachtBattle): number {
   const viable = allocationsFor(battle).map((plan) => {
-    const { dealt, damage, counter } = forecastYacht(battle, plan)
+    const { dealt, escortDealt, damage, counter } = forecastYacht(battle, plan)
+    const remainingHp = battle.enemyHp - dealt + (battle.escort?.hp ?? 0) - escortDealt
     return {
       lost: damage,
-      dealt: dealt + (counter ? expectedReward(battle.enemyHp - dealt, yachtCounterRewards(battle)) : 0),
+      dealt: dealt + escortDealt + (counter ? expectedReward(remainingHp, yachtCounterRewards(battle)) : 0),
     }
   }).filter((plan) => plan.lost < battle.playerHp)
 

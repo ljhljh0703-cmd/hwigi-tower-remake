@@ -3,7 +3,8 @@ const MAX_ENEMY_DAMAGE = PLAYER_HP - 1
 const MAX_TURN_ATTACK_BONUS = 6
 export const ENEMY_HP = 30
 export const DIE_COUNT = 3
-export type Slot = 'attack' | 'guard' | 'escort'
+export const combatSlots = ['attack', 'guard'] as const
+export type Slot = (typeof combatSlots)[number]
 export type Phase = 'assign' | 'counter' | 'won' | 'lost'
 
 export type DieInterference = 'lock' | 'freeze'
@@ -148,7 +149,7 @@ function canChangeDie(battle: Battle, index: number): boolean {
 }
 
 export function assignDie<T extends Battle>(battle: T, index: number, slot: Slot | null): T {
-  if (!canChangeDie(battle, index) || (slot === 'escort' && !battle.escort)) return battle
+  if (!canChangeDie(battle, index) || (slot !== null && !combatSlots.includes(slot))) return battle
   return { ...battle, slots: battle.slots.map((current, i) => i === index ? slot : current) }
 }
 
@@ -187,9 +188,7 @@ export function allocationTotals(battle: Battle, slots = battle.slots, dice = ba
   const mechanic = enemyIntentAt(battle).mechanic
   const effectiveDice = mechanic?.kind === 'seal'
     ? dice.map((face, index) => dieFaceForSlot(face, slots[index], mechanic)) : dice
-  const { attack, guard } = totals(effectiveDice, slots)
-  const escort = effectiveDice.reduce((sum, face, index) => slots[index] === 'escort' ? sum + face : sum, 0)
-  return { attack, guard, escort }
+  return totals(effectiveDice, slots)
 }
 
 export type SlotTotals = ReturnType<typeof allocationTotals>
@@ -236,24 +235,39 @@ export function attackFor(battle: Battle, intent: EnemyIntent, escortSurvives = 
   return { name, hits, totalDamage }
 }
 
-export function incomingAttack(battle: Battle, { attack, escort } = allocationPower(battle)) {
-  return attackFor(battle, respondingIntent(enemyIntentAt(battle), attack), Boolean(battle.escort && escort < battle.escort.hp))
+export function splitEnemyDamage(battle: Battle, damage: number, previous = { dealt: 0, escortDealt: 0 }) {
+  const intercepted = Math.min((battle.escort?.hp ?? 0) - previous.escortDealt, damage)
+  return {
+    dealt: Math.min(battle.enemyHp, previous.dealt + damage - intercepted),
+    escortDealt: previous.escortDealt + intercepted,
+  }
+}
+
+export function escortAfterDamage(escort: Battle['escort'], damage: number) {
+  if (!escort || damage >= escort.hp) return undefined
+  return damage ? { ...escort, hp: escort.hp - damage } : escort
+}
+
+export function incomingAttack(battle: Battle, { attack } = allocationPower(battle)) {
+  return attackFor(battle, respondingIntent(enemyIntentAt(battle), attack), attack < (battle.escort?.hp ?? 0))
 }
 
 function breaksCharge(intent: EnemyIntent, attack: number) {
   return intent.chargeThreshold !== undefined && attack >= intent.chargeThreshold
 }
 
-export function chargedStrikePreview(battle: Battle, { attack, escort } = allocationPower(battle), hammerArmed = false) {
+export function chargedStrikePreview(battle: Battle, { attack } = allocationPower(battle), hammerArmed = false) {
   const intent = enemyIntentAt(battle)
   if (intent.chargeThreshold === undefined) return null
-  const weakened = breaksCharge(intent, attack)
+  const { escortDealt } = splitEnemyDamage(battle, attack)
+  const bodyAttack = attack - escortDealt
+  const weakened = breaksCharge(intent, bodyAttack)
   const turn = battle.turn + 1
   const next = { ...battle, turn, weakenedStrikeTurn: undefined, erasedStrikeTurn: undefined }
-  const escortSurvives = Boolean(battle.escort && escort < battle.escort.hp)
+  const escortSurvives = attack < (battle.escort?.hp ?? 0)
   const nextIntent = enemyIntentAt(next)
   const fullDamage = attackFor(next, nextIntent, escortSurvives).totalDamage
-  const erased = hammerArmed && attack >= intent.chargeThreshold + 3 && nextIntent.id === 'critical'
+  const erased = hammerArmed && bodyAttack >= intent.chargeThreshold + 3 && nextIntent.id === 'critical'
   const { totalDamage } = erased ? { totalDamage: 0 } : weakened ? attackFor({ ...next, weakenedStrikeTurn: turn }, nextIntent, escortSurvives)
     : { totalDamage: fullDamage }
   return { fullDamage, totalDamage, threshold: intent.chargeThreshold, weakened, ...(hammerArmed && { hammerThreshold: intent.chargeThreshold + 3, erased }) }
@@ -261,12 +275,11 @@ export function chargedStrikePreview(battle: Battle, { attack, escort } = alloca
 
 export function forecast(
   battle: Battle, slots = battle.slots, dice = battle.dice,
-  { attack, guard, escort } = allocationPower(battle, allocationTotals(battle, slots, dice)),
+  { attack, guard } = allocationPower(battle, allocationTotals(battle, slots, dice)),
 ) {
   const intent = respondingIntent(enemyIntentAt(battle), attack)
-  const escortDealt = Math.min(battle.escort?.hp ?? 0, escort)
+  const { dealt, escortDealt } = splitEnemyDamage(battle, attack)
   const incoming = attackFor(battle, intent, escortDealt < (battle.escort?.hp ?? 0))
-  const dealt = Math.min(battle.enemyHp, attack)
   const thorns = intent.mechanic?.kind === 'thorns'
     ? slots.filter((slot) => slot === 'attack').length * intent.mechanic.value : 0
 
@@ -283,7 +296,8 @@ export function forecast(
     dealt,
     escortDealt,
     intent,
-    chargeBroken: breaksCharge(intent, attack),
+    incoming,
+    chargeBroken: breaksCharge(intent, attack - escortDealt),
     hits,
     damage: attackDamage + retaliation,
     counter: dealt < battle.enemyHp && incoming.totalDamage > 0 && guard === incoming.totalDamage,
@@ -341,9 +355,13 @@ export function resolveTurn(battle: Battle): Battle {
     counter: null,
     awakened,
     ...(awakenedDice && { awakenedDice }),
+    ...(result.escortDealt > 0 && { escortDealt: result.escortDealt }),
   }
+  const { escort: previousEscort, ...rest } = battle
+  const escort = escortAfterDamage(previousEscort, result.escortDealt)
   const resolved: Battle = {
-    ...battle,
+    ...rest,
+    ...(escort && { escort }),
     dice,
     playerHp,
     enemyHp,
@@ -366,8 +384,11 @@ export function spinCounter(battle: Battle, rewards: readonly CounterReward[] = 
 
 export function applyCounterResult(battle: Battle, counter: CounterResult): Battle {
   if (battle.phase !== 'counter' || !battle.lastExchange) return battle
-  const enemyHp = Math.max(0, battle.enemyHp - counter.damage)
-  const resolved = { ...battle, enemyHp, lastExchange: { ...battle.lastExchange, counter } }
+  const { dealt, escortDealt } = splitEnemyDamage(battle, counter.damage)
+  const { escort: previousEscort, ...rest } = battle
+  const escort = escortAfterDamage(previousEscort, escortDealt)
+  const enemyHp = battle.enemyHp - dealt
+  const resolved = { ...rest, ...(escort && { escort }), enemyHp, lastExchange: { ...battle.lastExchange, counter } }
   if (enemyHp === 0) return { ...resolved, phase: 'won' }
   return nextTurn(resolved)
 }

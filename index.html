@@ -268,7 +268,7 @@
         </section>
         <p id="feedback" class="sr-only" role="status"></p>
 
-        <section id="planning" aria-label="주사위 배치">
+        <section id="planning" aria-label="주사위 배치" tabindex="-1">
           <div class="pool" data-dice-zone="pool">
             <button id="pool-help" type="button" aria-label="놓을 주사위를 여기에서 골라요." data-hold-help>
               <svg class="icon" aria-hidden="true"><use href="#icon-die"/></svg>
@@ -278,7 +278,7 @@
                 <svg class="icon companion-closed" aria-hidden="true"><use href="#icon-lock"/></svg>
               </span>
             </div>
-            <span class="pool-return" aria-label="놓은 주사위를 골라 이 화살표를 누르면 배치를 빼요." data-hold-help>
+            <span class="pool-return" aria-label="놓은 주사위를 클릭하거나 탭하면 배치를 빼요. 키보드로는 주사위를 고른 뒤 이 화살표를 누르세요." data-hold-help>
               <button id="assign-pool" type="button" aria-label="선택한 주사위 배치 빼기">
                 <svg class="icon" aria-hidden="true"><use href="#icon-return"/></svg>
               </button>
@@ -304,13 +304,6 @@
               </button>
               <div id="guard-dice" class="dice-row"></div>
             </section>
-            <section id="escort-slot" class="slot" aria-label="호위 공격 칸" data-dice-zone="escort" hidden>
-              <button id="assign-escort" type="button" class="slot-target" aria-label="호위 공격">
-                <span><svg class="icon" aria-hidden="true"><use href="#icon-escort"/></svg>호위 <span id="escort-hp"></span></span>
-                <span class="slot-total"><strong id="escort-total">0</strong><small id="escort-bonus" class="slot-bonus" hidden></small></span>
-              </button>
-              <div id="escort-dice" class="dice-row"></div>
-            </section>
           </div>
 
           <div class="controls">
@@ -327,6 +320,7 @@
           <div class="roulette-stage" role="img">
             <span class="roulette-pointer" aria-hidden="true"></span>
             <div id="counter-wheel" aria-hidden="true"></div>
+            <span id="counter-medallion" aria-hidden="true"></span>
           </div>
           <button id="counter" class="primary" type="button">
             <svg class="icon" aria-hidden="true"><use href="#icon-wheel"/></svg>
