@@ -1,6 +1,8 @@
 import type { CounterResult, CounterReward } from './combat.ts'
 
 export class CounterRoulette {
+  private readonly panel: HTMLElement
+  private readonly button: HTMLButtonElement
   private readonly wheel: HTMLElement
   private readonly result: HTMLElement
   private readonly damage: HTMLElement
@@ -11,14 +13,29 @@ export class CounterRoulette {
   private degreesPerSlot = 0
   private spin?: Animation
   private companionAwake = false
+  private playing = false
 
-  constructor(private readonly panel: HTMLElement, private readonly button: HTMLButtonElement) {
+  constructor(panel: HTMLElement, button: HTMLButtonElement) {
+    this.panel = panel
+    this.button = button
     this.wheel = panel.querySelector<HTMLElement>('#counter-wheel')!
     this.result = panel.querySelector<HTMLElement>('#counter-result')!
     this.damage = panel.querySelector<HTMLElement>('#counter-damage')!
     this.stage = panel.querySelector<HTMLElement>('.roulette-stage')!
     this.action = button.querySelector<HTMLElement>('#counter-action')!
     this.medallion = panel.querySelector<HTMLElement>('#counter-medallion')!
+  }
+
+  get busy() { return this.playing }
+
+  async play(present: () => Promise<void>) {
+    if (this.playing) return
+    this.playing = true
+    try {
+      await present()
+    } finally {
+      this.playing = false
+    }
   }
 
   private setRewards(rewards: readonly CounterReward[]) {

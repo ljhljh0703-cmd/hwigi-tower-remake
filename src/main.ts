@@ -4,7 +4,7 @@ import {
   returnToMap, rewardOffers, spinAscentCounter, takeAscentReward,
 } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
-import { CURRENT_MAP_RULES, enemyForMapNode, MAP_ENEMY_BADGES, MAP_FLOORS, RULES_SIX_BADGES } from './ascent-map.ts'
+import { CURRENT_MAP_RULES, enemyForMapNode, MAP_ENEMY_BADGES, MAP_FLOORS, MAP_RULES, RULES_SIX_BADGES } from './ascent-map.ts'
 import { BOSS_RELIC_CARDS, isBossRelic } from './boss-relic.ts'
 import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, writeAscentSave } from './ascent-save.ts'
 import { Arena } from './arena.ts'
@@ -12,7 +12,7 @@ import { icon, pixelIcon } from './icons.ts'
 import { GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
 import type { BattleHit } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
-import { BATTLE_GUIDE } from './battle-guide.ts'
+import { battleGuideFor } from './battle-guide.ts'
 import { oathDescription, PERK_TEXT, REWARD_TEXT } from './reward-copy.ts'
 import { COMPANION_LINES, companionDieIndex } from './companion.ts'
 import { enemyForFight } from './enemy-roster.ts'
@@ -29,7 +29,7 @@ import type { Reward, RewardChoice } from './rewards.ts'
 import {
   allocationPower, assignDie, attackFor, chargedStrikePreview, combatSlots, DIE_COUNT, enemyIntentAt, incomingAttack, respondingIntent, splitEnemyDamage,
 } from './combat.ts'
-import type { Exchange, Gimmick, SlotTotals } from './combat.ts'
+import type { CounterResult, Exchange, Gimmick, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
 import type { Parity } from './perks.ts'
 import {
@@ -181,21 +181,21 @@ const unlockInfo = {
 const parityLabels = { odd: '홀', even: '짝' } as const
 const parityIcons = { odd: 'die', even: 'die-even' } as const
 
-ui.guideEntries.innerHTML = BATTLE_GUIDE.map(({ title, entries }) => `
-  <section class="guide-section">
-    <h3>${title}</h3>
-    <dl>${entries.map(([symbol, name, description]) => `
-      <div class="guide-entry" data-guide-icon="${symbol}" data-guide-name="${name}">
-        <dt>${icon(symbol)}<strong>${name}</strong></dt>
-        <dd>${description}</dd>
-      </div>
-    `).join('')}</dl>
-  </section>
-`).join('')
-
 let guideTrigger: HTMLButtonElement | undefined
 function openGuide(button: HTMLButtonElement, symbol?: string, name?: string) {
   if (button.disabled || ui.guide.open) return
+  const rules = ascent ? ascent.route?.map.rules ?? MAP_RULES : CURRENT_MAP_RULES
+  ui.guideEntries.innerHTML = battleGuideFor(rules).map(({ title, entries }) => `
+    <section class="guide-section">
+      <h3>${title}</h3>
+      <dl>${entries.map(([symbol, name, description]) => `
+        <div class="guide-entry" data-guide-icon="${symbol}" data-guide-name="${name}">
+          <dt>${icon(symbol)}<strong>${name}</strong></dt>
+          <dd>${description}</dd>
+        </div>
+      `).join('')}</dl>
+    </section>
+  `).join('')
   guideTrigger = button
   ui.guide.showModal()
   ui.guideEntries.scrollTop = 0
@@ -2157,32 +2157,51 @@ function turnCues(before: YachtBattle | undefined, changedTurn: boolean) {
   if (before?.stolenDie && !b.stolenDie && b.dice.length > before.dice.length) dieStatusCue(b, DIE_COUNT - 1, 'return')
 }
 
-let counterBusy = false
-
 function resumeCounterOrFocus() {
   if (ascent?.battle.phase === 'counter' && !ascent.battle.loot?.counter && !firstRun.includes(ascent)) void playCounter()
   else focusPhase()
 }
 
 async function playCounter(choice?: CounterChoice) {
-  if (ui.guide.open || exchangeBusy || !ascent || ascent.battle.phase !== 'counter' || counterBusy || (!choice && ascent.battle.loot?.counter)) return
+  if (ui.guide.open || exchangeBusy || !ascent || ascent.battle.phase !== 'counter' || roulette.busy || (!choice && ascent.battle.loot?.counter)) return
   const previous = ascent
   const spun = spinAscentCounter(ascent, choice)
   if (spun === ascent) return
-  const checkpoint = firstRun.opening(spun, ascent.battle.turn)
+  const before = previous.battle
+  const checkpoint = firstRun.opening(spun, before.turn)
   const next = checkpoint.battle
   const pending = next.loot?.counter
   const reward = pending ?? next.lastExchange?.counter
   if (!reward) return
-  if (firstRun.includes(ascent) && ascent.battle.turn >= 2) firstRun.complete()
+  if (firstRun.includes(previous) && before.turn >= 2) firstRun.complete()
   else firstRun.clear()
-  counterBusy = true
-  ui.counter.hidden = true
+
+  try {
+    await roulette.play(() => presentCounter(previous, checkpoint, reward, choice))
+  } catch (error) {
+    console.error('반격 연출을 완료하지 못했습니다.', error)
+    ui.companionFlight.hidden = true
+    roulette.setVisible(null)
+    clearExchange()
+  } finally {
+    ascent = checkpoint
+    render('normal', !pending && next.phase === 'assign')
+    if (!pending) {
+      if (next.turn !== before.turn && !ui.planning.hidden) turnCues(before, true)
+      finishCues(previous, checkpoint)
+    }
+    focusPhase()
+  }
+}
+
+async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: CounterResult, choice?: CounterChoice) {
   saveCurrent(checkpoint)
-  const before = ascent.battle
+  ui.counter.hidden = true
+  const before = previous.battle
+  const next = checkpoint.battle
   const dealt = before.enemyHp - next.enemyHp
   const escortDealt = (before.escort?.hp ?? 0) - (next.escort?.hp ?? 0)
-  const companionJoint = reward.joint && ascent.unlocks.includes('triple')
+  const companionJoint = reward.joint && previous.unlocks.includes('triple')
   ui.help.disabled = true
   ui.battleSettings.disabled = true
   ui.returnLobby.disabled = true
@@ -2199,13 +2218,7 @@ async function playCounter(choice?: CounterChoice) {
     sound.play('roulette-latch', 1, .37)
     await wait(520)
   }
-  if (pending) {
-    ascent = checkpoint
-    counterBusy = false
-    render()
-    focusPhase()
-    return
-  }
+  if (next.loot?.counter) return
   ui.counterPanel.hidden = true
   const choreographed = animate && !companionJoint && !escortDealt && dealt > 0 && arena.beginGolemCounter(next.enemyHp === 0)
   if (!choreographed) clearExchange()
@@ -2251,12 +2264,6 @@ async function playCounter(choice?: CounterChoice) {
   await wait(choreographed ? GOLEM_COUNTER.end - GOLEM_COUNTER.contact : reducedMotion() || !(dealt || escortDealt) ? 320 : damageDuration)
   if (choreographed) clearExchange()
   arena.finishStrike()
-  ascent = checkpoint
-  counterBusy = false
-  render('normal', next.phase === 'assign')
-  if (next.turn !== before.turn && !ui.planning.hidden) turnCues(before, true)
-  finishCues(previous, checkpoint)
-  focusPhase()
 }
 ui.counter.addEventListener('click', () => void playCounter())
 function enterFork(id: number) {
@@ -2323,7 +2330,7 @@ ui.newAscent.addEventListener('click', () => {
   } else showPerks()
 })
 function returnToLobby() {
-  if (exchangeBusy || counterBusy) return
+  if (exchangeBusy || roulette.busy) return
   if (!ascent) showLobby(true)
   else {
     if (ascentFinished(ascent)) {

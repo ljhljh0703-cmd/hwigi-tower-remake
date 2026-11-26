@@ -47,7 +47,7 @@ const test = base.extend({
 })
 
 async function photograph(page, info, name) {
-  const heroShot = ['golem-parry', 'roulette', 'counter', 'reduced-motion'].includes(name) && process.env.HWIGI_HERO_SHOTS
+  const heroShot = ['golem-parry', 'roulette', 'counter', 'reduced-motion', 'roulette-error-recovered'].includes(name) && process.env.HWIGI_HERO_SHOTS
   const gateShot = ['attack', 'game-over'].includes(name) && process.env.HWIGI_FEEL_GATE_SHOTS
   const root = gateShot || heroShot || process.env.HWIGI_FEEL_SHOTS
   if (!root) return
@@ -140,10 +140,13 @@ test('가시 골렘 정확 방어 자세가 룰렛 동안 정지하고 자동 �
   const planningPose = await pose()
   await panel.evaluate((el) => {
     const canvas = document.querySelector('#arena canvas')
+    const enemyHp = document.querySelector('#enemy-hp')
     window.roulettePoses = {}
+    window.rouletteHp = {}
     new MutationObserver(() => {
       if (el.hidden || !el.dataset.rollState) return
       window.roulettePoses[el.dataset.rollState] = canvas.toDataURL()
+      window.rouletteHp[el.dataset.rollState] = enemyHp.value
     }).observe(el, { attributeFilter: ['data-roll-state'] })
   })
   await page.locator('#resolve').tap()
@@ -162,6 +165,7 @@ test('가시 골렘 정확 방어 자세가 룰렛 동안 정지하고 자동 �
   expect(spinning).toBeTruthy()
   expect(spinning).not.toBe(parryPose)
   expect(locked).toBe(spinning)
+  expect(await page.evaluate(() => window.rouletteHp)).toEqual({ spinning: run.battle.enemyHp, locked: run.battle.enemyHp })
   await expect(page.locator('#counter-damage')).toHaveText(String(expected.lastExchange.counter.damage))
   await expect(page.locator('#enemy-damage .damage-number')).toBeVisible()
   expect(await pose()).not.toBe(spinning)
@@ -200,6 +204,45 @@ test('움직임 줄이기와 무음에서 저장된 정확 방어가 한 번만 
   await page.getByRole('button', { name: '이어 하기' }).tap()
   await expect(page.locator('#counter-panel')).toBeHidden()
   await expect(page.getByRole('meter', { name: '적 체력' })).toHaveJSProperty('value', expected.enemyHp)
+})
+
+base('룰렛 애니메이션이 실패해도 입력을 풀고 확정된 피해를 보존한다', async ({ page }, info) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.addInitScript(() => {
+    const animate = Element.prototype.animate
+    Element.prototype.animate = function (...args) {
+      if (this.id === 'counter-wheel' && !window.failedRoulette) {
+        window.failedRoulette = true
+        throw new Error('룰렛 애니메이션 실패 주입')
+      }
+      return animate.apply(this, args)
+    }
+  })
+  const run = withBattle(encounter('thorns', 1), { dice: [1, 3, 5], slots: ['guard', 'guard', 'guard'] })
+  const pending = resolveAscentTurn(run)
+  const expected = spinAscentCounter(pending).battle
+  const pageErrors = []
+  page.on('pageerror', (error) => pageErrors.push(error.message))
+  await resume(page, pending)
+
+  await expect.poll(() => page.evaluate(() => window.failedRoulette)).toBe(true)
+  await expect(page.locator('#counter-panel')).toBeHidden()
+  await expect(page.locator('#turn')).toHaveAttribute('aria-label', '2턴')
+  const hp = page.getByRole('meter', { name: '적 체력' })
+  await expect(hp).toHaveJSProperty('value', expected.enemyHp)
+  await expect(page.locator('#battle-settings')).toBeEnabled()
+  await page.getByRole('button', { name: '도감' }).tap()
+  const guide = page.getByRole('dialog', { name: '도감' })
+  await expect(guide).toBeVisible()
+  await guide.getByRole('button', { name: '닫기' }).tap()
+  await expect(page.locator('#pool-dice .die-arriving')).toHaveCount(0)
+  await photograph(page, info, 'roulette-error-recovered')
+  await page.locator('#return-lobby').tap()
+  await page.getByRole('button', { name: '저장하고 나가기' }).tap()
+  await page.getByRole('button', { name: '이어 하기' }).tap()
+  await expect(hp).toHaveJSProperty('value', expected.enemyHp)
+  await expect(page.locator('#counter-panel')).toBeHidden()
+  expect(pageErrors).toEqual([])
 })
 
 test('패배한 전장을 남기고 키보드로 다시 오르기와 로비에 갈 수 있다', async ({ page }, info) => {

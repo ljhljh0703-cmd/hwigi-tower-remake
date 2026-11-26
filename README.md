@@ -20,3 +20,7 @@ npm run build
 ```
 
 봇 리포트는 512개의 같은 시작 시드에서 각 배치 정책을 비교합니다. 여러 배치가 남는 턴의 집계는 예상 반격 피해와 현재 턴의 체력·피해만으로 계산합니다.
+
+## 배포
+
+GitHub Free에서 저장소를 비공개로 바꾸면 기존 GitHub Pages 사이트가 자동으로 게시 해제되고 새 배포도 멈춥니다. 이 저장소의 Pages 워크플로도 공개 저장소에서만 배포하도록 설정되어 있습니다. 비공개로 바꾸기 전에 현재 요금제가 비공개 저장소의 Pages를 지원하는지와 워크플로 실행 조건을 확인하고, 사이트를 계속 열어 둘 경우 대체 호스팅과 기존 링크의 전환을 준비하세요. 사용자 지정 도메인을 연결했다면 전환 전에 DNS 레코드를 제거하거나 새 호스팅에 맞게 갱신하세요. [GitHub 저장소 공개 범위 안내](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility#making-a-repository-private)
