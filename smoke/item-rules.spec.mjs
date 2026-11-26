@@ -9,6 +9,8 @@ import { treasureOffers } from '../src/map-treasure.ts'
 import { checkpoint, eliteWithThreeArtifacts, encounter, mapBefore } from './rules-six-fixtures.mjs'
 
 const a = 'attack', g = 'guard'
+const neonPhase = process.env.HWIGI_NEON_PHASE
+const neonOutput = process.env.HWIGI_NEON_SHOTS
 
 async function resume(page, run) {
   const { json, restored } = checkpoint(run)
@@ -34,11 +36,12 @@ async function shot(page, info, name, visible) {
     const root = document.scrollingElement
     return [root.scrollWidth - root.clientWidth, root.scrollHeight - root.clientHeight]
   })).toEqual([0, 0])
-  const output = (name === 'boss-relics' && process.env.HWIGI_BALANCE_SHOTS) || process.env.HWIGI_ITEM_SHOTS
+  const output = neonOutput || (name === 'boss-relics' && process.env.HWIGI_BALANCE_SHOTS) || process.env.HWIGI_ITEM_SHOTS
   if (output) {
     await page.evaluate(() => document.fonts.ready.then(() => undefined))
     await mkdir(output, { recursive: true })
-    await page.screenshot({ path: join(output, `${info.project.name.replace('×', 'x')}-${name}.png`), animations: 'disabled' })
+    const suffix = neonOutput ? `-${neonPhase ?? 'after'}` : ''
+    await page.screenshot({ path: join(output, `${info.project.name.replace('×', 'x')}-${name}${suffix}.png`), animations: 'disabled' })
   }
 }
 
@@ -92,6 +95,10 @@ test('규칙판 7 보상을 받아 쓰고 강적·보스·상점을 거쳐 문�
   await expect(page.getByRole('heading', { name: '전투 보상' })).toBeVisible()
   const item = card(page, 'advance-knot')
   const rare = card(page, 'reserve-gauge')
+  await expect(item.locator('.reward-type')).toHaveText('일회용일반')
+  await expect(item.locator('.reward-effect use')).toHaveAttribute('href', '#icon-sword')
+  await expect(card(page, 'spacer').locator('.reward-effect use')).toHaveAttribute('href', '#icon-shield')
+  await expect(rare.locator('.reward-effect use')).toHaveAttribute('href', '#icon-reroll-die')
   await expect(rare).toHaveAttribute('data-rarity', 'rare')
   await expect.poll(() => rare.locator('img').evaluate((image) => image.naturalWidth)).toBe(24)
   await item.tap()
@@ -120,8 +127,8 @@ test('규칙판 7 보상을 받아 쓰고 강적·보스·상점을 거쳐 문�
   await expect(die(1)).toHaveAttribute('aria-pressed', 'true')
   await attack.tap()
   await expect(status).toHaveAttribute('data-applies', 'true')
-  await expect(status).toHaveText('+6')
-  await shot(page, info, 'consumable', [status, attack, finish(page)])
+  await expect(status.locator('.item-effect-value')).toHaveText('+6')
+  if (!neonOutput) await shot(page, info, 'consumable', [status, attack, finish(page)])
   await finish(page).tap()
   await expect.poll(async () => (await saved(page)).battle.loot.consumables['advance-knot'] ?? 0).toBe(0)
 
@@ -131,6 +138,15 @@ test('규칙판 7 보상을 받아 쓰고 강적·보스·상점을 거쳐 문�
   const eliteCards = page.locator('#reward-cards button')
   await expect(eliteCards).toHaveCount(2)
   expect(await eliteCards.evaluateAll((buttons) => buttons.every((button) => button.dataset.rarity === 'common'))).toBe(true)
+  await expect(page.locator('#elite-capacity')).toHaveText('유물 0/3')
+  await expect(card(page, 'die-latch').locator('.reward-type')).toHaveText('유물일반')
+  const latch = card(page, 'die-latch')
+  const latchEffect = latch.locator('.reward-effect')
+  await expect(latchEffect).toHaveText('다음 턴1개')
+  await expect(latchEffect.locator('use').last()).toHaveAttribute('href', '#icon-die')
+  const latchFrame = await latch.boundingBox()
+  const effectArea = await latchEffect.boundingBox()
+  expect(effectArea.y + effectArea.height).toBeLessThan(latchFrame.y + latchFrame.height)
   await card(page, 'die-latch').tap()
   await shot(page, info, 'elite-relic', [...await eliteCards.all(), choose(page)])
   await choose(page).tap()
@@ -143,6 +159,9 @@ test('규칙판 7 보상을 받아 쓰고 강적·보스·상점을 거쳐 문�
   await expect(bossCards).toHaveCount(4)
   await expect(card(page, 'revived-heart').locator('.relic-cost use')).toHaveAttribute('href', '#icon-healing')
   await expect(bossCards.locator('.relic-cost')).toHaveText(BOSS_RELICS.map((id) => SEVEN_BOSS_RELICS[id].cost[1]))
+  const benefit = await bossCards.first().locator('.relic-benefit').boundingBox()
+  const cost = await bossCards.first().locator('.relic-cost').boundingBox()
+  expect(cost.y).toBeGreaterThan(benefit.y + benefit.height)
   await card(page, 'healing-scepter').tap()
   await expect(page.locator('#reward-preview')).toContainText('기본 재굴림에 체력 1')
   await card(page, 'emperor-shield').tap()
@@ -155,11 +174,20 @@ test('규칙판 7 보상을 받아 쓰고 강적·보스·상점을 거쳐 문�
   await expect(page.getByRole('heading', { name: '상인' })).toBeVisible()
   await expect(page.locator('.shop-price')).toHaveText(['2', '5'])
   const purse = (await saved(page)).route.coins
+  await card(page, 'kit').tap()
+  await expect(page.getByRole('button', { name: '구매 · 동전 2' })).toBeEnabled()
   await card(page, 'hourglass').tap()
   await reloadRun(page)
   await expect(card(page, 'hourglass')).toHaveAttribute('aria-pressed', 'true')
-  await shot(page, info, 'shop', [...await page.locator('.shop-offer').all(), choose(page)])
-  await choose(page).tap()
+  const purchase = page.getByRole('button', { name: '구매 · 동전 5' })
+  const badge = page.locator('#boss-relic-slot button')
+  const frame = await badge.boundingBox()
+  const number = await badge.locator('.item-count').boundingBox()
+  expect(number.x).toBeGreaterThan(frame.x)
+  expect(number.x + number.width).toBeLessThan(frame.x + frame.width)
+  expect(number.y + number.height).toBeLessThan(frame.y + frame.height)
+  await shot(page, info, 'shop', [...await page.locator('.shop-offer').all(), purchase])
+  await purchase.tap()
   await expect.poll(async () => (await saved(page)).route.coins).toBe(purse - 5)
   await reloadRun(page)
   expect((await saved(page)).route.coins).toBe(purse - 5)
@@ -178,10 +206,24 @@ test('강적 승리 뒤 장착 유물 세 개를 유지하고 보너스 동전�
   await finish(page).tap()
   await expect(page.getByRole('heading', { name: '강적 유물 선택' })).toBeVisible()
   const rack = page.getByRole('group', { name: '장착 중인 유물 세 개' })
-  await expect(rack.locator(':scope > span')).toHaveCount(3)
+  const held = rack.locator(':scope > span')
+  await expect(held).toHaveCount(3)
+  await expect(page.locator('#elite-capacity')).toHaveText('유물 3/3')
+  const positions = await held.evaluateAll((cards) => cards.map((card) => {
+    const { x, y } = card.getBoundingClientRect()
+    return { x, y }
+  }))
+  expect(new Set(positions.map(({ y }) => y)).size).toBe(1)
+  expect(new Set(positions.map(({ x }) => x)).size).toBe(3)
   const keep = page.getByRole('button', { name: /^지금 유물 유지/ })
   await expect(keep).toContainText('+2')
   await expect(page.locator('#first-run-line')).toHaveText('새 유물로 바꾸거나 지금 유물을 지켜요.')
+  const note = await page.locator('#first-run-note').boundingBox()
+  const bossSlot = page.locator('#boss-relic-slot')
+  if (await bossSlot.isVisible()) {
+    const slot = await bossSlot.boundingBox()
+    expect(note.y).toBeGreaterThanOrEqual(slot.y + slot.height)
+  }
   const offers = page.locator('#reward-cards button')
   await shot(page, info, 'elite-keep-three', [rack, ...await offers.all(), keep])
   await offers.first().tap()
@@ -229,7 +271,12 @@ test('좌상단 아이콘으로 고르고 하단에서 유물 사용과 소모�
   const lower = await use.boundingBox()
   expect(lower.y).toBeGreaterThan(planning.y + planning.height)
   expect((await chip('hourglass').boundingBox()).y).toBeLessThan(planning.y)
-  await shot(page, info, 'lower-item-use', [chip('hourglass'), use, finish(page)])
+  const chips = await strip.boundingBox()
+  const bossName = await page.locator('#encounter-name').boundingBox()
+  expect(chips.y + chips.height).toBeLessThan(bossName.y)
+  await expect(dock.locator('.dock-summary')).toHaveText('−21~6')
+  await expect(dock.locator('.dock-summary use').first()).toHaveAttribute('href', '#icon-heart')
+  await shot(page, info, 'lower-item-use', [chip('hourglass'), dock, use, finish(page)])
 
   await use.tap()
   const dieTop = (await die(1).boundingBox()).y
@@ -310,4 +357,53 @@ test('회복 왕홀을 장착하면 기본 재굴림에서 체력 1을 한 번 �
   expect(restored.rerolled).toBe(true)
   expect(restored.paidRerollSpent).toBeUndefined()
   await expect(page.locator('#reroll')).toBeDisabled()
+})
+
+test('한 자리 동전과 2층에서 전진 매듭의 대기와 발동을 비교한다', async ({ page }, info) => {
+  const run = encounter('freeze', 2, 7)
+  await resume(page, {
+    ...run, route: { ...run.route, coins: 1 },
+    battle: { ...run.battle, loot: { ...run.battle.loot, consumables: { 'advance-knot': 1 } } },
+  })
+  await arm(page, 'advance-knot', '켜기')
+  await page.getByRole('button', { name: '아이템 조작 닫기' }).tap()
+  const status = page.locator('#treasure-controls .item-effect')
+  await expect(status).toHaveAttribute('data-applies', 'false')
+  const coins = page.locator('#run-coins')
+  const floor = page.locator('#fight')
+  await expect(coins).toHaveAccessibleName('보유 동전 1개')
+  await expect(floor).toHaveText('2/12 층')
+  const coinBox = await coins.boundingBox()
+  expect((await floor.boundingBox()).x - (coinBox.x + coinBox.width)).toBeGreaterThanOrEqual(4)
+  await expect(status.locator('.item-effect-state')).toHaveText('대기')
+  await expect(status.locator('.item-effect-state use')).toHaveCount(0)
+  if (neonOutput) await shot(page, info, 'consumable-ready', [status])
+  await page.getByRole('button', { name: /^주사위 1,/ }).tap()
+  await page.getByRole('button', { name: /^공격 칸/ }).tap()
+  await expect(status).toHaveAttribute('data-applies', 'true')
+  await expect(status.locator('.item-effect-state')).toHaveText('발동')
+  await expect(status.locator('.item-effect-state use')).toHaveAttribute('href', '#icon-map-check')
+  if (neonOutput) await shot(page, info, 'consumable', [status, finish(page)])
+})
+
+test('유물 네 칸과 소모품이 함께 있으면 넘친 소모품을 열어 하단에서 쓴다', async ({ page }) => {
+  const run = eliteWithThreeArtifacts()
+  const loot = { ...run.battle.loot, consumables: { wedge: 1, 'advance-knot': 1, tuning: 1, weight: 1, buckle: 1 } }
+  await resume(page, { ...run, battle: { ...run.battle, loot } })
+  const inventory = page.locator('.inventory-strip')
+  await expect(inventory.locator('#artifact-strip button')).toHaveCount(3)
+  await expect(inventory.locator('#boss-relic-slot button')).toBeVisible()
+  const overflow = inventory.getByRole('button', { name: /^나머지 보유 보상/ })
+  await expect(overflow).toBeInViewport({ ratio: 1 })
+  await overflow.tap()
+  const item = page.locator('#inventory-overflow [data-reward="tuning"]')
+  await expect(item).toBeInViewport({ ratio: 1 })
+  await item.tap()
+  const dock = page.getByRole('group', { name: '아이템 조작' })
+  await dock.getByRole('button', { name: '사용', exact: true }).tap()
+  await page.getByRole('button', { name: /^주사위 1,/ }).tap()
+  const choice = dock.getByRole('button', { name: /^조율 -?1$/ }).first()
+  await expect(choice).toBeInViewport({ ratio: 1 })
+  await choice.tap()
+  expect((await saved(page)).battle.loot.consumables.tuning).toBeUndefined()
 })

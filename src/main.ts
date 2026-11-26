@@ -13,7 +13,7 @@ import { GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
 import type { BattleHit } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
 import { battleGuideFor } from './battle-guide.ts'
-import { oathDescription, perkText, rewardText, SEVEN_REWARD_VALUES } from './reward-copy.ts'
+import { oathDescription, perkText, rewardText, sevenItemEffect } from './reward-copy.ts'
 import { COMPANION_LINES, companionDieIndex } from './companion.ts'
 import { enemyForFight } from './enemy-roster.ts'
 import { FirstRunGuide } from './first-run-guide.ts'
@@ -21,7 +21,7 @@ import { loadGameSettings, saveGameSettings, toggleMute } from './game-settings.
 import type { GameSettings } from './game-settings.ts'
 import { MAP_NODE_ICONS, ForkView } from './map-view.ts'
 import { currentTreasureRoom, grantTreasure, healingForRun, shopPrice, treasureCost, treasureEnabled } from './map-treasure.ts'
-import { ARTIFACT_SLOTS, COMMON_CONSUMABLES, RARE_CONSUMABLES, ITEMS, PREPARATIONS, SHARDS, artifactReady, isArmedConsumable, isArtifact, itemUses, treasureRarity } from './treasure.ts'
+import { ARTIFACT_SLOTS, COMMON_CONSUMABLES, RARE_CONSUMABLES, ITEMS, PREPARATIONS, SHARDS, artifactReady, isArmedConsumable, isArtifact, isConsumable, itemUses, treasureRarity } from './treasure.ts'
 import type { Artifact, ArtifactOptions, CounterChoice } from './treasure.ts'
 import { availableCounterChoices, cancelSeal, chooseHourglass, counterDamage, draftSeal, hornCounterDamage, mirrorCounterDamage, startHourglass, toggleArtifact, toggleShard } from './treasure-combat.ts'
 import { adjustItemDie, canSelectItemDie, chooseReserveRoll, consumableReady, selectLatchDie, toggleConsumable } from './item-effects.ts'
@@ -132,6 +132,7 @@ const ui = {
   rewardPanel: element('reward-panel'),
   rewardHeading: element('reward-heading'),
   rewardContext: element('reward-context'),
+  eliteCapacity: element('elite-capacity'),
   rewardCards: element('reward-cards'),
   rewardPreview: element('reward-preview'),
   confirmReward: element<HTMLButtonElement>('confirm-reward'),
@@ -1130,6 +1131,10 @@ function renderRewardPreview(run: Ascent) {
     button.setAttribute('aria-pressed', String(button.dataset.reward === chosenReward))
   })
   ui.confirmReward.disabled = !chosenReward || Boolean(run.battle.loot && !isBossRelic(chosenReward) && !grantTreasure(run, chosenReward, artifactOptions))
+  const room = currentTreasureRoom(run)
+  const shopping = room?.kind === 'shop' && (run.route?.map.rules ?? 0) >= 3
+  const price = shopping && chosenReward && !isBossRelic(chosenReward) ? shopPrice(chosenReward, run.route?.map.rules) : 0
+  ui.confirmReward.textContent = price ? `구매 · 동전 ${price}` : shopping ? '구매' : '확인'
   ui.rewardPreview.hidden = !chosenReward
   if (isArtifact(chosenReward)) renderArtifactOptions(run, chosenReward)
   else ui.artifactOptions.replaceChildren()
@@ -1141,15 +1146,12 @@ function renderRewardPreview(run: Ascent) {
     ui.rewardPreview.innerHTML = `<strong>${card.name}</strong><span>${bossRelicText(chosenReward, run.battle.itemsSeven)}</span>`
     return
   }
-  const room = currentTreasureRoom(run)
   const heal = healingForRun(run, chosenReward, room)
   const cost = treasureCost(room, chosenReward)
-  const price = room?.kind === 'shop' ? shopPrice(chosenReward, run.route?.map.rules) : 0
   const effect = heal ? `고르면 체력을 ${heal} 회복해요.` : rewardText(chosenReward, run.battle.itemsSeven)
-  const payment = price && !run.battle.itemsSeven ? ` 동전 ${price}개를 내요.` : ''
   const gain = heal ? `${icon('heart')}+${heal}` : `${itemIcon(card.icon)}+1`
   const exchange = room?.kind === 'event' ? `<span class="reward-exchange"><span aria-label="얻음">얻음 ${gain}</span>${cost ? `<span aria-label="잃음">잃음 ${icon('heart')}−${cost}</span>` : ''}</span>` : ''
-  ui.rewardPreview.innerHTML = `<strong>${card.name}</strong><span>${effect}${payment}</span>${exchange}`
+  ui.rewardPreview.innerHTML = `<strong>${card.name}</strong><span>${effect}</span>${exchange}`
 }
 
 function renderArtifactOptions(run: Ascent, artifact: Artifact) {
@@ -1183,11 +1185,16 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   const seven = run.battle.itemsSeven === true
   const eliteReward = room?.kind === 'elite' && (run.route?.map.rules ?? 0) >= 6
   const canKeep = canKeepEliteArtifacts(run)
+  const equipped = run.battle.loot?.equipped ?? []
   ui.rewardPanel.classList.toggle('battle-reward', !atRoom)
   ui.rewardPanel.classList.toggle('boss-reward', bossReward)
+  ui.rewardPanel.classList.toggle('boss-reward-seven', bossReward && seven)
+  ui.rewardPanel.classList.toggle('elite-reward', eliteReward)
   const atShop = room?.kind === 'shop' && (run.route?.map.rules ?? 0) >= 3
   const eventName = room?.event === 'medicine' ? '무너진 약상자' : room?.event === 'pulley' ? '녹슨 도르래' : '빈 깃대'
   ui.rewardHeading.innerHTML = bossReward ? '보스 유물 선택' : atRoom ? `${icon(MAP_NODE_ICONS[room.kind])} ${room.kind === 'event' ? eventName : room.kind === 'rest' ? '11층 휴식' : atShop ? '상인' : '장터 경유'}` : eliteReward && seven ? '강적 유물 선택' : '전투 보상'
+  ui.eliteCapacity.hidden = !eliteReward
+  if (eliteReward) ui.eliteCapacity.innerHTML = `${icon('map-reward')}유물 ${equipped.length}/${ARTIFACT_SLOTS}`
   if (room?.kind === 'rest') ui.rewardHeading.insertAdjacentHTML('beforeend', '<span class="rest-ember" aria-hidden="true"></span>')
   ui.skipReward.textContent = atRoom ? '떠나기' : '건너뛰기'
   ui.skipReward.hidden = bossReward || Boolean(eliteReward && offers.length && !canKeep)
@@ -1205,9 +1212,9 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   if (room?.event) ui.rewardContext.textContent = eventContext[room.event]
   if (canKeep) {
     ui.artifactStrip.hidden = true
-    ui.rewardContext.innerHTML = `<span class="elite-equipped" role="group" aria-label="장착 중인 유물 세 개">${run.battle.loot!.equipped.map((id) => {
+    ui.rewardContext.innerHTML = `<span class="elite-equipped" role="group" aria-label="장착 중인 유물 세 개">${equipped.map((id) => {
       const { icon: symbol, name } = REWARD_CARDS[id]
-      return `<span title="${name}">${itemIcon(symbol)}${name}</span>`
+      return `<span>${itemIcon(symbol)}<strong>${name}</strong></span>`
     }).join('')}</span>`
   }
   if (!run.route) {
@@ -1227,16 +1234,18 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
     const pictogram = pixelIcon(symbol)
     if (isBossRelic(reward)) {
       const { benefit, cost } = SEVEN_BOSS_RELICS[reward]
-      card.innerHTML = `${pictogram}<strong>${name}</strong><small>${seven ? `<span>${icon(benefit[0])}${benefit[1]}</span><span class="relic-cost">${icon(cost[0])}${cost[1]}</span>` : REWARD_CARDS[reward].value}</small>`
+      card.innerHTML = `${pictogram}<strong>${name}</strong><small>${seven ? `<span class="relic-benefit">${icon(benefit[0])}${benefit[1]}</span><span class="relic-cost">${icon(cost[0])}${cost[1]}</span>` : REWARD_CARDS[reward].value}</small>`
       if (seven) card.setAttribute('aria-label', `${name}, ${bossRelicText(reward, true)}`)
     } else if (seven) {
       const rarity = treasureRarity(reward)
       const isHeal = reward === 'bandage' || reward === 'kit' || reward === 'medicine'
-      const value = isHeal ? `+${healingForRun(run, reward)}` : SEVEN_REWARD_VALUES[reward] ?? REWARD_CARDS[reward].value
+      const value = isHeal ? `+${healingForRun(run, reward)}` : undefined
+      const type = isArtifact(reward) ? '유물' : isHeal || isConsumable(reward) ? '일회용' : '준비'
       const grade = rarity === 'rare' ? '희귀' : '일반'
       card.classList.add('item-seven-card')
       card.dataset.rarity = rarity
-      card.innerHTML = `${pictogram}<strong>${name}</strong><small>${grade} · ${value}</small>`
+      card.setAttribute('aria-description', `${type} · ${grade}`)
+      card.innerHTML = `<span class="reward-type">${type}<span>${grade}</span></span>${pictogram}<strong>${name}</strong><small class="reward-effect">${sevenItemEffect(reward, value)}</small>`
     } else card.innerHTML = pictogram
     card.addEventListener('click', () => {
       chosenReward = chosenReward === reward ? undefined : reward
@@ -1531,7 +1540,8 @@ function renderBossRelicSlot(battle: YachtBattle, disabled: boolean) {
   if (battle.itemsSeven) {
     const { benefit, cost } = SEVEN_BOSS_RELICS[relic.id]
     if (relic.id === 'emperor-shield' && battle.turn > 1) button.classList.remove('spent')
-    button.insertAdjacentHTML('beforeend', `<span class="item-count">${spent ? cost[1] : benefit[1]}</span>`)
+    button.classList.add('boss-relic-counted')
+    button.insertAdjacentHTML('beforeend', `<span class="item-count" aria-hidden="true">${spent ? cost[1] : benefit[1]}</span>`)
   }
   ui.bossRelicSlot.replaceChildren(button)
 }
@@ -1567,7 +1577,8 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
     const card = REWARD_CARDS[id]
     dockLine = document.createElement('div')
     dockLine.className = 'item-dock-line'
-    const info = control(`${card.name} 설명`, `${itemIcon(card.icon)}<strong>${card.name}</strong>`, () => showInventoryInfo(id))
+    const summary = battle.itemsSeven && !isBossRelic(id) ? `<span class="dock-summary">${sevenItemEffect(id)}</span>` : ''
+    const info = control(`${card.name} 설명`, `${itemIcon(card.icon)}<span class="dock-description"><strong>${card.name}</strong>${summary}</span>`, () => showInventoryInfo(id))
     info.className = 'item-dock-info'
     dockLine.append(info)
     if (!battle.itemsSeven && id === 'tuning') {
@@ -1672,14 +1683,19 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
       const armed = loot.consumableArmed ?? (loot.latchDraft !== undefined ? 'die-latch' : 'banner')
       const card = REWARD_CARDS[armed]
       const forecast = forecastYacht(battle)
-      let effect = SEVEN_REWARD_VALUES[armed] ?? card.value
-      if (armed === 'die-latch') effect = `→${battle.dice[loot.latchDraft!]}`
-      if (armed === 'weight' || armed === 'banner') effect = `+${Math.max(0, ...battle.dice.filter((_, index) => battle.slots[index] === 'attack'))}`
-      if (armed === 'buckle') effect = `−${forecastYacht({ ...battle, loot: { ...loot, consumableArmed: undefined } }).damage - forecast.damage}`
-      const applies = armed === 'reserve-gauge' || forecast.loot?.triggered?.includes(armed)
-      const status = `<span class="item-effect" data-applies="${Boolean(applies)}">${dockItem === armed ? '' : itemIcon(card.icon)}<strong>${effect}</strong></span>`
-      if (dockItem === armed && dockLine) dockLine.querySelector('.item-dock-info')!.insertAdjacentHTML('beforeend', status)
-      else ui.treasureControls.insertAdjacentHTML('beforeend', status)
+      const applies = Boolean(forecast.loot?.triggered?.includes(armed))
+      let effect: string | undefined
+      if (armed === 'die-latch') effect = String(battle.dice[loot.latchDraft!])
+      if (applies && armed === 'weight') effect = `+${Math.max(...battle.dice.filter((_, index) => battle.slots[index] === 'attack'))}`
+      if (applies && armed === 'banner') effect = `+${yachtAllocationTotals(battle).guard - yachtAllocationTotals({ ...battle, loot: { ...loot, armed: [] } }).guard}`
+      if (applies && armed === 'buckle') effect = `−${forecastYacht({ ...battle, loot: { ...loot, consumableArmed: undefined } }).damage - forecast.damage}`
+      const inline = dockItem === armed && dockLine
+      const status = `<span class="item-effect" data-applies="${applies}">${inline ? '' : itemIcon(card.icon)}<strong class="item-effect-value">${sevenItemEffect(armed, effect)}</strong><span class="item-effect-state">${applies ? icon('map-check') : ''}${applies ? '발동' : '대기'}</span></span>`
+      if (inline) {
+        const info = inline.querySelector('.item-dock-info')!
+        info.setAttribute('aria-label', `${card.name} 설명, ${applies ? '발동' : '대기'}`)
+        info.querySelector('.dock-summary')!.outerHTML = status
+      } else ui.treasureControls.insertAdjacentHTML('beforeend', status)
     }
   } else if (loot?.sealDraft) {
     ui.treasureControls.append(control('미완의 인장 조정 취소', `${icon('treasure-incomplete')}${icon('return')}`, () => updateTreasureBattle(battle, cancelSeal(battle), '#resolve')))

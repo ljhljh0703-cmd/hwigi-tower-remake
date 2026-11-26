@@ -1,12 +1,13 @@
 import { START_PERKS } from './perks.ts'
 import type { Parity, StartPerk } from './perks.ts'
-import { BANDAGE_HEAL, BUCKLE_MAX_SHORTFALL, BUCKLE_REDUCTION, WEIGHT_BONUS, WEDGE_BONUS } from './rewards.ts'
+import { BANDAGE_HEAL, BUCKLE_MAX_SHORTFALL, BUCKLE_REDUCTION, REWARD_CARDS, WEIGHT_BONUS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward } from './rewards.ts'
 import type { BossRelic } from './boss-relic.ts'
 import { REST_HEAL, TREASURE_CARDS } from './treasure.ts'
 import type { Treasure } from './treasure.ts'
 import { SEVEN_ITEM_VALUES } from './item-values.ts'
 import { isMetaPerk, META_ARTIFACTS, META_PERKS } from './meta-unlocks.ts'
+import { icon } from './icons.ts'
 
 export const REWARD_TEXT: Readonly<Record<Exclude<Reward, BossRelic>, string>> = {
   scabbard: META_ARTIFACTS.scabbard.description,
@@ -53,6 +54,36 @@ export const SEVEN_REWARD_VALUES: Readonly<Partial<Record<Treasure, string>>> = 
   incomplete: '2→3', hourglass: '−2 · 1~6', banner: `최고 눈 ×${SEVEN_ITEM_VALUES.bannerMultiplier}`, horn: `→${SEVEN_ITEM_VALUES.hornDamage}`, bandage: '+5',
   mirror: `×${SEVEN_ITEM_VALUES.mirrorMultiplier} → ≤${SEVEN_ITEM_VALUES.mirrorCap}`,
   overflow: `≤${SEVEN_ITEM_VALUES.overflowCap} →`,
+}
+
+const EFFECT_TARGET: Partial<Record<Treasure, string>> = {
+  weight: 'sword', wedge: 'sword', 'advance-knot': 'sword', 'clash-seal': 'sword', whetstone: 'sword',
+  buckle: 'shield', spacer: 'shield', lining: 'shield', banner: 'shield',
+  tuning: 'die', 'twin-mold': 'die', 'heart-die': 'devil-die', incomplete: 'unlock',
+  bandage: 'healing', medicine: 'healing', kit: 'healing',
+}
+
+const effectMark = (symbol: string, value: string) => `<span>${icon(symbol)}${value}</span>`
+
+export function sevenItemEffect(id: Treasure, value = SEVEN_REWARD_VALUES[id] ?? REWARD_CARDS[id].value) {
+  switch (id) {
+    case 'hourglass': {
+      const [cost, faces] = value.split(' · ')
+      return `${effectMark('heart', cost)}${effectMark('die', faces)}`
+    }
+    case 'die-latch': return `${effectMark('turn', '다음 턴')}${effectMark('die', value === '→' ? '1개' : value)}`
+    case 'mirror': return `${effectMark('wheel', `×${SEVEN_ITEM_VALUES.mirrorMultiplier}`)}${effectMark('sword', `≤${SEVEN_ITEM_VALUES.mirrorCap}`)}`
+    case 'overflow': return `${effectMark('shield', '')}${effectMark('sword', `≤${SEVEN_ITEM_VALUES.overflowCap}`)}`
+    case 'coin': return effectMark('wheel', '다시 1회')
+    case 'horn': return effectMark('joint', String(SEVEN_ITEM_VALUES.hornDamage))
+    case 'reserve-gauge': return effectMark('reroll-die', '눈 선택')
+    case 'adjacent-needle': return effectMark('wheel', '옆 1칸')
+    case 'pip-ring': return effectMark('die', '−1/+1')
+    case 'blood-grip': return effectMark('healing', value.replace('회복 ', ''))
+    case 'linked-cup': return effectMark('reroll-die', '연속 2개')
+    case 'scabbard': return effectMark('sword', value.replace('→ ', ''))
+    default: return EFFECT_TARGET[id] ? effectMark(EFFECT_TARGET[id], value) : value
+  }
 }
 
 const SEVEN_REWARD_TEXT: Readonly<Partial<Record<Treasure, string>>> = {
