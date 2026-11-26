@@ -120,6 +120,26 @@ test.beforeAll(async () => {
   if (process.env.HWIGI_HERO_SHOTS) await mkdir(process.env.HWIGI_HERO_SHOTS, { recursive: true })
 })
 
+test('황제의 공격 턴과 힘을 모으는 턴의 수치가 구분된다', async ({ page }, info) => {
+  const boss = encounter('boss', 12)
+  await resume(page, withBattle(boss, { turn: 1 }))
+  const intent = page.locator('#intent')
+  await expect(intent).toHaveAttribute('data-intent', 'attack')
+  await expect(intent.locator('strong')).toHaveText('11 + 10')
+  await photograph(page, info, 'intent-attack')
+
+  await resume(page, withBattle(boss, { turn: 2 }))
+  await expect(intent).toHaveAttribute('data-intent', 'charge')
+  await expect(intent).toHaveAccessibleName(/이번 턴 피해 0 · 다음 턴 피해 20/)
+  await expect(intent.locator('strong')).toHaveText('0')
+  await expect(intent.locator('.intent-next')).toHaveText('20')
+  expect(await intent.evaluate((element) => {
+    const size = (selector) => parseFloat(getComputedStyle(element.querySelector(selector)).fontSize)
+    return size('.intent-next') < size('strong')
+  })).toBe(true)
+  await photograph(page, info, 'intent-charge')
+})
+
 async function put(page, slot, indices) {
   for (const index of indices) await page.locator(`#die-${index}`).tap()
   await page.locator(`#assign-${slot}`).tap()

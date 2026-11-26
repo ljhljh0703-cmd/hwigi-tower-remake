@@ -953,6 +953,25 @@ main[data-screen='battle'] {
 }
 #intent span { display: inline-flex; align-items: center; gap: 4px; }
 #intent .intent-detail { font-size: .57em; color: #e4d5c5; }
+#intent[data-intent='attack'] > span:first-child {
+  padding: 1px 4px;
+  color: #ffeddc;
+  background: #532c22;
+  border: 1px solid #dd936d;
+}
+#intent[data-intent='charge'] > span:first-child {
+  padding: 1px 5px;
+  color: #edf3fb;
+  background: #29303d;
+  border: 1px dashed #abbdd6;
+  border-radius: 7px;
+}
+#intent .intent-next {
+  gap: 2px;
+  padding-inline-end: 4px;
+  color: #a7b8cc;
+  border-inline-end: 1px solid #617084;
+}
 #intent .intent-escort { color: #f6c795; white-space: nowrap; }
 #encounter-name { position: absolute; z-index: 1; inset: 10px auto auto 10px; color: #f9d9ab; font-size: .9rem; }
 #intent .gimmick-mark { gap: 2px; padding-inline: 2px; color: #ffdf9f; }

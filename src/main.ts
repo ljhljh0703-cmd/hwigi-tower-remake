@@ -669,7 +669,8 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['
   if (effect) ui.intent.dataset.helpText = effect.help
   else delete ui.intent.dataset.helpText
   ui.intent.setAttribute('role', effect ? 'button' : 'img')
-  const display = (symbol: string, value: string, label: string, detail = badgeIcon) => {
+  const display = (symbol: string, value: string, label: string, detail = badgeIcon, mode = '') => {
+    ui.intent.dataset.intent = mode
     const secondary = detail ? `<span class="intent-detail">${detail}</span>` : ''
     const priority = escort ? `<span class="intent-detail intent-escort" aria-hidden="true">${icon('sword')}${icon('next')}${icon('escort')}<span class="intent-escort-hp">${escort.hp}</span></span>` : ''
     ui.intent.innerHTML = `<span>${icon(symbol)}${value ? `<strong>${value}</strong>` : ''}</span>${secondary}${mark}${priority}`
@@ -689,9 +690,11 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['
     if (charge) {
       const { threshold, totalDamage, hammerThreshold } = charge
       const secondary = hammerThreshold ? `${icon('treasure-hammer')}${hammerThreshold}` : `${icon('break-charge')}${threshold}`
-      display('charge', String(totalDamage), hammerThreshold
+      const nextAttack = `<span class="intent-next">${icon('next')}<b>${totalDamage}</b></span>`
+      const condition = hammerThreshold
         ? `본체에 닿는 공격 피해가 ${hammerThreshold} 이상이면 망치가 다음 큰 공격을 막아요.`
-        : `본체에 닿는 공격 피해가 ${threshold} 이상이면 다음 큰 공격을 약하게 만들어요.`, secondary)
+        : `본체에 닿는 공격 피해가 ${threshold} 이상이면 다음 큰 공격을 약하게 만들어요.`
+      display('charge', '0', `힘 모으기 · 이번 턴 피해 0 · 다음 턴 피해 ${totalDamage} · ${condition}`, nextAttack + secondary, 'charge')
       return
     }
     if (intent.damageTakenMultiplier !== undefined) {
@@ -704,7 +707,7 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['
     if (emperorShieldActive(battle) && hits.length) {
       const remaining = forecastYacht(battle).incoming
       display('shield', remaining.hits.length ? hitNumbers(remaining.hits) : '0',
-        `황제의 방패 적용 · 남은 공격 ${remaining.totalDamage}`, '')
+        `황제의 방패 적용 · 남은 공격 ${remaining.totalDamage}`, '', 'attack')
       return
     }
     if (intent.id === 'stunned') {
@@ -715,7 +718,7 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['
       display('treasure-hammer', '0', '망치가 적의 큰 공격을 막았어요.')
       return
     }
-    let label = hits.length ? `피해 ${hitNumbers(hits)}의 공격이 와요.` : intent.name
+    let label = ''
     let detail = badgeIcon
     if (mechanic) {
       switch (mechanic.kind) {
@@ -763,7 +766,10 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['
           break
       }
     }
-    display(hits.length ? (intent.id === 'critical' ? 'critical' : 'sword') : badge.icon, hits.length ? hitNumbers(hits) : '0', label, detail)
+    const damage = hits.length ? hitNumbers(hits) : '0'
+    const accessible = [hits.length ? `이번 턴 공격 ${damage}` : intent.name, label].filter(Boolean).join(' · ')
+    display(hits.length ? (intent.id === 'critical' ? 'critical' : 'sword') : badge.icon,
+      damage, accessible, detail, hits.length ? 'attack' : '')
   }
 }
 
