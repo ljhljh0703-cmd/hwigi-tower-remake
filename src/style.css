@@ -399,6 +399,7 @@ main[data-screen='battle'] {
   flex: 0 1 calc(20dvh + 24px);
   min-block-size: 0;
 }
+[data-screen='reward'] #battle:has(.boss-reward)::after { flex-basis: calc(20dvh + 12px); }
 #reward-panel.battle-reward { flex: none; margin: auto; }
 
 #reward-panel {
@@ -452,25 +453,27 @@ main[data-screen='battle'] {
 .reward-card:focus-visible { outline-offset: 2px; }
 .empty-reward { opacity: .5; }
 
-#reward-panel.boss-reward { inline-size: min(100%, 540px); gap: 8px; }
+#reward-panel.boss-reward { inline-size: min(100%, 540px); gap: clamp(10px, 1.5dvh, 14px); }
 .boss-reward #reward-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .boss-reward .reward-card {
   grid-template-columns: auto 1fr;
   grid-template-rows: auto auto;
   justify-items: start;
   align-content: center;
-  column-gap: 6px;
+  column-gap: clamp(6px, 2vw, 10px);
   inline-size: 100%;
-  min-block-size: 55px;
+  min-block-size: clamp(72px, 10.7dvh, 96px);
   aspect-ratio: auto;
-  padding: 5px 7px;
+  padding: 7px clamp(8px, 2.5vw, 14px);
   text-align: left;
-  font-size: .88rem;
+  font-size: clamp(.88rem, 3.9vw, 1rem);
+  border: 1px solid #715b43;
   background: #423528;
   color: #ffe0ae;
 }
-.boss-reward .reward-card .icon { grid-row: span 2; inline-size: 22px; block-size: 22px; }
+.boss-reward .reward-card .icon { grid-row: span 2; inline-size: clamp(22px, 7vw, 28px); block-size: clamp(22px, 7vw, 28px); }
 .boss-reward .reward-card small { color: #ddc3a3; }
+.boss-reward .reward-card[aria-pressed='true'] { background: #58442e; }
 .reward-actions:has(#skip-reward[hidden]) { grid-template-columns: 1fr; }
 
 #reward-preview {
@@ -649,16 +652,19 @@ main[data-screen='battle'] {
 #intent .intent-escort { color: #f6c795; white-space: nowrap; }
 #encounter-name { position: absolute; z-index: 1; inset: 10px auto auto 10px; color: #f9d9ab; font-size: .9rem; }
 #intent .gimmick-mark { gap: 2px; padding-inline: 2px; color: #ffdf9f; }
-.gimmick-mark i {
+.gimmick-mark i, #intent .gimmick-effect {
   display: grid;
   place-items: center;
-  inline-size: 23px;
+  min-inline-size: 23px;
   block-size: 24px;
   background: #302922;
   border: 1px dashed #c09964;
 }
 #intent .gimmick-mark .icon { inline-size: 16px; block-size: 16px; }
-.gimmick-mark[data-ready='true'] i { border-style: solid; border-color: #ffe2a0; background: #665237; }
+#intent .gimmick-mark .gimmick-arrow .icon { inline-size: 13px; block-size: 13px; }
+#intent .gimmick-effect { display: inline-flex; justify-content: center; gap: 2px; padding-inline: 3px; }
+.gimmick-effect b { font-size: .75rem; -webkit-text-stroke: 0; }
+#intent .gimmick-mark[data-ready='true'] :is(i, .gimmick-effect) { border-style: solid; color: #fff0ca; border-color: #ffe2a0; background: #665237; }
 #intent .gimmick-die { display: grid; grid-template: repeat(3, 3px) / repeat(3, 3px); place-items: center; gap: 1px; }
 .gimmick-die b { inline-size: 3px; block-size: 3px; background: currentColor; border-radius: 50%; }
 .gimmick-die b:first-child { grid-area: 2 / 2; }
@@ -692,6 +698,27 @@ main[data-screen='battle'] {
 }
 
 .vital .icon { color: var(--muted); }
+
+.enemy-status {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-end: calc(100% + 3px);
+  display: flex;
+  gap: 3px;
+}
+.enemy-status-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-inline-size: 31px;
+  padding: 1px 4px;
+  border: 1px solid #ac855a;
+  background: #352a22;
+  color: #ffe0ae;
+  font-size: .72rem;
+}
+.vital .enemy-status-chip .icon { inline-size: 14px; block-size: 14px; color: inherit; }
 
 .escort-guard .vital {
   display: flex;

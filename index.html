@@ -39,6 +39,10 @@
       <symbol id="icon-critical" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="m5 18-3 3m2-7 5 5m-3-3L18 4l2-1-1 4L8 18M11 4v3M9.5 5.5h3M19 13v4m-2-2h4"/></symbol>
       <symbol id="icon-charge" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="m3 4 5 5V5M3 9h5m13-5-5 5V5m5 4h-5M3 20l5-5v4m-5-4h5m13 5-5-5v4m5-4h-5m-4-6 2 3-2 3-2-3Z"/></symbol>
       <symbol id="icon-knockdown" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M12 3v12m-5-5 5 5 5-5M4 20h16"/></symbol>
+      <symbol id="icon-stun" viewBox="0 0 24 24"><path d="M3 16c0-3 4-6 9-6s9 2 9 4-4 4-8 4c-3 0-5-1-5-2s2-2 4-2M6 4v4M4 6h4m9-3v4m-2-2h4"/></symbol>
+      <symbol id="icon-armor-break" viewBox="0 0 24 24"><path d="m8 4-5 4 2 5 3-1v8h8v-8l3 1 2-5-5-4M8 4l4 3 4-3m-3 4-3 4 4 2-2 5"/></symbol>
+      <symbol id="icon-reflect" viewBox="0 0 24 24"><path d="M20 5v14M4 9h9l3 3-3 3H4m3-3-3 3 3 3"/></symbol>
+      <symbol id="icon-escort-exit" viewBox="0 0 24 24"><path d="M11 5 6 3 2 5v5c0 3 2 6 4 7 2-1 4-4 4-7M12 13h9m-4-4 4 4-4 4"/></symbol>
       <symbol id="icon-shield" viewBox="0 0 24 24"><path vector-effect="non-scaling-stroke" d="M12 3c2.5 2 5 3 8 3v6c0 4-3.5 7-8 9-4.5-2-8-5-8-9V6c3 0 5.5-1 8-3Z"/></symbol>
       <symbol id="icon-crown" viewBox="0 0 24 24"><path d="m3 6 4 4 5-6 5 6 4-4-2 13H5Zm2 9h14"/></symbol>
       <symbol id="icon-scepter" viewBox="0 0 24 24"><path d="m4 21 10-11m-3-3 5-5 5 5-5 5Zm-5 8 3 3"/></symbol>
@@ -247,6 +251,7 @@
           <div class="combatant enemy">
             <output id="enemy-damage" class="damage-float" aria-hidden="true"></output>
             <div class="vital">
+              <span id="enemy-status" class="enemy-status" role="group" aria-label="적 상태" hidden></span>
               <label for="enemy-hp"><svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="enemy-total"></span></label>
               <span class="hp-track"><meter id="enemy-hp" min="0" aria-label="적 체력"></meter><span class="hp-trail" aria-hidden="true"></span></span>
             </div>

@@ -25,7 +25,7 @@ import type { Reward, RewardChoice } from './rewards.ts'
 import {
   allocationPower, assignDie, attackFor, chargedStrikePreview, combatSlots, DIE_COUNT, enemyIntentAt, incomingAttack, splitEnemyDamage,
 } from './combat.ts'
-import type { Exchange, SlotTotals } from './combat.ts'
+import type { Exchange, Gimmick, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
 import type { Parity } from './perks.ts'
 import {
@@ -91,6 +91,7 @@ const ui = {
   enemyHp: element<HTMLMeterElement>('enemy-hp'),
   playerTotal: element('player-total'),
   enemyTotal: element('enemy-total'),
+  enemyStatus: element('enemy-status'),
   escortGuard: element('escort-guard'),
   escortGuardVital: element('escort-guard-vital'),
   escortGuardTotal: element('escort-guard-total'),
@@ -240,6 +241,13 @@ const enemyBadges: Record<string, { icon: string; label: string }> = {
   ...MAP_ENEMY_BADGES,
 }
 const rulesSixBadges: Partial<typeof enemyBadges> = RULES_SIX_BADGES
+const gimmickEffects = {
+  trip: { icon: 'stun', help: '적의 다음 공격을 한 번 건너뛰어요.' },
+  armor: { icon: 'armor-break', value: '×1.5', help: '다음 턴부터 공격 피해가 1.5배예요.' },
+  reflect: { icon: 'reflect', help: '철추 피해를 적에게 돌려줘요.' },
+  topple: { icon: 'knockdown', value: '×2', help: '다음 턴에 적이 쉬고 공격 피해가 2배예요.' },
+  retreat: { icon: 'escort-exit', help: '호위가 물러나고 공격이 본체에 닿아요.' },
+} satisfies Record<Gimmick, { icon: string; value?: string; help: string }>
 
 let ascent: Ascent | null = null
 let chosenReward: Reward | undefined
@@ -370,7 +378,7 @@ function stopHolding() {
 }
 function showHelp(target: HTMLElement) {
   helpTarget = target
-  holdHelp.textContent = target.getAttribute('aria-label')
+  holdHelp.textContent = target.dataset.helpText ?? target.getAttribute('aria-label')
   holdHelp.hidden = false
   const bounds = target.getBoundingClientRect()
   const width = holdHelp.offsetWidth
@@ -588,6 +596,22 @@ function hitNumbers(hits: readonly number[]) {
   return groups.map(({ damage, count }) => count === 1 ? String(damage) : `${damage}×${count}`).join(' + ')
 }
 
+function renderEnemyStatus(battle: YachtBattle) {
+  const statuses: string[] = []
+  const chip = (kind: 'trip' | 'armor' | 'topple', label: string, count: string) =>
+    `<span class="enemy-status-chip" data-status="${kind}" role="img" aria-label="${label}">${icon(gimmickEffects[kind].icon)}<b>${count}</b></span>`
+  if (battle.rulesSix && battle.enemyHp > 0 && (battle.phase === 'assign' || battle.phase === 'counter')) {
+    const interruption = battle.interrupted?.kind
+    if (interruption === 'trip') statuses.push(chip('trip', '기절 · 공격 1회 남음', '1'))
+    if (interruption === 'topple' || (battle.phase === 'assign' && enemyIntentAt(battle).id === 'knockdown')) {
+      statuses.push(chip('topple', '넘어짐 · 1턴 남음', '1'))
+    }
+    if (battle.armorBroken) statuses.push(chip('armor', '갑옷 파괴 · 전투가 끝날 때까지', '∞'))
+  }
+  ui.enemyStatus.innerHTML = statuses.join('')
+  ui.enemyStatus.hidden = !statuses.length
+}
+
 function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) {
   const badge = (battle.rulesSix && rulesSixBadges[enemyId]) || enemyBadges[enemyId]
   const clause = battle.phase === 'assign' ? yachtGimmick(battle) : null
@@ -597,13 +621,22 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
   ui.encounter.dataset.gimmick = clause?.kind ?? ''
   ui.encounter.classList.toggle('gimmick-ready', ready)
   ui.encounter.classList.toggle('armor-broken', Boolean(battle.armorBroken))
-  const mark = clause ? `<span class="gimmick-mark" data-kind="${clause.kind}" data-ready="${ready}" aria-hidden="true"><i>${icon(clause.slot === 'guard' ? 'shield' : 'sword')}</i><i>${clause.face === null ? icon('stacked-pair') : `<span class="gimmick-die" data-face="${clause.face}">${'<b></b>'.repeat(clause.face)}</span>`}</i></span>` : ''
+  const effect = clause ? gimmickEffects[clause.kind] : undefined
+  const multiplier = effect && 'value' in effect ? `<b>${effect.value}</b>` : ''
+  const mark = clause && effect ? `<span class="gimmick-mark" data-kind="${clause.kind}" data-ready="${ready}" aria-hidden="true">
+    <i>${icon(clause.slot === 'guard' ? 'shield' : 'sword')}</i>
+    <i>${clause.face === null ? icon('stacked-pair') : `<span class="gimmick-die" data-face="${clause.face}">${'<b></b>'.repeat(clause.face)}</span>`}</i>
+    <span class="gimmick-arrow">${icon('next')}</span><span class="gimmick-effect">${icon(effect.icon)}${multiplier}</span>
+  </span>` : ''
+  if (effect) ui.intent.dataset.helpText = effect.help
+  else delete ui.intent.dataset.helpText
+  ui.intent.setAttribute('role', effect ? 'button' : 'img')
   const display = (symbol: string, value: string, label: string, detail = badgeIcon) => {
     const secondary = detail ? `<span class="intent-detail">${detail}</span>` : ''
     const priority = escort ? `<span class="intent-detail intent-escort" aria-hidden="true">${icon('sword')}${icon('next')}${icon('escort')}<span class="intent-escort-hp">${escort.hp}</span></span>` : ''
     ui.intent.innerHTML = `<span>${icon(symbol)}${value ? `<strong>${value}</strong>` : ''}</span>${secondary}${mark}${priority}`
     const condition = clause ? ` · ${clause.name} · ${clause.slot === 'attack' ? '공격' : '방어'} ${clause.face ?? '같은 눈 둘'}${ready ? ' · 성립' : ''}` : ''
-    ui.intent.setAttribute('aria-label', `${badge.label} · ${label}${condition}`)
+    ui.intent.setAttribute('aria-label', `${badge.label} · ${label}${condition}${effect ? ` · ${effect.help}` : ''}`)
     if (escort) ui.intent.setAttribute('aria-description', `공격 대상 1순위 호위병 · 생존 시 적 공격 +${escort.bonus}`)
     else ui.intent.removeAttribute('aria-description')
   }
@@ -637,7 +670,7 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
       return
     }
     if (intent.id === 'stunned') {
-      display('knockdown', '0', '기절해서 공격을 쉬어요.', '')
+      display('stun', '0', '기절해서 공격을 쉬어요.', '')
       return
     }
     if (intent.id === 'critical' && battle.erasedStrikeTurn === battle.turn) {
@@ -1400,6 +1433,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.encounterName.hidden = enemy.id !== 'chain-warden'
   ui.encounterName.textContent = enemy.id === 'chain-warden' ? RULES_SIX_BADGES[enemy.id].label : ''
   renderIntent(battle, totals, enemy.id)
+  renderEnemyStatus(battle)
   updateVital(ui.playerHp, ui.playerTotal, playerHp, maxHp)
   updateVital(ui.enemyHp, ui.enemyTotal, enemyHp, enemy.hp)
   ui.escortGuard.hidden = !battle.escort || enemyHp <= 0
