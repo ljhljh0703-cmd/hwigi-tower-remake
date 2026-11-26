@@ -7,7 +7,7 @@ import type { Ascent } from './ascent.ts'
 import { CURRENT_MAP_RULES, enemyForMapNode, MAP_FLOORS, MAP_RULES, RULES_SIX_BADGES } from './ascent-map.ts'
 import { BOSS_RELIC_CARDS, isBossRelic } from './boss-relic.ts'
 import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, writeAscentSave } from './ascent-save.ts'
-import { Arena } from './arena.ts'
+import { Arena, battleImpactTier } from './arena.ts'
 import { icon, pixelIcon } from './icons.ts'
 import { GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
 import type { BattleHit } from './arena.ts'
@@ -777,6 +777,7 @@ const damageDuration = 700
 const hitOrderDuration = 1500
 const chipDelay = 350
 const parryDuration = 120
+let guardCueTimer: number | undefined
 const unlockImpactDuration = 300
 const unlockDuration = 650
 const companionAwakenDuration = 520
@@ -791,6 +792,7 @@ function clearExchange() {
   for (const output of Object.values(damageOutput)) output.replaceChildren()
   ui.hitResults.replaceChildren()
   ui.hitOrder.hidden = true
+  window.clearTimeout(guardCueTimer)
   ui.parry.hidden = true
   ui.awakening.hidden = true
   arena.clearContact()
@@ -800,11 +802,10 @@ function showDamage(hit: BattleHit) {
   const { target, damage } = hit
   const number = document.createElement('span')
   number.className = 'damage-number'
-  number.classList.toggle('heavy', damage >= 5)
+  number.dataset.impact = battleImpactTier(hit)
   const targetName = document.createElement('small')
   targetName.textContent = { player: '나', enemy: '적', escort: '호위' }[target]
   number.append(targetName, `−${damage}`)
-  number.style.setProperty('--damage-scale', String(1 + .25 * Math.log2(damage)))
   damageOutput[target].append(number)
   window.setTimeout(() => number.remove(), effectDuration(damageDuration))
 }
@@ -849,9 +850,17 @@ function updateEscortVital(hp: number) {
   }
 }
 
-function showParry(authored = false) {
-  ui.parry.classList.toggle('sr-only', authored)
+function showGuardCue(kind: 'ordinary' | 'exact') {
+  window.clearTimeout(guardCueTimer)
+  ui.parry.dataset.guard = kind
+  ui.parry.setAttribute('aria-label', kind === 'exact' ? '정확 방어' : '방어')
+  ui.parry.querySelector('use')?.setAttribute('href', kind === 'exact' ? '#icon-parry' : '#icon-shield')
   ui.parry.hidden = false
+  if (kind === 'ordinary') guardCueTimer = window.setTimeout(() => { ui.parry.hidden = true }, effectDuration(210))
+}
+
+function showParry(authored = false) {
+  showGuardCue('exact')
   sound.play('perfect-block', authored ? .94 : 1, authored ? .32 : .19, authored ? undefined : effectDuration(120) / 1000)
 }
 
@@ -988,6 +997,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     await at(time)
     const damage = hitsTaken[index]
     const final = index === incoming - 1
+    if (!exact && totals.guard > 0 && damage < incomingHits[index]) showGuardCue('ordinary')
     emit(heroHit(damage, final && !exchange.defeatedByThorns), { delay: reducedMotion() ? index * 40 : 0, incoming: true, ordered, final,
       guarded: damage === 0 && !(exact && final), parry: exact && final })
     readHit(index)
@@ -2257,7 +2267,7 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
   }
   if (escortDealt > 0) {
     const hit = { target: 'escort', damage: escortDealt, defeated: !next.escort } as const
-    arena.contact([hit], { counter: true, joint: companionJoint })
+    arena.contact([hit], { joint: companionJoint })
     showDamage(hit)
     updateEscortVital(next.escort?.hp ?? 0)
     sound.play('stone-hit', companionJoint ? 1.32 : 1)
@@ -2265,7 +2275,7 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
   }
   if (dealt > 0) {
     const hit = { target: 'enemy', damage: dealt, defeated: next.enemyHp === 0 } as const
-    if (!choreographed) arena.contact([hit], { counter: true, joint: companionJoint })
+    if (!choreographed) arena.contact([hit], { joint: companionJoint })
     showDamage(hit)
     if (choreographed) ui.feedback.textContent = `반격 피해 ${dealt}`
     sound.play('stone-hit', choreographed ? .80 : companionJoint ? 1.32 : 1, choreographed ? .31 : .19)

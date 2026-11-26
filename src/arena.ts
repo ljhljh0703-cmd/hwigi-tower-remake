@@ -42,8 +42,19 @@ const golem: Sprite = { name: 'golem', footY: 39, poses: { idle: 15, charge: 15,
 type PoseFrame = { pose: string; duration: number }
 export type ImpactTarget = 'player' | 'enemy' | 'escort'
 export type BattleHit = { target: ImpactTarget; damage: number; defeated?: boolean }
+export function battleImpactTier(hit: BattleHit) {
+  if (hit.defeated) return 'finisher'
+  return hit.damage >= 5 ? 'heavy' : 'light'
+}
+
+const impactMotion = {
+  light: { stop: 36, shake: .39 },
+  heavy: { stop: 86, shake: .72 },
+  finisher: { stop: 146, shake: 1 },
+}
+
 type Impact = BattleHit & { start: number; hold: number; x: number; y: number; lift: number; dust: boolean }
-type ContactOptions = { parry?: boolean; counter?: boolean; ordered?: boolean; guarded?: boolean; incoming?: boolean; final?: boolean; joint?: boolean }
+type ContactOptions = { parry?: boolean; ordered?: boolean; guarded?: boolean; incoming?: boolean; joint?: boolean }
 type Attack = { start: number; intent: EnemyIntent; count: number; index: number; last?: number; escort: boolean; weakened: boolean; guarded: boolean }
 type Swing = { target: 'escort' | 'enemy'; start: number; contact: number }
 const debrisDuration = 330
@@ -475,8 +486,8 @@ export class Arena {
     this.drawBackground(this.floor, canvas.width, canvas.height)
     context.save()
     if (!this.reducedMotion && this.trauma) {
-      const strength = this.trauma ** 2 * this.density
-      context.translate(Math.round(Math.sin(now / 29) * Math.min(10 * strength, this.shake)), 0)
+      const distance = Math.min(10 * this.density, this.shake) * this.trauma ** 2
+      context.translate(Math.round(Math.sin(now / 29) * distance), 0)
     }
     const parryArt = this.images.get(GOLEM_PARRY.art)
     const counterArt = this.images.get(GOLEM_COUNTER.art)
@@ -659,7 +670,7 @@ export class Arena {
     }
   }
 
-  contact(hits: BattleHit[], { parry, counter, ordered, guarded, incoming, joint }: ContactOptions = {}) {
+  contact(hits: BattleHit[], { parry, ordered, guarded, incoming, joint }: ContactOptions = {}) {
     const now = performance.now()
     this.recoverUntil = Math.max(this.recoverUntil, now + (parry ? 180 : 150) / this.animationSpeed)
     if (incoming && this.attack) {
@@ -683,11 +694,12 @@ export class Arena {
       this.restartAnimation()
       return
     }
-    const damage = Math.max(0, ...hits.map((hit) => hit.damage))
-    const duration = parry ? 120 : ordered ? 80 : damage ? Math.min(140, 50 + 8 * damage) : 0
-    const strong = hits.some((hit) => hit.defeated || (hit.target === 'enemy' && this.enemyId === 'boss'))
-    const added = damage < 5 ? 0 : strong ? .8 : counter ? .5 : .3
-    this.trauma = Math.min(1, this.trauma + added)
+    let duration = parry ? 120 : guarded ? 30 : 0
+    for (const hit of hits) {
+      const motion = impactMotion[battleImpactTier(hit)]
+      duration = Math.max(duration, motion.stop)
+      this.trauma = Math.max(this.trauma, motion.shake)
+    }
     this.lastFrame = now
     if (duration) this.freeze(duration, now)
     else this.restartAnimation()

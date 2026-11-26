@@ -71,11 +71,73 @@ async function resume(page, run) {
   await page.evaluate(({ key, json }) => localStorage.setItem(key, json), { key: ASCENT_SAVE_KEY, json })
   await page.reload()
   await page.getByRole('button', { name: '이어 하기' }).tap()
+  await expect(page.locator('#room-transition')).toBeHidden()
 }
 
 async function placeAll(page, slot) {
   for (const die of await page.locator('#pool-dice button').all()) await die.tap()
   await page.locator(`#assign-${slot}`).tap()
+}
+
+async function stopAtContact(page, milliseconds) {
+  const resolve = page.locator('#resolve')
+  await expect(resolve).toBeVisible()
+  await expect(resolve).toBeEnabled()
+  await page.clock.install()
+  const now = await page.evaluate(() => Date.now())
+  await page.clock.pauseAt(now + 500)
+  const { x, y, width, height } = await resolve.boundingBox()
+  await page.touchscreen.tap(x + width / 2, y + height / 2)
+  await page.clock.runFor(milliseconds)
+}
+
+for (const [kind, dice, time, glyph] of [
+  ['ordinary', [3, 4, 6], 170, 'shield'],
+  ['exact', [1, 3, 5], 300, 'parry'],
+]) {
+  test(`무음에서 ${kind} 방어의 접촉과 방패를 표시한다`, async ({ page }, info) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.addInitScript(() => {
+      localStorage.setItem('hwigi-tower.settings', JSON.stringify({ music: false, effects: false }))
+    })
+    const run = withBattle(encounter('thorns', 1), { dice, slots: ['guard', 'guard', 'guard'] })
+    await resume(page, run)
+    await stopAtContact(page, time)
+    const cue = page.locator('#parry-cue')
+    await expect(cue).toBeVisible()
+    await expect(cue).toHaveAttribute('data-guard', kind)
+    await expect(cue.locator('use')).toHaveAttribute('href', `#icon-${glyph}`)
+    const panel = page.locator('#counter-panel')
+    await expect(panel).toBeHidden()
+    if (kind === 'exact') await expect(cue.locator('span')).not.toHaveCSS('display', 'none')
+    else await expect(cue.locator('span')).toHaveCSS('display', 'none')
+    await photograph(page, info, `guard-${kind}`)
+    if (kind === 'exact') {
+      await page.clock.resume()
+      await expect(panel).toHaveAttribute('data-roll-state', 'spinning')
+    }
+    expect(await page.evaluate(() => window.playedEffects)).toEqual([])
+  })
+}
+
+for (const [impact, face, enemyHp, scale] of [
+  ['light', 2, 20, '1'],
+  ['heavy', 6, 20, '1.3'],
+  ['finisher', 2, 2, '1.65'],
+]) {
+  test(`피해 숫자의 ${impact} 표시가 실제 피해와 격파에 맞는다`, async ({ page }, info) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await resume(page, withBattle(encounter('thorns', 1), {
+      dice: [face, 3, 4], slots: ['attack', 'guard', 'guard'], enemyHp,
+    }))
+    await stopAtContact(page, 115)
+    const number = page.locator('#enemy-damage .damage-number')
+    await expect(number).toHaveText(`적−${face}`)
+    await expect(number).toHaveAttribute('data-impact', impact)
+    await expect(number).toHaveCSS('--damage-scale', scale)
+    await expect(page.locator('#enemy-hp')).toHaveJSProperty('value', enemyHp - face)
+    await photograph(page, info, `impact-${impact}`)
+  })
 }
 
 test('로비부터 1층 평타의 타점과 소리를 확인한다', async ({ page }, info) => {
@@ -121,7 +183,7 @@ test('가시 골렘 정확 방어 자세가 룰렛 동안 정지하고 자동 �
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   const run = withBattle(encounter('thorns', 1), { dice: [1, 3, 5], slots: [null, null, null] })
   const expected = spinAscentCounter(resolveAscentTurn(withBattle(run, { slots: ['guard', 'guard', 'guard'] }))).battle
-  const loaded = page.waitForResponse((r) => r.url().endsWith('/art/golem-parry.png') && r.ok())
+  const loaded = page.waitForResponse((r) => r.url().endsWith('/art/golem-parry.png') && (r.ok() || r.status() === 304))
   await resume(page, run)
   await loaded
   await placeAll(page, 'guard')
@@ -151,8 +213,8 @@ test('가시 골렘 정확 방어 자세가 룰렛 동안 정지하고 자동 �
     }).observe(el, { attributeFilter: ['data-roll-state'] })
   })
   await page.locator('#resolve').tap()
-  await expect(page.locator('#parry-cue')).toHaveClass(/sr-only/)
-  await expect(page.locator('#parry-cue')).not.toHaveAttribute('hidden', '')
+  await expect(page.locator('#parry-cue')).toHaveAttribute('data-guard', 'exact')
+  await expect(page.locator('#parry-cue')).toBeVisible()
   const parryPose = await pose()
   expect(parryPose).not.toBe(planningPose)
   await photograph(page, info, 'golem-parry')
