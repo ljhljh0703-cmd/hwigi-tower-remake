@@ -4,7 +4,7 @@ import {
   returnToMap, rewardOffers, spinAscentCounter, takeAscentReward,
 } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
-import { CURRENT_MAP_RULES, enemyForMapNode, MAP_ENEMY_BADGES, MAP_FLOORS, MAP_RULES, RULES_SIX_BADGES } from './ascent-map.ts'
+import { CURRENT_MAP_RULES, enemyForMapNode, MAP_FLOORS, MAP_RULES, RULES_SIX_BADGES } from './ascent-map.ts'
 import { BOSS_RELIC_CARDS, isBossRelic } from './boss-relic.ts'
 import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, writeAscentSave } from './ascent-save.ts'
 import { Arena } from './arena.ts'
@@ -19,7 +19,7 @@ import { enemyForFight } from './enemy-roster.ts'
 import { firstBattlePlan, FirstRunGuide } from './first-run-guide.ts'
 import { loadGameSettings, saveGameSettings, toggleMute } from './game-settings.ts'
 import type { GameSettings } from './game-settings.ts'
-import { MAP_NODE_ICONS, ForkView } from './map-view.ts'
+import { ENEMY_BADGES as enemyBadges, MAP_NODE_ICONS, ForkView } from './map-view.ts'
 import { currentTreasureRoom, grantTreasure, healingFor, shopPrice, treasureCost, treasureEnabled } from './map-treasure.ts'
 import { ARTIFACT_SLOTS, ITEMS, PREPARATIONS, SHARDS, artifactReady, isArtifact, itemUses } from './treasure.ts'
 import type { Artifact, ArtifactOptions, CounterChoice } from './treasure.ts'
@@ -211,17 +211,6 @@ ui.guide.addEventListener('click', (event) => {
 })
 ui.guide.addEventListener('close', () => guideTrigger?.focus())
 
-const enemyBadges: Record<string, { icon: string; label: string }> = {
-  thorns: { icon: 'thorns', label: '가시' },
-  lock: { icon: 'lock', label: '자물쇠' },
-  freeze: { icon: 'freeze', label: '얼림' },
-  rage: { icon: 'rage', label: '격분' },
-  reaction: { icon: 'reaction', label: '반응' },
-  vitality: { icon: 'vitality', label: '체력 비례 일격' },
-  escort: { icon: 'escort', label: '호위와 주사위 빼앗기' },
-  boss: { icon: 'charge', label: '힘 모으는 보스' },
-  ...MAP_ENEMY_BADGES,
-}
 const rulesSixBadges: Partial<typeof enemyBadges> = RULES_SIX_BADGES
 const gimmickEffects = {
   trip: { icon: 'stun', intro: '적 다음 공격 건너뜀', help: '적의 다음 공격을 한 번 건너뛰어요.' },
@@ -661,7 +650,7 @@ function renderEnemyStatus(battle: YachtBattle) {
   ui.enemyStatus.hidden = !statuses.length
 }
 
-function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) {
+function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['enemy']['id']) {
   const badge = (battle.rulesSix && rulesSixBadges[enemyId]) || enemyBadges[enemyId]
   const clause = battle.phase === 'assign' ? yachtGimmick(battle) : null
   const ready = Boolean(clause?.ready)

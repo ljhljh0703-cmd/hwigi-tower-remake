@@ -1,6 +1,7 @@
 import { expect, test as base } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
+import { ASCENT_SAVE_KEY } from '../src/ascent-save.ts'
 
 const test = base.extend({
   screenErrors: async ({ page }, use) => {
@@ -23,6 +24,7 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
   const routeButtons = routes.getByRole('button')
   const fightRoute = routes.getByRole('button', { name: /^전투/ })
   const eliteRoute = routes.getByRole('button', { name: /^강적/ })
+  const enter = page.getByRole('button', { name: '입장', exact: true })
   const battleFloor = page.locator('#fight')
   const mapFloor = page.locator('#map-floor')
   const mapHealth = page.locator('#map-health')
@@ -105,6 +107,7 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     await expect(routeButtons).toHaveCount(1)
     await checkScreen('fork', [fightRoute])
     await fightRoute.tap()
+    await enter.tap()
     await page.getByRole('button', { name: '안내 건너뛰기' }).tap()
 
     // 시드 12에서 방패 저금을 고르면 두 턴 모두 공격에 배치해 1층을 이긴다.
@@ -155,7 +158,26 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     await photograph('fork')
     const healedHealth = Number.parseInt(await mapHealth.innerText(), 10)
     expect(healedHealth, '약초 붕대 수령 후 체력').toBeGreaterThan(beforeHealth)
+    const readSave = () => page.evaluate((key) => localStorage.getItem(key), ASCENT_SAVE_KEY)
+    const checkpoint = await readSave()
+    expect(checkpoint).not.toBeNull()
+    await eliteRoute.tap()
+    await checkScreen('fork', [eliteRoute, fightRoute, enter])
+    await expect(eliteRoute).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.locator('.fork-preview-portrait')).toBeVisible()
+    await expect(page.locator('.fork-preview-stats')).toContainText('27')
+    expect(await readSave()).toBe(checkpoint)
+    await photograph('fork-selected')
     await fightRoute.tap()
+    await expect(fightRoute).toHaveAttribute('aria-pressed', 'true')
+    await expect(eliteRoute).toHaveAttribute('aria-pressed', 'false')
+    expect(await readSave()).toBe(checkpoint)
+    await page.locator('#fork-heading').tap()
+    await expect(enter).toBeHidden()
+    await expect(fightRoute).toHaveAttribute('aria-pressed', 'false')
+    expect(await readSave()).toBe(checkpoint)
+    await fightRoute.tap()
+    await enter.tap()
 
     await expect(battleFloor).toHaveText(/^2\s*\//)
     await expect(page.locator('#turn')).toHaveAttribute('aria-label', '1턴')
