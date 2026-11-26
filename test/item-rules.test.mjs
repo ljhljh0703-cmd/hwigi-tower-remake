@@ -73,7 +73,7 @@ test('attack items add before the highest multiplier, commit once and have no es
   assert.equal(forecastYacht(clash).dealt, 16)
   assert.equal(forecastYacht({ ...clash, perk: undefined, slots: [a, g, a] }).dealt, 6)
   const prepared = board([4, 4, 2], [a, a, g], [], { prepared: { whetstone: 1 } })
-  assert.equal(forecastYacht(prepared).dealt, 12)
+  assert.equal(forecastYacht(prepared).dealt, 32)
   assert.equal(resolveYachtTurn({ ...prepared, slots: [g, g, g] }).battle.loot.prepared.whetstone, undefined)
   assert.equal(forecastYacht({ ...prepared, turn: 2 }).dealt, 8)
 
@@ -95,8 +95,8 @@ test('spacer and banner change exact defense while damage protection follows gua
   const resting = { ...spacer, enemyIntents: [{ ...spacer.enemyIntents[0], hits: [] }] }
   assert.equal(forecastYacht(resting).counter, false)
   assert.equal(forecastYacht(resting).loot.consumables.spacer, 1)
-  const banner = toggleArtifact(board([4, 5, 1], [a, g, a], [9], gear('banner')), 'banner')
-  assert.equal(yachtAllocationTotals(banner).guard, 9)
+  const banner = toggleArtifact(board([4, 5, 1], [a, g, a], [12], gear('banner')), 'banner')
+  assert.equal(yachtAllocationTotals(banner).guard, 12)
   assert.equal(resolveYachtTurn(banner).battle.phase, 'counter')
   assert.deepEqual(resolveYachtTurn(banner).battle.loot.spent, ['banner'])
   const buckle = board([5, 6, 1], [a, a, g], [4, 4], { ...active('buckle'), prepared: { lining: 1 } })
@@ -157,11 +157,11 @@ test('the seal respects natural triples and the collector and shield track only 
   assert.equal(playWith(equipped, [3, 3, 2], [g, g, a], { awakened: true }).battle.loot.sealUsed, undefined)
 
   const save = resolveYachtTurn(board([4, 5, 2], [g, g, a], [9], {}, { perk: startPerk('shield') })).battle
-  assert.equal(save.perk.bonus, 4)
+  assert.equal(save.perk.bonus, 9)
   const miss = resolveYachtTurn(board([4, 5, 2], [g, g, g], [9], {}, { perk: save.perk })).battle
-  assert.equal(miss.perk.bonus, 4)
+  assert.equal(miss.perk.bonus, 9)
   const attack = resolveYachtTurn(board([4, 5, 2], [a, g, g], [9], {}, { perk: save.perk })).battle
-  assert.equal(attack.lastExchange.dealt, 8)
+  assert.equal(attack.lastExchange.dealt, 13)
   assert.equal(attack.perk.bonus, 0)
 })
 
@@ -188,7 +188,7 @@ test('coin saves its second slot, emperor leaves matching defense and crown trad
   const expected = yachtCounterRewards(half.battle)[yachtCounterSlot(half.battle)]
   const hit = spinYachtCounter(half.battle)
   assert.equal(hit.lastExchange.counter.damage, Math.floor(expected.damage / 2))
-  assert.equal(hit.perk.growth, 1)
+  assert.equal(hit.perk.growth, 2)
   assert.equal(forecastYacht({ ...guard, slots: [a, g, g] }).damage, 0)
   const chain = encounter('chain-warden', 6, 7).battle
   const reflection = forecastYacht({ ...chain, turn: 2, dice: [5, 4, 3, 6], slots: [g, a, g, a], bossRelic: emperor })
@@ -205,6 +205,8 @@ test('coin saves its second slot, emperor leaves matching defense and crown trad
   assert.deepEqual(yielded.interrupted, { turn: 2, kind: 'topple' })
   assert.equal(yielded.lastExchange.counter.damage, 0)
   assert.equal(yielded.loot.consumables.coin, 1)
+  assert.equal(yachtAllocationTotals({ ...yielded, dice: [4, 5, 2], slots: [a, a, g] }).attack, 15)
+  assert.equal(yachtAllocationTotals({ ...yielded, itemsSeven: undefined, dice: [4, 5, 2], slots: [a, a, g] }).attack, 18)
   const later = spinYachtCounter(resolveYachtTurn({ ...crown, turn: 3, crownUsed: true, loot: { ...emptyTreasure, consumables: {} } }).battle)
   assert.equal(later.phase, 'won')
   assert.ok(later.lastExchange.counter.damage > 0)
@@ -225,6 +227,31 @@ test('healing scepter subtracts only the basic use and a revived heart halves ro
   const resumed = checkpoint(healed).restored.ascent
   assert.equal(takeAscentReward(resumed, 'kit'), resumed)
   assert.equal(returnToMap(resumed).battle.playerHp, 13)
+  const lethal = board([1, 1, 1], [a, a, a], [15], {}, { playerHp: 5, bossRelic: { id: 'revived-heart' } })
+  const revived = resolveYachtTurn(lethal).battle
+  assert.equal(revived.playerHp, 12)
+  assert.equal(revived.bossRelic.heartUsed, true)
+  assert.equal(resolveYachtTurn({ ...lethal, bossRelic: revived.bossRelic }).battle.phase, 'lost')
+  assert.equal(resolveYachtTurn({ ...lethal, itemsSeven: undefined }).battle.playerHp, 9)
+})
+
+test('tuned artifacts and the previously stored rules-seven values resume at their exact amount', () => {
+  const current = beginMapAscent(10, 'shield', 'odd', 7)
+  const run = enterMapNode(current, availableMapNodes(current)[0].id)
+  const loot = { ...run.battle.loot, ...gear('overflow', 'mirror'), spent: ['overflow', 'mirror'] }
+  for (const [bonus, overflowDamage, mirrorDamage] of [[4, 6, 12], [9, 12, 16]]) {
+    const battle = { ...run.battle, perk: { kind: 'shield', bonus }, loot: { ...loot, overflowDamage, mirrorDamage } }
+    const saved = checkpoint({ ...run, battle }).restored.ascent.battle
+    assert.equal(saved.perk.bonus, bonus)
+    assert.equal(saved.loot.overflowDamage, overflowDamage)
+    assert.equal(saved.loot.mirrorDamage, mirrorDamage)
+  }
+  const invalid = { ...run.battle, loot: { ...loot, overflowDamage: 13 } }
+  assert.equal(checkpoint({ ...run, battle: invalid }).restored, null)
+  const counter = board([3, 3, 3, 3], [g, g, g, a], [9], gear('horn', 'mirror'))
+  const offered = spinYachtCounter(resolveYachtTurn(counter).battle)
+  assert.ok(availableCounterChoices({ ...offered, loot: { ...offered.loot, counter: { slot: 0, damage: 11, joint: false } } }).includes('horn'))
+  assert.ok(!availableCounterChoices({ ...offered, loot: { ...offered.loot, counter: { slot: 0, damage: 12, joint: false } } }).includes('horn'))
 })
 
 test('the rules-seven bandage preview and claim survive reloading without a second heal', () => {

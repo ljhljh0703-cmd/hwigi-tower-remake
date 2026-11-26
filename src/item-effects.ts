@@ -1,6 +1,7 @@
 import { dieFaceForSlot, enemyIntentAt, splitEnemyDamage } from './combat.ts'
 import type { forecast, SlotTotals } from './combat.ts'
-import { EMPEROR_SHIELD_CAP } from './boss-relic.ts'
+import { SEVEN_EMPEROR_SHIELD_CAP } from './boss-relic.ts'
+import { SEVEN_ITEM_VALUES } from './item-values.ts'
 import { artifactReady, changeCount } from './treasure.ts'
 import type { ArmedConsumable, Artifact, Consumable, Treasure, TreasureState } from './treasure.ts'
 import type { YachtBattle } from './yacht-combat.ts'
@@ -88,8 +89,8 @@ export function boostSevenAllocation(battle: YachtBattle, totals: SlotTotals, sl
   const attack = dice.flatMap((face, index) => slots[index] === 'attack' && dieFaceForSlot(face, 'attack', mechanic) > 0 ? [face] : [])
   const highest = Math.max(0, ...attack)
   const armed = loot?.consumableArmed
-  const whetstone = battle.turn === 1 && Boolean(loot?.prepared.whetstone) ? 2 * attack.length : 0
-  const banner = loot?.armed?.includes('banner') ? highest : 0
+  const whetstone = battle.turn === 1 && Boolean(loot?.prepared.whetstone) ? SEVEN_ITEM_VALUES.whetstonePips * attack.length : 0
+  const banner = loot?.armed?.includes('banner') ? Math.floor(highest * SEVEN_ITEM_VALUES.bannerMultiplier) : 0
   let item: ArmedConsumable | undefined
   let bonus = 0
   if (armed === 'weight' && highest) {
@@ -122,7 +123,7 @@ export function forecastSevenTreasure(battle: YachtBattle, base: ReturnType<type
     })
     return damage < before
   }
-  if (emperor) block(EMPEROR_SHIELD_CAP)
+  if (emperor) block(SEVEN_EMPEROR_SHIELD_CAP)
   if (loot.prepared.lining && block(4)) loot = trigger({ ...loot, prepared: changeCount(loot.prepared, 'lining', -1) }, 'lining')
   const item = allocation.item ?? (loot.consumableArmed === 'buckle' && block(3) ? 'buckle' : undefined)
   if (item) loot = spendConsumable(loot, item)
@@ -140,7 +141,9 @@ export function forecastSevenTreasure(battle: YachtBattle, base: ReturnType<type
     }
     if (inflicted.dealt < battle.enemyHp) {
       if (base.incoming.totalDamage > 0 && allocation.totals.guard > base.incoming.totalDamage && artifactReady(loot, 'overflow')) {
-        loot = { ...spendSevenArtifact(loot, 'overflow'), overflowDamage: Math.min(6, allocation.totals.guard - base.incoming.totalDamage) }
+        const surplus = allocation.totals.guard - base.incoming.totalDamage
+        loot = { ...spendSevenArtifact(loot, 'overflow'),
+          overflowDamage: Math.min(SEVEN_ITEM_VALUES.overflowCap, Math.floor(surplus * SEVEN_ITEM_VALUES.overflowMultiplier)) }
       }
       if (loot.latchDraft !== undefined && canSelectItemDie(battle, loot.latchDraft)) {
         loot = { ...spendSevenArtifact(loot, 'die-latch'), latched: { index: loot.latchDraft, face: battle.dice[loot.latchDraft] } }

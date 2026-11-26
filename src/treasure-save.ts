@@ -1,6 +1,7 @@
 import { ARTIFACT_SLOTS, isArmedConsumable, isArtifact, isConsumable, isItem, isNewTreasureId, isPreparation, isSevenTreasure, isShard } from './treasure.ts'
 import type { ArtifactOptions, TreasureState } from './treasure.ts'
 import { isReward } from './rewards.ts'
+import { SEVEN_ITEM_VALUES } from './item-values.ts'
 
 function object(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -36,7 +37,9 @@ export function treasureRecord(value: unknown, dice: readonly number[], companio
   if (!trueFlag(sealUsed) || !trueFlag(tuned)) return false
   if (armed !== undefined && (!artifacts(armed) || !armed.every((id) => (id === 'banner' || id === 'hammer') && equipped.includes(id)))) return false
   if (shardArmed !== undefined && (shardArmed !== 'assist' && shardArmed !== 'smash')) return false
-  if (mirrorDamage !== undefined && !integer(mirrorDamage, 1, 12) || overflowDamage !== undefined && !integer(overflowDamage, 1, 6)) return false
+  const mirrorCap = seven ? SEVEN_ITEM_VALUES.mirrorCap : 12
+  const overflowCap = seven ? SEVEN_ITEM_VALUES.overflowCap : 6
+  if (mirrorDamage !== undefined && !integer(mirrorDamage, 1, mirrorCap) || overflowDamage !== undefined && !integer(overflowDamage, 1, overflowCap)) return false
   if (counter !== undefined && (phase !== 'counter' || !object(counter) || !integer(counter.slot, 0, 5) || !integer(counter.damage, 1) || typeof counter.joint !== 'boolean')) return false
   if (counterFlags !== undefined && (phase !== 'counter' || !object(counterFlags) || !['coin', 'assist', 'horn'].every((field) => typeof counterFlags[field] === 'boolean'))) return false
   if (triggered !== undefined && (!Array.isArray(triggered) || !triggered.every(seven ? isSevenTreasure : (id) => isReward(id) && !isNewTreasureId(id)))) return false

@@ -33,7 +33,7 @@ async function shot(page, info, name, visible) {
     const root = document.scrollingElement
     return [root.scrollWidth - root.clientWidth, root.scrollHeight - root.clientHeight]
   })).toEqual([0, 0])
-  const output = process.env.HWIGI_ITEM_SHOTS
+  const output = (name === 'boss-relics' && process.env.HWIGI_BALANCE_SHOTS) || process.env.HWIGI_ITEM_SHOTS
   if (output) {
     await page.evaluate(() => document.fonts.ready.then(() => undefined))
     await mkdir(output, { recursive: true })
@@ -140,6 +140,7 @@ test('규칙판 7 보상을 받아 쓰고 강적·보스·상점을 거쳐 문�
   await expect(page.getByRole('heading', { name: '보스 유물 선택' })).toBeVisible()
   const bossCards = page.locator('#reward-cards button')
   await expect(bossCards).toHaveCount(4)
+  await expect(card(page, 'revived-heart').locator('.relic-cost use')).toHaveAttribute('href', '#icon-healing')
   await expect(bossCards.locator('.relic-cost')).toHaveText(['½', '½', '0', '−1'])
   await card(page, 'emperor-shield').tap()
   await expect(page.locator('#reward-preview')).toContainText('룰렛 피해는 절반')

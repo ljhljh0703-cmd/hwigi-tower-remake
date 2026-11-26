@@ -5,7 +5,7 @@ import {
 } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import { CURRENT_MAP_RULES, enemyForMapNode, MAP_ENEMY_BADGES, MAP_FLOORS, MAP_RULES, RULES_SIX_BADGES } from './ascent-map.ts'
-import { bossRelicText, isBossRelic, SEVEN_BOSS_RELICS } from './boss-relic.ts'
+import { bossRelicText, isBossRelic, SEVEN_BOSS_RELICS, SEVEN_EMPEROR_SHIELD_CAP } from './boss-relic.ts'
 import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, writeAscentSave } from './ascent-save.ts'
 import { Arena } from './arena.ts'
 import { icon, itemIcon, pixelIcon } from './icons.ts'
@@ -23,7 +23,7 @@ import { MAP_NODE_ICONS, ForkView } from './map-view.ts'
 import { currentTreasureRoom, grantTreasure, healingForRun, shopPrice, treasureCost, treasureEnabled } from './map-treasure.ts'
 import { ARTIFACT_SLOTS, COMMON_CONSUMABLES, RARE_CONSUMABLES, ITEMS, PREPARATIONS, SHARDS, artifactReady, isArmedConsumable, isArtifact, itemUses, treasureRarity } from './treasure.ts'
 import type { Artifact, ArtifactOptions, CounterChoice } from './treasure.ts'
-import { availableCounterChoices, cancelSeal, chooseHourglass, counterDamage, draftSeal, startHourglass, toggleArtifact, toggleShard } from './treasure-combat.ts'
+import { availableCounterChoices, cancelSeal, chooseHourglass, counterDamage, draftSeal, hornCounterDamage, mirrorCounterDamage, startHourglass, toggleArtifact, toggleShard } from './treasure-combat.ts'
 import { adjustItemDie, canSelectItemDie, chooseReserveRoll, consumableReady, selectLatchDie, toggleConsumable } from './item-effects.ts'
 import { ELITE_KEEP_COINS, relicReady, REWARD_CARDS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
@@ -676,7 +676,7 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
       const remaining = forecastYacht(battle).incoming
       display('shield', remaining.hits.length ? hitNumbers(remaining.hits) : '0', battle.itemsSeven
         ? '첫 턴 막고 남은 적 공격 피해를 최대 7 줄입니다.' : `황제의 방패 적용 · 남은 공격 ${remaining.totalDamage}`,
-      battle.itemsSeven ? `${icon('shield')}−7` : '')
+      battle.itemsSeven ? `${icon('shield')}−${SEVEN_EMPEROR_SHIELD_CAP}` : '')
       return
     }
     if (intent.id === 'stunned') {
@@ -1539,8 +1539,8 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
     const damage = counterDamage(battle, loot.counter.damage)
     ui.treasureControls.append(control('지금 룰렛 피해 주기', `${icon('wheel')}${damage}`, () => void playCounter('now')))
     if (choices.includes('coin')) ui.treasureControls.append(control('새긴 동전으로 룰렛 한 번 더 돌리기', `${icon('treasure-coin')}↻1`, () => void playCounter('coin')))
-    if (choices.includes('mirror') || !battle.itemsSeven && loot.equipped.includes('mirror')) ui.treasureControls.append(control('반전 거울로 미루기', `${icon('treasure-mirror')}→${Math.min(12, damage * 2)}`, () => void playCounter('mirror'), !choices.includes('mirror')))
-    if (choices.includes('horn') || !battle.itemsSeven && loot.equipped.includes('horn')) ui.treasureControls.append(control('교대의 뿔로 합공', `${icon('treasure-horn')}${counterDamage(battle, 8)}`, () => void playCounter('horn'), !choices.includes('horn')))
+    if (choices.includes('mirror') || !battle.itemsSeven && loot.equipped.includes('mirror')) ui.treasureControls.append(control('반전 거울로 미루기', `${icon('treasure-mirror')}→${mirrorCounterDamage(battle, damage)}`, () => void playCounter('mirror'), !choices.includes('mirror')))
+    if (choices.includes('horn') || !battle.itemsSeven && loot.equipped.includes('horn')) ui.treasureControls.append(control('교대의 뿔로 합공', `${icon('treasure-horn')}${counterDamage(battle, hornCounterDamage(battle))}`, () => void playCounter('horn'), !choices.includes('horn')))
   } else if (battle.itemsSeven && loot && battle.phase === 'assign') {
     const id = itemControl
     if (id) {

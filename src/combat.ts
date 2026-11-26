@@ -1,3 +1,5 @@
+import { SEVEN_CROWN_MULTIPLIER } from './boss-relic.ts'
+
 export const PLAYER_HP = 22
 const MAX_ENEMY_DAMAGE = PLAYER_HP - 1
 const MAX_TURN_ATTACK_BONUS = 6
@@ -138,11 +140,15 @@ function selectEnemyIntent<T extends EnemyIntent>(turn: number, intents: readonl
   return intent
 }
 
-type IntentContext = Pick<Battle, 'turn' | 'enemyIntents' | 'interrupted'>
+type IntentContext = Pick<Battle, 'turn' | 'enemyIntents' | 'interrupted'> & {
+  readonly itemsSeven?: true
+  readonly lastExchange?: Exchange | null
+}
 
-export function enemyIntentAt({ turn, enemyIntents = ENEMY_INTENTS, interrupted }: IntentContext): EnemyIntent {
+export function enemyIntentAt({ turn, enemyIntents = ENEMY_INTENTS, interrupted, itemsSeven, lastExchange }: IntentContext): EnemyIntent {
   if (interrupted?.turn === turn && interrupted.kind === 'topple') {
-    return { id: 'knockdown', name: '넉다운', hits: [], damageTakenMultiplier: 2, matches: () => true }
+    const damageTakenMultiplier = itemsSeven && lastExchange?.crownTriggered ? SEVEN_CROWN_MULTIPLIER : 2
+    return { id: 'knockdown', name: '넉다운', hits: [], damageTakenMultiplier, matches: () => true }
   }
   if (interrupted?.turn === turn && selectEnemyIntent(turn, enemyIntents).hits.length) {
     return { id: 'stunned', name: '기절', hits: [], matches: () => true }

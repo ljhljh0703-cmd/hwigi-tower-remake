@@ -6,6 +6,8 @@ import type { Artifact, CounterChoice, Item, Preparation, Shard, Treasure, Treas
 import type { YachtBattle } from './yacht-combat.ts'
 import type { forecast } from './combat.ts'
 import { consumableReady } from './item-effects.ts'
+import { SEVEN_EMPEROR_COUNTER_RATIO } from './boss-relic.ts'
+import { SEVEN_ITEM_VALUES } from './item-values.ts'
 
 export function spendItem(state: TreasureState, item: Item): TreasureState {
   return { ...state, spentItems: changeCount(state.spentItems, item, 1), triggered: [...(state.triggered ?? []), item] }
@@ -201,8 +203,8 @@ export function availableCounterChoices(battle: YachtBattle, result = battle.loo
     if (battle.bossRelic?.id === 'brake-crown' && !battle.crownUsed) return choices
     if (!loot.counterRecast && consumableReady(loot, 'coin')) choices.push('coin')
     const damage = counterDamage(battle, result.damage)
-    if (artifactReady(loot, 'mirror') && damage < battle.enemyHp + (battle.escort?.hp ?? 0) && Math.min(12, damage * 2) > damage) choices.push('mirror')
-    if (artifactReady(loot, 'horn') && battle.fourthDieUnlocked && !result.joint && result.damage < 8) choices.push('horn')
+    if (artifactReady(loot, 'mirror') && damage < battle.enemyHp + (battle.escort?.hp ?? 0) && mirrorCounterDamage(battle, damage) > damage) choices.push('mirror')
+    if (artifactReady(loot, 'horn') && battle.fourthDieUnlocked && !result.joint && result.damage < hornCounterDamage(battle)) choices.push('horn')
     return choices
   }
   const followups = Number(Boolean(loot.counterFlags?.coin)) + Number(Boolean(loot.counterFlags?.assist))
@@ -213,7 +215,15 @@ export function availableCounterChoices(battle: YachtBattle, result = battle.loo
 }
 
 export function counterDamage(battle: YachtBattle, damage: number) {
-  return battle.itemsSeven && battle.bossRelic?.id === 'emperor-shield' ? Math.floor(damage / 2) : damage
+  return battle.itemsSeven && battle.bossRelic?.id === 'emperor-shield' ? Math.floor(damage * SEVEN_EMPEROR_COUNTER_RATIO) : damage
+}
+
+export function mirrorCounterDamage(battle: YachtBattle, damage: number) {
+  return battle.itemsSeven ? Math.min(SEVEN_ITEM_VALUES.mirrorCap, damage * SEVEN_ITEM_VALUES.mirrorMultiplier) : Math.min(12, damage * 2)
+}
+
+export function hornCounterDamage(battle: YachtBattle) {
+  return battle.itemsSeven ? SEVEN_ITEM_VALUES.hornDamage : 8
 }
 
 export function settleTreasureCounter(battle: YachtBattle, result: CounterResult, choice: CounterChoice) {
@@ -221,7 +231,7 @@ export function settleTreasureCounter(battle: YachtBattle, result: CounterResult
   let loot: TreasureState = state
   let counter = result
   if (choice === 'mirror') {
-    loot = { ...spendArtifact(loot, 'mirror'), mirrorDamage: Math.min(12, result.damage * 2) }
+    loot = { ...spendArtifact(loot, 'mirror'), mirrorDamage: mirrorCounterDamage(battle, result.damage) }
     counter = { ...result, damage: 0, joint: false }
   } else if (choice === 'horn') {
     loot = spendArtifact(loot, 'horn')

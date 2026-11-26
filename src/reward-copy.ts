@@ -5,6 +5,7 @@ import type { Reward } from './rewards.ts'
 import type { BossRelic } from './boss-relic.ts'
 import { REST_HEAL, TREASURE_CARDS } from './treasure.ts'
 import type { Treasure } from './treasure.ts'
+import { SEVEN_ITEM_VALUES } from './item-values.ts'
 
 export const REWARD_TEXT: Readonly<Record<Exclude<Reward, BossRelic>, string>> = {
   bandage: `고르면 체력을 ${BANDAGE_HEAL} 회복해요.`,
@@ -42,8 +43,10 @@ export const REWARD_TEXT: Readonly<Record<Exclude<Reward, BossRelic>, string>> =
 }
 
 export const SEVEN_REWARD_VALUES: Readonly<Partial<Record<Treasure, string>>> = {
-  weight: '+최고 눈', buckle: '−3', wedge: '+3', coin: '↻1', tuning: '±1', whetstone: '+2/개', lining: '−4',
-  incomplete: '2→3', hourglass: '−2 · 1~6', banner: '+최고 눈', horn: '→8', bandage: '+5',
+  weight: '+최고 눈', buckle: '−3', wedge: '+3', coin: '↻1', tuning: '±1', whetstone: `+${SEVEN_ITEM_VALUES.whetstonePips}/개`, lining: '−4',
+  incomplete: '2→3', hourglass: '−2 · 1~6', banner: `최고 눈 ×${SEVEN_ITEM_VALUES.bannerMultiplier}`, horn: `→${SEVEN_ITEM_VALUES.hornDamage}`, bandage: '+5',
+  mirror: `×${SEVEN_ITEM_VALUES.mirrorMultiplier} → ≤${SEVEN_ITEM_VALUES.mirrorCap}`,
+  overflow: `×${SEVEN_ITEM_VALUES.overflowMultiplier} → ≤${SEVEN_ITEM_VALUES.overflowCap}`,
 }
 
 const SEVEN_REWARD_TEXT: Readonly<Partial<Record<Treasure, string>>> = {
@@ -52,12 +55,14 @@ const SEVEN_REWARD_TEXT: Readonly<Partial<Record<Treasure, string>>> = {
   wedge: '공격 주사위를 놓은 턴의 공격 합이 3 오릅니다.',
   coin: '정확 방어 룰렛에서 첫 칸을 포기하고 한 번 더 돌립니다.',
   tuning: '고른 일반 주사위의 눈을 1 올리거나 내립니다.',
-  whetstone: '다음 전투 첫 턴에 공격 주사위마다 공격 합이 2 오릅니다.',
+  whetstone: `다음 전투 첫 턴에 공격 주사위마다 공격 합이 ${SEVEN_ITEM_VALUES.whetstonePips} 오릅니다.`,
   lining: '다음 전투에서 처음 받는 적 공격 피해를 최대 4 줄입니다.',
   incomplete: '등반당 한 번, 공격 칸의 같은 눈 둘로 에고 주사위를 해금합니다.',
   hourglass: '전투당 한 번, 체력 2를 내고 일반 주사위 하나를 원하는 눈으로 맞춥니다.',
-  banner: '전투당 한 번, 공격 칸의 가장 높은 눈을 방어 합에도 더합니다.',
-  horn: '전투당 한 번, 낮은 일반 반격을 에고 합공 피해 8로 바꿉니다.',
+  banner: `전투당 한 번, 공격 칸의 가장 높은 눈의 ${SEVEN_ITEM_VALUES.bannerMultiplier}배(내림)를 방어 합에 더합니다.`,
+  horn: `전투당 한 번, 낮은 일반 반격을 에고 합공 피해 ${SEVEN_ITEM_VALUES.hornDamage}로 바꿉니다.`,
+  mirror: `전투당 한 번, 룰렛 피해를 미뤄 다음 턴 공격에 ${SEVEN_ITEM_VALUES.mirrorMultiplier}배(최대 ${SEVEN_ITEM_VALUES.mirrorCap})로 더합니다.`,
+  overflow: `전투당 한 번, 초과 방어의 ${SEVEN_ITEM_VALUES.overflowMultiplier}배(최대 ${SEVEN_ITEM_VALUES.overflowCap})를 다음 턴 공격 피해에 더합니다.`,
   bandage: '체력 14 이하에서 고르면 체력이 5 오릅니다.',
 }
 
@@ -80,8 +85,8 @@ export const PERK_TEXT: Readonly<Record<StartPerk, string>> = {
 }
 
 export function perkText(perk: StartPerk, seven?: boolean) {
-  if (seven && perk === 'shield') return '정확히 막으면 다음 공격 합이 4 오릅니다.'
+  if (seven && perk === 'shield') return `정확히 막으면 다음 공격 합이 ${SEVEN_ITEM_VALUES.shieldStock} 오릅니다.`
   if (seven && perk === 'collector') return '새 족보를 해금할 때마다 같은 눈이 둘 이상인 칸의 합이 1 오릅니다.'
-  if (seven && perk === 'counter') return '룰렛을 돌릴 때마다 다음 룰렛부터 일반 칸 피해가 1 오릅니다(최대 +3).'
+  if (seven && perk === 'counter') return `룰렛을 돌릴 때마다 다음 룰렛부터 일반 칸 피해가 ${SEVEN_ITEM_VALUES.counterStep} 오릅니다(최대 +${SEVEN_ITEM_VALUES.counterLimit}).`
   return PERK_TEXT[perk]
 }

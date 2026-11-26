@@ -6,6 +6,7 @@ import { battleGuideFor } from '../src/battle-guide.ts'
 test('the legacy battle guide names and describes every icon in the game library', () => {
   const page = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
   const icons = new Set(Array.from(page.matchAll(/<symbol id="icon-([^"]+)"/g), ([, id]) => id))
+  assert.ok(icons.delete('healing'), 'rules-seven recovery cost icon')
   const entries = battleGuideFor(5).flatMap(({ entries }) => entries)
   assert.deepEqual(new Set(entries.map(([icon]) => icon)), icons)
   for (const [, name, description] of entries) {

@@ -5,7 +5,7 @@ import {
 } from './combat.ts'
 import type { Battle, CounterResult, Enemy, EnemyMechanic, Slot } from './combat.ts'
 import type { Gimmick } from './combat.ts'
-import { EMPEROR_SHIELD_CAP, HEART_REVIVAL_HP } from './boss-relic.ts'
+import { EMPEROR_SHIELD_CAP, HEART_REVIVAL_HP, SEVEN_HEART_REVIVAL_HP } from './boss-relic.ts'
 import type { BossRelicState } from './boss-relic.ts'
 import { collectorBonus, START_PERKS } from './perks.ts'
 import type { CollectedHand, PerkState } from './perks.ts'
@@ -13,8 +13,9 @@ import { BUCKLE_MAX_SHORTFALL, BUCKLE_REDUCTION, relicReady, WEDGE_BONUS, WEIGHT
 import type { CombatRewards, Relic } from './rewards.ts'
 import { itemUses } from './treasure.ts'
 import type { CounterChoice, TreasureState } from './treasure.ts'
-import { availableCounterChoices, companionFace, counterDamage, expireBattleTreasure, forecastTreasure, openTreasureTurn, settleTreasureCounter, useTuningShard } from './treasure-combat.ts'
+import { availableCounterChoices, companionFace, counterDamage, expireBattleTreasure, forecastTreasure, hornCounterDamage, mirrorCounterDamage, openTreasureTurn, settleTreasureCounter, useTuningShard } from './treasure-combat.ts'
 import { adjustItemDie, boostSevenAllocation, forecastSevenTreasure, hasIncompletePair, spendConsumable, spendSevenArtifact, startReserveRoll } from './item-effects.ts'
+import { SEVEN_ITEM_VALUES } from './item-values.ts'
 
 export type Hand = 'triple' | 'straight'
 
@@ -436,7 +437,7 @@ function resolvePerk(battle: YachtBattle, planned: ReturnType<typeof forecastYac
   const { perk, slots } = battle
   if (perk?.kind === 'shield' && battle.itemsSeven) {
     const attacked = allocationTotals(battle, slots, dice).attack > 0
-    return { ...perk, bonus: planned.counter && enemyHp > 0 ? 4 : attacked ? 0 : perk.bonus }
+    return { ...perk, bonus: planned.counter && enemyHp > 0 ? SEVEN_ITEM_VALUES.shieldStock : attacked ? 0 : perk.bonus }
   }
   if (perk?.kind === 'shield' && planned.incoming.totalDamage > 0 && enemyHp > 0) {
     return { ...perk, bonus: planned.counter ? perk.bonus + START_PERKS.shield.step : 0 }
@@ -482,7 +483,8 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
   const useIncomplete = !naturalHand && hasIncompletePair(battle, dice)
   const hand = naturalHand ?? (useIncomplete ? { hand: 'triple', slot: 'attack' } as const : null)
   const heartRevived = result.damage >= battle.playerHp && battle.bossRelic?.id === 'revived-heart' && !battle.bossRelic.heartUsed
-  const playerHp = heartRevived ? HEART_REVIVAL_HP : Math.max(0, battle.playerHp - result.damage)
+  const revivalHp = battle.itemsSeven ? SEVEN_HEART_REVIVAL_HP : HEART_REVIVAL_HP
+  const playerHp = heartRevived ? revivalHp : Math.max(0, battle.playerHp - result.damage)
   const enemyHp = battle.enemyHp - result.dealt
   const effect = enemyHp > 0 && playerHp > 0 ? result.intent.mechanic : undefined
   const { stolenDie: previousTheft, escort: previousEscort, weakenedStrikeTurn: _weakenedStrikeTurn,
@@ -580,7 +582,7 @@ export function spinYachtCounter(battle: YachtBattle, choice?: CounterChoice): Y
       interrupted: { turn: spun.turn, kind: 'topple' as const },
       lastExchange: { ...spun.lastExchange!, crownTriggered: true as const },
     }),
-    ...(perk?.kind === 'counter' && { perk: battle.itemsSeven ? { ...perk, growth: Math.min(3, perk.growth + 1) }
+    ...(perk?.kind === 'counter' && { perk: battle.itemsSeven ? { ...perk, growth: Math.min(SEVEN_ITEM_VALUES.counterLimit, perk.growth + SEVEN_ITEM_VALUES.counterStep) }
       : { ...perk, rewards, growth: perk.growth + START_PERKS.counter.step } }),
   }
   return next.turn > battle.turn ? openYachtDice(next) : expireBattleTreasure(next)
@@ -590,10 +592,10 @@ function settleSevenCounter(battle: YachtBattle, state: TreasureState, rolled: C
   const { counter: _pending, counterRecast: _recast, ...inventory } = state
   let loot: TreasureState = inventory
   const crown = battle.bossRelic?.id === 'brake-crown' && !battle.crownUsed
-  let counter = { ...rolled, damage: crown ? 0 : counterDamage(battle, choice === 'horn' ? 8 : rolled.damage),
+  let counter = { ...rolled, damage: crown ? 0 : counterDamage(battle, choice === 'horn' ? hornCounterDamage(battle) : rolled.damage),
     joint: !crown && (choice === 'horn' || rolled.joint) }
   if (choice === 'mirror') {
-    loot = { ...spendSevenArtifact(loot, 'mirror'), mirrorDamage: Math.min(12, counter.damage * 2) }
+    loot = { ...spendSevenArtifact(loot, 'mirror'), mirrorDamage: mirrorCounterDamage(battle, counter.damage) }
     counter = { ...counter, damage: 0, joint: false }
   } else if (choice === 'horn') loot = spendSevenArtifact(loot, 'horn')
   return { loot, counter, damage: counter.damage }

@@ -4,6 +4,7 @@ import { BOSS_RELICS, isBossRelic } from './boss-relic.ts'
 import { enemyForMapNode, generateAscentMap, MAP_FIGHTS, MAP_FLOORS, mapPathIsValid, victoryCoins } from './ascent-map.ts'
 import { COUNTER_REWARDS, DIE_COUNT, PLAYER_HP } from './combat.ts'
 import { enemyForFight } from './enemy-roster.ts'
+import { SEVEN_ITEM_VALUES } from './item-values.ts'
 import { BANDAGE_HEAL, ELITE_KEEP_COINS, isLegacyReward, isRelic, isReward, relicReady } from './rewards.ts'
 import type { CombatRewards, Reward, RewardChoice } from './rewards.ts'
 import { shopPrice, treasureOffers } from './map-treasure.ts'
@@ -113,8 +114,8 @@ function battleRecord(value: unknown, seed: number, enemy: Ascent['enemy'], rule
   if (lastExchange === null ? phase !== 'assign' : !exchange(lastExchange, rulesTwo)) return false
   if (!integer(value.enemyAttackBuff) || value.enemyAttackGrowth !== enemy.attackGrowth || !perk(value.perk) || !combatRewards(value.rewards)) return false
   if (seven && record(value.perk)) {
-    if (value.perk.kind === 'shield' && value.perk.bonus !== 0 && value.perk.bonus !== 4) return false
-    if (value.perk.kind === 'counter' && !integer(value.perk.growth, 0, 3)) return false
+    if (value.perk.kind === 'shield' && value.perk.bonus !== 0 && value.perk.bonus !== 4 && value.perk.bonus !== SEVEN_ITEM_VALUES.shieldStock) return false
+    if (value.perk.kind === 'counter' && !integer(value.perk.growth, 0, SEVEN_ITEM_VALUES.counterLimit)) return false
     if (value.perk.kind === 'collector' && !(Array.isArray(value.perk.hands) && value.perk.hands.every(hand))) return false
   }
   if (rulesTwo ? value.rewards !== undefined || !treasureRecord(value.loot, dice, Boolean(value.fourthDieUnlocked), phase, seven) : value.loot !== undefined) return false
