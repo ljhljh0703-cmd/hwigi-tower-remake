@@ -468,6 +468,7 @@ stolenPlaceholder.setAttribute('role', 'img')
 
 const unlockConditions = element<HTMLDialogElement>('unlock-conditions')
 const unlockExamples = element('unlock-examples')
+const unlockResult = element('unlock-result')
 
 function pips(face: number) {
   return `<span class="gimmick-die" data-face="${face}">${'<b></b>'.repeat(face)}</span>`
@@ -486,9 +487,12 @@ function showUnlockConditions(hand: Hand) {
       <span class="unlock-example-slot" data-slot="${slot}" aria-hidden="true">
         ${icon(slot === 'attack' ? 'sword' : exact ? 'parry' : 'shield')}
         <span>${faces.map((face) => `<span class="unlock-example-die">${pips(face)}</span>`).join('')}</span>
-      </span>${icon('next')}${icon(unlockInfo[hand].icon)}
+      </span>${icon('next')}
     </div>`
   }).join('')
+  unlockResult.innerHTML = triple
+    ? `<span class="companion-tile unlock-result-ego" aria-hidden="true">${icon('companion-awake')}</span><strong>에고</strong>`
+    : `<span class="unlock-result-reroll" aria-hidden="true"><span class="unlock-example-die">${pips(5)}</span>${icon('reroll')}</span><strong>재굴림</strong>`
   unlockConditions.showModal()
 }
 

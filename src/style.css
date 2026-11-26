@@ -182,7 +182,8 @@ body:has(#battle-guide[open], #lobby-confirm[open], #inventory-detail[open], #se
 }
 
 #battle-guide[open], #settings[open] { display: flex; flex-direction: column; }
-#battle-guide::backdrop, #lobby-confirm::backdrop, #inventory-detail::backdrop, #settings::backdrop, #unlock-conditions::backdrop { background: #1d1b19ba; }
+#battle-guide::backdrop, #lobby-confirm::backdrop, #inventory-detail::backdrop, #settings::backdrop { background: #1d1b19ba; }
+#unlock-conditions::backdrop { background: #16140f26; }
 #settings { width: min(100% - 24px, 420px); }
 .settings-list { display: grid; gap: 8px; padding: 16px; overflow: auto; }
 .setting { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: start; }
@@ -1399,13 +1400,25 @@ button.die:disabled { background: transparent; }
 #locked-die:focus-visible { outline: 2px solid #f1f0ee; }
 .unlock-help { position: absolute; inset: auto 3px 3px auto; display: grid; place-items: center; pointer-events: none; }
 #locked-die .unlock-help, #extra-reroll .unlock-help .icon { inline-size: 12px; block-size: 12px; }
-#unlock-conditions { inline-size: min(calc(100% - 24px), 310px); padding: 8px 12px 16px; }
-#unlock-conditions form { display: flex; justify-content: end; }
-#unlock-examples, .unlock-example-slot { display: grid; gap: 8px; }
+#unlock-conditions {
+  position: fixed;
+  inset: auto 0 max(12px, env(safe-area-inset-bottom));
+  inline-size: min(calc(100% - 24px), 310px);
+  max-block-size: calc(100dvh - 24px);
+  margin: 0 auto;
+  padding: 12px 42px 12px 12px;
+}
+#unlock-conditions form { position: absolute; inset: 0 0 auto auto; }
+.unlock-diagram { display: flex; justify-content: center; align-items: center; gap: 8px; }
+#unlock-examples, .unlock-example-slot, #unlock-result { display: grid; gap: 6px; }
 .unlock-example { display: flex; align-items: center; justify-content: center; gap: 8px; color: #f6ca88; }
 .unlock-example-slot { justify-items: center; padding: 6px 8px 8px; border: 1px solid var(--stone-edge); background: var(--stone-face); }
 .unlock-example-slot > span { display: flex; gap: 5px; }
 .unlock-example-die { display: grid; place-items: center; inline-size: 31px; block-size: 31px; border: 1px solid #fdf6e4; background: #d5cec0; color: #282720; }
+#unlock-result { justify-items: center; min-inline-size: 52px; color: #f6ca88; font-size: .83rem; }
+.unlock-result-ego { inline-size: 40px; font-size: 1.35rem; }
+.unlock-result-reroll { position: relative; display: grid; place-items: start; inline-size: 40px; block-size: 40px; }
+.unlock-result-reroll > .icon { position: absolute; inset: auto 0 0 auto; padding: 2px; background: #343430; border-radius: 50%; font-size: 1.3rem; }
 .unlock-hint, .unlock-hint:disabled {
   border: 1px dashed var(--stone-edge);
   background: var(--stone-bed);
