@@ -2280,35 +2280,70 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
   arena.finishStrike()
 }
 ui.counter.addEventListener('click', () => void playCounter())
+
+const roomCover = element('room-transition')
+async function transitionToBattle(scene: HTMLElement, entrance: HTMLElement, show: () => void, ready: () => void) {
+  if (!roomCover.hidden) return
+  const reduced = reducedMotion()
+  const approachMs = reduced ? 65 : 205
+  const revealMs = reduced ? 85 : 180
+  const bounds = scene.getBoundingClientRect()
+  const door = entrance.getBoundingClientRect()
+  const x = (bounds.left + bounds.width / 2 - door.left - door.width / 2) * .22
+  const y = (bounds.top + bounds.height / 2 - door.top - door.height / 2) * .22
+  ui.main.inert = true
+  roomCover.hidden = false
+  const approach = reduced ? undefined : scene.animate([
+    { transform: 'none' }, { transform: `translate(${x}px, ${y}px) scale(1.22)` },
+  ], { duration: approachMs, easing: 'ease-in', fill: 'forwards' })
+  const darken = roomCover.animate([{ opacity: 0 }, { opacity: 1 }], { duration: approachMs, easing: 'ease-in', fill: 'forwards' })
+  try {
+    await darken.finished.catch(() => {})
+    show()
+    const reveal = roomCover.animate([{ opacity: 1 }, { opacity: 0 }], { duration: revealMs, easing: 'ease-out', fill: 'forwards' })
+    darken.cancel()
+    await reveal.finished.catch(() => {})
+    reveal.cancel()
+  } finally {
+    approach?.cancel()
+    darken.cancel()
+    roomCover.hidden = true
+    ui.main.inert = false
+  }
+  ready()
+}
+
 function enterFork(id: number) {
-  if (ui.guide.open || exchangeBusy || ascent?.route?.screen !== 'map') return
-  const door = ui.fork.querySelector<HTMLElement>('[data-node="' + id + '"] .fork-art')
-  const rect = door?.getBoundingClientRect()
+  if (!roomCover.hidden || ui.guide.open || exchangeBusy || ascent?.route?.screen !== 'map') return
   const next = enterMapNode(ascent, id)
   if (next === ascent) return
   resetPresentation()
   ascent = firstRun.opening(next)
   saveCurrent()
   sound.play('step')
-  render('normal', true)
-  if (rect && door) {
-    const doorWidth = Math.min(rect.width * .84, 152) - 13
-    const inside = new DOMRect(rect.x + (rect.width - doorWidth) / 2, rect.y + 10, doorWidth, rect.height - 10)
-    const overlay = feel.layer(inside, 'door', door.innerHTML)
-    feel.animate(overlay, [{ opacity: .96 }, { opacity: .78, offset: .55 }, { opacity: 0 }], 125, () => feel.release(overlay))
+  const room = ui.fork.querySelector<HTMLElement>('.fork-room')!
+  const entrance = room.querySelector<HTMLElement>(`[data-node="${id}"] .fork-art`)
+  if (next.route?.screen === 'battle' && entrance) {
+    void transitionToBattle(room, entrance, showEnteredRoom, focusPhase)
+  } else {
+    showEnteredRoom()
+    focusPhase()
   }
+}
+
+function showEnteredRoom() {
+  render('normal', true)
   const floor = ui.encounter.hidden ? ui.rewardHeading : ui.encounter
   const ground = floor.getBoundingClientRect()
   const dust = feel.layer(new DOMRect(ground.x + (ui.encounter.hidden ? ground.width / 2 : parseFloat(ui.encounter.style.getPropertyValue('--player-x')) || ground.width / 3),
     ground.y + (ui.encounter.hidden ? ground.height : parseFloat(ui.encounter.style.getPropertyValue('--ground')) || ground.height * .6), 14, 3), 'footstep')
   feel.animate(dust, [{ opacity: .8 }, { transform: 'scaleX(1.4)', opacity: 0 }], 96, () => feel.release(dust))
-  if (ascent.route?.screen === 'rest') {
+  if (ascent?.route?.screen === 'rest') {
     const ember = ui.rewardHeading.querySelector<HTMLElement>('.rest-ember')
     sound.play('ember')
     if (ember) feel.animate(ember, [{ transform: 'scale(.7)' }, { transform: 'scale(1.22)' }, { transform: 'none' }], 180)
   }
   turnCues(undefined, false)
-  focusPhase()
 }
 ui.next.addEventListener('click', () => {
   if (exchangeBusy || !ascent || rewardOffers(ascent).length) return
@@ -2323,6 +2358,7 @@ ui.next.addEventListener('click', () => {
 ui.retry.addEventListener('click', showPerks)
 ui.climbAgain.addEventListener('click', showPerks)
 ui.continueAscent.addEventListener('click', (event) => {
+  if (!roomCover.hidden) return
   const checkpoint = loadAscentSave()
   if (!checkpoint) {
     showLobby(true)
@@ -2334,8 +2370,12 @@ ui.continueAscent.addEventListener('click', (event) => {
   selected.clear()
   for (const index of checkpoint.selected) selected.add(index)
   if (event.isTrusted) sound.activate()
-  render()
-  resumeCounterOrFocus()
+  if (ascent.route?.screen === 'battle' || (!ascent.route && ascent.battle.phase !== 'won')) {
+    void transitionToBattle(ui.lobby.querySelector<HTMLElement>('.lobby-scene')!, ui.continueAscent, () => render(), resumeCounterOrFocus)
+  } else {
+    render()
+    resumeCounterOrFocus()
+  }
 })
 ui.newAscent.addEventListener('click', () => {
   const { checkpoint, invalidMap } = readAscentSave()

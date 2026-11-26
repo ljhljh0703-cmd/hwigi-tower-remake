@@ -15,6 +15,56 @@ const test = base.extend({
   },
 })
 
+test('선택한 문으로 다가간 뒤 전장을 열고 움직임 줄이기는 로비에서 페이드만 한다', async ({ page }, info) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.addInitScript(() => {
+    window.roomMotion = []
+    window.roomFrames = []
+    const animate = Element.prototype.animate
+    Element.prototype.animate = function (frames, options) {
+      const animation = animate.call(this, frames, options)
+      if (this.id === 'room-transition' || this.matches('.fork-room, .lobby-scene')) {
+        window.roomMotion.push([this.id || this.className, options.duration])
+        if (options.duration === 205) {
+          animation.pause()
+          animation.currentTime = 140
+          window.roomFrames.push(animation)
+        }
+      }
+      return animation
+    }
+  })
+  await page.goto(new URL('?seed=12', process.env.HWIGI_SMOKE_URL).href)
+  await page.getByRole('button', { name: '새로 하기' }).tap()
+  await page.getByRole('button', { name: /^방패 저금,/ }).tap()
+  await page.locator('#fork-options button').tap()
+  await page.locator('#enter-room').tap()
+  const main = page.locator('main')
+  await expect(main).toHaveAttribute('data-screen', 'fork')
+  await expect(main).toHaveAttribute('inert', '')
+  await expect(page.locator('.fork-room')).not.toHaveCSS('transform', 'none')
+  const cover = page.locator('#room-transition')
+  const opacity = await cover.evaluate((element) => Number(getComputedStyle(element).opacity))
+  expect(opacity).toBeGreaterThan(0)
+  expect(opacity).toBeLessThan(1)
+  if (process.env.HWIGI_PLAYTEST_SHOTS) {
+    await mkdir(process.env.HWIGI_PLAYTEST_SHOTS, { recursive: true })
+    await page.screenshot({ path: join(process.env.HWIGI_PLAYTEST_SHOTS, `${info.project.name}-room-transition.png`) })
+  }
+  await page.evaluate(() => window.roomFrames.forEach((animation) => animation.finish()))
+  await expect(cover).toBeHidden()
+  await expect(main).toHaveAttribute('data-screen', 'battle')
+  const watched = await page.evaluate(() => window.roomMotion)
+  expect(watched).toEqual([['fork-room', 205], ['room-transition', 205], ['room-transition', 180]])
+
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.reload()
+  await page.getByRole('button', { name: '이어 하기' }).tap()
+  await expect(main).toHaveAttribute('data-screen', 'battle')
+  await expect(cover).toBeHidden()
+  expect(await page.evaluate(() => window.roomMotion)).toEqual([['room-transition', 65], ['room-transition', 85]])
+})
+
 test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진입한다', async ({ page, screenErrors }, info) => {
   const main = page.getByRole('main')
   const newAscent = page.getByRole('button', { name: '새로 하기' })

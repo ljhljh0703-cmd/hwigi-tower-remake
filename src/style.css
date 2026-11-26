@@ -168,7 +168,9 @@ h1, h2,
 .lobby-start.primary { min-block-size: 62px; font-size: 1.15rem; }
 #save-notice { padding: 8px; color: #f6c795; font-size: .85rem; text-align: center; }
 
-body:has(#battle-guide[open], #lobby-confirm[open], #inventory-detail[open], #settings[open], #unlock-conditions[open]) { overflow: hidden; }
+body:has(#battle-guide[open], #lobby-confirm[open], #inventory-detail[open], #settings[open], #unlock-conditions[open], #room-transition:not([hidden])) { overflow: hidden; }
+
+#room-transition { position: fixed; inset: 0; z-index: 10; background: #1c1915; }
 
 #battle-guide, #settings {
   position: fixed;
@@ -2005,8 +2007,6 @@ main[data-screen='defeat'] {
 .feel-return { outline: 1px solid #9c9989; }
 .feel-socket .icon { padding: 4px; width: 32px; height: 32px; color: #ead3ac; background: #37352f; border: 2px inset #aaa08d; }
 .feel-mend { background: #add1b7; }
-.feel-door { overflow: hidden; place-items: end center; background: #74634c;
-  clip-path: polygon(0 100%,0 31%,7% 31%,7% 22%,14% 22%,14% 14%,22% 14%,22% 7%,32% 7%,32% 0,68% 0,68% 7%,78% 7%,78% 14%,86% 14%,86% 22%,93% 22%,93% 31%,100% 31%,100% 100%); }
 .feel-footstep { background: #b8aa90; clip-path: polygon(0 34%,29% 34%,29% 0,50% 0,50% 60%,85% 60%,85% 25%,100% 25%,100% 100%,0 100%); }
 .feel-pulley i { width: 2px; height: 18px; background: #ac9675; }
 .feel-pulley b { position: absolute; width: 14px; height: 14px; border-radius: 50%; border: 3px dashed #836c49; background: #534537; }
