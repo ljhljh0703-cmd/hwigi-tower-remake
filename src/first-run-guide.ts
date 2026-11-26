@@ -1,9 +1,25 @@
-import { openTurn } from './combat.ts'
 import type { Ascent } from './ascent.ts'
+import type { Slot } from './combat.ts'
+import { forecastYacht } from './yacht-combat.ts'
+import type { YachtBattle } from './yacht-combat.ts'
 
 export const FIRST_RUN_KEY = 'hwigi-tower.first-run-guide'
-const openingSeed = 7210
+const openingRolls = [[6, 3, 3], [3, 4, 6], [4, 6, 6]]
 const noteDuration = 1500
+
+export function firstBattlePlan(battle: YachtBattle) {
+  let best: { slots: Slot[]; outcome: ReturnType<typeof forecastYacht>; score: number } | undefined
+  for (let mask = 0; mask < 2 ** battle.dice.length; mask++) {
+    const slots = battle.dice.map<Slot>((_, index) => mask & (1 << index) ? 'guard' : 'attack')
+    const outcome = forecastYacht(battle, slots)
+    const { damage, dealt, counter } = outcome
+    const rank = damage >= battle.playerHp ? -2 : dealt === battle.enemyHp ? 2 : counter ? 1 : 0
+    const moves = slots.filter((slot, index) => battle.slots[index] !== null && battle.slots[index] !== slot).length
+    const score = rank * 1000 - damage * 10 + dealt - moves / 10
+    if (!best || score > best.score) best = { slots, outcome, score }
+  }
+  return best!
+}
 
 interface Progress {
   complete: boolean
@@ -23,6 +39,8 @@ interface Note {
 interface Lesson extends Note {
   marks: readonly HTMLElement[]
   from?: HTMLElement
+  arrows?: readonly HTMLElement[]
+  guardGoal?: number
   to?: HTMLElement
 }
 
@@ -44,6 +62,7 @@ export class FirstRunGuide {
   private note = document.querySelector<HTMLElement>('#first-run-note')!
   private line = document.querySelector<HTMLElement>('#first-run-line')!
   private pointer = document.querySelector<HTMLElement>('#first-run-point')!
+  private guardGoal = document.querySelector<HTMLElement>('#guard-goal')!
   private status = document.querySelector<HTMLElement>('#first-run-status')!
   private skipButton = document.querySelector<HTMLButtonElement>('#skip-first-run')!
   private active?: Note
@@ -85,9 +104,8 @@ export class FirstRunGuide {
 
   opening(run: Ascent, previousTurn = 0): Ascent {
     const { battle } = run
-    if (!this.includes(run) || battle.phase !== 'assign' || battle.turn === previousTurn || battle.turn > 2) return run
-    // 안내 첫 굴림에만 별도 시드를 쓰고 지도, 재굴림, 보상에는 등반 시드를 쓴다.
-    const { dice } = openTurn(openingSeed, battle.turn)
+    const dice = openingRolls[battle.turn - 1]
+    if (!this.includes(run) || battle.phase !== 'assign' || battle.turn === previousTurn || !dice) return run
     return { ...run, battle: { ...battle, dice: battle.dice.map((face, index) =>
       index === battle.fixedDie?.index ? face : dice[index] ?? face) } }
   }
@@ -120,6 +138,7 @@ export class FirstRunGuide {
     this.available = []
     this.note.hidden = true
     this.pointer.hidden = true
+    this.guardGoal.hidden = true
     this.status.textContent = ''
   }
 
@@ -127,6 +146,8 @@ export class FirstRunGuide {
     window.clearTimeout(this.timer)
     for (const mark of this.lesson?.marks ?? []) delete mark.dataset.firstRunTarget
     this.lesson = lesson
+    this.guardGoal.hidden = lesson.guardGoal === undefined
+    if (lesson.guardGoal !== undefined) this.guardGoal.textContent = `/${lesson.guardGoal}`
     for (const mark of lesson.marks) mark.dataset.firstRunTarget = ''
     this.show(lesson)
   }
@@ -183,7 +204,26 @@ export class FirstRunGuide {
     beside?.classList.toggle('below-first-run-note', !fitsBeside)
     this.note.style.left = `${Math.max(fitsBeside ? besideLeft : 6, Math.min(box.left + (box.width - width) / 2, lastLeft))}px`
 
-    const { from, to } = this.lesson ?? {}
+    const { from, arrows, to } = this.lesson ?? {}
+    if (arrows?.length && to) {
+      this.pointer.hidden = false
+      this.pointer.dataset.mode = 'arrows'
+      this.pointer.style.left = '0'
+      this.pointer.style.top = '0'
+      const seats = to.querySelectorAll('.die-seat')
+      this.pointer.querySelector('g')!.innerHTML = arrows.map((die, index) => {
+        const source = die.getBoundingClientRect()
+        const seat = (seats[index] ?? to).getBoundingClientRect()
+        const x = source.left + source.width / 2
+        const y = source.bottom + 3
+        const endX = seat.left + seat.width / 2
+        const endY = seat.top + seat.height / 2
+        const bend = (y + endY) / 2
+        return `<path d="M${x},${y} C${x},${bend} ${endX},${bend} ${endX},${endY}" marker-end="url(#first-run-arrow)"/>`
+      }).join('')
+      return
+    }
+    delete this.pointer.dataset.mode
     this.pointer.hidden = !from || !to
     if (!from || !to) return
     const source = from.getBoundingClientRect()

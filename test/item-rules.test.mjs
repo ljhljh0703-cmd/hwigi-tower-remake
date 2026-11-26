@@ -104,9 +104,12 @@ test('spacer and banner change exact defense while damage protection follows gua
   assert.equal(forecastYacht(buckle).damage, 0)
   assert.equal(forecastYacht(buckle).counter, false)
   assert.deepEqual(forecastYacht(buckle).loot.triggered, ['lining', 'buckle'])
-  const thorns = { ...buckle, enemyHp: 1, enemyIntents: [{ ...buckle.enemyIntents[0], mechanic: { kind: 'thorns', value: 2 } }] }
+  const thorns = { ...buckle, enemyHp: 12, enemyIntents: [{ ...buckle.enemyIntents[0], mechanic: { kind: 'thorns', value: 2 } }] }
   assert.equal(forecastYacht(thorns).damage, 4)
-  assert.equal(forecastYacht(thorns).loot.consumables.buckle, 1)
+  assert.equal(forecastYacht(thorns).loot.consumables.buckle, undefined)
+  const finishingBlow = forecastYacht({ ...thorns, enemyHp: 11 })
+  assert.equal(finishingBlow.damage, 0)
+  assert.equal(finishingBlow.loot.consumables.buckle, 1)
 })
 
 test('die adjustment, reserve choices and the latch are single-use and resume the exact pending dice', () => {

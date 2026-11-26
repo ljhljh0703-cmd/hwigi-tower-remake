@@ -1,6 +1,7 @@
 import { expect, test as base } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
+import { ASCENT_SAVE_KEY } from '../src/ascent-save.ts'
 
 const test = base.extend({
   screenErrors: async ({ page }, use) => {
@@ -14,6 +15,70 @@ const test = base.extend({
   },
 })
 
+test('선택한 문으로 다가간 뒤 전장을 열고 움직임 줄이기는 로비에서 페이드만 한다', async ({ page }, info) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.addInitScript(() => {
+    window.roomMotion = []
+    window.roomFrames = []
+    const animate = Element.prototype.animate
+    Element.prototype.animate = function (frames, options) {
+      const animation = animate.call(this, frames, options)
+      if (this.id === 'room-transition' || this.matches('.fork-room, .lobby-scene')) {
+        window.roomMotion.push([this.id || this.className, options.duration])
+        if (options.duration === 205) {
+          animation.pause()
+          animation.currentTime = 140
+          window.roomFrames.push(animation)
+        }
+      }
+      if (this.id === 'room-floor') {
+        window.roomMotion.push([this.id, options.duration])
+        animation.pause()
+        animation.currentTime = 65
+        window.roomFloorFrame = animation
+      }
+      return animation
+    }
+  })
+  await page.goto(new URL('?seed=12', process.env.HWIGI_SMOKE_URL).href)
+  await page.getByRole('button', { name: '새로 하기' }).tap()
+  await page.getByRole('button', { name: /^방패 저금,/ }).tap()
+  await page.locator('#fork-options button').tap()
+  await page.locator('#enter-room').tap()
+  const main = page.locator('main')
+  await expect(main).toHaveAttribute('data-screen', 'fork')
+  await expect(main).toHaveAttribute('inert', '')
+  await expect(page.locator('#fork-heading')).toBeHidden()
+  await expect(page.locator('#fork-preview')).toBeHidden()
+  await expect(page.locator('.fork-room')).not.toHaveCSS('transform', 'none')
+  const cover = page.locator('#room-transition')
+  const opacity = await cover.evaluate((element) => Number(getComputedStyle(element).opacity))
+  expect(opacity).toBeGreaterThan(0)
+  expect(opacity).toBeLessThan(1)
+  if (process.env.HWIGI_PLAYTEST_SHOTS) {
+    await mkdir(process.env.HWIGI_PLAYTEST_SHOTS, { recursive: true })
+    await page.screenshot({ path: join(process.env.HWIGI_PLAYTEST_SHOTS, `${info.project.name}-room-transition.png`) })
+  }
+  await page.evaluate(() => window.roomFrames.forEach((animation) => animation.finish()))
+  await expect(page.locator('#room-floor')).toHaveText('1층')
+  await expect(page.locator('#room-floor')).toBeVisible()
+  if (process.env.HWIGI_PLAYTEST_SHOTS) {
+    await page.screenshot({ path: join(process.env.HWIGI_PLAYTEST_SHOTS, `${info.project.name}-room-floor.png`) })
+  }
+  await page.evaluate(() => window.roomFloorFrame.finish())
+  await expect(cover).toBeHidden()
+  await expect(main).toHaveAttribute('data-screen', 'battle')
+  const watched = await page.evaluate(() => window.roomMotion)
+  expect(watched).toEqual([['fork-room', 205], ['room-transition', 205], ['room-floor', 95], ['room-transition', 180]])
+
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.reload()
+  await page.getByRole('button', { name: '이어 하기' }).tap()
+  await expect(main).toHaveAttribute('data-screen', 'battle')
+  await expect(cover).toBeHidden()
+  expect(await page.evaluate(() => window.roomMotion)).toEqual([['room-transition', 65], ['room-transition', 85]])
+})
+
 test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진입한다', async ({ page, screenErrors }, info) => {
   const main = page.getByRole('main')
   const newAscent = page.getByRole('button', { name: '새로 하기' })
@@ -23,10 +88,11 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
   const routeButtons = routes.getByRole('button')
   const fightRoute = routes.getByRole('button', { name: /^전투/ })
   const eliteRoute = routes.getByRole('button', { name: /^강적/ })
+  const enter = page.getByRole('button', { name: '입장', exact: true })
   const battleFloor = page.locator('#fight')
   const mapFloor = page.locator('#map-floor')
   const mapHealth = page.locator('#map-health')
-  const poolDice = page.locator('#pool-dice').getByRole('button')
+  const poolDice = page.locator('#pool-dice button')
   const attackDice = page.locator('#attack-dice').getByRole('button')
   const attack = page.getByRole('button', { name: /^공격 칸/ })
   const attackSlot = page.locator('.slot[data-dice-zone="attack"]')
@@ -95,7 +161,8 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     await expect(page.locator('#perks-instruction')).toHaveText('이번 등반에 쓸 특전을 하나 고르세요.')
     await expect(perks).toHaveCount(3)
     await checkScreen('perks', await perks.all())
-    expect((await perks.first().boundingBox()).y).toBeLessThan(page.viewportSize().height * .4)
+    const { y, height } = await page.locator('#perk-choices').boundingBox()
+    expect(y + height / 2).toBeLessThan(page.viewportSize().height * .6)
     await photograph('perks')
     await page.getByRole('button', { name: /^방패 저금,/ }).tap()
   })
@@ -105,6 +172,7 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     await expect(routeButtons).toHaveCount(1)
     await checkScreen('fork', [fightRoute])
     await fightRoute.tap()
+    await enter.tap()
     await page.getByRole('button', { name: '안내 건너뛰기' }).tap()
 
     // 시드 12에서 방패 저금을 고르면 두 턴 모두 공격에 배치해 1층을 이긴다.
@@ -155,7 +223,28 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     await photograph('fork')
     const healedHealth = Number.parseInt(await mapHealth.innerText(), 10)
     expect(healedHealth, '약초 붕대 수령 후 체력').toBeGreaterThan(beforeHealth)
+    const readSave = () => page.evaluate((key) => localStorage.getItem(key), ASCENT_SAVE_KEY)
+    const checkpoint = await readSave()
+    expect(checkpoint).not.toBeNull()
+    await eliteRoute.tap()
+    await checkScreen('fork', [eliteRoute, fightRoute, enter])
+    await expect(eliteRoute).toHaveAttribute('aria-pressed', 'true')
+    await expect(eliteRoute.locator('.fork-hint')).toHaveText('2714')
+    await expect(eliteRoute.locator('.fork-relic use')).toHaveAttribute('href', '#icon-map-relic')
+    await expect(page.locator('.fork-preview-portrait')).toBeVisible()
+    await expect(page.locator('.fork-preview-stats')).toContainText('27')
+    expect(await readSave()).toBe(checkpoint)
+    await photograph('fork-selected')
     await fightRoute.tap()
+    await expect(fightRoute).toHaveAttribute('aria-pressed', 'true')
+    await expect(eliteRoute).toHaveAttribute('aria-pressed', 'false')
+    expect(await readSave()).toBe(checkpoint)
+    await page.locator('#fork-heading').tap()
+    await expect(enter).toBeHidden()
+    await expect(fightRoute).toHaveAttribute('aria-pressed', 'false')
+    expect(await readSave()).toBe(checkpoint)
+    await fightRoute.tap()
+    await enter.tap()
 
     await expect(battleFloor).toHaveText(/^2\s*\//)
     await expect(page.locator('#turn')).toHaveAttribute('aria-label', '1턴')

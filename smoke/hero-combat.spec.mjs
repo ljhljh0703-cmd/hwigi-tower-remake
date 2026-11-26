@@ -95,6 +95,7 @@ async function resume(page, run) {
   await page.evaluate(({ key, json }) => localStorage.setItem(key, json), { key: ASCENT_SAVE_KEY, json })
   await page.reload()
   await page.locator('#continue-ascent').tap()
+  await expect(page.locator('#room-transition')).toBeHidden()
   await expect(page.locator('#resolve')).toBeVisible()
 }
 
@@ -118,6 +119,40 @@ async function photograph(page, info, name) {
 
 test.beforeAll(async () => {
   if (process.env.HWIGI_HERO_SHOTS) await mkdir(process.env.HWIGI_HERO_SHOTS, { recursive: true })
+})
+
+test('황제의 공격 턴과 힘을 모으는 턴의 수치가 구분된다', async ({ page }, info) => {
+  const boss = encounter('boss', 12)
+  await resume(page, withBattle(boss, { turn: 1 }))
+  const intent = page.locator('#intent')
+  await expect(intent).toHaveAttribute('data-intent', 'attack')
+  await expect(intent.locator('strong')).toHaveText('21')
+  await expect(intent.locator('.intent-equation')).toHaveText('11 + 10')
+  await expect(page.locator('#encounter-name')).toHaveText('황제')
+  await expect(page.locator('.enemy .vital label use')).toHaveAttribute('href', '#icon-crown')
+  await expect(page.locator('#first-run-note')).toBeHidden()
+  await photograph(page, info, 'intent-attack')
+
+  await resume(page, withBattle(boss, { turn: 2, dice: [1, 2, 6, 3] }))
+  await expect(intent).toHaveAttribute('data-intent', 'charge')
+  await expect(intent).toHaveAccessibleName(/이번 턴 피해 0 · 다음 턴 피해 20/)
+  await expect(intent.locator('strong')).toHaveText('0')
+  await expect(intent.locator('.intent-next')).toHaveText('20')
+  expect(await intent.evaluate((element) => {
+    const size = (selector) => parseFloat(getComputedStyle(element.querySelector(selector)).fontSize)
+    return size('.intent-next') < size('strong')
+  })).toBe(true)
+  await expect(page.locator('#first-run-note')).toBeHidden()
+  const stop = page.locator('#charge-stop')
+  await expect(stop).toHaveAccessibleName('힘 모으기 저지 피해 12, 남은 피해 12')
+  await photograph(page, info, 'intent-charge')
+  await put(page, 'attack', [2])
+  await expect(stop).toHaveCSS('--charge-remaining', '50%')
+  await photograph(page, info, 'intent-charge-half')
+  await put(page, 'attack', [0, 1, 3])
+  await expect(stop).toHaveAttribute('data-ready', 'true')
+  await expect(stop).toHaveAccessibleName('힘 모으기 저지 피해 12, 남은 피해 0')
+  await expect(intent.locator('.intent-next')).not.toHaveText('20')
 })
 
 async function put(page, slot, indices) {

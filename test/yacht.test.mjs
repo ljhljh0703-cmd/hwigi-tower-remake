@@ -77,6 +77,17 @@ test('descending and rerolled straights unlock in any one available slot', () =>
   assert.deepEqual(resolveYachtTurn({ ...rerolled, slots: attack }).hand, { hand: 'straight', slot: 'attack' })
 })
 
+test('6·5·4 unlocks in either single slot in all six permutations and fails when split', () => {
+  for (const dice of [[6, 5, 4], [6, 4, 5], [5, 6, 4], [5, 4, 6], [4, 6, 5], [4, 5, 6]]) {
+    for (const slot of ['attack', 'guard']) {
+      const battle = filled(dice, Array(3).fill(slot), { rulesSix: true })
+      assert.deepEqual(previewUnlockProgress(battle).straight, { progress: 3 })
+      assert.deepEqual(resolveYachtTurn(battle).hand, { hand: 'straight', slot })
+    }
+    assert.equal(resolveYachtTurn(filled(dice, ['attack', 'guard', 'guard'], { rulesSix: true })).hand, null)
+  }
+})
+
 test('four dice qualify using any unchanged matching trio in the same slot', () => {
   const attack = ['attack', 'attack', 'attack', 'attack']
   for (const [dice, hand] of [[[2, 5, 2, 2], 'triple'], [[3, 3, 3, 3], 'triple'], [[2, 4, 2, 3], 'straight']]) {

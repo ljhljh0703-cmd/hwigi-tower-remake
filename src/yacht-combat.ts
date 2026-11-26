@@ -42,7 +42,6 @@ export interface YachtBattle extends Battle {
   readonly rewards?: CombatRewards
   readonly wedgeArmed?: true
   readonly loot?: TreasureState
-  readonly rulesSix?: true
   readonly itemsSeven?: true
   readonly bossRelic?: BossRelicState
   readonly crownUsed?: true
@@ -594,6 +593,7 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
       ...(result.chargeBroken && { chargeBroken: true }),
       ...(activated && { gimmick: activated }),
       ...(heartRevived && { heartRevived: true }),
+      ...(playerHp === 0 && result.retaliation > 0 && result.damage - result.retaliation < battle.playerHp && { defeatedByThorns: true }),
     },
   }
 

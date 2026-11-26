@@ -43,3 +43,9 @@ test('the rules-seven guide replaces the retired loot and its own relic text', (
   assert.match(current, /기본 재굴림에 체력 1/)
   assert.match(JSON.stringify(battleGuideFor(6)), /호위 갈고리/)
 })
+
+test('the guide describes the thorns rule for the current or saved rule set', () => {
+  const thorns = (rules) => battleGuideFor(rules).find(({ title }) => title === '적 기믹').entries.find(([icon]) => icon === 'thorns')[2]
+  for (const rules of [6, 7]) assert.match(thorns(rules), /공격 칸 피해로 적을 쓰러뜨리면 발동하지 않습니다/)
+  for (const rules of [1, 2, 3, 4, 5]) assert.match(thorns(rules), /적을 쓰러뜨려도 발동합니다/)
+})

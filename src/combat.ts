@@ -73,6 +73,7 @@ export interface Exchange {
   readonly gimmick?: Gimmick
   readonly heartRevived?: true
   readonly crownTriggered?: true
+  readonly defeatedByThorns?: true
 }
 
 export interface Battle {
@@ -97,6 +98,7 @@ export interface Battle {
   readonly erasedStrikeTurn?: number
   readonly armorBroken?: true
   readonly interrupted?: { readonly turn: number; readonly kind: 'trip' | 'topple' }
+  readonly rulesSix?: true
 }
 
 export function draw(seed: number, turn: number, channel: number): number {
@@ -311,7 +313,7 @@ export function forecast(
       remainingAbsorption -= blocked
       return hit - blocked
     }).filter(Boolean), totalDamage: Math.max(0, actual.totalDamage - suppress) } : actual
-  const thorns = intent.mechanic?.kind === 'thorns'
+  const thorns = intent.mechanic?.kind === 'thorns' && (!battle.rulesSix || inflicted.dealt < battle.enemyHp)
     ? slots.filter((slot) => slot === 'attack').length * intent.mechanic.value : 0
 
   let shield = guard
@@ -324,6 +326,8 @@ export function forecast(
   const retaliation = Math.min(thorns, MAX_ENEMY_DAMAGE - attackDamage)
   if (retaliation) hits.push(retaliation)
   return {
+    opening: inflicted,
+    reflected: { dealt: dealt - inflicted.dealt, escortDealt: escortDealt - inflicted.escortDealt },
     dealt,
     escortDealt,
     intent,
@@ -331,6 +335,7 @@ export function forecast(
     chargeBroken: breaksCharge(intent, attack - escortDealt),
     hits,
     damage: attackDamage + retaliation,
+    retaliation,
     counter: suppress === undefined && dealt < battle.enemyHp && incoming.totalDamage > 0 && guard === incoming.totalDamage,
   }
 }
