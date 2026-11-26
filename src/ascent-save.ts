@@ -1,6 +1,6 @@
 import { ascentBattleSeed, ascentFinished, availableMapNodes, FIGHT_COUNT, mapRewardOffers, rewardOffers } from './ascent.ts'
 import type { Ascent, MapProgress } from './ascent.ts'
-import { enemyForMapNode, generateAscentMap, MAP_FIGHTS, MAP_FLOORS, mapPathIsValid, victoryCoins } from './ascent-map.ts'
+import { CURRENT_MAP_RULES, enemyForMapNode, generateAscentMap, MAP_FIGHTS, MAP_FLOORS, mapPathIsValid, victoryCoins } from './ascent-map.ts'
 import { COUNTER_REWARDS, DIE_COUNT, draw, PLAYER_HP } from './combat.ts'
 import { enemyForFight } from './enemy-roster.ts'
 import { BANDAGE_HEAL, isLegacyReward, isRelic, isReward, relicReady } from './rewards.ts'
@@ -117,7 +117,7 @@ function acquiredRewards(rewards: CombatRewards | undefined): readonly Reward[] 
 }
 
 function mapCheckpoint(seed: number, fight: number, value: unknown) {
-  if (!record(value) || (value.rules !== 1 && value.rules !== 2 && value.rules !== 3 && value.rules !== 4) || !Array.isArray(value.completed)) return null
+  if (!record(value) || (value.rules !== 1 && value.rules !== 2 && value.rules !== 3 && value.rules !== 4 && value.rules !== CURRENT_MAP_RULES) || !Array.isArray(value.completed)) return null
   const { completed, screen, node, offers, rules, bossMaxHp, coins, shopPurchase } = value
   if (completed.length >= MAP_FLOORS || !completed.every((id) => integer(id))) return null
   const room = screen === 'rest' || (rules >= 2 && (screen === 'event' || screen === 'shop'))

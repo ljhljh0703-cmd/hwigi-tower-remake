@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn } from '../src/ascent.ts'
-import { ASCENT_SAVE_KEY, loadAscentSave, writeAscentSave } from '../src/ascent-save.ts'
-import { assignDie, enemyIntentAt } from '../src/combat.ts'
+import {
+  availableMapNodes, beginAscent, enterMapNode, FIGHT_COUNT, nextAscentFight, resolveAscentTurn,
+  returnToMap, spinAscentCounter, takeAscentReward,
+} from '../src/ascent.ts'
+import { ASCENT_SAVE_KEY, loadAscentSave, readAscentSave, writeAscentSave } from '../src/ascent-save.ts'
+import { assignDie, attackFor, enemyIntentAt } from '../src/combat.ts'
 import { rerollYachtDice, spinYachtCounter } from '../src/yacht-combat.ts'
 
 function memoryStorage() {
@@ -13,6 +17,52 @@ function memoryStorage() {
     removeItem: (key) => data.delete(key),
   }
 }
+
+test('a rules-4 elite checkpoint keeps its attack bonus through a resave and the final boss', () => {
+  const storage = memoryStorage()
+  const fixture = readFileSync(new URL('./fixtures/ascent-rules-4-elite.json', import.meta.url), 'utf8')
+  storage.setItem(ASCENT_SAVE_KEY, fixture)
+  const { checkpoint, invalidMap } = readAscentSave(storage)
+  assert.equal(invalidMap, false)
+  assert.ok(checkpoint)
+  assert.deepEqual(checkpoint.selected, [0])
+  let { ascent: run } = checkpoint
+  assert.deepEqual(run.unlocks, ['straight', 'triple'])
+  assert.equal(run.route.map.rules, 4)
+  assert.equal(run.enemy.id, 'iron-knight')
+  assert.equal(run.battle.enemyHp, 34)
+  assert.deepEqual(attackFor(run.battle, enemyIntentAt(run.battle)).hits, [6, 7])
+
+  const reload = () => {
+    writeAscentSave({ ascent: run, selected: [] }, storage)
+    const saved = loadAscentSave(storage)
+    assert.equal(saved?.ascent.route.map.rules, 4)
+    return saved.ascent
+  }
+  const play = (slots) => {
+    run = resolveAscentTurn({ ...run, battle: { ...run.battle, slots } })
+    if (run.battle.phase === 'counter') run = spinAscentCounter(spinAscentCounter(run), 'now')
+  }
+  const allAttack = Array(4).fill('attack')
+  const allGuard = Array(4).fill('guard')
+  play(['guard', 'guard', 'guard', 'attack'])
+  play(allAttack)
+  assert.equal(run.route.screen, 'reward')
+  run = reload()
+  run = returnToMap(takeAscentReward(run, 'skip'))
+  run = enterMapNode(run, availableMapNodes(run)[0].id)
+  assert.equal(run.route.screen, 'rest')
+  run = returnToMap(takeAscentReward(run, 'kit'))
+  run = enterMapNode(run, availableMapNodes(run)[0].id)
+  run = reload()
+  assert.equal(run.enemy.id, 'boss')
+  assert.equal(run.battle.enemyHp, 84)
+  assert.deepEqual(attackFor(run.battle, enemyIntentAt(run.battle)).hits, [11, 10])
+  for (const slots of [allGuard, allAttack, allGuard, allAttack]) play(slots)
+  assert.deepEqual([run.route.screen, run.route.completed.length, run.battle.phase], ['finished', 12, 'won'])
+  writeAscentSave({ ascent: run, selected: [] }, storage)
+  assert.equal(storage.getItem(ASCENT_SAVE_KEY), null)
+})
 
 test('a pre-update escort slot resumes in attack with its die and selection intact', () => {
   const storage = memoryStorage()

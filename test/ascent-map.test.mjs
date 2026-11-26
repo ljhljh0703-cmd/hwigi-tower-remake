@@ -4,10 +4,11 @@ import {
   ascentFinished, availableMapNodes, beginAscent, beginMapAscent, enterMapNode, resolveAscentTurn,
   returnToMap, rewardOffers, spinAscentCounter, takeAscentReward,
 } from '../src/ascent.ts'
-import { enemyForMapNode, generateAscentMap, MAP_FLOORS, MAP_START, mapPathIsValid, nextMapNodes } from '../src/ascent-map.ts'
+import { CURRENT_MAP_RULES, enemyForMapNode, generateAscentMap, MAP_FLOORS, MAP_START, mapPathIsValid, nextMapNodes } from '../src/ascent-map.ts'
 import { ASCENT_SAVE_KEY, loadAscentSave, readAscentSave, writeAscentSave } from '../src/ascent-save.ts'
 import { assignDie, attackFor, draw, enemyIntentAt } from '../src/combat.ts'
 import { ASCENT_ENEMIES } from '../src/enemy-roster.ts'
+import { healingFor } from '../src/map-treasure.ts'
 import { RELICS } from '../src/rewards.ts'
 import { rerollYachtDice, startYachtBattle } from '../src/yacht-combat.ts'
 
@@ -227,6 +228,7 @@ test('fork rules give distinct choices on floors 2–10, preserve the rest and b
   for (let seed = 0; seed < 4096; seed++) {
     const map = generateAscentMap(seed, 4)
     assert.deepEqual(generateAscentMap(seed, 4), map)
+    assert.deepEqual(generateAscentMap(seed, CURRENT_MAP_RULES).nodes, map.nodes)
     const merchant = map.nodes.filter(({ kind }) => kind === 'shop')
     assert.equal(merchant.length, 1)
     merchantFloors.add(merchant[0].floor)
@@ -244,6 +246,26 @@ test('fork rules give distinct choices on floors 2–10, preserve the rest and b
   }
   assert.deepEqual([...merchantFloors].sort(), [6, 7, 8])
   assert(eventFloors.size > 2)
+})
+
+test('new map rules remove unlock damage while preserving elite and boss stats and bandage healing', () => {
+  const rules = CURRENT_MAP_RULES
+  const map = generateAscentMap(0, rules)
+  for (const node of map.nodes) {
+    const enemy = enemyForMapNode(node, rules)
+    if (!enemy) continue
+    const previous = enemyForMapNode(node, 4)
+    assert.equal(previous.attackPerUnlock, Number(node.kind === 'elite' || node.kind === 'boss'))
+    assert.equal(enemy.attackPerUnlock, 0)
+    assert.equal(enemy.hp, previous.hp)
+    assert.equal(enemy.attackGrowth, previous.attackGrowth)
+    for (let turn = 1; turn <= 15; turn++) {
+      const { matches: _current, ...intent } = enemyIntentAt({ turn, enemyIntents: enemy.intents })
+      const { matches: _previous, ...previousIntent } = enemyIntentAt({ turn, enemyIntents: previous.intents })
+      assert.deepEqual(intent, previousIntent)
+    }
+  }
+  assert.equal(healingFor('bandage', undefined, rules), healingFor('bandage', undefined, 4))
 })
 
 test('fork choices and visited rounds survive resuming without revealing or rerolling a branch', () => {

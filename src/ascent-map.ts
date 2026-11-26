@@ -3,8 +3,8 @@ import { ASCENT_ENEMIES, MAP_ENEMIES } from './enemy-roster.ts'
 import type { AscentEnemyId, enemyForFight } from './enemy-roster.ts'
 
 export const MAP_RULES = 1
-export type MapRules = 1 | 2 | 3 | 4
-export const CURRENT_MAP_RULES = 4
+export type MapRules = 1 | 2 | 3 | 4 | 5
+export const CURRENT_MAP_RULES = 5
 export const MAP_START = 0
 export const MAP_FLOORS = 12
 export const MAP_FIGHTS = MAP_FLOORS - 1
@@ -65,7 +65,7 @@ export function generateAscentMap(seed: number, rules: MapRules = MAP_RULES): As
   let eliteIndex = 0
   const nodes = stageOneFloors.flatMap((types, index) => {
     const floor = index + 1
-    const variants: readonly MapNodeKind[] = rules === 4 && types.length === 2 ? forkKinds(seed, floor)
+    const variants: readonly MapNodeKind[] = rules >= 4 && types.length === 2 ? forkKinds(seed, floor)
       : rules >= 2 && (floor === 4 || floor === 9) ? ['fight', 'event']
       : rules >= 2 && floor === 7 ? ['fight', 'shop'] : types
     const ordered = draw(seed, floor, 81) % 2 ? [...variants].reverse() : variants
@@ -81,9 +81,9 @@ export function generateAscentMap(seed: number, rules: MapRules = MAP_RULES): As
         : replacement === 1 && floor === 10 && kind === 'elite' ? 'iron-knight' : baseEnemy
       const nextBase = (floor + 1) * 4
       const next = floor === MAP_FLOORS ? [] : floor >= 10 ? [nextBase + 2]
-        : rules === 4 || lane === 2 ? [nextBase, nextBase + 1]
+        : rules >= 4 || lane === 2 ? [nextBase, nextBase + 1]
           : lane === (floor + diagonal) % 2 ? [nextBase, nextBase + 1] : [nextBase + lane]
-      const eventOrder = rules === 4 ? draw(seed, floor, 87) : draw(seed, 0, 87) + Number(floor === 9)
+      const eventOrder = rules >= 4 ? draw(seed, floor, 87) : draw(seed, 0, 87) + Number(floor === 9)
       const event = kind === 'event' ? MAP_EVENTS[eventOrder % MAP_EVENTS.length] : undefined
       return { id, floor, lane, kind, ...(enemyId && { enemyId }), ...(event && { event }), battleSeed: draw(seed, id, 83), next }
     })
@@ -108,14 +108,17 @@ export function mapPathIsValid(map: AscentMap, path: readonly number[]): boolean
 export function enemyForMapNode(node: MapNode, rules: MapRules): ReturnType<typeof enemyForFight> | undefined {
   const enemy = roster.find(({ id }) => id === node.enemyId)
   if (!enemy) return undefined
-  if (node.kind === 'boss') return rules >= 2 ? { ...enemy, hp: 84 } : enemy
+  const boss = node.kind === 'boss'
   const elite = node.kind === 'elite'
-  const earlyElite = rules === 4 && elite && node.floor <= 5
+  // Rules 1–4 keep the unlock bonus when an existing ascent enters another battle.
+  const attackPerUnlock = rules <= 4 ? Number(elite || boss) : 0
+  if (boss) return { ...enemy, hp: rules >= 2 ? 84 : enemy.hp, attackPerUnlock }
+  const earlyElite = rules >= 4 && elite && node.floor <= 5
   const hp = enemy.hp - (earlyElite ? 4 : 0) + 2 * Math.floor((node.floor - (elite ? 5 : 1)) / 2)
   const firstHitAdjustment = Number(node.floor >= 9) - (elite ? 3 : 0) - (earlyElite ? 2 : 0)
   const first = enemy.intents.find((intent) => intent.matches(1))!
   const intents = firstHitAdjustment && first.hits.length
     ? [{ ...first, matches: (turn: number) => turn === 1, hits: [Math.max(1, first.hits[0] + firstHitAdjustment), ...first.hits.slice(1)] }, ...enemy.intents]
     : enemy.intents
-  return { ...enemy, hp, intents, attackPerUnlock: Number(elite) }
+  return { ...enemy, hp, intents, attackPerUnlock }
 }

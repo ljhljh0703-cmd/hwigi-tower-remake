@@ -1,0 +1,102 @@
+{
+  "version": 2,
+  "selected": [
+    0
+  ],
+  "ascent": {
+    "seed": 0,
+    "fight": 10,
+    "unlocks": [
+      "straight",
+      "triple"
+    ],
+    "newUnlock": null,
+    "battle": {
+      "turn": 1,
+      "dice": [
+        6,
+        5,
+        2,
+        1
+      ],
+      "slots": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "rerolled": false,
+      "phase": "assign",
+      "seed": 3167199304,
+      "playerHp": 18,
+      "enemyHp": 34,
+      "enemyAttackBuff": 2,
+      "awakened": false,
+      "lastExchange": null,
+      "enemyAttackGrowth": 0,
+      "extraRerollAvailable": true,
+      "perk": {
+        "kind": "counter",
+        "rewards": [
+          {
+            "damage": 29,
+            "joint": false
+          },
+          {
+            "damage": 30,
+            "joint": false
+          },
+          {
+            "damage": 31,
+            "joint": false
+          },
+          {
+            "damage": 32,
+            "joint": false
+          },
+          {
+            "damage": 6,
+            "joint": true
+          },
+          {
+            "damage": 8,
+            "joint": true
+          }
+        ],
+        "growth": 112
+      },
+      "fourthDieUnlocked": true,
+      "loot": {
+        "items": {
+          "buckle": 8,
+          "wedge": 1
+        },
+        "prep": {},
+        "prepared": {},
+        "shards": {},
+        "equipped": [],
+        "acquired": [],
+        "spent": [],
+        "spentItems": {}
+      }
+    },
+    "route": {
+      "rules": 4,
+      "completed": [
+        6,
+        9,
+        13,
+        17,
+        20,
+        24,
+        28,
+        33,
+        36
+      ],
+      "node": 40,
+      "screen": "battle",
+      "acquired": [],
+      "coins": 9
+    }
+  }
+}

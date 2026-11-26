@@ -75,7 +75,7 @@ export function treasureCost(node: MapNode | undefined, choice: Treasure): numbe
 }
 
 export function healingFor(choice: Treasure, node?: MapNode, rules?: MapRules): number {
-  return choice === 'bandage' ? ((rules === 3 || rules === 4) ? MAP_THREE_BANDAGE_HEAL : BANDAGE_HEAL)
+  return choice === 'bandage' ? (rules !== undefined && rules >= 3 ? MAP_THREE_BANDAGE_HEAL : BANDAGE_HEAL)
     : choice === 'medicine' ? 3 : choice === 'kit' ? (node?.kind === 'shop' ? SHOP_HEAL : REST_HEAL) : 0
 }
 
