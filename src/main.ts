@@ -6,7 +6,7 @@ import type { Ascent } from './ascent.ts'
 import { CURRENT_MAP_RULES, MAP_ENEMY_BADGES, MAP_FLOORS } from './ascent-map.ts'
 import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, writeAscentSave } from './ascent-save.ts'
 import { Arena } from './arena.ts'
-import { GOLEM_PARRY } from './golem-parry.ts'
+import { GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
 import type { BattleHit } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
 import { BATTLE_GUIDE } from './battle-guide.ts'
@@ -246,6 +246,8 @@ let stopDiceMotion: (() => void) | undefined
 let stopPlacementMotion: (() => void) | undefined
 const selected = new Set<number>()
 const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
+const counterPanelHome = ui.counterPanel.parentElement!
+const counterPanelNext = ui.counterPanel.nextElementSibling
 const sound = new BattleAudio()
 const systemMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 let settings = loadGameSettings()
@@ -751,7 +753,7 @@ function updateEscortVital(hp: number) {
 function showParry(authored = false) {
   ui.parry.classList.toggle('sr-only', authored)
   ui.parry.hidden = false
-  sound.play('perfect-block')
+  sound.play('perfect-block', authored ? .94 : 1, authored ? .32 : .19)
 }
 
 function wait(milliseconds: number): Promise<void> {
@@ -869,7 +871,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     showParry(golemParry)
     if (golemParry) {
       await at(GOLEM_PARRY.landing)
-      if (!reducedMotion()) sound.play('stone-hit', .76)
+      if (!reducedMotion()) sound.play('stone-hit', .84, .13)
       await at(GOLEM_PARRY.end)
     } else {
       await wait(parryDuration)
@@ -1363,6 +1365,13 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.planning.hidden = !showActions || phase !== 'assign'
   ui.tuneDown.disabled = tuneYachtDie(battle, -1) === battle
   ui.tuneUp.disabled = tuneYachtDie(battle, 1) === battle
+  const fieldCounter = showActions && phase === 'counter' && arena.golemParryHeld && !battle.loot?.counter
+  if (fieldCounter && ui.counterPanel.parentElement !== ui.encounter) ui.encounter.append(ui.counterPanel)
+  if (!fieldCounter && ui.counterPanel.parentElement !== counterPanelHome) {
+    counterPanelHome.insertBefore(ui.counterPanel, counterPanelNext)
+  }
+  ui.counterPanel.classList.toggle('counter-over-field', fieldCounter)
+  ui.intent.classList.toggle('parry-in-progress', fieldCounter)
   roulette.setVisible(showActions && phase === 'counter' ? yachtCounterRewards(battle) : null, companionAwake)
   if (showActions && phase === 'counter') {
     ui.counter.hidden = Boolean(battle.loot?.counter)
@@ -1676,7 +1685,8 @@ ui.resolve.addEventListener('click', async () => {
     render('normal', next.battle.turn !== before.turn)
     if (phase === 'won') sound.play('victory')
     if (phase === 'lost') sound.play('defeat')
-    focusPhase()
+    if (phase === 'counter' && arena.golemParryHeld) void playCounter()
+    else focusPhase()
   }
 })
 let counterBusy = false
@@ -1702,10 +1712,13 @@ async function playCounter(choice?: CounterChoice) {
   ui.treasureControls.hidden = true
 
   const animate = !reducedMotion()
+  const fieldCounter = animate && arena.golemParryHeld
   if (next.perk?.kind === 'counter') renderActivePerk(next)
   if (!choice) {
-    await roulette.reveal(reward, animate, () => sound.play('roulette-tick'), animationSpeed())
+    if (fieldCounter) ui.counter.hidden = true
+    await roulette.reveal(reward, animate, () => sound.play('roulette-tick'), animationSpeed() * (fieldCounter ? 1.48 : 1))
     sound.play('roulette-stop')
+    if (fieldCounter && !pending) await wait(110)
   }
   if (pending) {
     ascent = checkpoint
@@ -1714,15 +1727,19 @@ async function playCounter(choice?: CounterChoice) {
     focusPhase()
     return
   }
-  if (companionJoint && !reducedMotion()) {
+  const choreographed = fieldCounter && !companionJoint && !escortDealt && dealt > 0 && arena.beginGolemCounter(next.enemyHp === 0)
+  if (choreographed) {
+    ui.counterPanel.hidden = true
+    await wait(GOLEM_COUNTER.contact)
+  } else if (companionJoint && animate) {
     ui.companionFlight.style.setProperty('--flight-duration', `${effectDuration(companionFlightDuration)}ms`)
     ui.companionFlight.hidden = false
     await wait(companionImpactTime)
-  } else if ((dealt || escortDealt) && !reducedMotion()) {
+  } else if ((dealt || escortDealt) && animate) {
     arena.counterStrike()
     await wait(128)
   }
-  clearExchange()
+  if (!choreographed) clearExchange()
   if (escortDealt > 0) {
     const hit = { target: 'escort', damage: escortDealt, defeated: !next.escort } as const
     arena.contact([hit], { counter: true })
@@ -1733,16 +1750,18 @@ async function playCounter(choice?: CounterChoice) {
   }
   if (dealt > 0) {
     const hit = { target: 'enemy', damage: dealt, defeated: next.enemyHp === 0 } as const
-    arena.contact([hit], { counter: true })
+    if (!choreographed) arena.contact([hit], { counter: true })
     showDamage(hit)
-    sound.play('stone-hit')
+    if (choreographed) ui.feedback.textContent = `반격 피해 ${dealt}`
+    sound.play('stone-hit', choreographed ? .80 : 1, choreographed ? .31 : .19)
   }
   updateVital(ui.enemyHp, ui.enemyTotal, next.enemyHp)
   if (!ui.companionFlight.hidden) {
     await wait(companionFlightDuration - companionImpactTime)
     ui.companionFlight.hidden = true
   }
-  await wait(reducedMotion() || !(dealt || escortDealt) ? 320 : damageDuration)
+  await wait(choreographed ? GOLEM_COUNTER.end - GOLEM_COUNTER.contact : reducedMotion() || !(dealt || escortDealt) ? 320 : damageDuration)
+  if (choreographed) clearExchange()
   arena.finishStrike()
   ascent = checkpoint
   counterBusy = false

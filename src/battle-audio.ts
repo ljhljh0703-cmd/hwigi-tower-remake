@@ -67,11 +67,11 @@ export class BattleAudio {
     if (this.effectsGain) this.effectsGain.gain.value = Number(this.effects)
   }
 
-  play(effect: Effect, pitch = 1) {
+  play(effect: Effect, pitch = 1, volume = effect === 'roulette-tick' ? .12 : .19) {
     if (!this.context || !this.effects || this.needsResume) return
     const revision = this.revision
     void this.load(effect).then((buffer) => {
-      if (revision === this.revision) this.start(buffer, effect === 'roulette-tick' ? 0.12 : 0.19, false, pitch)
+      if (revision === this.revision) this.start(buffer, volume, false, pitch)
     }).catch(() => {})
   }
 

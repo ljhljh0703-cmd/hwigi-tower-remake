@@ -1137,6 +1137,29 @@ button.die:disabled { background: transparent; }
   background: var(--stone-bed);
 }
 
+#counter-panel.counter-over-field {
+  position: absolute;
+  z-index: 3;
+  inset: 10px 0 auto;
+  width: clamp(82px, 16dvh, 126px);
+  min-block-size: 0;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+.counter-over-field .roulette-stage { width: 100%; }
+.counter-over-field .roulette-label span { font-size: .72rem; }
+.counter-over-field .roulette-label .icon { width: 11px; height: 11px; }
+.counter-over-field #counter { min-block-size: 30px; }
+.counter-over-field #counter-result {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
 .roulette-stage { position: relative; width: min(100%, 218px); aspect-ratio: 1; }
 
 #counter-wheel {

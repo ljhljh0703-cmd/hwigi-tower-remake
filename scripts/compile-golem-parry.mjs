@@ -6,7 +6,7 @@ assert(sharpPath, 'Pass the sharp module path from the art workstation')
 const sharp = createRequire(import.meta.url)(sharpPath)
 const root = import.meta.dirname + '/..'
 const open = (name) => sharp(root + '/art-source/' + name + '.png').ensureAlpha().raw().toBuffer({ resolveWithObject: true })
-const [keys, inbetweens] = await Promise.all([open('golem-parry-poses'), open('golem-parry-inbetweens')])
+const [keys, inbetweens, counter] = await Promise.all([open('golem-parry-poses'), open('golem-parry-inbetweens'), open('golem-counter-poses')])
 assert.deepEqual([keys.info.width, keys.info.height, inbetweens.info.width, inbetweens.info.height], [1448, 1086, 1448, 1086])
 const size = { width: 72, height: 44, baseline: 40, heroAnchor: 18, golemAnchor: 52 }
 const palette = ['252522', '343430', '56534b', '898378', 'b2a691', 'e1d8c8', '40536d']
@@ -26,8 +26,10 @@ const drawings = [
   ...[[128, 629, 416], [89, 570, 416], [151, 557, 387], [141, 562, 387]].map(
     ([hero, golem, ground], i) => cel(inbetweens, 2, 724, 543, 7, i, ground, hero, golem)),
 ]
-const width = size.width * drawings.length
-const atlas = Buffer.alloc(width * size.height * 2 * 4)
+const counterDrawings = [
+  [75, 332], [70, 332], [77, 333], [79, 334], [78, 332], [77, 334], [72, 360], [72, 373],
+].map(([hero, golem], i) => cel(counter, 4, 443, 443, 5, i, i < 4 ? 393 : 394, hero, golem))
+assert.deepEqual([counter.info.width, counter.info.height], [1774, 887])
 
 function closest(r, g, b) {
   if (b - r > 15 && b - g > 7) return palette[6]
@@ -77,38 +79,45 @@ function splitCell({ left, top, data, info, tileWidth, tileHeight, ground, seam 
   return masks
 }
 
-for (const [index, drawing] of drawings.entries()) {
-  const { data, info, left, top, hero, golem, tileWidth, pixel, ground } = drawing
-  const masks = splitCell(drawing, index)
-  for (let y = 0; y < size.height; y++) for (let x = 0; x < tileWidth / pixel; x++) {
-    const sy = ground + (y - size.baseline) * pixel
-    const swatch = [{ count: 0, r: 0, g: 0, b: 0 }, { count: 0, r: 0, g: 0, b: 0 }]
-    for (let dy = 0; dy < pixel; dy++) for (let dx = 0; dx < pixel; dx++) {
-      const sx = x * pixel + dx
-      const actor = masks[(sy + dy) * tileWidth + sx]
-      if (sx >= tileWidth || !actor) continue
-      const from = ((top + sy + dy) * info.width + left + sx) * 4
-      const color = swatch[actor - 1]
-      color.count++
-      color.r += data[from]
-      color.g += data[from + 1]
-      color.b += data[from + 2]
+async function compile(name, drawings) {
+  const width = size.width * drawings.length
+  const atlas = Buffer.alloc(width * size.height * 2 * 4)
+  for (const [index, drawing] of drawings.entries()) {
+    const { data, info, left, top, hero, golem, tileWidth, pixel, ground } = drawing
+    const masks = splitCell(drawing, index)
+    for (let y = 0; y < size.height; y++) for (let x = 0; x < tileWidth / pixel; x++) {
+      const sy = ground + (y - size.baseline) * pixel
+      const swatch = [{ count: 0, r: 0, g: 0, b: 0 }, { count: 0, r: 0, g: 0, b: 0 }]
+      for (let dy = 0; dy < pixel; dy++) for (let dx = 0; dx < pixel; dx++) {
+        const sx = x * pixel + dx
+        const actor = masks[(sy + dy) * tileWidth + sx]
+        if (sx >= tileWidth || !actor) continue
+        const from = ((top + sy + dy) * info.width + left + sx) * 4
+        const color = swatch[actor - 1]
+        color.count++
+        color.r += data[from]
+        color.g += data[from + 1]
+        color.b += data[from + 2]
+      }
+      const actor = Number(swatch[1].count > swatch[0].count)
+      const { count, r, g, b } = swatch[actor]
+      if (count < pixel * pixel * .43) continue
+      const rootX = Math.round((actor === 0 ? hero : golem) / pixel)
+      const anchor = actor === 0 ? size.heroAnchor : size.golemAnchor
+      const col = anchor + x - rootX
+      assert.ok(col >= 0 && col < size.width, 'Drawing exceeds its cell ' + (index + 1))
+      const to = ((actor * size.height + y) * width + index * size.width + col) * 4
+      const color = closest(r / count * 1.06, g / count * 1.06, b / count * 1.06)
+      atlas[to] = color[0]
+      atlas[to + 1] = color[1]
+      atlas[to + 2] = color[2]
+      atlas[to + 3] = 255
     }
-    const actor = Number(swatch[1].count > swatch[0].count)
-    const { count, r, g, b } = swatch[actor]
-    if (count < pixel * pixel * .43) continue
-    const rootX = Math.round((actor === 0 ? hero : golem) / pixel)
-    const anchor = actor === 0 ? size.heroAnchor : size.golemAnchor
-    const col = anchor + x - rootX
-    assert.ok(col >= 0 && col < size.width, 'Drawing exceeds its cell ' + (index + 1))
-    const to = ((actor * size.height + y) * width + index * size.width + col) * 4
-    const color = closest(r / count * 1.06, g / count * 1.06, b / count * 1.06)
-    atlas[to] = color[0]
-    atlas[to + 1] = color[1]
-    atlas[to + 2] = color[2]
-    atlas[to + 3] = 255
   }
+  await sharp(atlas, { raw: { width, height: size.height * 2, channels: 4 } })
+    .png({ palette: true, colours: 8, dither: 0 })
+    .toFile(root + '/public/art/' + name + '.png')
 }
-await sharp(atlas, { raw: { width, height: size.height * 2, channels: 4 } })
-  .png({ palette: true, colours: 8, dither: 0 })
-  .toFile(root + '/public/art/golem-parry.png')
+
+await compile('golem-parry', drawings)
+await compile('golem-counter', counterDrawings)

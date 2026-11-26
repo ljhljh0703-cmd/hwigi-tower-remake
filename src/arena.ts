@@ -3,7 +3,7 @@ import type { Exchange } from './combat.ts'
 import type { AscentEnemyId } from './enemy-roster.ts'
 import { yachtAllocationTotals } from './yacht-combat.ts'
 import type { YachtBattle } from './yacht-combat.ts'
-import { drawGolemParry, GOLEM_PARRY } from './golem-parry.ts'
+import { drawGolemCounter, drawGolemParry, GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
 
 // Horizontal reach, in source pixels, includes the opaque bounds of every pose.
 type Sprite = {
@@ -168,6 +168,7 @@ export class Arena {
   private enemyId: AscentEnemyId = 'thorns'
   private strike?: { start: number }
   private golemParry?: number
+  private golemCounter?: { start: number; defeated: boolean }
   private motion?: { start: number; duration: number; hero: readonly PoseFrame[]; enemy: readonly PoseFrame[]; escort: readonly PoseFrame[] }
   private animation = 0
   private animationSpeed = 1
@@ -387,6 +388,14 @@ export class Arena {
       context.translate(Math.round(Math.sin(now / 29) * Math.min(10 * strength, this.shake)), 0)
     }
     const parryArt = this.images.get(GOLEM_PARRY.art)
+    const counterArt = this.images.get(GOLEM_COUNTER.art)
+    if (this.golemCounter && parryArt?.naturalWidth && counterArt?.naturalWidth) {
+      const elapsed = Math.min(GOLEM_COUNTER.end, (now - this.golemCounter.start) * this.animationSpeed)
+      drawGolemCounter(context, counterArt, parryArt, elapsed, this.floor, this.density,
+        this.placements.get(hero)!, this.placements.get(golem)!, this.golemCounter.defeated)
+      context.restore()
+      return
+    }
     const restingGolem = this.enemyId === 'thorns' && battle.playerHp > 0 && battle.enemyHp > 0
       && !motion && !strike && !reaction && !this.impacts.length
     if (parryArt?.naturalWidth && (this.golemParry !== undefined || restingGolem)) {
@@ -427,13 +436,14 @@ export class Arena {
       this.frozen = undefined
     }
     const parryIsPlaying = this.golemParry !== undefined && (now - this.golemParry) * this.animationSpeed < GOLEM_PARRY.end
+    const counterIsPlaying = this.golemCounter && (now - this.golemCounter.start) * this.animationSpeed < GOLEM_COUNTER.end
     if (!this.frozen && this.motion && (now - this.motion.start) * this.animationSpeed >= this.motion.duration) this.motion = undefined
     if (this.strike && (now - this.strike.start) * this.animationSpeed >= 288 && !this.frozen) this.strike = undefined
     if (this.reaction && now >= this.reaction.until) this.reaction = undefined
     this.shadows = this.shadows.filter(({ at }) => (now - at) * this.animationSpeed < 80 + shadowFade)
     this.impacts = this.impacts.filter((hit) => now - hit.start < (this.reducedMotion ? 144 : debrisDuration / this.animationSpeed))
     this.draw(now)
-    if (parryIsPlaying || this.motion || this.strike || this.impacts.length || this.frozen || this.reaction || this.shadows.length || this.trauma) {
+    if (parryIsPlaying || counterIsPlaying || this.motion || this.strike || this.impacts.length || this.frozen || this.reaction || this.shadows.length || this.trauma) {
       this.animation = requestAnimationFrame(this.animate)
     }
   }
@@ -445,6 +455,7 @@ export class Arena {
     if (reducedMotion) {
       this.trauma = 0
       this.golemParry = undefined
+      this.golemCounter = undefined
       this.motion = undefined
       this.reaction = undefined
       this.strike = undefined
@@ -456,6 +467,7 @@ export class Arena {
 
   clearContact() {
     this.golemParry = undefined
+    this.golemCounter = undefined
     this.impacts = []
     this.reaction = undefined
     this.frozen = undefined
@@ -516,6 +528,17 @@ export class Arena {
     this.playPoses(heroFrames, enemyFrames)
   }
 
+  get golemParryHeld() {
+    return this.golemParry !== undefined && !this.reducedMotion
+  }
+
+  beginGolemCounter(defeated: boolean) {
+    if (!this.golemParryHeld || !this.images.get(GOLEM_COUNTER.art)?.naturalWidth) return false
+    this.golemCounter = { start: performance.now(), defeated }
+    this.restartAnimation()
+    return true
+  }
+
   counterStrike() {
     if (this.reducedMotion) return
     this.golemParry = undefined
@@ -555,7 +578,10 @@ export class Arena {
     this.load('chamber')
     this.loadSprite(hero)
     this.loadSprite(ENEMY_SPRITES[enemyId])
-    if (enemyId === 'thorns') this.load(GOLEM_PARRY.art)
+    if (enemyId === 'thorns') {
+      this.load(GOLEM_PARRY.art)
+      this.load(GOLEM_COUNTER.art)
+    }
     if (enemyId === 'escort') this.loadSprite(ESCORT_SPRITE)
     this.draw()
   }
