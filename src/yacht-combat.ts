@@ -18,6 +18,7 @@ import { adjustItemDie, boostSevenAllocation, forecastSevenTreasure, hasIncomple
 import { SEVEN_ITEM_VALUES } from './item-values.ts'
 import { bloodDieFor, bloodHealing, canPlaceMetaDie, linkedFaces, metaAllocationSlots } from './meta-combat.ts'
 import type { MetaTurn } from './meta-combat.ts'
+import { META_VALUES } from './meta-unlocks.ts'
 import { canSelectItemDie } from './item-effects.ts'
 
 export type Hand = 'triple' | 'straight'
@@ -108,7 +109,7 @@ export function startYachtBattle(
     playerHp,
     ...(enemy && { enemyHp: enemy.hp, enemyAttackGrowth: enemy.attackGrowth }),
     enemyAttackBuff,
-    extraRerollAvailable: extraReroll,
+    extraRerollAvailable: extraReroll || Boolean(itemsSeven && (perk?.kind === 'early-reroll' || perk?.kind === 'counter-recover')),
     ...(perk && { perk }),
     ...(fourthDie && { fourthDieUnlocked: true }),
     ...(loot && { loot }),
@@ -152,7 +153,9 @@ export function rerollYachtDice(battle: YachtBattle, indices: readonly number[],
       const value = draw(battle.seed, battle.turn, channel)
       const parity = index === battle.dice.length - 1 && battle.fourthDieUnlocked && battle.loot?.equipped.includes('heart-die')
         ? battle.loot.heartParity : undefined
-      return parity === 'odd' ? 5 : parity === 'even' ? 4 + 2 * (value % 2) : 4 + value % 3
+      const choices = dieFaces.filter((face) => face >= META_VALUES.chargeMin &&
+        (!parity || face % 2 === Number(parity === 'odd')))
+      return choices[value % choices.length]
     }
     const next = pair ? pair[drawIndex++] : roll(battle.seed, battle.turn, channels[drawIndex++])
     return battle.fourthDieUnlocked && index === battle.dice.length - 1 ? companionFace(battle, next) : next
@@ -189,6 +192,7 @@ export function spendExtraReroll(battle: YachtBattle, index: number): YachtBattl
   if (!canUseExtraReroll(battle) || !canReroll(battle, index)) return battle
   const dice = [...battle.dice]
   dice[index] = roll(battle.seed, battle.turn, EXTRA_REROLL_CHANNEL)
+  if (battle.perk?.kind === 'early-reroll' && !battle.rerolled) dice[index] = Math.min(6, dice[index] + META_VALUES.earlyPips)
   if (battle.fourthDieUnlocked && index === dice.length - 1) dice[index] = companionFace(battle, dice[index])
   return { ...battle, dice, extraRerollAvailable: false, extraRerollSpent: true }
 }
@@ -264,6 +268,10 @@ function plannedAllocation(battle: YachtBattle, slots = battle.slots, dice = bat
     }
   } else if (perk?.kind === 'shield' && totals.attack > 0) {
     totals.attack += perk.bonus
+  } else if (perk?.kind === 'join-slots' && splitStraight(battle, slots)) {
+    totals.attack += META_VALUES.joinAttack
+  } else if (perk?.kind === 'charge-roll' && battle.metaTurn?.chargeDie !== undefined && slots[battle.metaTurn.chargeDie] === 'attack') {
+    totals.attack += META_VALUES.chargeAttack
   }
   const bladeMultiplier = perk?.kind === 'blade' && perk.charge >= START_PERKS.blade.threshold
     ? START_PERKS.blade.multiplier : undefined
@@ -376,9 +384,10 @@ function turnHand(battle: YachtBattle, dice: readonly number[], counter: boolean
   return splitStraight(battle) ? { hand: 'straight', slot: 'attack' } : null
 }
 
-function splitStraight(battle: YachtBattle) {
-  if (battle.perk?.kind !== 'join-slots' || !battle.slots.includes('attack') || !battle.slots.includes('guard')) return false
-  return classifyYachtHand(battle, battle.dice.filter((_, index) => battle.slots[index] !== null)) === 'straight'
+function splitStraight(battle: YachtBattle, slots = battle.slots) {
+  if (battle.perk?.kind !== 'join-slots' || !slots.includes('attack') || !slots.includes('guard')) return false
+  if (classifyYachtHand(battle, battle.dice.filter((_, index) => slots[index] !== null)) !== 'straight') return false
+  return !combatSlots.some((slot) => classifyYachtHand(battle, battle.dice.filter((_, index) => slots[index] === slot)) === 'straight')
 }
 
 function draftHand(battle: YachtBattle, dice: readonly number[], counter: boolean): UsedHand | null {
@@ -646,9 +655,10 @@ function settleSevenCounter(battle: YachtBattle, state: TreasureState, rolled: C
     loot = spendSevenArtifact(loot, 'adjacent-needle')
   }
   const crown = battle.bossRelic?.id === 'brake-crown' && !battle.crownUsed
-  const forfeit = crown || choice === 'recover-reroll'
-  let counter = { ...rolled, damage: forfeit ? 0 : counterDamage(battle, choice === 'horn' ? hornCounterDamage(battle) : rolled.damage),
-    joint: !forfeit && (choice === 'horn' || rolled.joint) }
+  const recovery = choice === 'recover-reroll'
+  const damage = counterDamage(battle, choice === 'horn' ? hornCounterDamage(battle) : rolled.damage)
+  let counter = { ...rolled, damage: crown ? 0 : Math.max(0, damage - (recovery ? META_VALUES.recoveryCost : 0)),
+    joint: !crown && !recovery && (choice === 'horn' || rolled.joint) }
   if (choice === 'mirror') {
     loot = { ...spendSevenArtifact(loot, 'mirror'), mirrorDamage: mirrorCounterDamage(battle, counter.damage) }
     counter = { ...counter, damage: 0, joint: false }

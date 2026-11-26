@@ -33,7 +33,7 @@ import {
 import type { CounterResult, Exchange, Gimmick, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERK_CARDS, START_PERKS } from './perks.ts'
 import type { Parity, StartPerk } from './perks.ts'
-import { META_ARTIFACTS, META_PERKS } from './meta-unlocks.ts'
+import { isMetaArtifact, META_ARTIFACTS, META_PERKS, META_VALUES } from './meta-unlocks.ts'
 import { loadMetaProgress, markMetaOffers, META_CARD_COUNT, META_SAVE_KEY, openMetaStage, resetMetaProgress, resumeMetaRun, snapshotMeta, writeMetaProgress } from './meta-progress.ts'
 import { metaGuideContent, metaRevealContent } from './meta-view.ts'
 import { bloodDieFor, bloodHealing, canPlaceMetaDie, draftMetaDie, transferMetaPip } from './meta-combat.ts'
@@ -641,17 +641,22 @@ function refreshDice(battle: YachtBattle, { attack, guard }: SlotTotals, unlocks
     ? `다시 굴리기, 체력 ${rerollCost} 소모`
     : `다시 굴리기 ${freeRolls}회`)
   ui.reroll.title = '다시 굴리기'
-  const rerollLocked = !unlocks.includes('straight')
+  const hasStraight = unlocks.includes('straight')
+  const perkReroll = !hasStraight && (battle.perk?.kind === 'early-reroll' || battle.perk?.kind === 'counter-recover') &&
+    (battle.extraRerollAvailable || battle.extraRerollSpent)
+  const rerollLocked = !hasStraight && !perkReroll
   ui.extraReroll.classList.toggle('unlock-hint', rerollLocked)
   ui.extraReroll.disabled = selected.size !== 1 || rerollable.length !== 1 || !canUseExtraReroll(battle)
   const extra = Number(battle.extraRerollAvailable)
   const straight = pendingUnlock?.straight
   const sealedStraight = rerollLocked && straight?.blocked === 'seal'
-  const rerollStatus = !rerollLocked ? '열림' : sealedStraight ? '봉인됨' : straight?.progress === 3 ? '준비' : '잠김'
+  const rerollStatus = perkReroll ? '특전' : !rerollLocked ? '열림' : sealedStraight ? '봉인됨' : straight?.progress === 3 ? '준비' : '잠김'
   ui.extraReroll.innerHTML = sealedStraight ? icon('seal')
     : `${icon(unlockInfo.straight.icon)}${rerollLocked ? '' : extra}<span class="reroll-state">${rerollStatus}</span>`
   const straightHint = renderUnlockProgress(ui.extraReroll, rerollLocked && !sealedStraight ? straight : undefined)
-  const rerollLabel = rerollLocked ? `재굴림 ${rerollStatus}, 같은 칸에 이어지는 눈 셋${straightHint}` : `재굴림 열림, 이번 전투 ${extra}회 남음`
+  const straightRule = battle.perk?.kind === 'join-slots' ? '한 칸 또는 두 칸에 이어지는 눈 셋' : '같은 칸에 이어지는 눈 셋'
+  const rerollLabel = rerollLocked ? `재굴림 ${rerollStatus}, ${straightRule}${straightHint}`
+    : `${perkReroll ? '특전 재굴림' : '재굴림 열림'}, 이번 전투 ${extra}회 남음`
   ui.extraReroll.setAttribute('aria-label', rerollLabel)
   ui.extraReroll.title = rerollLabel
   ui.resolve.disabled = !planning || !canResolveYachtTurn(battle)
@@ -1240,7 +1245,7 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
       const rarity = treasureRarity(reward)
       const isHeal = reward === 'bandage' || reward === 'kit' || reward === 'medicine'
       const value = isHeal ? `+${healingForRun(run, reward)}` : undefined
-      const type = isArtifact(reward) ? '유물' : isHeal || isConsumable(reward) ? '일회용' : '준비'
+      const type = isMetaArtifact(reward) ? '해금 유물' : isArtifact(reward) ? '유물' : isHeal || isConsumable(reward) ? '일회용' : '준비'
       const grade = rarity === 'rare' ? '희귀' : '일반'
       card.classList.add('item-seven-card')
       card.dataset.rarity = rarity
@@ -1629,7 +1634,8 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
       const beside = rewards[(loot.counter.slot + 1) % rewards.length]
       ui.treasureControls.append(control(`옆칸 바늘로 피해 ${beside.damage}`, `${itemIcon(META_ARTIFACTS['adjacent-needle'].icon)}→${beside.damage}`, () => void playCounter('adjacent')))
     }
-    if (choices.includes('recover-reroll')) ui.treasureControls.append(control('재정비로 해금 재굴림 되찾기', `${icon('wheel')}0 → ${icon('reroll-die')}+1`, () => void playCounter('recover-reroll')))
+    if (choices.includes('recover-reroll')) ui.treasureControls.append(control('재정비로 해금 재굴림 되찾기',
+      `${icon('wheel')}${Math.max(0, damage - META_VALUES.recoveryCost)} · ${icon('reroll-die')}+1`, () => void playCounter('recover-reroll')))
   } else if (battle.itemsSeven && loot && battle.phase === 'assign') {
     if (battle.perk?.kind === 'reverse-guard' && !battle.perk.spent && !itemControl) {
       const target = selected.size === 1 ? [...selected][0] : battle.metaTurn?.reverseDie

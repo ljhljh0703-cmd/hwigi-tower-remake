@@ -1,11 +1,11 @@
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
-import { availableMapNodes, enterMapNode } from '../src/ascent.ts'
+import { availableMapNodes, enterMapNode, rewardOffers } from '../src/ascent.ts'
 import { ASCENT_SAVE_KEY } from '../src/ascent-save.ts'
-import { META_SAVE_KEY } from '../src/meta-progress.ts'
+import { ALL_META_FLOORS, META_SAVE_KEY } from '../src/meta-progress.ts'
 import { isMetaPerk } from '../src/meta-unlocks.ts'
-import { offerPerks } from '../src/perks.ts'
+import { offerPerks, START_PERK_CARDS } from '../src/perks.ts'
 import { forecastYacht, resolveYachtTurn } from '../src/yacht-combat.ts'
 import { checkpoint, mapBefore } from './rules-six-fixtures.mjs'
 
@@ -81,12 +81,66 @@ test('새 층 첫 입장, 저장 재진입, 결과에서 여러 쌍 공개와 �
   await shot(page, info, 'result-unlocked-cards', reveal)
   await page.locator('#climb-again').tap()
   await expect(page.locator('#boss-relic-slot')).toBeHidden()
+  const startingCards = page.locator('#perk-choices .perk-choice')
+  await expect(startingCards).toHaveCount(4)
+  for (const [index, perk] of offerPerks(seed).entries()) {
+    await expect(startingCards.nth(index)).toContainText(START_PERK_CARDS[perk].name)
+  }
   await expect(page.locator('#perk-choices .meta-new').first()).toHaveText('새')
   await expect.poll(async () => (await record(page)).seen.length).toBeGreaterThan(0)
   await shot(page, info, 'new-perk-badge', page.locator('#perk-choices'))
   await page.locator('#return-lobby').tap()
   await page.locator('#new-ascent').tap()
   await expect(page.locator('#perk-choices .meta-new')).toHaveCount(0)
+})
+
+test('상점의 기존 두 후보와 해금 유물 한 장을 복원하고 해금 유물을 산다', async ({ page }) => {
+  await page.goto(process.env.HWIGI_SMOKE_URL)
+  const before = mapBefore(0, 8, 7)
+  const shop = availableMapNodes(before).find(node => node.kind === 'shop')
+  const regular = rewardOffers(enterMapNode(before, shop.id))
+  const run = enterMapNode({ ...before, meta: { generation: 0, pool: ALL_META_FLOORS, opened: [] } }, shop.id)
+  await store(page, run, profile(ALL_META_FLOORS))
+  await page.reload()
+  await page.getByRole('button', { name: '이어 하기' }).tap()
+  const cards = page.locator('#reward-cards button')
+  await expect(cards).toHaveCount(3)
+  for (const [index, id] of regular.entries()) await expect(cards.nth(index)).toHaveAttribute('data-reward', id)
+  const bonus = cards.last()
+  await expect(bonus).toHaveAttribute('data-reward', 'linked-cup')
+  await expect(bonus.locator('.reward-type')).toContainText('해금 유물')
+  for (const card of await cards.all()) await expect(card).toBeInViewport({ ratio: 1 })
+  await bonus.tap()
+  await page.reload()
+  await page.getByRole('button', { name: '이어 하기' }).tap()
+  await expect(bonus).toHaveAttribute('aria-pressed', 'true')
+  const buy = page.getByRole('button', { name: '구매 · 동전 5' })
+  await expect(buy).toBeInViewport({ ratio: 1 })
+  await buy.tap()
+  await expect.poll(async () => (await saved(page)).ascent.battle.loot.equipped).toContain('linked-cup')
+  expect((await saved(page)).ascent.route.coins).toBe(run.route.coins - 5)
+})
+
+test('선행 재굴림은 족보를 열기 전 첫 전투에서 특전 1회로 보이고 기본보다 먼저 쓸 수 있다', async ({ page }) => {
+  const withEarly = Array.from({ length: 100 }, (_, index) => index).find(index => offerPerks(index, ALL_META_FLOORS).includes('early-reroll'))
+  await page.goto(new URL(`?seed=${withEarly}`, process.env.HWIGI_SMOKE_URL).href)
+  await page.evaluate(({ key, progress }) => localStorage.setItem(key, JSON.stringify(progress)), {
+    key: META_SAVE_KEY, progress: profile(ALL_META_FLOORS),
+  })
+  await page.reload()
+  await page.getByRole('button', { name: '새로 하기' }).tap()
+  await page.getByRole('button', { name: /선행 재굴림/ }).tap()
+  await page.getByRole('group', { name: '다음 층 선택' }).getByRole('button', { name: /^전투/ }).tap()
+  await page.getByRole('button', { name: '안내 건너뛰기' }).tap()
+  await page.getByRole('button', { name: /^주사위 1,/ }).tap()
+  const extra = page.getByRole('button', { name: '특전 재굴림, 이번 전투 1회 남음' })
+  await expect(extra).toBeEnabled()
+  await extra.tap()
+  const run = (await saved(page)).ascent
+  expect(run.unlocks).toEqual([])
+  expect(run.battle.rerolled).toBe(false)
+  expect(run.battle.extraRerollSpent).toBe(true)
+  await expect(page.getByRole('button', { name: '특전 재굴림, 이번 전투 0회 남음' })).toBeDisabled()
 })
 
 test('설정에서 확인해야 해금만 초기화하고 기존 등반 저장을 계속 불러온다', async ({ page }) => {

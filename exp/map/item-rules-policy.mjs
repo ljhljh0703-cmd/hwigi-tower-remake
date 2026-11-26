@@ -3,10 +3,11 @@ import { draw } from '../../src/combat.ts'
 import { currentTreasureRoom, treasureEnabled } from '../../src/map-treasure.ts'
 import { adjustItemDie, canSelectItemDie, chooseReserveRoll, selectLatchDie, toggleConsumable } from '../../src/item-effects.ts'
 import { artifactReady, ARTIFACT_SLOTS, isArtifact } from '../../src/treasure.ts'
+import { isMetaArtifact, META_VALUES } from '../../src/meta-unlocks.ts'
 import { bloodHealing, draftMetaDie, transferMetaPip } from '../../src/meta-combat.ts'
 import { availableCounterChoices, counterDamage, mirrorCounterDamage, toggleArtifact } from '../../src/treasure-combat.ts'
-import { displayedCounterRewards, forecastYacht, previewYachtHand, rerollYachtDice, spendExtraReroll } from '../../src/yacht-combat.ts'
-import { chooseAllocation } from '../../src/yacht-policy.ts'
+import { displayedCounterRewards, forecastYacht, nextYachtReroll, previewYachtHand, rerollYachtDice, spendExtraReroll } from '../../src/yacht-combat.ts'
+import { chooseAllocation, chooseReroll } from '../../src/yacht-policy.ts'
 import { planAscentTurn } from '../level.mjs'
 
 const consumableOrder = ['clash-seal', 'weight', 'tuning', 'buckle', 'spacer', 'wedge', 'advance-knot', 'twin-mold', 'reserve-gauge', 'coin']
@@ -22,15 +23,17 @@ export function sevenRewardOptions(run, choice) {
   }
 }
 
-export function pickSevenTreasure(run) {
+export function pickSevenTreasure(run, considerUnlocked = true) {
   const offers = rewardOffers(run).filter((id) => treasureEnabled(run, id))
   const room = currentTreasureRoom(run)
-  if (room.kind === 'elite') return offers[0] ?? 'skip'
+  const regular = offers.find((id) => isArtifact(id) && !isMetaArtifact(id))
+  const unlocked = considerUnlocked ? offers.find(isMetaArtifact) : undefined
+  const artifact = unlocked && (!regular || artifactOrder.indexOf(unlocked) < artifactOrder.indexOf(regular)) ? unlocked : regular
+  if (room.kind === 'elite') return artifact ?? offers[0] ?? 'skip'
   if (offers.includes('bandage')) return 'bandage'
   if (offers.includes('kit') && run.maxHp - run.battle.playerHp >= 2) return 'kit'
   if (offers.includes('medicine')) return 'medicine'
   if (offers.includes('lining')) return 'lining'
-  const artifact = offers.find(isArtifact)
   if (artifact && (run.battle.loot.equipped.length < ARTIFACT_SLOTS || artifactOrder.indexOf(artifact) < artifactOrder.indexOf(sevenRewardOptions(run, artifact).replace)) &&
     (room.kind !== 'event' || run.battle.playerHp > 7)) return artifact
   if (offers.includes('whetstone') && (room.kind === 'rest' || run.battle.playerHp >= 9)) return 'whetstone'
@@ -67,13 +70,38 @@ function spendReserveChoices(battle) {
   return candidates.map(bestLayout).reduce((best, candidate) => score(candidate) > score(best) ? candidate : best)
 }
 
+function planChargeRoll(battle) {
+  const reroll = nextYachtReroll(battle)
+  if (reroll?.kind !== 'basic' || reroll.cost >= battle.playerHp) return battle
+  const current = bestLayout(battle)
+  if (forecastYacht(current).dealt >= battle.enemyHp) return battle
+  let best = score(current)
+  let target
+  for (const [index, face] of battle.dice.entries()) {
+    if (face >= META_VALUES.chargeMin || !canSelectItemDie(battle, index)) continue
+    const dice = battle.dice.map((value, i) => index === i ? META_VALUES.chargeMin : value)
+    const hypothetical = { ...battle, dice, playerHp: battle.playerHp - reroll.cost, metaTurn: { chargeDie: index } }
+    const rating = score(bestLayout(hypothetical))
+    if (rating > best) {
+      best = rating
+      target = index
+    }
+  }
+  if (target !== undefined) return rerollYachtDice(battle, [target])
+  const batch = chooseReroll(battle, 'guardFirst', false)
+  return batch.length > 1 ? rerollYachtDice(battle, batch) : battle
+}
+
 export function planSevenTurn(opening, aware, recordUse) {
   if (!aware) return planAscentTurn(opening, 'guardFirst')
   let start = opening.loot.consumables['reserve-gauge'] && opening.dice.filter((face) => face < 4).length >= 2
     ? toggleConsumable(opening, 'reserve-gauge') : opening
   if (start.perk?.kind === 'early-reroll' && start.extraRerollAvailable) {
-    const low = start.dice.findIndex((face, index) => face <= 2 && canSelectItemDie(start, index))
-    if (low !== -1) {
+    const current = bestLayout(start)
+    const forecast = forecastYacht(current)
+    const low = start.dice.reduce((best, face, index) => face <= 3 && canSelectItemDie(start, index) &&
+      (!forecast.counter || current.slots[index] === 'attack') && (best === undefined || face < start.dice[best]) ? index : best, undefined)
+    if (low !== undefined && forecast.dealt < start.enemyHp) {
       const next = spendExtraReroll(start, low)
       if (next !== start) recordUse?.('early-reroll')
       start = next
@@ -83,14 +111,30 @@ export function planSevenTurn(opening, aware, recordUse) {
     const low = start.dice.flatMap((face, index) => face <= 3 && canSelectItemDie(start, index) ? [index] : []).slice(0, 2)
     if (low.length === 2) start = rerollYachtDice(start, low, true)
   }
-  let plan = spendReserveChoices(planAscentTurn(start, 'guardFirst'))
+  if (start.perk?.kind === 'charge-roll' && !start.rerolled) start = planChargeRoll(start)
+  const joined = start.perk?.kind === 'join-slots' ? bestLayout(start) : undefined
+  const holdStraight = joined && previewYachtHand(joined)?.hand === 'straight' &&
+    forecastYacht(joined).damage === 0 && joined.slots.includes('attack') && joined.slots.includes('guard')
+  let plan = holdStraight ? joined
+    : start.perk?.kind === 'charge-roll' && !start.rerolled ? { ...start, slots: chooseAllocation(start, 'guardFirst') }
+    : spendReserveChoices(planAscentTurn(start, 'guardFirst'))
+  const kind = start.perk?.kind
+  const spentExtra = plan.extraRerollSpent && !opening.extraRerollSpent
+  if (kind === 'join-slots' || kind === 'charge-roll' && plan.metaTurn?.chargeDie !== undefined ||
+    (kind === 'early-reroll' || kind === 'counter-recover') && spentExtra) {
+    const alternative = bestLayout(plan)
+    const joins = kind !== 'join-slots' || previewYachtHand(alternative)?.hand === 'straight' &&
+      previewYachtHand({ ...alternative, perk: undefined })?.hand !== 'straight'
+    if (joins && score(alternative) > score(plan)) plan = alternative
+  }
   // Evaluate only visible dice and cancel an armed item that did not participate in the basic roll.
   if (plan.loot.consumableArmed === 'reserve-gauge') plan = { ...plan, loot: { ...plan.loot, consumableArmed: undefined } }
   const base = plan
   let bestScore = score(base)
-  const consider = (candidate, threshold = 1) => {
+  const consider = (candidate, threshold = 1, usesEffect) => {
     if (candidate === base) return
     const layout = bestLayout(candidate)
+    if (usesEffect && !usesEffect(layout)) return
     const armed = candidate.loot.consumableArmed ?? candidate.loot.armed?.[0]
     if (armed && !forecastYacht(layout).loot.triggered?.includes(armed)) return
     const improved = score(layout) - threshold
@@ -112,10 +156,15 @@ export function planSevenTurn(opening, aware, recordUse) {
     if (artifactReady(base.loot, 'pip-ring')) for (const target of indices) consider(transferMetaPip(base, index, target))
   }
   if (base.perk?.kind === 'reverse-guard' && !base.perk.spent) {
-    for (const index of indices) if (base.slots[index] === 'guard') consider(draftMetaDie(base, 'reverse-guard', index), 0)
+    for (const index of indices) {
+      const slots = base.slots.map((slot, i) => i === index ? 'guard' : slot)
+      consider(draftMetaDie({ ...base, slots }, 'reverse-guard', index), 0, (layout) => layout.slots[index] === 'guard')
+    }
   }
   if (artifactReady(base.loot, 'blood-grip') && base.playerHp < 20) {
-    for (const index of indices) if (base.slots[index] === 'attack') consider(draftMetaDie(base, 'blood-grip', index), 0)
+    for (const index of indices) if (base.slots[index] === 'attack') {
+      consider(draftMetaDie(base, 'blood-grip', index), 0, (layout) => layout.slots[index] === 'attack')
+    }
   }
   if (base.loot.equipped.includes('banner')) consider(toggleArtifact(base, 'banner'))
   const result = forecastYacht(plan)
@@ -138,7 +187,7 @@ export function pickSevenCounter(battle, aware) {
     const rewards = displayedCounterRewards(battle)
     if (rewards[(battle.loot.counter.slot + 1) % rewards.length].damage > damage) return 'adjacent'
   }
-  if (choices.includes('recover-reroll') && battle.turn <= 3 && damage <= 3) return 'recover-reroll'
+  if (choices.includes('recover-reroll') && (battle.turn <= 3 || remaining - damage >= 8)) return 'recover-reroll'
   if (choices.includes('mirror') && mirrorCounterDamage(battle, damage) >= damage + 3) return 'mirror'
   return 'now'
 }

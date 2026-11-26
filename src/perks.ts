@@ -45,10 +45,13 @@ export function collectorBonus(hands: readonly CollectedHand[]): number {
 }
 
 export function offerPerks(seed: number, pool: readonly MetaFloor[] = []): readonly StartPerk[] {
-  const remaining = [...Object.keys(START_PERKS), ...META_STAGES.filter(({floor}) => pool.includes(floor)).map(({perk}) => perk)] as StartPerk[]
-  return Array.from({ length: 3 }, (_, index) =>
+  const remaining = Object.keys(START_PERKS) as (keyof typeof START_PERKS)[]
+  const regular = Array.from({ length: 3 }, (_, index) =>
     remaining.splice(draw(seed, 0, index) % remaining.length, 1)[0],
   )
+  const unlocked = META_STAGES.filter(({ floor }) => pool.includes(floor))
+  if (!unlocked.length) return regular
+  return [...regular, unlocked[draw(seed, 0, 19) % unlocked.length].perk]
 }
 
 export function pickOfferedPerk(seed: number, completion: (perk: StartPerk) => number, pool?: readonly MetaFloor[]): StartPerk {

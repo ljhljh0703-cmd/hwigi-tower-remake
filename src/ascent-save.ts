@@ -296,7 +296,9 @@ function readCheckpoint(raw: unknown): AscentSave | null {
   }
   if (rulesTwo && mapped?.route.offers && mapped.route.node !== null) {
     const room = mapped.route.map.byId[mapped.route.node]
-    if ((seven ? room.enemyId : mapped.enemy.id) !== 'chain-warden' && !sameList(mapped.route.offers, treasureOffers(ascent, room))) return null
+    if ((seven ? room.enemyId : mapped.enemy.id) !== 'chain-warden' &&
+      !sameList(mapped.route.offers, treasureOffers(ascent, room)) &&
+      !(seven && meta?.pool.length && sameList(mapped.route.offers, treasureOffers(ascent, room, true)))) return null
   }
   const pending = restoredBattle.loot?.counter
   if (pending) {

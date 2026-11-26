@@ -345,10 +345,11 @@ button:disabled {
 
 #perk-choices {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--perk-columns, 3), minmax(0, 1fr));
   gap: 8px;
 }
 
+#perk-choices:has(> .perk-choice:nth-child(4)) { --perk-columns: 4; }
 #perk-choices:has(.perk-back) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .perk-choice {

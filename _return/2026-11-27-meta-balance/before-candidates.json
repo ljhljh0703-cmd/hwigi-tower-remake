@@ -1,0 +1,2060 @@
+[
+  {
+    "route": "safe",
+    "relic": "mixed",
+    "first": 8192,
+    "count": 4096,
+    "won": 1351,
+    "completion": 0.329833984375,
+    "unlocks": "all",
+    "floors": [
+      {
+        "floor": 1,
+        "entered": 4096,
+        "lost": 159,
+        "turns": 19292,
+        "rate": 0.038818359375,
+        "meanTurns": 4.7099609375
+      },
+      {
+        "floor": 2,
+        "entered": 3937,
+        "lost": 69,
+        "turns": 15455,
+        "rate": 0.017526035052070104,
+        "meanTurns": 3.9255778511557025
+      },
+      {
+        "floor": 3,
+        "entered": 3868,
+        "lost": 161,
+        "turns": 11423,
+        "rate": 0.041623578076525336,
+        "meanTurns": 2.953205791106515
+      },
+      {
+        "floor": 4,
+        "entered": 3707,
+        "lost": 79,
+        "turns": 9946,
+        "rate": 0.021311033180469383,
+        "meanTurns": 2.6830321014297276
+      },
+      {
+        "floor": 5,
+        "entered": 3628,
+        "lost": 217,
+        "turns": 11283,
+        "rate": 0.05981256890848952,
+        "meanTurns": 3.1099779492833517
+      },
+      {
+        "floor": 6,
+        "entered": 3411,
+        "lost": 310,
+        "turns": 19340,
+        "rate": 0.09088243916739959,
+        "meanTurns": 5.669891527411316
+      },
+      {
+        "floor": 7,
+        "entered": 3101,
+        "lost": 214,
+        "turns": 6844,
+        "rate": 0.0690099967752338,
+        "meanTurns": 2.2070299903257014
+      },
+      {
+        "floor": 8,
+        "entered": 2887,
+        "lost": 53,
+        "turns": 4365,
+        "rate": 0.018358157256667822,
+        "meanTurns": 1.511950121233114
+      },
+      {
+        "floor": 9,
+        "entered": 2834,
+        "lost": 64,
+        "turns": 5698,
+        "rate": 0.022582921665490474,
+        "meanTurns": 2.0105857445306987
+      },
+      {
+        "floor": 10,
+        "entered": 2770,
+        "lost": 36,
+        "turns": 5809,
+        "rate": 0.012996389891696752,
+        "meanTurns": 2.0971119133574008
+      },
+      {
+        "floor": 11,
+        "entered": 2734,
+        "lost": 0,
+        "turns": 0,
+        "rate": 0,
+        "meanTurns": 0
+      },
+      {
+        "floor": 12,
+        "entered": 2734,
+        "lost": 1383,
+        "turns": 21534,
+        "rate": 0.5058522311631309,
+        "meanTurns": 7.876371616678859
+      }
+    ],
+    "rules": 7,
+    "policy": "items",
+    "items": {
+      "collector": {
+        "offered": 1091,
+        "selected": 359,
+        "pickedRuns": 359,
+        "usedRuns": 289,
+        "wonRuns": 118
+      },
+      "reverse-guard": {
+        "offered": 1088,
+        "selected": 351,
+        "pickedRuns": 351,
+        "usedRuns": 351,
+        "wonRuns": 159
+      },
+      "charge-roll": {
+        "offered": 1101,
+        "selected": 417,
+        "pickedRuns": 417,
+        "usedRuns": 411,
+        "wonRuns": 94
+      },
+      "oath": {
+        "offered": 1143,
+        "selected": 397,
+        "pickedRuns": 397,
+        "usedRuns": 396,
+        "wonRuns": 133
+      },
+      "reroll": {
+        "offered": 1100,
+        "selected": 366,
+        "pickedRuns": 366,
+        "usedRuns": 365,
+        "wonRuns": 123
+      },
+      "shield": {
+        "offered": 1104,
+        "selected": 432,
+        "pickedRuns": 432,
+        "usedRuns": 432,
+        "wonRuns": 186
+      },
+      "advance-knot": {
+        "offered": 6386,
+        "selected": 262,
+        "pickedRuns": 251,
+        "usedRuns": 251,
+        "wonRuns": 102
+      },
+      "twin-mold": {
+        "offered": 6362,
+        "selected": 43,
+        "pickedRuns": 42,
+        "usedRuns": 42,
+        "wonRuns": 12
+      },
+      "clash-seal": {
+        "offered": 1710,
+        "selected": 1679,
+        "pickedRuns": 1348,
+        "usedRuns": 1323,
+        "wonRuns": 609
+      },
+      "coin": {
+        "offered": 6396,
+        "selected": 357,
+        "pickedRuns": 331,
+        "usedRuns": 143,
+        "wonRuns": 137
+      },
+      "wedge": {
+        "offered": 6360,
+        "selected": 635,
+        "pickedRuns": 591,
+        "usedRuns": 591,
+        "wonRuns": 243
+      },
+      "tuning": {
+        "offered": 6389,
+        "selected": 2876,
+        "pickedRuns": 2056,
+        "usedRuns": 2053,
+        "wonRuns": 805
+      },
+      "blood-grip": {
+        "offered": 414,
+        "selected": 195,
+        "pickedRuns": 195,
+        "usedRuns": 180,
+        "wonRuns": 76
+      },
+      "buckle": {
+        "offered": 6367,
+        "selected": 1946,
+        "pickedRuns": 1569,
+        "usedRuns": 1562,
+        "wonRuns": 644
+      },
+      "spacer": {
+        "offered": 6356,
+        "selected": 1169,
+        "pickedRuns": 1029,
+        "usedRuns": 668,
+        "wonRuns": 393
+      },
+      "revived-heart": {
+        "offered": 3101,
+        "selected": 786,
+        "pickedRuns": 786,
+        "usedRuns": 602,
+        "wonRuns": 338
+      },
+      "emperor-shield": {
+        "offered": 3101,
+        "selected": 749,
+        "pickedRuns": 749,
+        "usedRuns": 749,
+        "wonRuns": 330
+      },
+      "brake-crown": {
+        "offered": 3101,
+        "selected": 798,
+        "pickedRuns": 798,
+        "usedRuns": 773,
+        "wonRuns": 407
+      },
+      "healing-scepter": {
+        "offered": 3101,
+        "selected": 768,
+        "pickedRuns": 768,
+        "usedRuns": 768,
+        "wonRuns": 276
+      },
+      "kit": {
+        "offered": 5621,
+        "selected": 4697,
+        "pickedRuns": 2703,
+        "usedRuns": 2703,
+        "wonRuns": 1248
+      },
+      "hourglass": {
+        "offered": 532,
+        "selected": 229,
+        "pickedRuns": 229,
+        "usedRuns": 228,
+        "wonRuns": 111
+      },
+      "weight": {
+        "offered": 6439,
+        "selected": 4030,
+        "pickedRuns": 2595,
+        "usedRuns": 2595,
+        "wonRuns": 995
+      },
+      "bandage": {
+        "offered": 6889,
+        "selected": 6889,
+        "pickedRuns": 3054,
+        "usedRuns": 3054,
+        "wonRuns": 1037
+      },
+      "mirror": {
+        "offered": 450,
+        "selected": 212,
+        "pickedRuns": 212,
+        "usedRuns": 167,
+        "wonRuns": 89
+      },
+      "whetstone": {
+        "offered": 4938,
+        "selected": 2739,
+        "pickedRuns": 2168,
+        "usedRuns": 1299,
+        "wonRuns": 901
+      },
+      "counter-recover": {
+        "offered": 1099,
+        "selected": 352,
+        "pickedRuns": 352,
+        "usedRuns": 145,
+        "wonRuns": 98
+      },
+      "early-reroll": {
+        "offered": 1115,
+        "selected": 357,
+        "pickedRuns": 357,
+        "usedRuns": 263,
+        "wonRuns": 74
+      },
+      "reserve-gauge": {
+        "offered": 1642,
+        "selected": 546,
+        "pickedRuns": 520,
+        "usedRuns": 517,
+        "wonRuns": 197
+      },
+      "counter": {
+        "offered": 1181,
+        "selected": 437,
+        "pickedRuns": 437,
+        "usedRuns": 437,
+        "wonRuns": 174
+      },
+      "die-latch": {
+        "offered": 731,
+        "selected": 336,
+        "pickedRuns": 336,
+        "usedRuns": 336,
+        "wonRuns": 119
+      },
+      "overflow": {
+        "offered": 418,
+        "selected": 200,
+        "pickedRuns": 200,
+        "usedRuns": 152,
+        "wonRuns": 79
+      },
+      "adjacent-needle": {
+        "offered": 373,
+        "selected": 182,
+        "pickedRuns": 182,
+        "usedRuns": 151,
+        "wonRuns": 78
+      },
+      "incomplete": {
+        "offered": 242,
+        "selected": 107,
+        "pickedRuns": 107,
+        "usedRuns": 82,
+        "wonRuns": 80
+      },
+      "blade": {
+        "offered": 1120,
+        "selected": 268,
+        "pickedRuns": 268,
+        "usedRuns": 256,
+        "wonRuns": 98
+      },
+      "scabbard": {
+        "offered": 454,
+        "selected": 218,
+        "pickedRuns": 218,
+        "usedRuns": 141,
+        "wonRuns": 95
+      },
+      "join-slots": {
+        "offered": 1146,
+        "selected": 360,
+        "pickedRuns": 360,
+        "usedRuns": 271,
+        "wonRuns": 94
+      },
+      "medicine": {
+        "offered": 2179,
+        "selected": 1779,
+        "pickedRuns": 1577,
+        "usedRuns": 1577,
+        "wonRuns": 636
+      },
+      "lining": {
+        "offered": 2179,
+        "selected": 400,
+        "pickedRuns": 379,
+        "usedRuns": 275,
+        "wonRuns": 171
+      },
+      "linked-cup": {
+        "offered": 320,
+        "selected": 133,
+        "pickedRuns": 133,
+        "usedRuns": 133,
+        "wonRuns": 50
+      },
+      "banner": {
+        "offered": 400,
+        "selected": 188,
+        "pickedRuns": 188,
+        "usedRuns": 188,
+        "wonRuns": 111
+      },
+      "horn": {
+        "offered": 101,
+        "selected": 40,
+        "pickedRuns": 40,
+        "usedRuns": 28,
+        "wonRuns": 40
+      },
+      "heart-die": {
+        "offered": 130,
+        "selected": 55,
+        "pickedRuns": 55,
+        "usedRuns": 55,
+        "wonRuns": 52
+      },
+      "pip-ring": {
+        "offered": 396,
+        "selected": 173,
+        "pickedRuns": 173,
+        "usedRuns": 166,
+        "wonRuns": 86
+      }
+    },
+    "firstUnlocks": {
+      "triple": [
+        36,
+        120,
+        72,
+        98,
+        58,
+        338,
+        61,
+        36,
+        57,
+        73,
+        0,
+        249
+      ],
+      "straight": [
+        713,
+        464,
+        365,
+        262,
+        326,
+        821,
+        93,
+        60,
+        75,
+        72,
+        0,
+        267
+      ]
+    },
+    "bosses": {
+      "emperor-shield": {
+        "picked": 749,
+        "won": 330
+      },
+      "healing-scepter": {
+        "picked": 768,
+        "won": 276
+      },
+      "brake-crown": {
+        "picked": 798,
+        "won": 407
+      },
+      "revived-heart": {
+        "picked": 786,
+        "won": 338
+      }
+    },
+    "candidateLoss": {
+      "start": {
+        "visits": 4096,
+        "baseOffers": 12288,
+        "missing": 8435,
+        "changed": 4040,
+        "missingByCard": {
+          "shield": 1345,
+          "blade": 1378,
+          "oath": 1446,
+          "counter": 1399,
+          "reroll": 1441,
+          "collector": 1426
+        }
+      },
+      "flag": {
+        "visits": 2074,
+        "baseOffers": 2074,
+        "missing": 1600,
+        "changed": 1600,
+        "missingByCard": {
+          "mirror": 265,
+          "die-latch": 444,
+          "banner": 270,
+          "incomplete": 108,
+          "hourglass": 161,
+          "overflow": 289,
+          "heart-die": 23,
+          "horn": 40
+        }
+      },
+      "shop": {
+        "visits": 2887,
+        "baseOffers": 5774,
+        "missing": 2273,
+        "changed": 2273,
+        "missingByCard": {
+          "die-latch": 546,
+          "incomplete": 151,
+          "hourglass": 230,
+          "horn": 104,
+          "banner": 336,
+          "heart-die": 55,
+          "mirror": 421,
+          "overflow": 430
+        }
+      }
+    }
+  },
+  {
+    "route": "elite",
+    "relic": "mixed",
+    "first": 8192,
+    "count": 4096,
+    "won": 1362,
+    "completion": 0.33251953125,
+    "unlocks": "all",
+    "floors": [
+      {
+        "floor": 1,
+        "entered": 4096,
+        "lost": 159,
+        "turns": 19292,
+        "rate": 0.038818359375,
+        "meanTurns": 4.7099609375
+      },
+      {
+        "floor": 2,
+        "entered": 3937,
+        "lost": 84,
+        "turns": 13258,
+        "rate": 0.021336042672085345,
+        "meanTurns": 3.36753873507747
+      },
+      {
+        "floor": 3,
+        "entered": 3853,
+        "lost": 199,
+        "turns": 9859,
+        "rate": 0.05164806644173371,
+        "meanTurns": 2.558785362055541
+      },
+      {
+        "floor": 4,
+        "entered": 3654,
+        "lost": 201,
+        "turns": 8837,
+        "rate": 0.055008210180623976,
+        "meanTurns": 2.4184455391351944
+      },
+      {
+        "floor": 5,
+        "entered": 3453,
+        "lost": 253,
+        "turns": 8206,
+        "rate": 0.07326962061975094,
+        "meanTurns": 2.376484216623226
+      },
+      {
+        "floor": 6,
+        "entered": 3200,
+        "lost": 576,
+        "turns": 15483,
+        "rate": 0.18,
+        "meanTurns": 4.8384375
+      },
+      {
+        "floor": 7,
+        "entered": 2624,
+        "lost": 94,
+        "turns": 4561,
+        "rate": 0.035823170731707314,
+        "meanTurns": 1.7381859756097562
+      },
+      {
+        "floor": 8,
+        "entered": 2530,
+        "lost": 34,
+        "turns": 3289,
+        "rate": 0.013438735177865613,
+        "meanTurns": 1.3
+      },
+      {
+        "floor": 9,
+        "entered": 2496,
+        "lost": 60,
+        "turns": 5175,
+        "rate": 0.02403846153846154,
+        "meanTurns": 2.0733173076923075
+      },
+      {
+        "floor": 10,
+        "entered": 2436,
+        "lost": 38,
+        "turns": 4675,
+        "rate": 0.015599343185550082,
+        "meanTurns": 1.9191297208538587
+      },
+      {
+        "floor": 11,
+        "entered": 2398,
+        "lost": 0,
+        "turns": 0,
+        "rate": 0,
+        "meanTurns": 0
+      },
+      {
+        "floor": 12,
+        "entered": 2398,
+        "lost": 1036,
+        "turns": 18050,
+        "rate": 0.43202668890742285,
+        "meanTurns": 7.5271059216013345
+      }
+    ],
+    "rules": 7,
+    "policy": "items",
+    "items": {
+      "collector": {
+        "offered": 1091,
+        "selected": 359,
+        "pickedRuns": 359,
+        "usedRuns": 286,
+        "wonRuns": 123
+      },
+      "reverse-guard": {
+        "offered": 1088,
+        "selected": 351,
+        "pickedRuns": 351,
+        "usedRuns": 349,
+        "wonRuns": 166
+      },
+      "charge-roll": {
+        "offered": 1101,
+        "selected": 417,
+        "pickedRuns": 417,
+        "usedRuns": 407,
+        "wonRuns": 94
+      },
+      "oath": {
+        "offered": 1143,
+        "selected": 397,
+        "pickedRuns": 397,
+        "usedRuns": 395,
+        "wonRuns": 132
+      },
+      "reroll": {
+        "offered": 1100,
+        "selected": 366,
+        "pickedRuns": 366,
+        "usedRuns": 366,
+        "wonRuns": 137
+      },
+      "shield": {
+        "offered": 1104,
+        "selected": 432,
+        "pickedRuns": 432,
+        "usedRuns": 432,
+        "wonRuns": 179
+      },
+      "advance-knot": {
+        "offered": 1306,
+        "selected": 68,
+        "pickedRuns": 68,
+        "usedRuns": 68,
+        "wonRuns": 23
+      },
+      "twin-mold": {
+        "offered": 1309,
+        "selected": 9,
+        "pickedRuns": 9,
+        "usedRuns": 9,
+        "wonRuns": 5
+      },
+      "clash-seal": {
+        "offered": 412,
+        "selected": 402,
+        "pickedRuns": 402,
+        "usedRuns": 401,
+        "wonRuns": 153
+      },
+      "blood-grip": {
+        "offered": 4023,
+        "selected": 1842,
+        "pickedRuns": 1842,
+        "usedRuns": 1380,
+        "wonRuns": 837
+      },
+      "mirror": {
+        "offered": 3988,
+        "selected": 1942,
+        "pickedRuns": 1942,
+        "usedRuns": 1258,
+        "wonRuns": 826
+      },
+      "banner": {
+        "offered": 3581,
+        "selected": 1781,
+        "pickedRuns": 1781,
+        "usedRuns": 1778,
+        "wonRuns": 940
+      },
+      "die-latch": {
+        "offered": 4284,
+        "selected": 2472,
+        "pickedRuns": 2472,
+        "usedRuns": 2320,
+        "wonRuns": 913
+      },
+      "overflow": {
+        "offered": 3894,
+        "selected": 1906,
+        "pickedRuns": 1906,
+        "usedRuns": 1431,
+        "wonRuns": 818
+      },
+      "revived-heart": {
+        "offered": 2624,
+        "selected": 667,
+        "pickedRuns": 667,
+        "usedRuns": 449,
+        "wonRuns": 359
+      },
+      "emperor-shield": {
+        "offered": 2624,
+        "selected": 663,
+        "pickedRuns": 663,
+        "usedRuns": 663,
+        "wonRuns": 350
+      },
+      "brake-crown": {
+        "offered": 2624,
+        "selected": 651,
+        "pickedRuns": 651,
+        "usedRuns": 596,
+        "wonRuns": 311
+      },
+      "healing-scepter": {
+        "offered": 2624,
+        "selected": 643,
+        "pickedRuns": 643,
+        "usedRuns": 643,
+        "wonRuns": 342
+      },
+      "kit": {
+        "offered": 4928,
+        "selected": 4096,
+        "pickedRuns": 2337,
+        "usedRuns": 2337,
+        "wonRuns": 1223
+      },
+      "hourglass": {
+        "offered": 455,
+        "selected": 189,
+        "pickedRuns": 189,
+        "usedRuns": 184,
+        "wonRuns": 108
+      },
+      "pip-ring": {
+        "offered": 4109,
+        "selected": 1960,
+        "pickedRuns": 1960,
+        "usedRuns": 1716,
+        "wonRuns": 904
+      },
+      "horn": {
+        "offered": 1008,
+        "selected": 480,
+        "pickedRuns": 480,
+        "usedRuns": 357,
+        "wonRuns": 454
+      },
+      "whetstone": {
+        "offered": 4431,
+        "selected": 2098,
+        "pickedRuns": 1711,
+        "usedRuns": 1107,
+        "wonRuns": 847
+      },
+      "counter-recover": {
+        "offered": 1099,
+        "selected": 352,
+        "pickedRuns": 352,
+        "usedRuns": 125,
+        "wonRuns": 101
+      },
+      "early-reroll": {
+        "offered": 1115,
+        "selected": 357,
+        "pickedRuns": 357,
+        "usedRuns": 279,
+        "wonRuns": 91
+      },
+      "wedge": {
+        "offered": 1307,
+        "selected": 172,
+        "pickedRuns": 172,
+        "usedRuns": 172,
+        "wonRuns": 65
+      },
+      "scabbard": {
+        "offered": 5004,
+        "selected": 2238,
+        "pickedRuns": 2238,
+        "usedRuns": 1263,
+        "wonRuns": 870
+      },
+      "counter": {
+        "offered": 1181,
+        "selected": 437,
+        "pickedRuns": 437,
+        "usedRuns": 437,
+        "wonRuns": 166
+      },
+      "weight": {
+        "offered": 1328,
+        "selected": 995,
+        "pickedRuns": 995,
+        "usedRuns": 995,
+        "wonRuns": 380
+      },
+      "tuning": {
+        "offered": 1255,
+        "selected": 668,
+        "pickedRuns": 668,
+        "usedRuns": 668,
+        "wonRuns": 260
+      },
+      "adjacent-needle": {
+        "offered": 4478,
+        "selected": 2027,
+        "pickedRuns": 2027,
+        "usedRuns": 1280,
+        "wonRuns": 795
+      },
+      "buckle": {
+        "offered": 1265,
+        "selected": 462,
+        "pickedRuns": 462,
+        "usedRuns": 461,
+        "wonRuns": 157
+      },
+      "spacer": {
+        "offered": 1316,
+        "selected": 303,
+        "pickedRuns": 303,
+        "usedRuns": 199,
+        "wonRuns": 103
+      },
+      "coin": {
+        "offered": 1272,
+        "selected": 80,
+        "pickedRuns": 80,
+        "usedRuns": 39,
+        "wonRuns": 26
+      },
+      "incomplete": {
+        "offered": 181,
+        "selected": 81,
+        "pickedRuns": 81,
+        "usedRuns": 73,
+        "wonRuns": 66
+      },
+      "blade": {
+        "offered": 1120,
+        "selected": 268,
+        "pickedRuns": 268,
+        "usedRuns": 246,
+        "wonRuns": 76
+      },
+      "linked-cup": {
+        "offered": 282,
+        "selected": 76,
+        "pickedRuns": 76,
+        "usedRuns": 70,
+        "wonRuns": 35
+      },
+      "bandage": {
+        "offered": 638,
+        "selected": 638,
+        "pickedRuns": 638,
+        "usedRuns": 638,
+        "wonRuns": 151
+      },
+      "join-slots": {
+        "offered": 1146,
+        "selected": 360,
+        "pickedRuns": 360,
+        "usedRuns": 209,
+        "wonRuns": 97
+      },
+      "medicine": {
+        "offered": 2028,
+        "selected": 1722,
+        "pickedRuns": 1532,
+        "usedRuns": 1532,
+        "wonRuns": 658
+      },
+      "lining": {
+        "offered": 2028,
+        "selected": 306,
+        "pickedRuns": 292,
+        "usedRuns": 214,
+        "wonRuns": 184
+      },
+      "reserve-gauge": {
+        "offered": 403,
+        "selected": 140,
+        "pickedRuns": 140,
+        "usedRuns": 140,
+        "wonRuns": 39
+      },
+      "heart-die": {
+        "offered": 164,
+        "selected": 7,
+        "pickedRuns": 7,
+        "usedRuns": 7,
+        "wonRuns": 6
+      }
+    },
+    "firstUnlocks": {
+      "triple": [
+        36,
+        175,
+        95,
+        132,
+        118,
+        274,
+        74,
+        46,
+        75,
+        113,
+        0,
+        204
+      ],
+      "straight": [
+        713,
+        981,
+        440,
+        396,
+        288,
+        364,
+        66,
+        28,
+        59,
+        47,
+        0,
+        112
+      ]
+    },
+    "bosses": {
+      "emperor-shield": {
+        "picked": 663,
+        "won": 350
+      },
+      "healing-scepter": {
+        "picked": 643,
+        "won": 342
+      },
+      "brake-crown": {
+        "picked": 651,
+        "won": 311
+      },
+      "revived-heart": {
+        "picked": 667,
+        "won": 359
+      }
+    },
+    "candidateLoss": {
+      "start": {
+        "visits": 4096,
+        "baseOffers": 12288,
+        "missing": 8435,
+        "changed": 4040,
+        "missingByCard": {
+          "shield": 1345,
+          "blade": 1378,
+          "oath": 1446,
+          "counter": 1399,
+          "reroll": 1441,
+          "collector": 1426
+        }
+      },
+      "elite": {
+        "visits": 15492,
+        "baseOffers": 30143,
+        "missing": 20454,
+        "changed": 13413,
+        "missingByCard": {
+          "die-latch": 4249,
+          "mirror": 6056,
+          "overflow": 5027,
+          "banner": 4122,
+          "horn": 1000
+        }
+      },
+      "flag": {
+        "visits": 1937,
+        "baseOffers": 1937,
+        "missing": 1426,
+        "changed": 1426,
+        "missingByCard": {
+          "banner": 210,
+          "die-latch": 242,
+          "mirror": 355,
+          "hourglass": 167,
+          "incomplete": 91,
+          "overflow": 251,
+          "horn": 64,
+          "heart-die": 46
+        }
+      },
+      "shop": {
+        "visits": 2530,
+        "baseOffers": 5060,
+        "missing": 1825,
+        "changed": 1825,
+        "missingByCard": {
+          "incomplete": 120,
+          "hourglass": 197,
+          "overflow": 361,
+          "mirror": 462,
+          "horn": 139,
+          "banner": 210,
+          "die-latch": 251,
+          "heart-die": 85
+        }
+      }
+    }
+  },
+  {
+    "route": "safe",
+    "relic": "mixed",
+    "first": 12288,
+    "count": 4096,
+    "won": 1368,
+    "completion": 0.333984375,
+    "unlocks": "all",
+    "floors": [
+      {
+        "floor": 1,
+        "entered": 4096,
+        "lost": 167,
+        "turns": 19359,
+        "rate": 0.040771484375,
+        "meanTurns": 4.726318359375
+      },
+      {
+        "floor": 2,
+        "entered": 3929,
+        "lost": 90,
+        "turns": 15529,
+        "rate": 0.022906592008144565,
+        "meanTurns": 3.9524051921608554
+      },
+      {
+        "floor": 3,
+        "entered": 3839,
+        "lost": 192,
+        "turns": 11378,
+        "rate": 0.05001302422505861,
+        "meanTurns": 2.963792654337067
+      },
+      {
+        "floor": 4,
+        "entered": 3647,
+        "lost": 63,
+        "turns": 9641,
+        "rate": 0.01727447216890595,
+        "meanTurns": 2.6435426377844804
+      },
+      {
+        "floor": 5,
+        "entered": 3584,
+        "lost": 252,
+        "turns": 11420,
+        "rate": 0.0703125,
+        "meanTurns": 3.1863839285714284
+      },
+      {
+        "floor": 6,
+        "entered": 3332,
+        "lost": 335,
+        "turns": 18983,
+        "rate": 0.10054021608643457,
+        "meanTurns": 5.697178871548619
+      },
+      {
+        "floor": 7,
+        "entered": 2997,
+        "lost": 216,
+        "turns": 6459,
+        "rate": 0.07207207207207207,
+        "meanTurns": 2.155155155155155
+      },
+      {
+        "floor": 8,
+        "entered": 2781,
+        "lost": 39,
+        "turns": 4040,
+        "rate": 0.014023732470334413,
+        "meanTurns": 1.4527148507731031
+      },
+      {
+        "floor": 9,
+        "entered": 2742,
+        "lost": 47,
+        "turns": 5485,
+        "rate": 0.017140773158278628,
+        "meanTurns": 2.00036469730124
+      },
+      {
+        "floor": 10,
+        "entered": 2695,
+        "lost": 21,
+        "turns": 5590,
+        "rate": 0.007792207792207792,
+        "meanTurns": 2.0742115027829313
+      },
+      {
+        "floor": 11,
+        "entered": 2674,
+        "lost": 0,
+        "turns": 0,
+        "rate": 0,
+        "meanTurns": 0
+      },
+      {
+        "floor": 12,
+        "entered": 2674,
+        "lost": 1306,
+        "turns": 21079,
+        "rate": 0.48840688107703817,
+        "meanTurns": 7.882946896035901
+      }
+    ],
+    "rules": 7,
+    "policy": "items",
+    "items": {
+      "blade": {
+        "offered": 1113,
+        "selected": 280,
+        "pickedRuns": 280,
+        "usedRuns": 266,
+        "wonRuns": 98
+      },
+      "counter": {
+        "offered": 1119,
+        "selected": 392,
+        "pickedRuns": 392,
+        "usedRuns": 391,
+        "wonRuns": 152
+      },
+      "join-slots": {
+        "offered": 1108,
+        "selected": 370,
+        "pickedRuns": 370,
+        "usedRuns": 276,
+        "wonRuns": 100
+      },
+      "buckle": {
+        "offered": 6314,
+        "selected": 1938,
+        "pickedRuns": 1523,
+        "usedRuns": 1507,
+        "wonRuns": 621
+      },
+      "coin": {
+        "offered": 6294,
+        "selected": 332,
+        "pickedRuns": 304,
+        "usedRuns": 138,
+        "wonRuns": 137
+      },
+      "bandage": {
+        "offered": 6767,
+        "selected": 6767,
+        "pickedRuns": 3065,
+        "usedRuns": 3065,
+        "wonRuns": 1057
+      },
+      "spacer": {
+        "offered": 6272,
+        "selected": 1182,
+        "pickedRuns": 1043,
+        "usedRuns": 705,
+        "wonRuns": 432
+      },
+      "wedge": {
+        "offered": 6313,
+        "selected": 636,
+        "pickedRuns": 596,
+        "usedRuns": 596,
+        "wonRuns": 247
+      },
+      "advance-knot": {
+        "offered": 6208,
+        "selected": 234,
+        "pickedRuns": 229,
+        "usedRuns": 229,
+        "wonRuns": 125
+      },
+      "medicine": {
+        "offered": 2111,
+        "selected": 1727,
+        "pickedRuns": 1532,
+        "usedRuns": 1532,
+        "wonRuns": 627
+      },
+      "lining": {
+        "offered": 2111,
+        "selected": 384,
+        "pickedRuns": 366,
+        "usedRuns": 276,
+        "wonRuns": 188
+      },
+      "weight": {
+        "offered": 6285,
+        "selected": 3936,
+        "pickedRuns": 2546,
+        "usedRuns": 2545,
+        "wonRuns": 983
+      },
+      "revived-heart": {
+        "offered": 2997,
+        "selected": 732,
+        "pickedRuns": 732,
+        "usedRuns": 567,
+        "wonRuns": 325
+      },
+      "emperor-shield": {
+        "offered": 2997,
+        "selected": 738,
+        "pickedRuns": 738,
+        "usedRuns": 738,
+        "wonRuns": 349
+      },
+      "brake-crown": {
+        "offered": 2997,
+        "selected": 759,
+        "pickedRuns": 759,
+        "usedRuns": 731,
+        "wonRuns": 397
+      },
+      "healing-scepter": {
+        "offered": 2997,
+        "selected": 768,
+        "pickedRuns": 768,
+        "usedRuns": 767,
+        "wonRuns": 297
+      },
+      "tuning": {
+        "offered": 6236,
+        "selected": 2819,
+        "pickedRuns": 2028,
+        "usedRuns": 2027,
+        "wonRuns": 820
+      },
+      "kit": {
+        "offered": 5455,
+        "selected": 4536,
+        "pickedRuns": 2606,
+        "usedRuns": 2606,
+        "wonRuns": 1269
+      },
+      "scabbard": {
+        "offered": 438,
+        "selected": 193,
+        "pickedRuns": 193,
+        "usedRuns": 139,
+        "wonRuns": 81
+      },
+      "whetstone": {
+        "offered": 4787,
+        "selected": 2668,
+        "pickedRuns": 2116,
+        "usedRuns": 1292,
+        "wonRuns": 906
+      },
+      "early-reroll": {
+        "offered": 1123,
+        "selected": 376,
+        "pickedRuns": 376,
+        "usedRuns": 293,
+        "wonRuns": 107
+      },
+      "counter-recover": {
+        "offered": 1144,
+        "selected": 394,
+        "pickedRuns": 394,
+        "usedRuns": 166,
+        "wonRuns": 89
+      },
+      "twin-mold": {
+        "offered": 6283,
+        "selected": 40,
+        "pickedRuns": 40,
+        "usedRuns": 40,
+        "wonRuns": 18
+      },
+      "banner": {
+        "offered": 418,
+        "selected": 196,
+        "pickedRuns": 196,
+        "usedRuns": 196,
+        "wonRuns": 116
+      },
+      "oath": {
+        "offered": 1151,
+        "selected": 392,
+        "pickedRuns": 392,
+        "usedRuns": 391,
+        "wonRuns": 136
+      },
+      "mirror": {
+        "offered": 398,
+        "selected": 183,
+        "pickedRuns": 183,
+        "usedRuns": 135,
+        "wonRuns": 72
+      },
+      "shield": {
+        "offered": 1134,
+        "selected": 439,
+        "pickedRuns": 439,
+        "usedRuns": 437,
+        "wonRuns": 195
+      },
+      "collector": {
+        "offered": 1099,
+        "selected": 377,
+        "pickedRuns": 377,
+        "usedRuns": 283,
+        "wonRuns": 102
+      },
+      "charge-roll": {
+        "offered": 1100,
+        "selected": 354,
+        "pickedRuns": 354,
+        "usedRuns": 347,
+        "wonRuns": 90
+      },
+      "clash-seal": {
+        "offered": 1684,
+        "selected": 1655,
+        "pickedRuns": 1346,
+        "usedRuns": 1319,
+        "wonRuns": 595
+      },
+      "linked-cup": {
+        "offered": 297,
+        "selected": 129,
+        "pickedRuns": 129,
+        "usedRuns": 129,
+        "wonRuns": 54
+      },
+      "reserve-gauge": {
+        "offered": 1692,
+        "selected": 577,
+        "pickedRuns": 547,
+        "usedRuns": 545,
+        "wonRuns": 240
+      },
+      "reverse-guard": {
+        "offered": 1062,
+        "selected": 366,
+        "pickedRuns": 366,
+        "usedRuns": 366,
+        "wonRuns": 157
+      },
+      "adjacent-needle": {
+        "offered": 408,
+        "selected": 209,
+        "pickedRuns": 209,
+        "usedRuns": 159,
+        "wonRuns": 90
+      },
+      "reroll": {
+        "offered": 1135,
+        "selected": 356,
+        "pickedRuns": 356,
+        "usedRuns": 350,
+        "wonRuns": 142
+      },
+      "incomplete": {
+        "offered": 258,
+        "selected": 117,
+        "pickedRuns": 117,
+        "usedRuns": 90,
+        "wonRuns": 90
+      },
+      "hourglass": {
+        "offered": 523,
+        "selected": 257,
+        "pickedRuns": 257,
+        "usedRuns": 255,
+        "wonRuns": 133
+      },
+      "blood-grip": {
+        "offered": 407,
+        "selected": 202,
+        "pickedRuns": 202,
+        "usedRuns": 184,
+        "wonRuns": 81
+      },
+      "overflow": {
+        "offered": 416,
+        "selected": 207,
+        "pickedRuns": 207,
+        "usedRuns": 162,
+        "wonRuns": 85
+      },
+      "pip-ring": {
+        "offered": 395,
+        "selected": 171,
+        "pickedRuns": 171,
+        "usedRuns": 167,
+        "wonRuns": 93
+      },
+      "horn": {
+        "offered": 82,
+        "selected": 39,
+        "pickedRuns": 39,
+        "usedRuns": 29,
+        "wonRuns": 38
+      },
+      "die-latch": {
+        "offered": 693,
+        "selected": 323,
+        "pickedRuns": 323,
+        "usedRuns": 322,
+        "wonRuns": 110
+      },
+      "heart-die": {
+        "offered": 150,
+        "selected": 50,
+        "pickedRuns": 50,
+        "usedRuns": 50,
+        "wonRuns": 50
+      }
+    },
+    "firstUnlocks": {
+      "triple": [
+        34,
+        112,
+        43,
+        98,
+        60,
+        353,
+        52,
+        36,
+        91,
+        88,
+        0,
+        274
+      ],
+      "straight": [
+        736,
+        452,
+        362,
+        222,
+        330,
+        848,
+        90,
+        65,
+        69,
+        72,
+        0,
+        262
+      ]
+    },
+    "bosses": {
+      "revived-heart": {
+        "picked": 732,
+        "won": 325
+      },
+      "healing-scepter": {
+        "picked": 768,
+        "won": 297
+      },
+      "brake-crown": {
+        "picked": 759,
+        "won": 397
+      },
+      "emperor-shield": {
+        "picked": 738,
+        "won": 349
+      }
+    },
+    "candidateLoss": {
+      "start": {
+        "visits": 4096,
+        "baseOffers": 12288,
+        "missing": 8381,
+        "changed": 4046,
+        "missingByCard": {
+          "oath": 1418,
+          "shield": 1276,
+          "reroll": 1438,
+          "collector": 1430,
+          "counter": 1461,
+          "blade": 1358
+        }
+      },
+      "shop": {
+        "visits": 2781,
+        "baseOffers": 5562,
+        "missing": 2137,
+        "changed": 2137,
+        "missingByCard": {
+          "banner": 365,
+          "hourglass": 209,
+          "overflow": 375,
+          "horn": 98,
+          "mirror": 379,
+          "die-latch": 542,
+          "heart-die": 49,
+          "incomplete": 120
+        }
+      },
+      "flag": {
+        "visits": 2102,
+        "baseOffers": 2102,
+        "missing": 1628,
+        "changed": 1628,
+        "missingByCard": {
+          "die-latch": 441,
+          "banner": 296,
+          "hourglass": 172,
+          "mirror": 275,
+          "overflow": 258,
+          "incomplete": 113,
+          "heart-die": 31,
+          "horn": 42
+        }
+      }
+    }
+  },
+  {
+    "route": "elite",
+    "relic": "mixed",
+    "first": 12288,
+    "count": 4096,
+    "won": 1387,
+    "completion": 0.338623046875,
+    "unlocks": "all",
+    "floors": [
+      {
+        "floor": 1,
+        "entered": 4096,
+        "lost": 167,
+        "turns": 19359,
+        "rate": 0.040771484375,
+        "meanTurns": 4.726318359375
+      },
+      {
+        "floor": 2,
+        "entered": 3929,
+        "lost": 100,
+        "turns": 13425,
+        "rate": 0.025451768897938407,
+        "meanTurns": 3.416899974548231
+      },
+      {
+        "floor": 3,
+        "entered": 3829,
+        "lost": 181,
+        "turns": 9648,
+        "rate": 0.04727082789240011,
+        "meanTurns": 2.5197179420214155
+      },
+      {
+        "floor": 4,
+        "entered": 3648,
+        "lost": 223,
+        "turns": 8658,
+        "rate": 0.06112938596491228,
+        "meanTurns": 2.3733552631578947
+      },
+      {
+        "floor": 5,
+        "entered": 3425,
+        "lost": 215,
+        "turns": 8345,
+        "rate": 0.06277372262773723,
+        "meanTurns": 2.4364963503649637
+      },
+      {
+        "floor": 6,
+        "entered": 3210,
+        "lost": 581,
+        "turns": 15454,
+        "rate": 0.18099688473520248,
+        "meanTurns": 4.814330218068536
+      },
+      {
+        "floor": 7,
+        "entered": 2629,
+        "lost": 94,
+        "turns": 4427,
+        "rate": 0.03575503993914036,
+        "meanTurns": 1.6839102320273869
+      },
+      {
+        "floor": 8,
+        "entered": 2535,
+        "lost": 37,
+        "turns": 3348,
+        "rate": 0.014595660749506903,
+        "meanTurns": 1.3207100591715977
+      },
+      {
+        "floor": 9,
+        "entered": 2498,
+        "lost": 57,
+        "turns": 5196,
+        "rate": 0.022818254603682947,
+        "meanTurns": 2.080064051240993
+      },
+      {
+        "floor": 10,
+        "entered": 2441,
+        "lost": 48,
+        "turns": 4736,
+        "rate": 0.019664072101597707,
+        "meanTurns": 1.9401884473576403
+      },
+      {
+        "floor": 11,
+        "entered": 2393,
+        "lost": 0,
+        "turns": 0,
+        "rate": 0,
+        "meanTurns": 0
+      },
+      {
+        "floor": 12,
+        "entered": 2393,
+        "lost": 1006,
+        "turns": 17832,
+        "rate": 0.4203928123694108,
+        "meanTurns": 7.451734224822399
+      }
+    ],
+    "rules": 7,
+    "policy": "items",
+    "items": {
+      "blade": {
+        "offered": 1113,
+        "selected": 280,
+        "pickedRuns": 280,
+        "usedRuns": 257,
+        "wonRuns": 87
+      },
+      "counter": {
+        "offered": 1119,
+        "selected": 392,
+        "pickedRuns": 392,
+        "usedRuns": 391,
+        "wonRuns": 143
+      },
+      "join-slots": {
+        "offered": 1108,
+        "selected": 370,
+        "pickedRuns": 370,
+        "usedRuns": 214,
+        "wonRuns": 112
+      },
+      "buckle": {
+        "offered": 1302,
+        "selected": 458,
+        "pickedRuns": 458,
+        "usedRuns": 455,
+        "wonRuns": 152
+      },
+      "coin": {
+        "offered": 1287,
+        "selected": 87,
+        "pickedRuns": 87,
+        "usedRuns": 54,
+        "wonRuns": 41
+      },
+      "bandage": {
+        "offered": 636,
+        "selected": 636,
+        "pickedRuns": 636,
+        "usedRuns": 636,
+        "wonRuns": 179
+      },
+      "early-reroll": {
+        "offered": 1123,
+        "selected": 376,
+        "pickedRuns": 376,
+        "usedRuns": 298,
+        "wonRuns": 105
+      },
+      "counter-recover": {
+        "offered": 1144,
+        "selected": 394,
+        "pickedRuns": 394,
+        "usedRuns": 127,
+        "wonRuns": 99
+      },
+      "tuning": {
+        "offered": 1326,
+        "selected": 709,
+        "pickedRuns": 709,
+        "usedRuns": 709,
+        "wonRuns": 267
+      },
+      "wedge": {
+        "offered": 1323,
+        "selected": 172,
+        "pickedRuns": 172,
+        "usedRuns": 172,
+        "wonRuns": 69
+      },
+      "die-latch": {
+        "offered": 4250,
+        "selected": 2531,
+        "pickedRuns": 2531,
+        "usedRuns": 2347,
+        "wonRuns": 950
+      },
+      "scabbard": {
+        "offered": 4977,
+        "selected": 2233,
+        "pickedRuns": 2233,
+        "usedRuns": 1319,
+        "wonRuns": 887
+      },
+      "adjacent-needle": {
+        "offered": 4551,
+        "selected": 2063,
+        "pickedRuns": 2063,
+        "usedRuns": 1335,
+        "wonRuns": 874
+      },
+      "banner": {
+        "offered": 3600,
+        "selected": 1771,
+        "pickedRuns": 1771,
+        "usedRuns": 1767,
+        "wonRuns": 971
+      },
+      "oath": {
+        "offered": 1151,
+        "selected": 392,
+        "pickedRuns": 392,
+        "usedRuns": 390,
+        "wonRuns": 126
+      },
+      "spacer": {
+        "offered": 1310,
+        "selected": 303,
+        "pickedRuns": 303,
+        "usedRuns": 216,
+        "wonRuns": 106
+      },
+      "twin-mold": {
+        "offered": 1235,
+        "selected": 18,
+        "pickedRuns": 18,
+        "usedRuns": 18,
+        "wonRuns": 6
+      },
+      "advance-knot": {
+        "offered": 1246,
+        "selected": 47,
+        "pickedRuns": 47,
+        "usedRuns": 47,
+        "wonRuns": 20
+      },
+      "overflow": {
+        "offered": 3846,
+        "selected": 1897,
+        "pickedRuns": 1897,
+        "usedRuns": 1418,
+        "wonRuns": 829
+      },
+      "mirror": {
+        "offered": 3904,
+        "selected": 1872,
+        "pickedRuns": 1872,
+        "usedRuns": 1242,
+        "wonRuns": 795
+      },
+      "revived-heart": {
+        "offered": 2629,
+        "selected": 671,
+        "pickedRuns": 671,
+        "usedRuns": 477,
+        "wonRuns": 371
+      },
+      "emperor-shield": {
+        "offered": 2629,
+        "selected": 631,
+        "pickedRuns": 631,
+        "usedRuns": 631,
+        "wonRuns": 327
+      },
+      "brake-crown": {
+        "offered": 2629,
+        "selected": 669,
+        "pickedRuns": 669,
+        "usedRuns": 602,
+        "wonRuns": 342
+      },
+      "healing-scepter": {
+        "offered": 2629,
+        "selected": 658,
+        "pickedRuns": 658,
+        "usedRuns": 658,
+        "wonRuns": 347
+      },
+      "kit": {
+        "offered": 4928,
+        "selected": 4069,
+        "pickedRuns": 2321,
+        "usedRuns": 2321,
+        "wonRuns": 1222
+      },
+      "pip-ring": {
+        "offered": 4092,
+        "selected": 1892,
+        "pickedRuns": 1892,
+        "usedRuns": 1645,
+        "wonRuns": 897
+      },
+      "medicine": {
+        "offered": 2002,
+        "selected": 1703,
+        "pickedRuns": 1504,
+        "usedRuns": 1504,
+        "wonRuns": 666
+      },
+      "lining": {
+        "offered": 2002,
+        "selected": 299,
+        "pickedRuns": 286,
+        "usedRuns": 218,
+        "wonRuns": 182
+      },
+      "whetstone": {
+        "offered": 4395,
+        "selected": 2074,
+        "pickedRuns": 1657,
+        "usedRuns": 1082,
+        "wonRuns": 877
+      },
+      "shield": {
+        "offered": 1134,
+        "selected": 439,
+        "pickedRuns": 439,
+        "usedRuns": 437,
+        "wonRuns": 184
+      },
+      "collector": {
+        "offered": 1099,
+        "selected": 377,
+        "pickedRuns": 377,
+        "usedRuns": 293,
+        "wonRuns": 126
+      },
+      "blood-grip": {
+        "offered": 4021,
+        "selected": 1861,
+        "pickedRuns": 1861,
+        "usedRuns": 1385,
+        "wonRuns": 837
+      },
+      "charge-roll": {
+        "offered": 1100,
+        "selected": 354,
+        "pickedRuns": 354,
+        "usedRuns": 343,
+        "wonRuns": 86
+      },
+      "linked-cup": {
+        "offered": 278,
+        "selected": 73,
+        "pickedRuns": 73,
+        "usedRuns": 68,
+        "wonRuns": 36
+      },
+      "reverse-guard": {
+        "offered": 1062,
+        "selected": 366,
+        "pickedRuns": 366,
+        "usedRuns": 365,
+        "wonRuns": 183
+      },
+      "clash-seal": {
+        "offered": 408,
+        "selected": 396,
+        "pickedRuns": 396,
+        "usedRuns": 395,
+        "wonRuns": 157
+      },
+      "reroll": {
+        "offered": 1135,
+        "selected": 356,
+        "pickedRuns": 356,
+        "usedRuns": 351,
+        "wonRuns": 136
+      },
+      "reserve-gauge": {
+        "offered": 414,
+        "selected": 136,
+        "pickedRuns": 136,
+        "usedRuns": 135,
+        "wonRuns": 40
+      },
+      "incomplete": {
+        "offered": 170,
+        "selected": 71,
+        "pickedRuns": 71,
+        "usedRuns": 61,
+        "wonRuns": 58
+      },
+      "horn": {
+        "offered": 1075,
+        "selected": 523,
+        "pickedRuns": 523,
+        "usedRuns": 360,
+        "wonRuns": 496
+      },
+      "hourglass": {
+        "offered": 504,
+        "selected": 225,
+        "pickedRuns": 225,
+        "usedRuns": 214,
+        "wonRuns": 127
+      },
+      "weight": {
+        "offered": 1300,
+        "selected": 967,
+        "pickedRuns": 967,
+        "usedRuns": 967,
+        "wonRuns": 350
+      },
+      "heart-die": {
+        "offered": 168,
+        "selected": 8,
+        "pickedRuns": 8,
+        "usedRuns": 8,
+        "wonRuns": 7
+      }
+    },
+    "firstUnlocks": {
+      "triple": [
+        34,
+        203,
+        116,
+        123,
+        118,
+        266,
+        52,
+        44,
+        63,
+        140,
+        0,
+        211
+      ],
+      "straight": [
+        736,
+        954,
+        452,
+        370,
+        293,
+        395,
+        60,
+        43,
+        48,
+        46,
+        0,
+        92
+      ]
+    },
+    "bosses": {
+      "brake-crown": {
+        "picked": 669,
+        "won": 342
+      },
+      "healing-scepter": {
+        "picked": 658,
+        "won": 347
+      },
+      "emperor-shield": {
+        "picked": 631,
+        "won": 327
+      },
+      "revived-heart": {
+        "picked": 671,
+        "won": 371
+      }
+    },
+    "candidateLoss": {
+      "start": {
+        "visits": 4096,
+        "baseOffers": 12288,
+        "missing": 8381,
+        "changed": 4046,
+        "missingByCard": {
+          "oath": 1418,
+          "shield": 1276,
+          "reroll": 1438,
+          "collector": 1430,
+          "counter": 1461,
+          "blade": 1358
+        }
+      },
+      "elite": {
+        "visits": 15461,
+        "baseOffers": 30050,
+        "missing": 20434,
+        "changed": 13392,
+        "missingByCard": {
+          "mirror": 6120,
+          "overflow": 4963,
+          "banner": 4117,
+          "die-latch": 4278,
+          "horn": 956
+        }
+      },
+      "flag": {
+        "visits": 1979,
+        "baseOffers": 1979,
+        "missing": 1404,
+        "changed": 1404,
+        "missingByCard": {
+          "mirror": 366,
+          "banner": 227,
+          "hourglass": 148,
+          "horn": 58,
+          "overflow": 226,
+          "die-latch": 237,
+          "incomplete": 102,
+          "heart-die": 40
+        }
+      },
+      "shop": {
+        "visits": 2535,
+        "baseOffers": 5070,
+        "missing": 1805,
+        "changed": 1805,
+        "missingByCard": {
+          "hourglass": 199,
+          "mirror": 482,
+          "banner": 250,
+          "overflow": 317,
+          "heart-die": 81,
+          "die-latch": 249,
+          "horn": 116,
+          "incomplete": 111
+        }
+      }
+    }
+  }
+]

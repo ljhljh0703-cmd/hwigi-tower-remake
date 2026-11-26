@@ -5,8 +5,10 @@ import {
 import { BOSS_RELICS } from '../src/boss-relic.ts'
 import { draw } from '../src/combat.ts'
 import { offerPerks } from '../src/perks.ts'
+import { isMetaPerk } from '../src/meta-unlocks.ts'
 import { ALL_META_FLOORS } from '../src/meta-progress.ts'
-import { canResolveYachtTurn, forecastYacht, previewYachtHand } from '../src/yacht-combat.ts'
+import { treasureOffers } from '../src/map-treasure.ts'
+import { canResolveYachtTurn, forecastYacht, previewYachtHand, yachtAllocationTotals } from '../src/yacht-combat.ts'
 import { pickSevenCounter, pickSevenTreasure, planSevenTurn, sevenRewardOptions } from '../exp/map/item-rules-policy.mjs'
 import { optionsFor, pickTreasure, planTreasureTurn } from '../exp/map/stage-two.mjs'
 import { weightedPerks } from '../exp/map/stage-three.mjs'
@@ -14,10 +16,11 @@ import { weightedPerks } from '../exp/map/stage-three.mjs'
 const prudent = ['event', 'shop', 'rest', 'fight', 'elite']
 const challenge = ['elite', ...prudent.slice(0, -1)]
 const choosePerk = weightedPerks()
-const [route = 'safe', relic = 'mixed', first = '8192', count = '4096', version = '6', detail, unlocks = 'none'] = process.argv.slice(2)
+const [route = 'safe', relic = 'mixed', first = '8192', count = '4096', version = '6', detail, unlocks = 'none', metaPicks = 'auto'] = process.argv.slice(2)
 const rules = Number(version)
 if (rules !== 6 && rules !== 7) throw new Error('규칙판은 6 또는 7이어야 합니다.')
 if (!['none', 'all'].includes(unlocks) || unlocks === 'all' && rules !== 7) throw new Error('해금 후보는 규칙판 7에서 all 또는 none을 받습니다.')
+if (!['auto', 'base', 'perk', 'artifact'].includes(metaPicks)) throw new Error('해금 선택은 auto, base, perk 또는 artifact입니다.')
 const metaPool = unlocks === 'all' ? ALL_META_FLOORS : []
 const aware = detail !== 'plain'
 const order = route === 'elite' ? challenge : prudent
@@ -25,14 +28,29 @@ const floors = Array.from({ length: 12 }, (_, index) => ({ floor: index + 1, ent
 const items = {}
 const firstUnlocks = { triple: Array(12).fill(0), straight: Array(12).fill(0) }
 const bosses = {}
+const candidateLoss = {}
+const bonusPerks = {}
 let won = 0
 
 for (let seed = Number(first); seed < Number(first) + Number(count); seed++) {
-  const perk = choosePerk(seed, metaPool)
+  const offeredPerks = offerPerks(seed, metaPool)
+  const regularPerk = choosePerk(seed)
+  const unlockedPerk = offeredPerks.find(isMetaPerk)
+  const perk = unlockedPerk && (metaPicks === 'perk' || metaPicks === 'auto' && draw(seed, 0, 22) % 2 === 0) ? unlockedPerk : regularPerk
   const measured = detail ? { owned: new Set(), used: new Set() } : undefined
-  const track = (id) => (items[id] ??= { offered: 0, selected: 0, pickedRuns: 0, usedRuns: 0 })
+  const track = (id) => (items[id] ??= { offered: 0, selected: 0, pickedRuns: 0, usedRuns: 0, wonRuns: 0 })
+  const compareCandidates = (room, regular, actual) => {
+    const stats = (candidateLoss[room] ??= { visits: 0, baseOffers: 0, missing: 0, changed: 0, missingByCard: {} })
+    const missing = regular.filter((id) => !actual.includes(id))
+    stats.visits++
+    stats.baseOffers += regular.length
+    stats.missing += missing.length
+    stats.changed += Number(missing.length > 0)
+    for (const id of missing) stats.missingByCard[id] = (stats.missingByCard[id] ?? 0) + 1
+  }
   if (measured) {
-    for (const id of offerPerks(seed, metaPool)) track(id).offered++
+    for (const id of offeredPerks) track(id).offered++
+    if (metaPool.length) compareCandidates('start', offerPerks(seed), offeredPerks)
     track(perk).selected++
     measured.owned.add(perk)
   }
@@ -49,10 +67,17 @@ for (let seed = Number(first); seed < Number(first) + Number(count); seed++) {
       const opening = run.battle
       const plan = rules === 7 ? planSevenTurn(opening, aware, (id) => measured?.used.add(id)) : planTreasureTurn(opening, 'guardFirst')
       if (!canResolveYachtTurn(plan)) throw new Error(`확정 불가: ${seed}, ${node.floor}층, ${plan.turn}턴`)
+      const unlocking = !run.unlocks.includes('straight')
       run = resolveAscentTurn({ ...run, battle: plan })
       if (measured) {
         if (run.newUnlock) firstUnlocks[run.newUnlock][node.floor - 1]++
-        if (perk === 'join-slots' && run.newUnlock === 'straight' && previewYachtHand({ ...plan, perk: undefined })?.hand !== 'straight') measured.used.add(perk)
+        if (perk === 'join-slots' && !measured.used.has(perk)) {
+          const withoutPerk = { ...plan, perk: undefined }
+          if (yachtAllocationTotals(plan).attack > yachtAllocationTotals(withoutPerk).attack ||
+            run.newUnlock === 'straight' && previewYachtHand(withoutPerk)?.hand !== 'straight') measured.used.add(perk)
+        }
+        if ((perk === 'early-reroll' || perk === 'counter-recover') && unlocking &&
+          !opening.extraRerollSpent && plan.extraRerollSpent) measured.used.add(perk)
         recordTurn(measured.used, opening, plan, run.battle)
       }
       stats.turns++
@@ -88,11 +113,15 @@ for (let seed = Number(first); seed < Number(first) + Number(count); seed++) {
       break
     }
     const choice = node.enemyId === 'chain-warden' ? (relic === 'mixed' ? BOSS_RELICS[draw(seed, node.id, 94) % 4] : relic)
-      : node.kind === 'elite' ? rewardOffers(run)[0] ?? 'skip' : rules === 7 ? pickSevenTreasure(run) : pickTreasure(run)
+      : rules === 7 ? pickSevenTreasure(run, metaPicks === 'auto' || metaPicks === 'artifact')
+      : node.kind === 'elite' ? rewardOffers(run)[0] ?? 'skip' : pickTreasure(run)
     const next = takeAscentReward(run, choice, rules === 7 ? sevenRewardOptions(run, choice) : optionsFor(run, choice))
     if (next === run) throw new Error(`보상 실패: ${seed}, ${node.floor}층, ${choice}`)
     if (measured) {
       for (const id of rewardOffers(run)) track(id).offered++
+      if (metaPool.length && (node.kind === 'elite' || node.kind === 'shop' || node.event === 'flag')) {
+        compareCandidates(node.event ?? node.kind, treasureOffers({ ...run, meta: undefined }, node), rewardOffers(run))
+      }
       if (choice !== 'skip') {
         track(choice).selected++
         measured.owned.add(choice)
@@ -102,9 +131,16 @@ for (let seed = Number(first); seed < Number(first) + Number(count); seed++) {
     run = returnToMap(next)
   }
   if (measured) {
+    if (unlockedPerk) {
+      const row = (bonusPerks[unlockedPerk] ??= { offered: 0, chosen: 0, won: 0 })
+      row.offered++
+      row.chosen += Number(perk === unlockedPerk)
+      row.won += Number(run.battle.phase === 'won')
+    }
     for (const id of measured.owned) {
       track(id).pickedRuns++
       if (measured.used.has(id)) track(id).usedRuns++
+      if (run.battle.phase === 'won') track(id).wonRuns++
     }
     if (run.battle.bossRelic) {
       const stats = (bosses[run.battle.bossRelic.id] ??= { picked: 0, won: 0 })
@@ -114,9 +150,9 @@ for (let seed = Number(first); seed < Number(first) + Number(count); seed++) {
   }
 }
 
-console.log(JSON.stringify({ route, relic, first: Number(first), count: Number(count), won, completion: won / Number(count), ...(rules === 7 && { unlocks }),
+console.log(JSON.stringify({ route, relic, first: Number(first), count: Number(count), won, completion: won / Number(count), ...(rules === 7 && { unlocks, metaPicks }),
   floors: floors.map((entry) => ({ ...entry, rate: entry.lost / entry.entered, meanTurns: entry.turns / entry.entered })),
-  ...(detail && { rules, policy: rules === 7 && aware ? 'items' : 'guardFirst', items, firstUnlocks, bosses }) }))
+  ...(detail && { rules, policy: rules === 7 && aware ? 'items' : 'guardFirst', items, firstUnlocks, bosses, candidateLoss, bonusPerks }) }))
 
 function recordTurn(used, opening, plan, after) {
   for (const id of after.loot.triggered ?? []) used.add(id)

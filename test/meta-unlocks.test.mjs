@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { availableMapNodes, beginMapAscent, enterMapNode, resolveAscentTurn } from '../src/ascent.ts'
+import { availableMapNodes, beginMapAscent, enterMapNode, resolveAscentTurn, takeAscentReward } from '../src/ascent.ts'
 import { draftMetaDie, transferMetaPip } from '../src/meta-combat.ts'
 import { ALL_META_FLOORS, loadMetaProgress, markMetaOffers, META_SAVE_KEY, openMetaStage, resetMetaProgress, resumeMetaRun, snapshotMeta, writeMetaProgress } from '../src/meta-progress.ts'
-import { META_ARTIFACTS, META_PERKS } from '../src/meta-unlocks.ts'
+import { META_ARTIFACTS, META_PERKS, META_VALUES } from '../src/meta-unlocks.ts'
 import { offerPerks, startPerk } from '../src/perks.ts'
 import { emptyTreasure, nextTreasureBattle } from '../src/treasure.ts'
 import { availableCounterChoices } from '../src/treasure-combat.ts'
@@ -61,7 +61,9 @@ test('only the next run samples unlocked candidates and the first actual offer m
   const all = { ...loadMetaProgress(storageFor()), unlocked: ALL_META_FLOORS }
   const seed = Array.from({ length: 100 }, (_, index) => index).find(index => offerPerks(index, all.unlocked).includes('reverse-guard'))
   const offers = offerPerks(seed, all.unlocked)
-  assert.equal(new Set(offers).size, 3)
+  assert.equal(new Set(offers).size, 4)
+  assert.deepEqual(offers.slice(0, 3), offerPerks(seed))
+  assert.deepEqual(offerPerks(seed, [7]), [...offerPerks(seed), 'charge-roll'])
   const marked = markMetaOffers(all, offers)
   assert.ok(marked.fresh.includes('reverse-guard'))
   assert.deepEqual(markMetaOffers(marked.progress, offers).fresh, [])
@@ -71,9 +73,12 @@ test('only the next run samples unlocked candidates and the first actual offer m
   const found = new Set()
   for (let index=0; index<128; index++) {
     const run = beginMapAscent(index, undefined, 'odd', 7, snapshotMeta(all))
-    for (const room of run.route.map.nodes.filter(node => node.kind === 'elite' || node.kind === 'shop')) {
+    for (const room of run.route.map.nodes.filter(node => node.kind === 'elite' || node.kind === 'shop' || node.event === 'flag')) {
       const ids = treasureOffers(run, room)
+      const regular = treasureOffers({ ...run, meta: undefined }, room)
       assert.equal(new Set(ids).size, ids.length)
+      assert.deepEqual(ids.slice(0, regular.length), regular)
+      assert.ok(ids.length <= regular.length + 1)
       if (room.kind === 'elite') assert.ok(!ids.includes('linked-cup'))
       ids.forEach(id => found.add(id))
     }
@@ -83,6 +88,30 @@ test('only the next run samples unlocked candidates and the first actual offer m
     const png = readFileSync(new URL('../public/art/ui/icons/icon-' + icon + '.png', import.meta.url))
     assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [24, 24])
   }
+})
+
+test('regular and unlocked shop options survive a checkpoint, including older pending offers', () => {
+  for (let seed = 0; seed < 128; seed++) {
+    const shop = beginMapAscent(seed, undefined, 'odd', 7).route.map.nodes.find(room => room.kind === 'shop')
+    const before = mapBefore(seed, shop.floor, 7)
+    if (!availableMapNodes(before).some(room => room.id === shop.id) || before.route.coins < 5) continue
+    const original = enterMapNode(before, shop.id)
+    const run = enterMapNode({ ...before, meta: { generation: 0, pool: ALL_META_FLOORS, opened: [] } }, shop.id)
+    const bonus = run.route.offers.find(id => Object.hasOwn(META_ARTIFACTS, id))
+    if (!bonus) continue
+    const restored = checkpoint(run, bonus).restored
+    assert.deepEqual(restored.ascent.route.offers, [...original.route.offers, bonus])
+    assert.equal(restored.rewardPreview, bonus)
+    const legacyOffers = treasureOffers(run, shop, true)
+    const legacy = checkpoint({ ...run, route: { ...run.route, offers: legacyOffers } }, 'kit').restored
+    assert.notDeepEqual(legacyOffers, run.route.offers)
+    assert.deepEqual(legacy.ascent.route.offers, legacyOffers)
+    assert.equal(legacy.rewardPreview, 'kit')
+    const bought = takeAscentReward(restored.ascent, bonus)
+    assert.ok(checkpoint(bought).restored.ascent.battle.loot.equipped.includes(bonus))
+    return
+  }
+  assert.fail('상점에서 살 수 있는 해금 유물 시드가 없습니다.')
 })
 
 test('guard reversal, split straight, charge roll and early reroll change only their specified actions', () => {
@@ -96,15 +125,22 @@ test('guard reversal, split straight, charge roll and early reroll change only t
   const split = board([2, 3, 4], [a, g, a], [4], 'join-slots')
   assert.equal(previewUnlockProgress(split).straight.progress, 3)
   assert.equal(resolveYachtTurn(split).hand.hand, 'straight')
+  assert.equal(forecastYacht(split).dealt, 6 + META_VALUES.joinAttack)
+  assert.equal(forecastYacht({ ...split, slots: [a, a, a] }).dealt, 9)
+  assert.equal(forecastYacht({ ...split, dice: [2, 3, 5] }).dealt, 7)
   assert.equal(previewYachtHand({ ...split, perk: undefined }), null)
   const charge = rerollYachtDice(board([2, 3, 4], [g, g, a], [9], 'charge-roll'), [0])
-  assert.ok([4, 5, 6].includes(charge.dice[0]))
+  assert.ok([5, 6].includes(charge.dice[0]))
   assert.equal(charge.slots[0], a)
+  assert.equal(forecastYacht(charge).dealt, charge.dice[0] + charge.dice[2] + META_VALUES.chargeAttack)
   assert.equal(canResolveYachtTurn({ ...charge, slots: [g, g, a] }), false)
-  const early = board([2, 3, 4], [a, g, a], [9], 'early-reroll', [], { extraRerollAvailable: true })
+  const early = board([2, 3, 4], [a, g, a], [9], 'early-reroll')
+  assert.equal(early.extraRerollAvailable, true)
   const spent = spendExtraReroll(early, 0)
   assert.equal(spent.extraRerollSpent, true)
   assert.equal(spent.rerolled, false)
+  const normalRoll = spendExtraReroll({ ...early, perk: undefined, rerolled: true }, 0)
+  assert.equal(spent.dice[0], Math.min(6, normalRoll.dice[0] + META_VALUES.earlyPips))
   assert.equal(rerollYachtDice(spent, [1]).rerolled, true)
 })
 
@@ -116,13 +152,15 @@ test('adjacent needle and counter recovery settle one visible counter choice', (
   assert.equal(shifted.lastExchange.counter.slot, slot)
   assert.equal(shifted.lastExchange.counter.damage, yachtCounterRewards(guard)[slot].damage)
   assert.deepEqual(shifted.loot.spent, ['adjacent-needle'])
-  const recover = board([2, 3, 4], [g, g, g], [9], 'counter-recover', [], { extraRerollSpent: true })
-  const pendingRecovery = spinYachtCounter(resolveYachtTurn(recover).battle)
+  const recover = board([2, 3, 4], [g, g, g], [9], 'counter-recover')
+  assert.equal(recover.extraRerollAvailable, true)
+  const spentRecovery = { ...recover, extraRerollAvailable: false, extraRerollSpent: true }
+  const pendingRecovery = spinYachtCounter(resolveYachtTurn(spentRecovery).battle)
   assert.ok(availableCounterChoices(pendingRecovery).includes('recover-reroll'))
   const restored = spinYachtCounter(pendingRecovery, 'recover-reroll')
   assert.equal(restored.extraRerollAvailable, true)
   assert.equal(restored.extraRerollSpent, undefined)
-  assert.equal(restored.lastExchange.counter.damage, 0)
+  assert.equal(restored.lastExchange.counter.damage, Math.max(0, pendingRecovery.loot.counter.damage - META_VALUES.recoveryCost))
 })
 
 test('scabbard carries only direct overkill and blood, linked dice and pip transfer spend once', () => {

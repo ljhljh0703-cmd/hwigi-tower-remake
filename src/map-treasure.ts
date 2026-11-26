@@ -50,28 +50,34 @@ function hasEscortAhead(run: Ascent, node: MapNode) {
   return false
 }
 
-function sevenArtifactOffers(run: Ascent, node: MapNode, previouslyAcquired = false) {
+function sevenArtifactOffers(run: Ascent, node: MapNode, legacyMixedPool: boolean, previouslyAcquired = false) {
   const loot = run.battle.loot!
   const ego = run.unlocks.includes('triple')
   const eligible = (id: Artifact) =>
     (previouslyAcquired ? loot.acquired.includes(id) && !loot.equipped.includes(id) : !loot.acquired.includes(id)) &&
     (id !== 'incomplete' || !ego && !loot.sealUsed) && (id !== 'heart-die' && id !== 'horn' || ego)
-  const unlocked = META_STAGES.filter(({floor}) => run.meta?.pool.includes(floor)).map(({artifact}) => artifact)
-  const common = rotate([...COMMON_ARTIFACTS, ...unlocked.filter((id) => id !== 'linked-cup')], draw(run.seed, node.id, 89)).filter(eligible)
-  const rare = rotate([...RARE_ARTIFACTS, ...unlocked.filter((id) => id === 'linked-cup')], draw(run.seed, node.id, 96)).filter(eligible)
-  return { common, rare }
+  const unlocked = META_STAGES.filter(({ floor }) => run.meta?.pool.includes(floor)).map(({ artifact }) => artifact)
+  const commonPool = legacyMixedPool ? [...COMMON_ARTIFACTS, ...unlocked.filter((id) => treasureRarity(id) === 'common')] : COMMON_ARTIFACTS
+  const rarePool = legacyMixedPool ? [...RARE_ARTIFACTS, ...unlocked.filter((id) => treasureRarity(id) === 'rare')] : RARE_ARTIFACTS
+  const common = rotate(commonPool, draw(run.seed, node.id, 89)).filter(eligible)
+  const rare = rotate(rarePool, draw(run.seed, node.id, 96)).filter(eligible)
+  const bonus = !legacyMixedPool && !previouslyAcquired && unlocked.length ? rotate(unlocked, draw(run.seed, node.id, 107)).filter(eligible) : []
+  return { common, rare, bonus }
 }
 
-function sevenTreasureOffers(run: Ascent, node: MapNode): readonly Treasure[] {
+function sevenTreasureOffers(run: Ascent, node: MapNode, legacyMixedPool: boolean): readonly Treasure[] {
   if (node.kind === 'elite') {
-    const { common } = sevenArtifactOffers(run, node)
-    return (common.length ? common : sevenArtifactOffers(run, node, true).common).slice(0, 2)
+    const { common, bonus } = sevenArtifactOffers(run, node, legacyMixedPool)
+    const regular = (common.length ? common : sevenArtifactOffers(run, node, legacyMixedPool, true).common).slice(0, 2)
+    const extra = bonus.find((id) => treasureRarity(id) === 'common')
+    return extra ? [...regular, extra] : regular
   }
   const rareSlot = draw(run.seed, node.id, 95) % 4 === 0
   if (node.kind === 'shop' || node.event === 'flag') {
-    const { common, rare } = sevenArtifactOffers(run, node)
+    const { common, rare, bonus } = sevenArtifactOffers(run, node, legacyMixedPool)
     const artifact = rareSlot ? rare[0] ?? common[0] : common[0] ?? rare[0]
-    return [...(node.kind === 'shop' ? ['kit'] as const : []), ...(artifact ? [artifact] : [])]
+    const extra = bonus.find((id) => treasureRarity(id) === (rareSlot ? 'rare' : 'common'))
+    return [...(node.kind === 'shop' ? ['kit'] as const : []), ...(artifact ? [artifact] : []), ...(extra ? [extra] : [])]
   }
   const common = [...COMMON_CONSUMABLES]
   const offers: Treasure[] = [0, 1, 2].map((index) => common.splice(draw(run.seed, node.id, 100 + index) % common.length, 1)[0])
@@ -80,11 +86,11 @@ function sevenTreasureOffers(run: Ascent, node: MapNode): readonly Treasure[] {
   return offers
 }
 
-export function treasureOffers(run: Ascent, node: MapNode): readonly Treasure[] {
+export function treasureOffers(run: Ascent, node: MapNode, legacyMixedPool = false): readonly Treasure[] {
   if (node.kind === 'rest') return ['kit', 'whetstone']
   if (node.event === 'medicine') return ['medicine', 'lining']
   if (node.event === 'pulley') return ['whetstone']
-  if (run.route?.map.rules === 7) return sevenTreasureOffers(run, node)
+  if (run.route?.map.rules === 7) return sevenTreasureOffers(run, node, legacyMixedPool)
   if (node.event === 'flag') return artifactChoices(run, node).slice(0, 1)
   if (node.kind === 'shop') {
     if (!run.route || run.route.map.rules < 3) return []
