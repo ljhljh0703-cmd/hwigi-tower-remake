@@ -31,7 +31,7 @@ import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
 import type { Parity } from './perks.ts'
 import {
   bladeChargePreview, canReroll, canResolveYachtTurn, previewUnlockProgress, toggleYachtWedge, tuneYachtDie, yachtAllocationTotals,
-  yachtCounterRewards, yachtRerollCost,
+  forecastYacht, resolveYachtTurn, yachtCounterRewards, yachtRerollCost,
 } from './yacht-combat.ts'
 import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput, rerollSelectedDice } from './dice-drag.ts'
@@ -146,6 +146,7 @@ const ui = {
   attackMultiplier: element('attack-multiplier'),
   guardTotal: element('guard-total'),
   guardBonus: element('guard-bonus'),
+  guardExact: element('guard-exact'),
   reroll: element<HTMLButtonElement>('reroll'),
   rerollCount: element('reroll-count'),
   extraReroll: element<HTMLButtonElement>('extra-reroll'),
@@ -526,7 +527,12 @@ function refreshDice(battle: YachtBattle, { attack, guard }: SlotTotals, unlocks
   const wedgeHint = wedge ? `, 쇠쐐기 보너스 ${wedge} 포함` : ''
   ui.assign.attack.setAttribute('aria-label', `공격 칸, 피해 ${attack}${attackHint}${multiplierHint}${wedgeHint}`)
   const guardHint = renderSlotTotal(ui.guardTotal, ui.guardBonus, guard, guard - withoutPerk.guard)
-  ui.assign.guard.setAttribute('aria-label', `방어 칸, 합계 ${guard}${guardHint}`)
+  const plan = planning && guard > 0 ? forecastYacht(battle) : null
+  const exact = Boolean(plan?.counter && (canResolveYachtTurn(battle)
+    ? resolveYachtTurn(battle).battle.phase === 'counter'
+    : plan.damage < battle.playerHp && plan.dealt < battle.enemyHp))
+  ui.guardExact.hidden = !exact
+  ui.assign.guard.setAttribute('aria-label', `방어 칸, 합계 ${guard}${guardHint}${exact ? ', 정확 방어' : ''}`)
   const canPlace = planning && selected.size > 0
   const rerollable = [...selected].filter((index) => canReroll(battle, index))
   ui.assign.pool.disabled = !canPlace || ![...selected].some((index) => battle.slots[index] !== null)
@@ -782,7 +788,9 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   const intent = respondingIntent(enemyIntentAt(before), totals.attack)
   const critical = intent.id === 'critical'
   const weak = before.weakenedStrikeTurn === before.turn
-  const golemParry = exact && incoming === 1 && !dealt && !escortDealt && arena.beginGolemParry(start)
+  const golemSingle = exact && incoming === 1 && ascent?.enemy.id === 'thorns'
+  let golemParry = golemSingle && !dealt && arena.beginGolemParry(start)
+  let parryOffset = 0
   type HitCue = { delay?: number; incoming?: boolean; final?: boolean; guarded?: boolean; ordered?: boolean; parry?: boolean }
   const emit = (hits: BattleHit[], contact: HitCue = {}) => {
     const material = () => {
@@ -826,8 +834,13 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     emit(earlyEnemyHit)
     updateEnemy()
   }
+  if (golemSingle && dealt && !reducedMotion()) {
+    parryOffset = 170
+    await at(parryOffset)
+    golemParry = arena.beginGolemParry(performance.now())
+  }
   for (let index = 0; index < incoming; index++) {
-    const time = golemParry ? GOLEM_PARRY.contact : incomingContact + index * repeatContact
+    const time = golemParry ? parryOffset + GOLEM_PARRY.contact : incomingContact + index * repeatContact
     if (index) arena.queueShadow(start + effectDuration(time), true)
     await at(time)
     const damage = hitsTaken[index]
@@ -873,12 +886,13 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   }, effectDuration(damageDuration))
   if (exact) {
     if (golemParry) {
-      await at(GOLEM_PARRY.landing)
+      await at(parryOffset + GOLEM_PARRY.landing)
       if (!reducedMotion()) sound.play('stone-hit', .84, .13)
-      await at(GOLEM_PARRY.end)
+      await at(parryOffset + GOLEM_PARRY.end)
     } else {
       await wait(parryDuration)
     }
+    arena.holdFieldParry()
     ui.parry.hidden = true
   } else if (escortDealt && !after.escort && after.phase === 'assign' && !reducedMotion()) {
     await wait(escortDefeatPause)
@@ -1377,7 +1391,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.planning.hidden = !showActions || phase !== 'assign'
   ui.tuneDown.disabled = tuneYachtDie(battle, -1) === battle
   ui.tuneUp.disabled = tuneYachtDie(battle, 1) === battle
-  const fieldCounter = showActions && phase === 'counter' && arena.golemParryHeld && !battle.loot?.counter
+  const fieldCounter = showActions && phase === 'counter'
   if (fieldCounter && ui.counterPanel.parentElement !== ui.encounter) ui.encounter.append(ui.counterPanel)
   if (!fieldCounter && ui.counterPanel.parentElement !== counterPanelHome) {
     counterPanelHome.insertBefore(ui.counterPanel, counterPanelNext)
@@ -1385,9 +1399,11 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.counterPanel.classList.toggle('counter-over-field', fieldCounter)
   ui.intent.classList.toggle('parry-in-progress', fieldCounter)
   roulette.setVisible(showActions && phase === 'counter' ? yachtCounterRewards(battle) : null, companionAwake)
-  if (showActions && phase === 'counter') {
-    ui.counter.hidden = Boolean(battle.loot?.counter)
-    ui.counter.disabled = Boolean(battle.loot?.counter)
+  if (fieldCounter) {
+    ui.counter.hidden = true
+    if (battle.loot?.counter && ui.counterPanel.dataset.rollState !== 'locked') {
+      void roulette.reveal(battle.loot.counter, false, () => {})
+    }
   }
   renderTreasureControls(battle, showActions)
   ui.rewardPanel.hidden = !atRewards
@@ -1817,7 +1833,7 @@ ui.resolve.addEventListener('click', async () => {
     render('normal', next.battle.turn !== before.turn)
     if (before.turn !== next.battle.turn && !ui.planning.hidden) turnCues(before, true)
     finishCues(previous, next)
-    if (phase === 'counter' && arena.golemParryHeld) void playCounter()
+    if (phase === 'counter') void playCounter()
     else focusPhase()
   }
 })
@@ -1887,7 +1903,7 @@ function turnCues(before: YachtBattle | undefined, changedTurn: boolean) {
 
 let counterBusy = false
 async function playCounter(choice?: CounterChoice) {
-  if (ui.guide.open || exchangeBusy || !ascent || ascent.battle.phase !== 'counter' || counterBusy || (!choice && ui.counter.disabled)) return
+  if (ui.guide.open || exchangeBusy || !ascent || ascent.battle.phase !== 'counter' || counterBusy || (!choice && ascent.battle.loot?.counter)) return
   const previous = ascent
   const checkpoint = spinAscentCounter(ascent, choice)
   if (checkpoint === ascent) return
@@ -1909,18 +1925,13 @@ async function playCounter(choice?: CounterChoice) {
   ui.treasureControls.hidden = true
 
   const animate = !reducedMotion()
-  const fieldCounter = animate && arena.golemParryHeld
   if (next.perk?.kind === 'counter') renderActivePerk(next)
   if (!choice) {
-    if (fieldCounter) {
-      ui.counter.hidden = true
-      sound.play('roulette-engage', 1, .26)
-      sound.play('roulette-ratchet', animationSpeed(), .23)
-    }
-    await roulette.reveal(reward, animate, () => sound.play('roulette-tick'), animationSpeed() * (fieldCounter ? 1.24 : 1))
-    if (fieldCounter) sound.play('roulette-latch', 1, .37)
-    else sound.play('roulette-stop')
-    if (fieldCounter && !pending) await wait(245)
+    sound.play('roulette-engage', 1, .26)
+    if (animate) sound.play('roulette-ratchet', animationSpeed(), .23)
+    await roulette.reveal(reward, animate, () => {}, animationSpeed() * 1.24)
+    sound.play('roulette-latch', 1, .37)
+    await wait(520)
   }
   if (pending) {
     ascent = checkpoint
@@ -1929,9 +1940,10 @@ async function playCounter(choice?: CounterChoice) {
     focusPhase()
     return
   }
-  const choreographed = fieldCounter && !companionJoint && !escortDealt && dealt > 0 && arena.beginGolemCounter(next.enemyHp === 0)
+  ui.counterPanel.hidden = true
+  const choreographed = animate && !companionJoint && !escortDealt && dealt > 0 && arena.beginGolemCounter(next.enemyHp === 0)
+  if (!choreographed) clearExchange()
   if (choreographed) {
-    ui.counterPanel.hidden = true
     await wait(GOLEM_COUNTER.contact)
   } else if (companionJoint && animate) {
     const point = arena.flightTarget(escortDealt ? 'escort' : 'enemy')
@@ -1944,7 +1956,6 @@ async function playCounter(choice?: CounterChoice) {
     arena.counterStrike()
     await wait(128)
   }
-  if (!choreographed) clearExchange()
   if (escortDealt > 0) {
     const hit = { target: 'escort', damage: escortDealt, defeated: !next.escort } as const
     arena.contact([hit], { counter: true, joint: companionJoint })
@@ -2031,7 +2042,8 @@ ui.continueAscent.addEventListener('click', (event) => {
   for (const index of checkpoint.selected) selected.add(index)
   if (event.isTrusted) sound.activate()
   render()
-  focusPhase()
+  if (ascent.battle.phase === 'counter' && !ascent.battle.loot?.counter) void playCounter()
+  else focusPhase()
 })
 ui.newAscent.addEventListener('click', () => {
   const { checkpoint, invalidMap } = readAscentSave()

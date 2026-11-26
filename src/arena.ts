@@ -171,6 +171,7 @@ export class Arena {
   private animationSpeed = 1
   private reducedMotion = false
   private impacts: Impact[] = []
+  private heldParryAt?: number
   private frozen?: { at: number; until: number }
   private shadows: { at: number; multi: boolean }[] = []
   private trauma = 0
@@ -458,6 +459,7 @@ export class Arena {
   }
 
   private draw(now = performance.now()) {
+    now = this.heldParryAt ?? now
     const { battle, canvas, context } = this
     context.clearRect(0, 0, canvas.width, canvas.height)
     if (!battle || !this.floor || !this.placements.size) return
@@ -571,6 +573,7 @@ export class Arena {
   }
 
   private animate = () => {
+    if (this.heldParryAt !== undefined) return
     const now = performance.now()
     this.trauma = Math.max(0, this.trauma - Math.max(0, now - this.lastFrame) / 1000 * 1.5 * this.animationSpeed)
     this.lastFrame = now
@@ -604,7 +607,16 @@ export class Arena {
     this.restartAnimation()
   }
 
+  holdFieldParry() {
+    if (this.reducedMotion) return
+    if (this.golemParry !== undefined) this.heldParryAt = this.golemParry + GOLEM_PARRY.end / this.animationSpeed
+    else if (this.attack?.last) this.heldParryAt = this.attack.last + 60 / this.animationSpeed
+    else return
+    this.draw()
+  }
+
   clearContact() {
+    this.heldParryAt = undefined
     this.attack = undefined
     this.trauma = 0
     this.recoverUntil = 0
@@ -712,6 +724,7 @@ export class Arena {
 
   beginGolemCounter(defeated: boolean) {
     if (!this.golemParryHeld || !this.images.get(GOLEM_COUNTER.art)?.naturalWidth) return false
+    this.heldParryAt = undefined
     this.golemCounter = { start: performance.now(), defeated }
     this.restartAnimation()
     return true

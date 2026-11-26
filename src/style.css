@@ -953,6 +953,8 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 .slot-target:not(:disabled):hover { background: var(--stone-face); }
 .slot-target:not(:disabled):active { scale: none; }
 .slot-target span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: .85rem; }
+#guard-exact { color: #efdb9c; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+#assign-guard:has(#guard-exact:not([hidden])) { box-shadow: inset 0 -2px #ba9a59; }
 .slot-target .slot-total { color: inherit; }
 .slot-target #attack-multiplier { color: #f2ac98; }
 .slot-target strong { font-size: 2rem; line-height: 1; }
@@ -1607,6 +1609,9 @@ main[data-screen='defeat'] {
 [data-screen='battle'] #inventory-overflow { inset-inline: 0 auto; }
 
 :root[data-animation-speed='fast'] { --animation-scale: .5; }
+[data-reduced-motion='true'] .counter-over-field .roulette-stage,
+[data-reduced-motion='true'] .counter-over-field .roulette-stage::after,
+[data-reduced-motion='true'] .counter-over-field .roulette-pointer { animation: none; }
 [data-reduced-motion='true'] button { transition: none; }
 [data-reduced-motion='true'] button:not(:disabled):active { scale: none; }
 [data-reduced-motion='true'] :is(.unlock-ready, #unlock-reveal, .companion-reveal .companion-tile, #companion-flight) { animation: none; }
