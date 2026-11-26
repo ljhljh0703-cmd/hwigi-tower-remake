@@ -10,5 +10,5 @@ import { NEW_TREASURES } from './treasure.ts'
 
 
 export function itemIcon(name: string) {
-  return NEW_TREASURES.some((id) => name === `treasure-${id}`) ? pixelIcon(name) : icon(name)
+  return name.startsWith('meta-') || NEW_TREASURES.some((id) => name === `treasure-${id}`) ? pixelIcon(name) : icon(name)
 }

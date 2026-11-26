@@ -6,8 +6,14 @@ import type { BossRelic } from './boss-relic.ts'
 import { REST_HEAL, TREASURE_CARDS } from './treasure.ts'
 import type { Treasure } from './treasure.ts'
 import { SEVEN_ITEM_VALUES } from './item-values.ts'
+import { isMetaPerk, META_ARTIFACTS, META_PERKS } from './meta-unlocks.ts'
 
 export const REWARD_TEXT: Readonly<Record<Exclude<Reward, BossRelic>, string>> = {
+  scabbard: META_ARTIFACTS.scabbard.description,
+  'adjacent-needle': META_ARTIFACTS['adjacent-needle'].description,
+  'pip-ring': META_ARTIFACTS['pip-ring'].description,
+  'blood-grip': META_ARTIFACTS['blood-grip'].description,
+  'linked-cup': META_ARTIFACTS['linked-cup'].description,
   bandage: `고르면 체력을 ${BANDAGE_HEAL} 회복해요.`,
   weight: `공격에 홀수·짝수를 함께 놓으면 피해 ${WEIGHT_BONUS}를 더 줘요. 하나당 전투당 한 번이에요.`,
   buckle: `방어가 적 공격보다 1~${BUCKLE_MAX_SHORTFALL} 모자라면 피해를 최대 ${BUCKLE_REDUCTION} 줄여요. 하나당 전투당 한 번이에요.`,
@@ -75,7 +81,7 @@ export function oathDescription(parity?: Parity) {
   return `${dice}을 공격에 놓으면 개당 피해 ${START_PERKS.oath.bonus}을 더 줘요.`
 }
 
-export const PERK_TEXT: Readonly<Record<StartPerk, string>> = {
+export const PERK_TEXT: Readonly<Record<keyof typeof START_PERKS, string>> = {
   shield: `방어 합을 적 공격에 맞출 때마다 공격 피해가 ${START_PERKS.shield.step}씩 올라요. 빗나가면 처음부터 쌓아요.`,
   blade: `공격 눈을 ${START_PERKS.blade.threshold} 이상 모으면 다음 공격이 ${START_PERKS.blade.multiplier}배예요. 쓰거나 전투가 끝나면 초기화돼요.`,
   collector: `같은 눈 둘 이상인 칸이 강해져요. 같은 눈 둘·셋·넷이나 연속 셋을 처음 만들 때마다 보너스가 ${START_PERKS.collector.step}씩 올라요. 최대 ${START_PERKS.collector.maximum}이에요.`,
@@ -85,6 +91,7 @@ export const PERK_TEXT: Readonly<Record<StartPerk, string>> = {
 }
 
 export function perkText(perk: StartPerk, seven?: boolean) {
+  if (isMetaPerk(perk)) return META_PERKS[perk].description
   if (seven && perk === 'shield') return `정확히 막으면 다음 공격 합이 ${SEVEN_ITEM_VALUES.shieldStock} 오릅니다.`
   if (seven && perk === 'collector') return '새 족보를 해금할 때마다 같은 눈이 둘 이상인 칸의 합이 1 오릅니다.'
   if (seven && perk === 'counter') return `룰렛을 돌릴 때마다 다음 룰렛부터 일반 칸 피해가 ${SEVEN_ITEM_VALUES.counterStep} 오릅니다(최대 +${SEVEN_ITEM_VALUES.counterLimit}).`

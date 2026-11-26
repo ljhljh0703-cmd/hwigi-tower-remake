@@ -31,11 +31,15 @@ import {
   allocationPower, assignDie, attackFor, chargedStrikePreview, combatSlots, DIE_COUNT, enemyIntentAt, incomingAttack, respondingIntent, splitEnemyDamage,
 } from './combat.ts'
 import type { CounterResult, Exchange, Gimmick, SlotTotals } from './combat.ts'
-import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
-import type { Parity } from './perks.ts'
+import { collectorBonus, offerPerks, START_PERK_CARDS, START_PERKS } from './perks.ts'
+import type { Parity, StartPerk } from './perks.ts'
+import { META_ARTIFACTS, META_PERKS } from './meta-unlocks.ts'
+import { loadMetaProgress, markMetaOffers, META_CARD_COUNT, META_SAVE_KEY, openMetaStage, resetMetaProgress, resumeMetaRun, snapshotMeta, writeMetaProgress } from './meta-progress.ts'
+import { metaGuideContent, metaRevealContent } from './meta-view.ts'
+import { bloodDieFor, bloodHealing, canPlaceMetaDie, draftMetaDie, transferMetaPip } from './meta-combat.ts'
 import {
   bladeChargePreview, canReroll, canResolveYachtTurn, canUseExtraReroll, displayedCounterRewards, previewUnlockProgress, toggleYachtWedge, tuneYachtDie, yachtAllocationTotals,
-  classifyYachtHand, emperorShieldActive, forecastYacht, resolveYachtTurn, yachtGimmick, yachtRerollCost,
+  classifyYachtHand, emperorShieldActive, forecastYacht, rerollYachtDice, resolveYachtTurn, yachtGimmick, yachtRerollCost,
 } from './yacht-combat.ts'
 import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput, rerollSelectedDice } from './dice-drag.ts'
@@ -179,7 +183,22 @@ const unlockInfo = {
 const parityLabels = { odd: '홀', even: '짝' } as const
 const parityIcons = { odd: 'die', even: 'die-even' } as const
 
+let metaProgress = loadMetaProgress()
 let guideTrigger: HTMLButtonElement | undefined
+const metaLobby = element<HTMLButtonElement>('meta-lobby')
+const metaGuide = element('guide-meta')
+
+function showGuideTab(meta: boolean) {
+  element('guide-run-tab').setAttribute('aria-selected', String(!meta))
+  element('guide-meta-tab').setAttribute('aria-selected', String(meta))
+  ui.guideEntries.hidden = meta
+  metaGuide.hidden = !meta
+  if (meta) {
+    metaGuide.innerHTML = metaGuideContent(metaProgress.unlocked)
+    metaGuide.scrollTop = 0
+  }
+}
+
 function openGuide(button: HTMLButtonElement, symbol?: string, name?: string) {
   if (button.disabled || ui.guide.open) return
   const rules = ascent ? ascent.route?.map.rules ?? MAP_RULES : CURRENT_MAP_RULES
@@ -195,6 +214,7 @@ function openGuide(button: HTMLButtonElement, symbol?: string, name?: string) {
     </section>
   `).join('')
   guideTrigger = button
+  showGuideTab(button === metaLobby || !!symbol?.startsWith('meta-'))
   ui.guide.showModal()
   ui.guideEntries.scrollTop = 0
   const entry = symbol && (name && ui.guideEntries.querySelector(`[data-guide-icon="${symbol}"][data-guide-name="${name}"]`) || ui.guideEntries.querySelector(`[data-guide-icon="${symbol}"]`))
@@ -204,6 +224,9 @@ function openGuide(button: HTMLButtonElement, symbol?: string, name?: string) {
 for (const button of [ui.help, ui.lobbyGuide]) {
   button.addEventListener('click', () => openGuide(button))
 }
+metaLobby.addEventListener('click', () => openGuide(metaLobby))
+element('guide-run-tab').addEventListener('click', () => showGuideTab(false))
+element('guide-meta-tab').addEventListener('click', () => showGuideTab(true))
 ui.guide.addEventListener('click', (event) => {
   if (event.target === ui.guide) ui.guide.close()
 })
@@ -232,7 +255,7 @@ const gimmickEffects = {
 let ascent: Ascent | null = null
 let chosenReward: Reward | undefined
 let artifactOptions: ArtifactOptions = {}
-let itemControl: 'tuning' | 'twin-mold' | 'hourglass' | 'die-latch' | undefined
+let itemControl: 'tuning' | 'twin-mold' | 'hourglass' | 'die-latch' | 'pip-ring' | 'blood-grip' | 'linked-cup' | undefined
 let dockItem: Reward | undefined
 let exchangeBusy = false
 let stopDiceMotion: (() => void) | undefined
@@ -342,6 +365,25 @@ function saveCurrent(checkpoint = ascent) {
   })
 }
 
+function noteMetaStage(run: Ascent, floor: number, finished = false) {
+  const next = openMetaStage(run, metaProgress, floor, finished)
+  if (next.progress !== metaProgress) {
+    metaProgress = next.progress
+    writeMetaProgress(metaProgress)
+  }
+  return next.run
+}
+
+function noteMetaVictory(run: Ascent) {
+  return run.route?.screen === 'finished' && run.battle.phase === 'won' ? noteMetaStage(run, MAP_FLOORS, true) : run
+}
+
+function refreshMetaCount() {
+  const count = `${metaProgress.unlocked.length * 2}/${META_CARD_COUNT}`
+  metaLobby.querySelector('strong')!.textContent = count
+  metaLobby.setAttribute('aria-label', `다음 등반 해금 ${count}`)
+}
+
 let onConfirm: (() => void) | undefined
 function confirmLobbyAction(title: string, description: string, label: string, action: () => void) {
   ui.confirmTitle.textContent = title
@@ -356,6 +398,19 @@ ui.confirm.addEventListener('close', () => {
   const action = onConfirm
   onConfirm = undefined
   if (ui.confirm.returnValue === 'confirm') action?.()
+})
+
+element('clear-meta').addEventListener('click', () => {
+  confirmLobbyAction('영구 해금 기록을 지울까요?', '다음 등반의 해금과 새 표식 기록이 초기화됩니다.', '해금 기록 지우기', () => {
+    metaProgress = resetMetaProgress(metaProgress)
+    writeMetaProgress(metaProgress)
+    if (ascent) {
+      ascent = resumeMetaRun(ascent, metaProgress).run
+      saveCurrent()
+    }
+    refreshMetaCount()
+    ui.settings.close()
+  })
 })
 
 ui.abandonAscent.addEventListener('click', () => {
@@ -515,6 +570,12 @@ function refreshDice(battle: YachtBattle, { attack, guard }: SlotTotals, unlocks
     if (oathFace) faceLabel = `, 공격에 놓으면 +${START_PERKS.oath.bonus}`
     if (fixed) faceLabel += `, ${fixed === 'lock' ? '잠김' : '얼림'}, 재굴림 불가`
     if (sealed) faceLabel += ', 봉인된 눈은 합계에서 빠짐'
+    const metaDie = bloodDieFor(battle) === index ? 'blood' : battle.metaTurn?.chargeDie === index ? 'charge'
+      : battle.metaTurn?.reverseDie === index && battle.slots[index] === 'guard' ? 'reverse' : undefined
+    if (metaDie) {
+      button.dataset.metaDie = metaDie
+      faceLabel += metaDie === 'charge' ? ', 공격 전용' : metaDie === 'blood' ? ', 턴 끝에 소모' : `, 방어 눈 ${7 - battle.dice[index]}`
+    } else delete button.dataset.metaDie
     const name = isCompanion ? '에고 주사위' : `주사위 ${index + 1}`
     button.setAttribute('aria-label', `${name}, ${value}, ${place}${faceLabel}`)
     button.setAttribute('aria-pressed', String(picked))
@@ -568,7 +629,7 @@ function refreshDice(battle: YachtBattle, { attack, guard }: SlotTotals, unlocks
   ui.assign.pool.disabled = !canPlace || ![...selected].some((index) => battle.slots[index] !== null)
   ui.assign.pool.parentElement!.tabIndex = ui.assign.pool.disabled ? 0 : -1
   ui.assign.attack.disabled = !canPlace
-  ui.assign.guard.disabled = !canPlace
+  ui.assign.guard.disabled = !canPlace || [...selected].some((index) => !canPlaceMetaDie(battle, index, 'guard'))
   const rerollCost = yachtRerollCost(battle)
   ui.reroll.disabled = !rerollable.length || rerollCost === null || rerollCost >= battle.playerHp
   const freeRolls = Number(rerollCost === 0)
@@ -1031,7 +1092,7 @@ function renderActivePerk(battle: YachtBattle) {
   }
   ui.activePerk.hidden = !perk
   if (!perk) return
-  const { name, icon: defaultSymbol } = START_PERKS[perk.kind]
+  const { name, icon: defaultSymbol } = START_PERK_CARDS[perk.kind]
   const symbol = perk.kind === 'oath' ? parityIcons[perk.parity] : defaultSymbol
   let value: string
   switch (perk.kind) {
@@ -1041,6 +1102,11 @@ function renderActivePerk(battle: YachtBattle) {
     case 'reroll': value = battle.paidRerollSpent ? '0' : '+1'; break
     case 'oath': value = `${parityLabels[perk.parity]} +${START_PERKS.oath.bonus}`; break
     case 'counter': value = `+${perk.growth}`; break
+    case 'reverse-guard': value = perk.spent ? '0' : '1'; break
+    case 'join-slots':
+    case 'charge-roll':
+    case 'counter-recover':
+    case 'early-reroll': value = META_PERKS[perk.kind].value; break
   }
   const projected = blade && battle.phase === 'assign' && blade.nextCharge !== blade.charge
     ? `${blade.nextCharge}/${START_PERKS.blade.threshold}` : null
@@ -1049,7 +1115,7 @@ function renderActivePerk(battle: YachtBattle) {
   const preview = projected ? `<small class="perk-preview">${pips} →${projected}</small>` : ''
   const previewLabel = projected
     ? `${blade?.pipsAdded ? `, 공격 눈 합 +${blade.pipsAdded}` : ''}, 배치 후 예상 ${projected}` : ''
-  ui.activePerk.innerHTML = `${icon(symbol)}<strong>${value}</strong>${preview}`
+  ui.activePerk.innerHTML = `${itemIcon(symbol)}<strong>${value}</strong>${preview}`
   ui.activePerk.setAttribute('aria-label', `${name} ${value}${previewLabel}, ${perkText(perk.kind, battle.itemsSeven)}`)
   ui.activePerk.title = name
 }
@@ -1411,12 +1477,13 @@ function renderTreasureStrips(battle: YachtBattle, disabled: boolean) {
     const available = artifactReady(loot, id) && !(id === 'incomplete' && loot.sealUsed)
     const toggle = ready && available && (id === 'banner' || (id === 'hammer' && enemyIntentAt(battle).chargeThreshold !== undefined))
     const hourglass = !battle.itemsSeven && ready && id === 'hourglass' && startHourglass(battle, [...selected]) !== battle
-    const pickDie = battle.itemsSeven && ready && available && (id === 'hourglass' && battle.playerHp > 2 || id === 'die-latch')
-    const delay = id === 'mirror' ? loot.mirrorDamage : id === 'overflow' ? loot.overflowDamage : undefined
+    const pickDie = battle.itemsSeven && ready && available && (id === 'hourglass' && battle.playerHp > 2 ||
+      id === 'die-latch' || id === 'pip-ring' || id === 'blood-grip' || id === 'linked-cup' && !battle.rerolled)
+    const delay = id === 'mirror' ? loot.mirrorDamage : id === 'overflow' ? loot.overflowDamage : id === 'scabbard' ? loot.scabbard : undefined
     const on = loot.armed?.includes(id as 'banner' | 'hammer') ?? false
     const action = id === 'banner' || id === 'hammer' ? { label: on ? '끄기' : '켜기',
       apply: toggle ? () => updateTreasureBattle(battle, toggleArtifact(battle, id), dockActionSelector) : undefined }
-      : id === 'hourglass' || id === 'die-latch' ? { label: '사용',
+      : id === 'hourglass' || id === 'die-latch' || id === 'pip-ring' || id === 'blood-grip' || id === 'linked-cup' ? { label: '사용',
         apply: pickDie ? () => openItemControl(id) : hourglass
           ? () => updateTreasureBattle(battle, startHourglass(battle, [...selected]), '#treasure-controls button', true) : undefined }
       : !battle.itemsSeven && id === 'incomplete' ? { label: '사용' } : undefined
@@ -1424,7 +1491,7 @@ function renderTreasureStrips(battle: YachtBattle, disabled: boolean) {
       delay ? `다음 공격에 피해 ${delay}를 더해요.` : undefined)
     if (toggle) button.setAttribute('aria-pressed', String(on))
     if (battle.itemsSeven && delay) button.insertAdjacentHTML('beforeend', `<span class="item-count">→${delay}</span>`)
-    if (id === 'die-latch' && loot.latchDraft !== undefined) button.setAttribute('aria-pressed', 'true')
+    if (id === 'die-latch' && loot.latchDraft !== undefined || id === 'blood-grip' && bloodDieFor(battle) !== undefined) button.setAttribute('aria-pressed', 'true')
     return button
   })
   for (const button of [...itemButtons, ...shardButtons, ...prepButtons, ...relicButtons]) {
@@ -1546,11 +1613,29 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
     if (choices.includes('coin')) ui.treasureControls.append(control('새긴 동전으로 룰렛 한 번 더 돌리기', `${icon('treasure-coin')}↻1`, () => void playCounter('coin')))
     if (choices.includes('mirror') || !battle.itemsSeven && loot.equipped.includes('mirror')) ui.treasureControls.append(control('반전 거울로 미루기', `${icon('treasure-mirror')}→${mirrorCounterDamage(battle, damage)}`, () => void playCounter('mirror'), !choices.includes('mirror')))
     if (choices.includes('horn') || !battle.itemsSeven && loot.equipped.includes('horn')) ui.treasureControls.append(control('교대의 뿔로 합공', `${icon('treasure-horn')}${counterDamage(battle, hornCounterDamage(battle))}`, () => void playCounter('horn'), !choices.includes('horn')))
+    if (choices.includes('adjacent')) {
+      const rewards = displayedCounterRewards(battle)
+      const beside = rewards[(loot.counter.slot + 1) % rewards.length]
+      ui.treasureControls.append(control(`옆칸 바늘로 피해 ${beside.damage}`, `${itemIcon(META_ARTIFACTS['adjacent-needle'].icon)}→${beside.damage}`, () => void playCounter('adjacent')))
+    }
+    if (choices.includes('recover-reroll')) ui.treasureControls.append(control('재정비로 해금 재굴림 되찾기', `${icon('wheel')}0 → ${icon('reroll-die')}+1`, () => void playCounter('recover-reroll')))
   } else if (battle.itemsSeven && loot && battle.phase === 'assign') {
+    if (battle.perk?.kind === 'reverse-guard' && !battle.perk.spent && !itemControl) {
+      const target = selected.size === 1 ? [...selected][0] : battle.metaTurn?.reverseDie
+      if (target !== undefined) {
+        const next = draftMetaDie(battle, 'reverse-guard', target)
+        if (next !== battle) {
+          const undo = battle.metaTurn?.reverseDie === target
+          ui.treasureControls.append(control(undo ? '뒷면 막기 취소' : '뒷면 막기 사용',
+            `${itemIcon(META_PERKS['reverse-guard'].icon)}${undo ? icon('return') : `${battle.dice[target]}→${7 - battle.dice[target]}`}`,
+            () => updateTreasureBattle(battle, next, '#resolve', true)))
+        }
+      }
+    }
     const id = itemControl
     if (id) {
-      const targets = [...selected].filter((index) => canSelectItemDie(battle, index))
-      const targetCount = id === 'twin-mold' ? 2 : 1
+      const targets = [...selected].filter((index) => id === 'blood-grip' ? battle.slots[index] === 'attack' : canSelectItemDie(battle, index))
+      const targetCount = id === 'twin-mold' || id === 'pip-ring' || id === 'linked-cup' ? 2 : 1
       dockLine?.querySelector('.item-dock-info')?.insertAdjacentHTML('beforeend', `<span class="item-effect">${targets.length}/${targetCount}</span>`)
       const options = document.createElement('div')
       options.className = 'item-dock-options'
@@ -1572,6 +1657,16 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
           add(`주사위 ${to + 1}의 눈을 ${battle.dice[from]}(으)로 맞추기`, `${icon('die')}${to + 1}→${battle.dice[from]}`, adjustItemDie(battle, to, id, from))
         }
         if (id === 'die-latch') add(`주사위 ${index + 1}의 눈 ${battle.dice[index]} 유지`, `${icon('return')}${battle.dice[index]}`, selectLatchDie(battle, index))
+        if (id === 'blood-grip') {
+          const next = draftMetaDie(battle, id, index)
+          const undo = bloodDieFor(battle) === index
+          add(undo ? '핏빛 손잡이 취소' : '핏빛 손잡이 사용',
+            undo ? icon('return') : `${icon('healing')}+${bloodHealing(next, next.dice)}`, next)
+        }
+        if (id === 'pip-ring') for (const [from, to] of [[index, other], [other, index]]) {
+          add(`주사위 ${from + 1}에서 주사위 ${to + 1}로 눈 1 옮기기`, `${from + 1}→${to + 1} · −1/+1`, transferMetaPip(battle, from, to))
+        }
+        if (id === 'linked-cup') add('두 주사위를 연속하는 눈으로 굴리기', `${icon('reroll')}2 · 1회`, rerollYachtDice(battle, targets, true))
       }
     } else if (loot.consumableArmed || loot.latchDraft !== undefined || loot.armed?.includes('banner')) {
       const armed = loot.consumableArmed ?? (loot.latchDraft !== undefined ? 'die-latch' : 'banner')
@@ -1754,6 +1849,14 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   const floors = route ? MAP_FLOORS : FIGHT_COUNT
   ui.gameOver.hidden = !defeated
   if (defeated) ui.defeatFloor.textContent = `${floor}층에서 쓰러졌습니다.`
+  const reveal = element('meta-reveal')
+  const opened = ascent.meta?.opened ?? []
+  reveal.hidden = !finished || presentation !== 'normal' || !opened.length
+  if (!reveal.hidden) {
+    const anchor = defeated ? ui.gameOver.querySelector('.game-over-actions')! : ui.retry
+    anchor.before(reveal)
+    element('meta-reveal-list').innerHTML = metaRevealContent(opened)
+  }
   ui.fight.textContent = `${floor}/${floors} 층`
   renderActivePerk(battle)
   ui.turn.hidden = !inCombat
@@ -1882,6 +1985,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
 }
 
 function refreshLobbyActions() {
+  refreshMetaCount()
   const { checkpoint, invalidMap } = readAscentSave()
   const hasSave = checkpoint !== null
   if (checkpoint) arena.prime(checkpoint.ascent.enemy.id)
@@ -1917,6 +2021,7 @@ function showLobby(focus = false) {
   ui.main.dataset.screen = 'lobby'
   ui.lobby.hidden = false
   ui.masthead.hidden = true
+  ui.bossRelicSlot.hidden = true
   ui.rewardStrip.hidden = true
   ui.artifactStrip.hidden = true
   ui.perks.hidden = true
@@ -1939,6 +2044,7 @@ function showPerks() {
   ui.main.dataset.screen = 'perks'
   ui.lobby.hidden = true
   ui.masthead.hidden = false
+  ui.bossRelicSlot.hidden = true
   ui.rewardStrip.hidden = true
   ui.artifactStrip.hidden = true
   ui.returnLobby.disabled = false
@@ -1955,18 +2061,30 @@ function showPerks() {
   ui.soundToggle.hidden = true
   ui.perks.hidden = false
   const seed = fixedSeed ?? crypto.getRandomValues(new Uint32Array(1))[0]
-  const offers = offerPerks(seed)
-  const begin = (event: MouseEvent, perk: keyof typeof START_PERKS, parity?: Parity) => {
+  const snapshot = snapshotMeta(metaProgress)
+  const offers = offerPerks(seed, snapshot.pool)
+  const marks = markMetaOffers(metaProgress, offers)
+  if (marks.progress !== metaProgress) {
+    metaProgress = marks.progress
+    writeMetaProgress(metaProgress)
+  }
+  const begin = (event: MouseEvent, perk: StartPerk, parity?: Parity) => {
     if (event.isTrusted) sound.activate()
-    ascent = beginMapAscent(seed, perk, parity, CURRENT_MAP_RULES)
+    ascent = beginMapAscent(seed, perk, parity, CURRENT_MAP_RULES, snapshot)
     firstRun.start(seed)
     saveCurrent()
     render()
     focusPhase()
   }
   const buttons = offers.map((perk) => {
-    const { name, icon: symbol } = START_PERKS[perk]
+    const card = START_PERK_CARDS[perk]
+    const { name, icon: symbol } = card
     const button = perkButton(symbol, name, perkText(perk, CURRENT_MAP_RULES === 7))
+    if ('value' in card) button.querySelector('.perk-name')!.insertAdjacentHTML('afterend', `<span class="meta-perk-value">${card.value}</span>`)
+    if (marks.fresh.some((id) => id === perk)) {
+      button.querySelector('.perk-name')!.insertAdjacentHTML('beforeend', '<small class="meta-new">새</small>')
+      button.setAttribute('aria-label', `새 특전 · ${button.getAttribute('aria-label')}`)
+    }
     button.addEventListener('click', (event) => {
       if (perk !== 'oath') {
         begin(event, perk)
@@ -2024,7 +2142,7 @@ function place(indices: readonly number[], zone: DropZone) {
   const slot = zone === 'pool' ? null : zone
   const before = ascent.battle
   let battle = before
-  for (const index of indices) battle = assignDie(battle, index, slot)
+  for (const index of indices) if (canPlaceMetaDie(battle, index, slot)) battle = assignDie(battle, index, slot)
   const moved = indices.filter((index) => battle.slots[index] !== before.slots[index])
   for (const i of moved) diceButtons[i].getAnimations().filter(a => a.id === 'reroll').forEach(a => a.cancel())
   const seat = () => {
@@ -2194,7 +2312,7 @@ ui.resolve.addEventListener('click', async () => {
   if (resolved === ascent) return
   itemControl = undefined
   dockItem = undefined
-  const next = firstRun.opening(resolved, before.turn)
+  const next = firstRun.opening(noteMetaVictory(resolved), before.turn)
   turnSignals.abort()
   turnSignals = new AbortController()
   feel.clear()
@@ -2332,7 +2450,7 @@ async function playCounter(choice?: CounterChoice) {
   const spun = spinAscentCounter(ascent, choice)
   if (spun === ascent) return
   const before = previous.battle
-  const checkpoint = firstRun.opening(spun, before.turn)
+  const checkpoint = firstRun.opening(noteMetaVictory(spun), before.turn)
   const next = checkpoint.battle
   const pending = next.loot?.counter
   const reward = pending ? { ...pending, damage: counterDamage(before, pending.damage) } : next.lastExchange?.counter
@@ -2437,7 +2555,7 @@ function enterFork(id: number) {
   const next = enterMapNode(ascent, id)
   if (next === ascent) return
   resetPresentation()
-  ascent = firstRun.opening(next)
+  ascent = firstRun.opening(noteMetaStage(next, next.route!.map.byId[id].floor))
   saveCurrent()
   sound.play('step')
   render('normal', true)
@@ -2478,7 +2596,12 @@ ui.continueAscent.addEventListener('click', (event) => {
     showLobby(true)
     return
   }
-  ascent = returnToMap(checkpoint.ascent)
+  const resumed = resumeMetaRun(checkpoint.ascent, metaProgress)
+  if (resumed.progress !== metaProgress) {
+    metaProgress = resumed.progress
+    writeMetaProgress(metaProgress)
+  }
+  ascent = returnToMap(resumed.run)
   chosenReward = checkpoint.rewardPreview
   artifactOptions = checkpoint.artifactOptions ?? {}
   selected.clear()
@@ -2510,6 +2633,11 @@ function returnToLobby() {
 ui.returnLobby.addEventListener('click', returnToLobby)
 ui.defeatLobby.addEventListener('click', returnToLobby)
 window.addEventListener('storage', (event) => {
+  if (event.key === META_SAVE_KEY || event.key === null) {
+    metaProgress = loadMetaProgress()
+    refreshMetaCount()
+    if (ui.guide.open && !metaGuide.hidden) showGuideTab(true)
+  }
   if ((event.key === ASCENT_SAVE_KEY || event.key === null) && !ui.lobby.hidden) refreshLobbyActions()
 })
 renderSettings()

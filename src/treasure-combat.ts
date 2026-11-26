@@ -205,6 +205,8 @@ export function availableCounterChoices(battle: YachtBattle, result = battle.loo
     const damage = counterDamage(battle, result.damage)
     if (artifactReady(loot, 'mirror') && damage < battle.enemyHp + (battle.escort?.hp ?? 0) && mirrorCounterDamage(battle, damage) > damage) choices.push('mirror')
     if (artifactReady(loot, 'horn') && battle.fourthDieUnlocked && !result.joint && result.damage < hornCounterDamage(battle)) choices.push('horn')
+    if (artifactReady(loot, 'adjacent-needle')) choices.push('adjacent')
+    if (battle.perk?.kind === 'counter-recover' && battle.extraRerollSpent) choices.push('recover-reroll')
     return choices
   }
   const followups = Number(Boolean(loot.counterFlags?.coin)) + Number(Boolean(loot.counterFlags?.assist))

@@ -184,6 +184,7 @@
           <img class="lobby-key" src="/art/lobby-key.png" alt="" width="120" height="213">
           <h1 id="lobby-title">회귀자는 <br>탑을 오른다</h1>
           <div class="lobby-actions">
+            <button id="meta-lobby" type="button" aria-haspopup="dialog" aria-controls="battle-guide" aria-label="다음 등반 해금 0/10"><svg class="icon" aria-hidden="true"><use href="#icon-unlock"/></svg><strong>0/10</strong></button>
             <p id="save-notice" role="status" hidden>이 등반을 이어 할 수 없습니다.</p>
             <button id="continue-ascent" class="primary lobby-start" type="button" hidden>이어 하기 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
             <button id="new-ascent" class="lobby-start" type="button">새로 하기 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
@@ -385,6 +386,10 @@
           <p id="completion-seal" hidden><svg class="icon" aria-hidden="true"><use href="#icon-completion-seal"/></svg>완주 인장</p>
           <p id="owned-unlocks" role="img" hidden></p>
           <p id="companion-sleep-line" class="companion-line" role="status" hidden></p>
+          <section id="meta-reveal" aria-labelledby="meta-reveal-title" hidden>
+            <h3 id="meta-reveal-title">다음 등반 해금</h3>
+            <ul id="meta-reveal-list"></ul>
+          </section>
           <button id="next" class="primary" type="button" hidden>다음 전투 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
           <button id="retry" class="primary" type="button" hidden>다시 <svg class="icon" aria-hidden="true"><use href="#icon-retry"/></svg></button>
         </section>
@@ -423,7 +428,12 @@
         <h2 id="guide-heading">도감</h2>
         <form method="dialog"><button type="submit" autofocus>닫기</button></form>
       </header>
+      <div class="guide-tabs" role="tablist" aria-label="등반 도감">
+        <button id="guide-run-tab" type="button" role="tab" aria-selected="true" aria-controls="guide-entries">이번 등반</button>
+        <button id="guide-meta-tab" type="button" role="tab" aria-selected="false" aria-controls="guide-meta">다음 등반</button>
+      </div>
       <div id="guide-entries" tabindex="0" role="region" aria-label="아이콘 목록"></div>
+      <div id="guide-meta" tabindex="0" role="region" aria-label="다음 등반 해금" hidden></div>
     </dialog>
     <dialog id="settings" aria-labelledby="settings-title">
       <header class="guide-header">
@@ -447,6 +457,7 @@
         </button>
         <button id="replay-first-run" type="button">안내 다시 보기</button>
         <p id="replay-first-run-status" role="status"></p>
+        <button id="clear-meta" type="button" aria-haspopup="dialog" aria-controls="lobby-confirm">영구 해금 기록 지우기</button>
         <button id="abandon-ascent" type="button" aria-haspopup="dialog" aria-controls="lobby-confirm" hidden>등반 포기</button>
         <a class="font-license" href="./fonts/Galmuri-OFL.txt" target="_blank" rel="noopener">갈무리11 글꼴 라이선스 (SIL OFL 1.1)</a>
       </div>

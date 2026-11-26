@@ -5,6 +5,8 @@ import { draw, PLAYER_HP } from './combat.ts'
 import { ASCENT_ENEMIES, enemyForFight } from './enemy-roster.ts'
 import { startPerk } from './perks.ts'
 import type { Parity, StartPerk } from './perks.ts'
+import { isMetaPerk, metaFloorForCard } from './meta-unlocks.ts'
+import type { RunMeta } from './meta-progress.ts'
 import { BANDAGE_HEAL, BANDAGE_THRESHOLD, ELITE_KEEP_COINS, RELICS, isLegacyReward, isRelic } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
 import { grantTreasure, shopPrice, treasureOffers } from './map-treasure.ts'
@@ -37,6 +39,7 @@ export interface Ascent {
   readonly rewardChoice?: RewardChoice
   readonly battle: YachtBattle
   readonly route?: MapProgress
+  readonly meta?: RunMeta
 }
 
 export function ascentFinished({ battle, fight, route }: Ascent) {
@@ -61,16 +64,18 @@ export function beginAscent(seed: number, perk?: StartPerk, parity: Parity = 'od
   }
 }
 
-export function beginMapAscent(seed: number, perk?: StartPerk, parity: Parity = 'odd', rules: MapRules = 1): Ascent {
+export function beginMapAscent(seed: number, perk?: StartPerk, parity: Parity = 'odd', rules: MapRules = 1, meta?: RunMeta): Ascent {
   const map = generateAscentMap(seed, rules)
   const first = map.nodes[0]
   const enemy = enemyForMapNode(first, rules)!
+  const eligible = !isMetaPerk(perk) || rules === 7 && meta?.pool.includes(metaFloorForCard(perk)!)
   return {
     seed, fight: 0, enemy, maxHp: PLAYER_HP, unlocks: [], newUnlock: null,
-    battle: startYachtBattle(first.battleSeed, PLAYER_HP, false, false, startPerk(perk, parity), enemy, 0,
+    battle: startYachtBattle(first.battleSeed, PLAYER_HP, false, false, startPerk(eligible ? perk : undefined, parity), enemy, 0,
       rules === 7 ? { ...emptyTreasure, consumables: {} } : rules >= 2 ? emptyTreasure : undefined,
       rules >= 6 ? true : undefined, undefined, rules === 7 ? true : undefined),
     route: { map, completed: [], node: null, screen: 'map', ...(rules >= 3 && { coins: 0 }) },
+    ...(rules === 7 && meta && { meta }),
   }
 }
 
@@ -82,7 +87,7 @@ export function availableMapNodes({ route }: Ascent): readonly MapNode[] {
 function enterBattle(ascent: Ascent, enemy: Ascent['enemy'], fightSeed: number): Ascent {
   const { unlocks, battle: previousBattle, rewardChoice: _choice, ...previous } = ascent
   const kind = previousBattle.perk?.kind
-  const perk = kind === 'blade' || kind === 'shield' && previousBattle.itemsSeven ? startPerk(kind) : previousBattle.perk
+  const perk = kind === 'blade' || kind === 'reverse-guard' || kind === 'shield' && previousBattle.itemsSeven ? startPerk(kind) : previousBattle.perk
   const battle = startYachtBattle(
     fightSeed, previousBattle.playerHp, unlocks.includes('triple'), unlocks.includes('straight'), perk,
     enemy, unlocks.length * enemy.attackPerUnlock, previousBattle.loot && nextTreasureBattle(previousBattle.loot),

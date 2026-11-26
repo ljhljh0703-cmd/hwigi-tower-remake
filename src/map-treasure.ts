@@ -6,6 +6,7 @@ import { BANDAGE_THRESHOLD, BANDAGE_HEAL } from './rewards.ts'
 import { ARTIFACTS, COMMON_ARTIFACTS, COMMON_CONSUMABLES, ITEMS, PREPARATIONS, RARE_ARTIFACTS, RARE_CONSUMABLES, REST_HEAL, SHARDS, changeCount, equipArtifact, isArtifact, isConsumable, isItem, isPreparation, isShard, treasureRarity } from './treasure.ts'
 import type { Artifact, ArtifactOptions, Treasure } from './treasure.ts'
 import type { YachtBattle } from './yacht-combat.ts'
+import { META_STAGES } from './meta-unlocks.ts'
 
 export const SHOP_PRICES = { kit: 2, artifact: 4, rare: 5 }
 export const SHOP_HEAL = 4
@@ -55,8 +56,9 @@ function sevenArtifactOffers(run: Ascent, node: MapNode, previouslyAcquired = fa
   const eligible = (id: Artifact) =>
     (previouslyAcquired ? loot.acquired.includes(id) && !loot.equipped.includes(id) : !loot.acquired.includes(id)) &&
     (id !== 'incomplete' || !ego && !loot.sealUsed) && (id !== 'heart-die' && id !== 'horn' || ego)
-  const common = rotate(COMMON_ARTIFACTS, draw(run.seed, node.id, 89)).filter(eligible)
-  const rare = rotate(RARE_ARTIFACTS, draw(run.seed, node.id, 96)).filter(eligible)
+  const unlocked = META_STAGES.filter(({floor}) => run.meta?.pool.includes(floor)).map(({artifact}) => artifact)
+  const common = rotate([...COMMON_ARTIFACTS, ...unlocked.filter((id) => id !== 'linked-cup')], draw(run.seed, node.id, 89)).filter(eligible)
+  const rare = rotate([...RARE_ARTIFACTS, ...unlocked.filter((id) => id === 'linked-cup')], draw(run.seed, node.id, 96)).filter(eligible)
   return { common, rare }
 }
 

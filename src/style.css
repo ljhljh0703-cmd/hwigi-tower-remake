@@ -1992,3 +1992,35 @@ main[data-screen='defeat'] {
 .ego-shell.left { left: 0; border-right: 1px solid #d7d1aa; }
 .ego-shell.right { right: 0; border-left: 1px solid #c3b899; }
 [data-reduced-motion='true'] .ego-shell { display: none; }
+#meta-lobby {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  color: #f6c795;
+}
+.guide-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+.guide-tabs button { flex: 1; min-block-size: 40px; }
+.guide-tabs [aria-selected="true"] { border-color: #e6bb91; color: #f6c795; }
+#guide-meta { min-block-size: 0; overflow: auto; flex: 1; }
+.meta-guide-stage { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px; }
+.meta-guide-card { min-inline-size: 0; border: 1px solid #6d6054; background: #3e352e; }
+.meta-guide-card summary { padding: 5px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-size: .78rem; }
+.meta-guide-card summary strong { min-inline-size: 0; }
+.meta-guide-card summary span { margin-left: auto; color: #f6c795; white-space: nowrap; }
+.meta-guide-card summary .icon { vertical-align: text-bottom; }
+.meta-guide-card p { padding: 0 6px 5px; font-size: .78rem; }
+.meta-guide-card[data-unlocked="false"] img { opacity: .65; }
+.meta-new { margin-inline-start: 6px; color: #f6c795; border: 1px solid currentColor; border-radius: 3px; padding: 0 3px; font-size: .69em; }
+.meta-perk-value { color: #f6c795; font-size: .78rem; }
+#meta-reveal { width: min(100%, 318px); margin: 3px auto; }
+#meta-reveal h3 { font-size: .91rem; color: #f6c795; margin: 0 0 3px; }
+#meta-reveal-list { list-style: none; margin: 0; padding: 0; }
+#meta-reveal-list li { display: grid; grid-template-columns: 36px 1fr 1fr; gap: 3px; text-align: left; align-items: center; font-size: .76rem; }
+#meta-reveal-list li span { display: flex; align-items: center; gap: 3px; }
+#meta-reveal-list .pixel-icon { width: 24px; height: 24px; }
+.meta-reveal-floor { color: #f6c795; }
+[data-meta-die="blood"] { opacity: .65; outline: 2px dashed #f0a18c; }
+[data-meta-die="charge"] { outline: 2px solid #eac48e; }
+[data-meta-die="reverse"] { outline: 2px solid #acd4cb; }

@@ -1,0 +1,1234 @@
+{
+  "8192": {
+    "safe": {
+      "none": {
+        "count": 4096,
+        "won": 1556,
+        "completion": 0.3798828125,
+        "floors": [
+          {
+            "floor": 1,
+            "entered": 4096,
+            "lost": 128,
+            "turns": 18465,
+            "rate": 0.03125,
+            "meanTurns": 4.508056640625
+          },
+          {
+            "floor": 2,
+            "entered": 3968,
+            "lost": 56,
+            "turns": 14764,
+            "rate": 0.014112903225806451,
+            "meanTurns": 3.720766129032258
+          },
+          {
+            "floor": 3,
+            "entered": 3912,
+            "lost": 120,
+            "turns": 10811,
+            "rate": 0.03067484662576687,
+            "meanTurns": 2.7635480572597135
+          },
+          {
+            "floor": 4,
+            "entered": 3792,
+            "lost": 57,
+            "turns": 9489,
+            "rate": 0.015031645569620253,
+            "meanTurns": 2.502373417721519
+          },
+          {
+            "floor": 5,
+            "entered": 3735,
+            "lost": 194,
+            "turns": 10669,
+            "rate": 0.05194109772423026,
+            "meanTurns": 2.8564926372155286
+          },
+          {
+            "floor": 6,
+            "entered": 3541,
+            "lost": 290,
+            "turns": 19679,
+            "rate": 0.08189776899181023,
+            "meanTurns": 5.5574696413442535
+          },
+          {
+            "floor": 7,
+            "entered": 3251,
+            "lost": 189,
+            "turns": 6707,
+            "rate": 0.05813595816671793,
+            "meanTurns": 2.0630575207628423
+          },
+          {
+            "floor": 8,
+            "entered": 3062,
+            "lost": 43,
+            "turns": 4197,
+            "rate": 0.014043109079033311,
+            "meanTurns": 1.3706727629000652
+          },
+          {
+            "floor": 9,
+            "entered": 3019,
+            "lost": 52,
+            "turns": 5643,
+            "rate": 0.017224246439218285,
+            "meanTurns": 1.8691619741636303
+          },
+          {
+            "floor": 10,
+            "entered": 2967,
+            "lost": 35,
+            "turns": 5882,
+            "rate": 0.011796427367711493,
+            "meanTurns": 1.9824738793394001
+          },
+          {
+            "floor": 11,
+            "entered": 2932,
+            "lost": 0,
+            "turns": 0,
+            "rate": 0,
+            "meanTurns": 0
+          },
+          {
+            "floor": 12,
+            "entered": 2932,
+            "lost": 1376,
+            "turns": 22740,
+            "rate": 0.4693042291950887,
+            "meanTurns": 7.755798090040928
+          }
+        ],
+        "bosses": {
+          "emperor-shield": {
+            "picked": 810,
+            "won": 387
+          },
+          "healing-scepter": {
+            "picked": 806,
+            "won": 347
+          },
+          "brake-crown": {
+            "picked": 824,
+            "won": 449
+          },
+          "revived-heart": {
+            "picked": 811,
+            "won": 373
+          }
+        },
+        "items": {}
+      },
+      "all": {
+        "count": 4096,
+        "won": 1351,
+        "completion": 0.329833984375,
+        "floors": [
+          {
+            "floor": 1,
+            "entered": 4096,
+            "lost": 159,
+            "turns": 19292,
+            "rate": 0.038818359375,
+            "meanTurns": 4.7099609375
+          },
+          {
+            "floor": 2,
+            "entered": 3937,
+            "lost": 69,
+            "turns": 15455,
+            "rate": 0.017526035052070104,
+            "meanTurns": 3.9255778511557025
+          },
+          {
+            "floor": 3,
+            "entered": 3868,
+            "lost": 161,
+            "turns": 11423,
+            "rate": 0.041623578076525336,
+            "meanTurns": 2.953205791106515
+          },
+          {
+            "floor": 4,
+            "entered": 3707,
+            "lost": 79,
+            "turns": 9946,
+            "rate": 0.021311033180469383,
+            "meanTurns": 2.6830321014297276
+          },
+          {
+            "floor": 5,
+            "entered": 3628,
+            "lost": 217,
+            "turns": 11283,
+            "rate": 0.05981256890848952,
+            "meanTurns": 3.1099779492833517
+          },
+          {
+            "floor": 6,
+            "entered": 3411,
+            "lost": 310,
+            "turns": 19340,
+            "rate": 0.09088243916739959,
+            "meanTurns": 5.669891527411316
+          },
+          {
+            "floor": 7,
+            "entered": 3101,
+            "lost": 214,
+            "turns": 6844,
+            "rate": 0.0690099967752338,
+            "meanTurns": 2.2070299903257014
+          },
+          {
+            "floor": 8,
+            "entered": 2887,
+            "lost": 53,
+            "turns": 4365,
+            "rate": 0.018358157256667822,
+            "meanTurns": 1.511950121233114
+          },
+          {
+            "floor": 9,
+            "entered": 2834,
+            "lost": 64,
+            "turns": 5698,
+            "rate": 0.022582921665490474,
+            "meanTurns": 2.0105857445306987
+          },
+          {
+            "floor": 10,
+            "entered": 2770,
+            "lost": 36,
+            "turns": 5809,
+            "rate": 0.012996389891696752,
+            "meanTurns": 2.0971119133574008
+          },
+          {
+            "floor": 11,
+            "entered": 2734,
+            "lost": 0,
+            "turns": 0,
+            "rate": 0,
+            "meanTurns": 0
+          },
+          {
+            "floor": 12,
+            "entered": 2734,
+            "lost": 1383,
+            "turns": 21534,
+            "rate": 0.5058522311631309,
+            "meanTurns": 7.876371616678859
+          }
+        ],
+        "bosses": {
+          "emperor-shield": {
+            "picked": 749,
+            "won": 330
+          },
+          "healing-scepter": {
+            "picked": 768,
+            "won": 276
+          },
+          "brake-crown": {
+            "picked": 798,
+            "won": 407
+          },
+          "revived-heart": {
+            "picked": 786,
+            "won": 338
+          }
+        },
+        "items": {
+          "reverse-guard": {
+            "offered": 1088,
+            "selected": 351,
+            "pickedRuns": 351,
+            "usedRuns": 351
+          },
+          "scabbard": {
+            "offered": 454,
+            "selected": 218,
+            "pickedRuns": 218,
+            "usedRuns": 141
+          },
+          "join-slots": {
+            "offered": 1146,
+            "selected": 360,
+            "pickedRuns": 360,
+            "usedRuns": 271
+          },
+          "adjacent-needle": {
+            "offered": 373,
+            "selected": 182,
+            "pickedRuns": 182,
+            "usedRuns": 151
+          },
+          "charge-roll": {
+            "offered": 1101,
+            "selected": 417,
+            "pickedRuns": 417,
+            "usedRuns": 411
+          },
+          "pip-ring": {
+            "offered": 396,
+            "selected": 173,
+            "pickedRuns": 173,
+            "usedRuns": 166
+          },
+          "counter-recover": {
+            "offered": 1099,
+            "selected": 352,
+            "pickedRuns": 352,
+            "usedRuns": 145
+          },
+          "blood-grip": {
+            "offered": 414,
+            "selected": 195,
+            "pickedRuns": 195,
+            "usedRuns": 180
+          },
+          "early-reroll": {
+            "offered": 1115,
+            "selected": 357,
+            "pickedRuns": 357,
+            "usedRuns": 263
+          },
+          "linked-cup": {
+            "offered": 320,
+            "selected": 133,
+            "pickedRuns": 133,
+            "usedRuns": 133
+          }
+        }
+      }
+    },
+    "elite": {
+      "none": {
+        "count": 4096,
+        "won": 1604,
+        "completion": 0.3916015625,
+        "floors": [
+          {
+            "floor": 1,
+            "entered": 4096,
+            "lost": 128,
+            "turns": 18465,
+            "rate": 0.03125,
+            "meanTurns": 4.508056640625
+          },
+          {
+            "floor": 2,
+            "entered": 3968,
+            "lost": 71,
+            "turns": 12986,
+            "rate": 0.017893145161290324,
+            "meanTurns": 3.272681451612903
+          },
+          {
+            "floor": 3,
+            "entered": 3897,
+            "lost": 173,
+            "turns": 9526,
+            "rate": 0.044393122915062866,
+            "meanTurns": 2.4444444444444446
+          },
+          {
+            "floor": 4,
+            "entered": 3724,
+            "lost": 164,
+            "turns": 8475,
+            "rate": 0.04403866809881848,
+            "meanTurns": 2.2757787325456498
+          },
+          {
+            "floor": 5,
+            "entered": 3560,
+            "lost": 192,
+            "turns": 7703,
+            "rate": 0.05393258426966292,
+            "meanTurns": 2.1637640449438202
+          },
+          {
+            "floor": 6,
+            "entered": 3368,
+            "lost": 499,
+            "turns": 15814,
+            "rate": 0.14815914489311163,
+            "meanTurns": 4.695368171021378
+          },
+          {
+            "floor": 7,
+            "entered": 2869,
+            "lost": 103,
+            "turns": 4707,
+            "rate": 0.03590101080515859,
+            "meanTurns": 1.6406413384454515
+          },
+          {
+            "floor": 8,
+            "entered": 2766,
+            "lost": 35,
+            "turns": 3270,
+            "rate": 0.012653651482284888,
+            "meanTurns": 1.1822125813449025
+          },
+          {
+            "floor": 9,
+            "entered": 2731,
+            "lost": 81,
+            "turns": 5235,
+            "rate": 0.02965946539729037,
+            "meanTurns": 1.9168802636396924
+          },
+          {
+            "floor": 10,
+            "entered": 2650,
+            "lost": 35,
+            "turns": 4612,
+            "rate": 0.013207547169811321,
+            "meanTurns": 1.740377358490566
+          },
+          {
+            "floor": 11,
+            "entered": 2615,
+            "lost": 0,
+            "turns": 0,
+            "rate": 0,
+            "meanTurns": 0
+          },
+          {
+            "floor": 12,
+            "entered": 2615,
+            "lost": 1011,
+            "turns": 18719,
+            "rate": 0.3866156787762906,
+            "meanTurns": 7.158317399617591
+          }
+        ],
+        "bosses": {
+          "emperor-shield": {
+            "picked": 707,
+            "won": 349
+          },
+          "revived-heart": {
+            "picked": 716,
+            "won": 428
+          },
+          "healing-scepter": {
+            "picked": 721,
+            "won": 463
+          },
+          "brake-crown": {
+            "picked": 725,
+            "won": 364
+          }
+        },
+        "items": {}
+      },
+      "all": {
+        "count": 4096,
+        "won": 1362,
+        "completion": 0.33251953125,
+        "floors": [
+          {
+            "floor": 1,
+            "entered": 4096,
+            "lost": 159,
+            "turns": 19292,
+            "rate": 0.038818359375,
+            "meanTurns": 4.7099609375
+          },
+          {
+            "floor": 2,
+            "entered": 3937,
+            "lost": 84,
+            "turns": 13258,
+            "rate": 0.021336042672085345,
+            "meanTurns": 3.36753873507747
+          },
+          {
+            "floor": 3,
+            "entered": 3853,
+            "lost": 199,
+            "turns": 9859,
+            "rate": 0.05164806644173371,
+            "meanTurns": 2.558785362055541
+          },
+          {
+            "floor": 4,
+            "entered": 3654,
+            "lost": 201,
+            "turns": 8837,
+            "rate": 0.055008210180623976,
+            "meanTurns": 2.4184455391351944
+          },
+          {
+            "floor": 5,
+            "entered": 3453,
+            "lost": 253,
+            "turns": 8206,
+            "rate": 0.07326962061975094,
+            "meanTurns": 2.376484216623226
+          },
+          {
+            "floor": 6,
+            "entered": 3200,
+            "lost": 576,
+            "turns": 15483,
+            "rate": 0.18,
+            "meanTurns": 4.8384375
+          },
+          {
+            "floor": 7,
+            "entered": 2624,
+            "lost": 94,
+            "turns": 4561,
+            "rate": 0.035823170731707314,
+            "meanTurns": 1.7381859756097562
+          },
+          {
+            "floor": 8,
+            "entered": 2530,
+            "lost": 34,
+            "turns": 3289,
+            "rate": 0.013438735177865613,
+            "meanTurns": 1.3
+          },
+          {
+            "floor": 9,
+            "entered": 2496,
+            "lost": 60,
+            "turns": 5175,
+            "rate": 0.02403846153846154,
+            "meanTurns": 2.0733173076923075
+          },
+          {
+            "floor": 10,
+            "entered": 2436,
+            "lost": 38,
+            "turns": 4675,
+            "rate": 0.015599343185550082,
+            "meanTurns": 1.9191297208538587
+          },
+          {
+            "floor": 11,
+            "entered": 2398,
+            "lost": 0,
+            "turns": 0,
+            "rate": 0,
+            "meanTurns": 0
+          },
+          {
+            "floor": 12,
+            "entered": 2398,
+            "lost": 1036,
+            "turns": 18050,
+            "rate": 0.43202668890742285,
+            "meanTurns": 7.5271059216013345
+          }
+        ],
+        "bosses": {
+          "emperor-shield": {
+            "picked": 663,
+            "won": 350
+          },
+          "healing-scepter": {
+            "picked": 643,
+            "won": 342
+          },
+          "brake-crown": {
+            "picked": 651,
+            "won": 311
+          },
+          "revived-heart": {
+            "picked": 667,
+            "won": 359
+          }
+        },
+        "items": {
+          "reverse-guard": {
+            "offered": 1088,
+            "selected": 351,
+            "pickedRuns": 351,
+            "usedRuns": 349
+          },
+          "scabbard": {
+            "offered": 5004,
+            "selected": 2238,
+            "pickedRuns": 2238,
+            "usedRuns": 1263
+          },
+          "join-slots": {
+            "offered": 1146,
+            "selected": 360,
+            "pickedRuns": 360,
+            "usedRuns": 209
+          },
+          "adjacent-needle": {
+            "offered": 4478,
+            "selected": 2027,
+            "pickedRuns": 2027,
+            "usedRuns": 1280
+          },
+          "charge-roll": {
+            "offered": 1101,
+            "selected": 417,
+            "pickedRuns": 417,
+            "usedRuns": 407
+          },
+          "pip-ring": {
+            "offered": 4109,
+            "selected": 1960,
+            "pickedRuns": 1960,
+            "usedRuns": 1716
+          },
+          "counter-recover": {
+            "offered": 1099,
+            "selected": 352,
+            "pickedRuns": 352,
+            "usedRuns": 125
+          },
+          "blood-grip": {
+            "offered": 4023,
+            "selected": 1842,
+            "pickedRuns": 1842,
+            "usedRuns": 1380
+          },
+          "early-reroll": {
+            "offered": 1115,
+            "selected": 357,
+            "pickedRuns": 357,
+            "usedRuns": 279
+          },
+          "linked-cup": {
+            "offered": 282,
+            "selected": 76,
+            "pickedRuns": 76,
+            "usedRuns": 70
+          }
+        }
+      }
+    }
+  },
+  "12288": {
+    "safe": {
+      "none": {
+        "count": 4096,
+        "won": 1526,
+        "completion": 0.37255859375,
+        "floors": [
+          {
+            "floor": 1,
+            "entered": 4096,
+            "lost": 121,
+            "turns": 18403,
+            "rate": 0.029541015625,
+            "meanTurns": 4.492919921875
+          },
+          {
+            "floor": 2,
+            "entered": 3975,
+            "lost": 64,
+            "turns": 14788,
+            "rate": 0.01610062893081761,
+            "meanTurns": 3.720251572327044
+          },
+          {
+            "floor": 3,
+            "entered": 3911,
+            "lost": 128,
+            "turns": 10618,
+            "rate": 0.03272820250575301,
+            "meanTurns": 2.714906673485042
+          },
+          {
+            "floor": 4,
+            "entered": 3783,
+            "lost": 59,
+            "turns": 9386,
+            "rate": 0.015596087761036215,
+            "meanTurns": 2.4810996563573884
+          },
+          {
+            "floor": 5,
+            "entered": 3724,
+            "lost": 186,
+            "turns": 10739,
+            "rate": 0.04994629430719656,
+            "meanTurns": 2.8837271750805584
+          },
+          {
+            "floor": 6,
+            "entered": 3538,
+            "lost": 301,
+            "turns": 19694,
+            "rate": 0.08507631430186546,
+            "meanTurns": 5.566421707179197
+          },
+          {
+            "floor": 7,
+            "entered": 3237,
+            "lost": 185,
+            "turns": 6542,
+            "rate": 0.05715168365770775,
+            "meanTurns": 2.021007105344455
+          },
+          {
+            "floor": 8,
+            "entered": 3052,
+            "lost": 42,
+            "turns": 4158,
+            "rate": 0.013761467889908258,
+            "meanTurns": 1.3623853211009174
+          },
+          {
+            "floor": 9,
+            "entered": 3010,
+            "lost": 52,
+            "turns": 5792,
+            "rate": 0.01727574750830565,
+            "meanTurns": 1.9242524916943522
+          },
+          {
+            "floor": 10,
+            "entered": 2958,
+            "lost": 23,
+            "turns": 5689,
+            "rate": 0.00777552400270453,
+            "meanTurns": 1.9232589587559161
+          },
+          {
+            "floor": 11,
+            "entered": 2935,
+            "lost": 0,
+            "turns": 0,
+            "rate": 0,
+            "meanTurns": 0
+          },
+          {
+            "floor": 12,
+            "entered": 2935,
+            "lost": 1409,
+            "turns": 22865,
+            "rate": 0.48006814310051105,
+            "meanTurns": 7.7904599659284495
+          }
+        ],
+        "bosses": {
+          "revived-heart": {
+            "picked": 785,
+            "won": 359
+          },
+          "brake-crown": {
+            "picked": 812,
+            "won": 435
+          },
+          "healing-scepter": {
+            "picked": 830,
+            "won": 339
+          },
+          "emperor-shield": {
+            "picked": 810,
+            "won": 393
+          }
+        },
+        "items": {}
+      },
+      "all": {
+        "count": 4096,
+        "won": 1368,
+        "completion": 0.333984375,
+        "floors": [
+          {
+            "floor": 1,
+            "entered": 4096,
+            "lost": 167,
+            "turns": 19359,
+            "rate": 0.040771484375,
+            "meanTurns": 4.726318359375
+          },
+          {
+            "floor": 2,
+            "entered": 3929,
+            "lost": 90,
+            "turns": 15529,
+            "rate": 0.022906592008144565,
+            "meanTurns": 3.9524051921608554
+          },
+          {
+            "floor": 3,
+            "entered": 3839,
+            "lost": 192,
+            "turns": 11378,
+            "rate": 0.05001302422505861,
+            "meanTurns": 2.963792654337067
+          },
+          {
+            "floor": 4,
+            "entered": 3647,
+            "lost": 63,
+            "turns": 9641,
+            "rate": 0.01727447216890595,
+            "meanTurns": 2.6435426377844804
+          },
+          {
+            "floor": 5,
+            "entered": 3584,
+            "lost": 252,
+            "turns": 11420,
+            "rate": 0.0703125,
+            "meanTurns": 3.1863839285714284
+          },
+          {
+            "floor": 6,
+            "entered": 3332,
+            "lost": 335,
+            "turns": 18983,
+            "rate": 0.10054021608643457,
+            "meanTurns": 5.697178871548619
+          },
+          {
+            "floor": 7,
+            "entered": 2997,
+            "lost": 216,
+            "turns": 6459,
+            "rate": 0.07207207207207207,
+            "meanTurns": 2.155155155155155
+          },
+          {
+            "floor": 8,
+            "entered": 2781,
+            "lost": 39,
+            "turns": 4040,
+            "rate": 0.014023732470334413,
+            "meanTurns": 1.4527148507731031
+          },
+          {
+            "floor": 9,
+            "entered": 2742,
+            "lost": 47,
+            "turns": 5485,
+            "rate": 0.017140773158278628,
+            "meanTurns": 2.00036469730124
+          },
+          {
+            "floor": 10,
+            "entered": 2695,
+            "lost": 21,
+            "turns": 5590,
+            "rate": 0.007792207792207792,
+            "meanTurns": 2.0742115027829313
+          },
+          {
+            "floor": 11,
+            "entered": 2674,
+            "lost": 0,
+            "turns": 0,
+            "rate": 0,
+            "meanTurns": 0
+          },
+          {
+            "floor": 12,
+            "entered": 2674,
+            "lost": 1306,
+            "turns": 21079,
+            "rate": 0.48840688107703817,
+            "meanTurns": 7.882946896035901
+          }
+        ],
+        "bosses": {
+          "revived-heart": {
+            "picked": 732,
+            "won": 325
+          },
+          "healing-scepter": {
+            "picked": 768,
+            "won": 297
+          },
+          "brake-crown": {
+            "picked": 759,
+            "won": 397
+          },
+          "emperor-shield": {
+            "picked": 738,
+            "won": 349
+          }
+        },
+        "items": {
+          "reverse-guard": {
+            "offered": 1062,
+            "selected": 366,
+            "pickedRuns": 366,
+            "usedRuns": 366
+          },
+          "scabbard": {
+            "offered": 438,
+            "selected": 193,
+            "pickedRuns": 193,
+            "usedRuns": 139
+          },
+          "join-slots": {
+            "offered": 1108,
+            "selected": 370,
+            "pickedRuns": 370,
+            "usedRuns": 276
+          },
+          "adjacent-needle": {
+            "offered": 408,
+            "selected": 209,
+            "pickedRuns": 209,
+            "usedRuns": 159
+          },
+          "charge-roll": {
+            "offered": 1100,
+            "selected": 354,
+            "pickedRuns": 354,
+            "usedRuns": 347
+          },
+          "pip-ring": {
+            "offered": 395,
+            "selected": 171,
+            "pickedRuns": 171,
+            "usedRuns": 167
+          },
+          "counter-recover": {
+            "offered": 1144,
+            "selected": 394,
+            "pickedRuns": 394,
+            "usedRuns": 166
+          },
+          "blood-grip": {
+            "offered": 407,
+            "selected": 202,
+            "pickedRuns": 202,
+            "usedRuns": 184
+          },
+          "early-reroll": {
+            "offered": 1123,
+            "selected": 376,
+            "pickedRuns": 376,
+            "usedRuns": 293
+          },
+          "linked-cup": {
+            "offered": 297,
+            "selected": 129,
+            "pickedRuns": 129,
+            "usedRuns": 129
+          }
+        }
+      }
+    },
+    "elite": {
+      "none": {
+        "count": 4096,
+        "won": 1632,
+        "completion": 0.3984375,
+        "floors": [
+          {
+            "floor": 1,
+            "entered": 4096,
+            "lost": 121,
+            "turns": 18403,
+            "rate": 0.029541015625,
+            "meanTurns": 4.492919921875
+          },
+          {
+            "floor": 2,
+            "entered": 3975,
+            "lost": 93,
+            "turns": 13283,
+            "rate": 0.02339622641509434,
+            "meanTurns": 3.341635220125786
+          },
+          {
+            "floor": 3,
+            "entered": 3882,
+            "lost": 157,
+            "turns": 9272,
+            "rate": 0.04044307058217414,
+            "meanTurns": 2.388459556929418
+          },
+          {
+            "floor": 4,
+            "entered": 3725,
+            "lost": 170,
+            "turns": 8207,
+            "rate": 0.04563758389261745,
+            "meanTurns": 2.203221476510067
+          },
+          {
+            "floor": 5,
+            "entered": 3555,
+            "lost": 185,
+            "turns": 7778,
+            "rate": 0.052039381153305204,
+            "meanTurns": 2.1879043600562587
+          },
+          {
+            "floor": 6,
+            "entered": 3370,
+            "lost": 474,
+            "turns": 15860,
+            "rate": 0.1406528189910979,
+            "meanTurns": 4.706231454005935
+          },
+          {
+            "floor": 7,
+            "entered": 2896,
+            "lost": 113,
+            "turns": 4686,
+            "rate": 0.03901933701657458,
+            "meanTurns": 1.6180939226519337
+          },
+          {
+            "floor": 8,
+            "entered": 2783,
+            "lost": 46,
+            "turns": 3470,
+            "rate": 0.01652892561983471,
+            "meanTurns": 1.2468559108875314
+          },
+          {
+            "floor": 9,
+            "entered": 2737,
+            "lost": 62,
+            "turns": 5241,
+            "rate": 0.0226525392765802,
+            "meanTurns": 1.9148702959444648
+          },
+          {
+            "floor": 10,
+            "entered": 2675,
+            "lost": 32,
+            "turns": 4690,
+            "rate": 0.011962616822429906,
+            "meanTurns": 1.753271028037383
+          },
+          {
+            "floor": 11,
+            "entered": 2643,
+            "lost": 0,
+            "turns": 0,
+            "rate": 0,
+            "meanTurns": 0
+          },
+          {
+            "floor": 12,
+            "entered": 2643,
+            "lost": 1011,
+            "turns": 18991,
+            "rate": 0.38251986379114644,
+            "meanTurns": 7.185395384033296
+          }
+        ],
+        "bosses": {
+          "revived-heart": {
+            "picked": 723,
+            "won": 424
+          },
+          "brake-crown": {
+            "picked": 742,
+            "won": 386
+          },
+          "healing-scepter": {
+            "picked": 729,
+            "won": 442
+          },
+          "emperor-shield": {
+            "picked": 702,
+            "won": 380
+          }
+        },
+        "items": {}
+      },
+      "all": {
+        "count": 4096,
+        "won": 1387,
+        "completion": 0.338623046875,
+        "floors": [
+          {
+            "floor": 1,
+            "entered": 4096,
+            "lost": 167,
+            "turns": 19359,
+            "rate": 0.040771484375,
+            "meanTurns": 4.726318359375
+          },
+          {
+            "floor": 2,
+            "entered": 3929,
+            "lost": 100,
+            "turns": 13425,
+            "rate": 0.025451768897938407,
+            "meanTurns": 3.416899974548231
+          },
+          {
+            "floor": 3,
+            "entered": 3829,
+            "lost": 181,
+            "turns": 9648,
+            "rate": 0.04727082789240011,
+            "meanTurns": 2.5197179420214155
+          },
+          {
+            "floor": 4,
+            "entered": 3648,
+            "lost": 223,
+            "turns": 8658,
+            "rate": 0.06112938596491228,
+            "meanTurns": 2.3733552631578947
+          },
+          {
+            "floor": 5,
+            "entered": 3425,
+            "lost": 215,
+            "turns": 8345,
+            "rate": 0.06277372262773723,
+            "meanTurns": 2.4364963503649637
+          },
+          {
+            "floor": 6,
+            "entered": 3210,
+            "lost": 581,
+            "turns": 15454,
+            "rate": 0.18099688473520248,
+            "meanTurns": 4.814330218068536
+          },
+          {
+            "floor": 7,
+            "entered": 2629,
+            "lost": 94,
+            "turns": 4427,
+            "rate": 0.03575503993914036,
+            "meanTurns": 1.6839102320273869
+          },
+          {
+            "floor": 8,
+            "entered": 2535,
+            "lost": 37,
+            "turns": 3348,
+            "rate": 0.014595660749506903,
+            "meanTurns": 1.3207100591715977
+          },
+          {
+            "floor": 9,
+            "entered": 2498,
+            "lost": 57,
+            "turns": 5196,
+            "rate": 0.022818254603682947,
+            "meanTurns": 2.080064051240993
+          },
+          {
+            "floor": 10,
+            "entered": 2441,
+            "lost": 48,
+            "turns": 4736,
+            "rate": 0.019664072101597707,
+            "meanTurns": 1.9401884473576403
+          },
+          {
+            "floor": 11,
+            "entered": 2393,
+            "lost": 0,
+            "turns": 0,
+            "rate": 0,
+            "meanTurns": 0
+          },
+          {
+            "floor": 12,
+            "entered": 2393,
+            "lost": 1006,
+            "turns": 17832,
+            "rate": 0.4203928123694108,
+            "meanTurns": 7.451734224822399
+          }
+        ],
+        "bosses": {
+          "brake-crown": {
+            "picked": 669,
+            "won": 342
+          },
+          "healing-scepter": {
+            "picked": 658,
+            "won": 347
+          },
+          "emperor-shield": {
+            "picked": 631,
+            "won": 327
+          },
+          "revived-heart": {
+            "picked": 671,
+            "won": 371
+          }
+        },
+        "items": {
+          "reverse-guard": {
+            "offered": 1062,
+            "selected": 366,
+            "pickedRuns": 366,
+            "usedRuns": 365
+          },
+          "scabbard": {
+            "offered": 4977,
+            "selected": 2233,
+            "pickedRuns": 2233,
+            "usedRuns": 1319
+          },
+          "join-slots": {
+            "offered": 1108,
+            "selected": 370,
+            "pickedRuns": 370,
+            "usedRuns": 214
+          },
+          "adjacent-needle": {
+            "offered": 4551,
+            "selected": 2063,
+            "pickedRuns": 2063,
+            "usedRuns": 1335
+          },
+          "charge-roll": {
+            "offered": 1100,
+            "selected": 354,
+            "pickedRuns": 354,
+            "usedRuns": 343
+          },
+          "pip-ring": {
+            "offered": 4092,
+            "selected": 1892,
+            "pickedRuns": 1892,
+            "usedRuns": 1645
+          },
+          "counter-recover": {
+            "offered": 1144,
+            "selected": 394,
+            "pickedRuns": 394,
+            "usedRuns": 127
+          },
+          "blood-grip": {
+            "offered": 4021,
+            "selected": 1861,
+            "pickedRuns": 1861,
+            "usedRuns": 1385
+          },
+          "early-reroll": {
+            "offered": 1123,
+            "selected": 376,
+            "pickedRuns": 376,
+            "usedRuns": 298
+          },
+          "linked-cup": {
+            "offered": 278,
+            "selected": 73,
+            "pickedRuns": 73,
+            "usedRuns": 68
+          }
+        }
+      }
+    }
+  }
+}

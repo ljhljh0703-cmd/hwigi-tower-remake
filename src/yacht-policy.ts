@@ -16,7 +16,9 @@ function enumerateAllocations(diceCount: number, slots: readonly Slot[]): Slot[]
 const allocations = [2, 3, 4].map((count) => enumerateAllocations(count, combatSlots))
 
 function allocationsFor(battle: YachtBattle): readonly Slot[][] {
-  return allocations[battle.dice.length - 2]
+  const plans = allocations[battle.dice.length - 2]
+  const charge = battle.metaTurn?.chargeDie
+  return charge === undefined ? plans : plans.filter((plan) => plan[charge] === 'attack')
 }
 
 const carriedHealthWeight = 1.8
@@ -104,7 +106,7 @@ export function chooseAllocation(
     let best: readonly Slot[] = []
     let bestCost = Infinity
     let bestBonus = -Infinity
-    for (const plan of allocations[battle.dice.length - 2]) {
+    for (const plan of allocationsFor(battle)) {
       const raw = allocationTotals(battle, plan)
       const { attack, guard } = perkAware && battle.perk ? yachtAllocationTotals(battle, plan) : raw
       const cost = guard >= target ? guard - target : 1 + 6 * battle.dice.length + target - guard

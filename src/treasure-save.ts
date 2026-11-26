@@ -2,6 +2,7 @@ import { ARTIFACT_SLOTS, isArmedConsumable, isArtifact, isConsumable, isItem, is
 import type { ArtifactOptions, TreasureState } from './treasure.ts'
 import { isReward } from './rewards.ts'
 import { SEVEN_ITEM_VALUES } from './item-values.ts'
+import { META_VALUES } from './meta-unlocks.ts'
 
 function object(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -19,7 +20,7 @@ const counts = (value: unknown, isId: (name: unknown) => boolean): value is Reco
 
 export function artifactOptionsRecord(value: unknown, seven = false): value is ArtifactOptions {
   return object(value) && Object.keys(value).every((field) => ['replace', 'parity', 'hand'].includes(field)) &&
-    (value.replace === undefined || isArtifact(value.replace) && (seven ? isSevenTreasure(value.replace) : value.replace !== 'die-latch')) &&
+    (value.replace === undefined || isArtifact(value.replace) && (seven ? isSevenTreasure(value.replace) : !isNewTreasureId(value.replace))) &&
     (value.parity === undefined || parity(value.parity)) && (value.hand === undefined || !seven && hand(value.hand))
 }
 
@@ -31,7 +32,8 @@ export function treasureRecord(value: unknown, dice: readonly number[], companio
   if (!Object.entries(spentItems).every(([id, n]) => n <= (items[id] ?? 0))) return false
   if (!artifacts(equipped) || equipped.length > ARTIFACT_SLOTS || !artifacts(acquired) || !artifacts(spent)) return false
   if (![...equipped, ...spent].every((id) => acquired.includes(id))) return false
-  if ([...acquired, ...Object.keys(prep), ...Object.keys(prepared)].some((id) => seven ? !isSevenTreasure(id) : id === 'die-latch')) return false
+  if ([...acquired, ...Object.keys(prep), ...Object.keys(prepared)].some((id) => seven ? !isSevenTreasure(id) : isNewTreasureId(id))) return false
+  if (value.scabbard !== undefined && (!seven || !equipped.includes('scabbard') || !integer(value.scabbard, 1, META_VALUES.scabbardCap))) return false
   if (acquired.includes('heart-die') ? !parity(heartParity) : heartParity !== undefined) return false
   if (!seven && acquired.includes('incomplete') ? !hand(sealHand) : sealHand !== undefined || sealUsed !== undefined && !acquired.includes('incomplete')) return false
   if (!trueFlag(sealUsed) || !trueFlag(tuned)) return false

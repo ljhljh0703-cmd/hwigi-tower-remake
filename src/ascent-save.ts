@@ -5,6 +5,8 @@ import { enemyForMapNode, generateAscentMap, MAP_FIGHTS, MAP_FLOORS, mapPathIsVa
 import { COUNTER_REWARDS, DIE_COUNT, PLAYER_HP } from './combat.ts'
 import { enemyForFight } from './enemy-roster.ts'
 import { SEVEN_ITEM_VALUES } from './item-values.ts'
+import { isRunMeta } from './meta-progress.ts'
+import { isMetaPerk, metaFloorForCard } from './meta-unlocks.ts'
 import { BANDAGE_HEAL, ELITE_KEEP_COINS, isLegacyReward, isRelic, isReward, relicReady } from './rewards.ts'
 import type { CombatRewards, Reward, RewardChoice } from './rewards.ts'
 import { shopPrice, treasureOffers } from './map-treasure.ts'
@@ -63,7 +65,7 @@ function perk(value: unknown) {
     case 'oath': return value.parity === 'odd' || value.parity === 'even'
     case 'counter': return integer(value.growth) && Array.isArray(value.rewards) &&
       value.rewards.length === COUNTER_REWARDS.length && value.rewards.every(reward)
-    default: return false
+    default: return isMetaPerk(value.kind) && (value.spent === undefined || value.kind === 'reverse-guard' && value.spent === true)
   }
 }
 
@@ -120,6 +122,17 @@ function battleRecord(value: unknown, seed: number, enemy: Ascent['enemy'], rule
     if (value.perk.kind === 'collector' && !(Array.isArray(value.perk.hands) && value.perk.hands.every(hand))) return false
   }
   if (rulesTwo ? value.rewards !== undefined || !treasureRecord(value.loot, dice, Boolean(value.fourthDieUnlocked), phase, seven) : value.loot !== undefined) return false
+  if (value.metaTurn !== undefined) {
+    if (!seven || phase !== 'assign' || !record(value.metaTurn)) return false
+    const { reverseDie, bloodDie, chargeDie } = value.metaTurn
+    const target = (index: unknown) => integer(index, 0, dice.length - 1)
+    if (Object.keys(value.metaTurn).some((key) => !['reverseDie', 'bloodDie', 'chargeDie'].includes(key)) ||
+      reverseDie !== undefined && (!target(reverseDie) || !record(value.perk) || value.perk.kind !== 'reverse-guard' || value.perk.spent) ||
+      bloodDie !== undefined && (!target(bloodDie) || !value.loot || !treasureRecord(value.loot, dice, Boolean(value.fourthDieUnlocked), phase, seven) ||
+        !value.loot.equipped.includes('blood-grip') || value.loot.spent.includes('blood-grip')) ||
+      chargeDie !== undefined && (!integer(chargeDie, 0, dice.length - 1) || !record(value.perk) || value.perk.kind !== 'charge-roll' ||
+        value.rerolled !== true || slots[chargeDie] === 'guard')) return false
+  }
   const wedgeReady = value.loot && treasureRecord(value.loot, dice, Boolean(value.fourthDieUnlocked), phase, seven)
     ? itemUses(value.loot, 'wedge') > 0 : relicReady(value.rewards, 'wedge')
   if (value.wedgeArmed !== undefined && (seven || value.wedgeArmed !== true || phase !== 'assign' || !wedgeReady)) return false
@@ -205,7 +218,7 @@ function beforeClaim(battle: YachtBattle, choice: RewardChoice): YachtBattle {
 
 function readCheckpoint(raw: unknown): AscentSave | null {
   if (!record(raw) || (raw.version !== LEGACY_VERSION && raw.version !== MAP_VERSION) || !record(raw.ascent)) return null
-  const { seed, fight, unlocks, newUnlock, battle, rewardChoice } = raw.ascent
+  const { seed, fight, unlocks, newUnlock, battle, rewardChoice, meta } = raw.ascent
   const isMap = raw.version === MAP_VERSION
   if (!integer(seed, 0, 0xffffffff) || !integer(fight, isMap ? 0 : 1, isMap ? MAP_FIGHTS : FIGHT_COUNT) || !Array.isArray(unlocks) || !unlocks.every(hand)) return null
   if (new Set(unlocks).size !== unlocks.length || (newUnlock !== null && (!hand(newUnlock) || !unlocks.includes(newUnlock)))) return null
@@ -217,6 +230,13 @@ function readCheckpoint(raw: unknown): AscentSave | null {
   const rulesSix = (mapped?.route.map.rules ?? 0) >= 6
   const seven = mapped?.route.map.rules === 7
   if (!battleRecord(battle, fightSeed, enemy, rulesTwo, rulesSix, seven)) return null
+  if (meta !== undefined && (!seven || !isRunMeta(meta))) return null
+  const metaCards = [battle.perk?.kind, ...(battle.loot?.acquired ?? []), ...(mapped?.route.offers ?? [])]
+  if (metaCards.some((card) => {
+    const floor = metaFloorForCard(card)
+    return floor !== undefined && !meta?.pool.includes(floor)
+  })) return null
+  if (meta?.opened.some((floor) => floor === 12 || floor > (mapped?.route.completed.length ?? 0) + Number(mapped?.route.node != null))) return null
   if (rewardChoice !== undefined && rewardChoice !== 'skip' && !(seven && rewardChoice === 'keep-artifacts') && !validReward(rewardChoice, seven)) return null
   if (rewardChoice !== undefined && (battle.phase !== 'won' || (!rulesTwo && rewardChoice !== 'skip' && !isLegacyReward(rewardChoice)))) return null
   if (rulesTwo && battle.loot) {
@@ -272,6 +292,7 @@ function readCheckpoint(raw: unknown): AscentSave | null {
     battle: restoredBattle,
     ...(mapped && { route: mapped.route }),
     ...(rewardChoice && { rewardChoice }),
+    ...(meta && { meta }),
   }
   if (rulesTwo && mapped?.route.offers && mapped.route.node !== null) {
     const room = mapped.route.map.byId[mapped.route.node]
@@ -324,7 +345,7 @@ export function writeAscentSave({ ascent, selected, rewardPreview, nodePreview, 
       store.removeItem(ASCENT_SAVE_KEY)
       return
     }
-    const { seed, fight, unlocks, newUnlock, battle, rewardChoice, route, enemy } = ascent
+    const { seed, fight, unlocks, newUnlock, battle, rewardChoice, route, enemy, meta } = ascent
     const { enemyIntents: _enemyIntents, ...savedBattle } = battle
     const savedRoute = route && {
       rules: route.map.rules, completed: route.completed, node: route.node, screen: route.screen,
@@ -334,7 +355,7 @@ export function writeAscentSave({ ascent, selected, rewardPreview, nodePreview, 
     }
     store.setItem(ASCENT_SAVE_KEY, JSON.stringify({
       version: route ? MAP_VERSION : LEGACY_VERSION, selected, rewardPreview, nodePreview, artifactOptions,
-      ascent: { seed, fight, unlocks, newUnlock, rewardChoice, battle: savedBattle, route: savedRoute },
+      ascent: { seed, fight, unlocks, newUnlock, rewardChoice, battle: savedBattle, route: savedRoute, meta },
     }))
   } catch {
     // The run can still be played when browser storage is unavailable.

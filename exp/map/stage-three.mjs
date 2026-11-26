@@ -86,7 +86,8 @@ export function weightedPerks() {
   const scores = Object.fromEntries(Object.keys(START_PERKS).map((perk) => [
     perk, Array.from({ length: 256 }, (_, seed) => playAscent(seed, perk, undefined, 'guardFirst')).filter(({ wins }) => wins === 3).length,
   ]))
-  return (seed) => pickOfferedPerk(seed, (perk) => scores[perk])
+  const mean = Object.values(scores).reduce((total, value) => total + value, 0) / Object.keys(scores).length
+  return (seed, pool) => pickOfferedPerk(seed, (perk) => scores[perk] ?? mean, pool)
 }
 
 function totals(runs, field) {

@@ -3,6 +3,7 @@ import type { MapRules } from './ascent-map.ts'
 import { bossRelicText, isBossRelic } from './boss-relic.ts'
 import type { Reward } from './rewards.ts'
 import { oathDescription, perkText, PERK_TEXT, rewardText } from './reward-copy.ts'
+import { isMetaArtifact } from './meta-unlocks.ts'
 import { REWARD_CARDS } from './rewards.ts'
 import { isNewTreasureId, isSevenTreasure, TREASURE_CARDS } from './treasure.ts'
 
@@ -140,7 +141,7 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
   {
     title: '전투 보상',
     entries: [
-      ...(Object.keys(REWARD_CARDS) as Reward[]).map(rewardEntry),
+      ...(Object.keys(REWARD_CARDS) as Reward[]).filter((id) => !isMetaArtifact(id)).map(rewardEntry),
       ['completion-seal', '완주 인장', '탑의 문지기를 쓰러뜨리면 결과 화면에 완주 인장이 뜹니다.'],
     ],
   },

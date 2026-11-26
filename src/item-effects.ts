@@ -2,6 +2,7 @@ import { dieFaceForSlot, enemyIntentAt, splitEnemyDamage } from './combat.ts'
 import type { forecast, SlotTotals } from './combat.ts'
 import { SEVEN_EMPEROR_SHIELD_CAP } from './boss-relic.ts'
 import { SEVEN_ITEM_VALUES } from './item-values.ts'
+import { META_VALUES } from './meta-unlocks.ts'
 import { artifactReady, changeCount } from './treasure.ts'
 import type { ArmedConsumable, Artifact, Consumable, Treasure, TreasureState } from './treasure.ts'
 import type { YachtBattle } from './yacht-combat.ts'
@@ -104,7 +105,7 @@ export function boostSevenAllocation(battle: YachtBattle, totals: SlotTotals, sl
   return { totals: { attack: totals.attack + bonus + whetstone, guard: totals.guard + banner }, item, banner, whetstone }
 }
 
-type SevenAllocation = { totals: SlotTotals; item?: ArmedConsumable; banner?: number; whetstone?: number }
+type SevenAllocation = { totals: SlotTotals; item?: ArmedConsumable; banner?: number; whetstone?: number; scabbard?: number }
 
 export function forecastSevenTreasure(battle: YachtBattle, base: ReturnType<typeof forecast>, allocation: SevenAllocation, emperor: boolean) {
   const { triggered: _triggered, mirrorDamage, overflowDamage, ...inventory } = battle.loot!
@@ -128,6 +129,12 @@ export function forecastSevenTreasure(battle: YachtBattle, base: ReturnType<type
   const item = allocation.item ?? (loot.consumableArmed === 'buckle' && block(3) ? 'buckle' : undefined)
   if (item) loot = spendConsumable(loot, item)
   if (allocation.banner) loot = spendSevenArtifact(loot, 'banner')
+  const carried = allocation.scabbard ?? 0
+  if (carried) loot = trigger({ ...loot, scabbard: undefined }, 'scabbard')
+  if (loot.equipped.includes('scabbard') && base.dealt >= battle.enemyHp) {
+    const excess = allocation.totals.attack - carried - battle.enemyHp - (battle.escort?.hp ?? 0)
+    if (excess > 0) loot = { ...loot, scabbard: Math.min(META_VALUES.scabbardCap, excess) }
+  }
   if (battle.turn === 1 && loot.prepared.whetstone) {
     const { whetstone: _spent, ...prepared } = loot.prepared
     loot = { ...loot, prepared }

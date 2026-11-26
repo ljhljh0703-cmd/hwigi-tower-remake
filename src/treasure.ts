@@ -1,5 +1,7 @@
 import type { CounterResult } from './combat.ts'
 import type { Parity } from './perks.ts'
+import { isMetaArtifact, META_ARTIFACTS } from './meta-unlocks.ts'
+import type { MetaArtifact } from './meta-unlocks.ts'
 
 export const ITEMS = ['weight', 'buckle', 'rewind', 'wedge', 'tongs', 'mantle', 'knot', 'hook', 'coin'] as const
 export const PREPARATIONS = ['whetstone', 'lining', 'emergency'] as const
@@ -16,12 +18,12 @@ export const REST_HEAL = 5
 export type Item = (typeof ITEMS)[number]
 export type Preparation = (typeof PREPARATIONS)[number]
 export type Shard = (typeof SHARDS)[number]
-export type Artifact = (typeof ARTIFACTS)[number] | (typeof COMMON_ARTIFACTS)[number]
+export type Artifact = (typeof ARTIFACTS)[number] | (typeof COMMON_ARTIFACTS)[number] | MetaArtifact
 export type Consumable = (typeof COMMON_CONSUMABLES)[number] | (typeof RARE_CONSUMABLES)[number]
 export type ArmedConsumable = Exclude<Consumable, 'coin' | 'tuning' | 'twin-mold'>
 export type Treasure = Item | Preparation | Shard | Artifact | Consumable | 'bandage' | 'medicine' | 'kit'
 export type HandChoice = 'triple' | 'straight'
-export type CounterChoice = 'now' | 'mirror' | 'horn' | 'coin'
+export type CounterChoice = 'now' | 'mirror' | 'horn' | 'coin' | 'adjacent' | 'recover-reroll'
 export type Counts<T extends string> = Readonly<Partial<Record<T, number>>>
 export type PendingDie = { readonly index: number; readonly original: number; readonly rolled: number }
 
@@ -60,11 +62,12 @@ export interface TreasureState {
   readonly latchDraft?: number
   readonly latched?: { readonly index: number; readonly face: number }
   readonly counterRecast?: true
+  readonly scabbard?: number
 }
 
 export const emptyTreasure: TreasureState = { items: {}, spentItems: {}, prep: {}, prepared: {}, shards: {}, equipped: [], acquired: [], spent: [] }
 
-export function isArtifact(value: unknown): value is Artifact { return value === 'die-latch' || ARTIFACTS.some((id) => id === value) }
+export function isArtifact(value: unknown): value is Artifact { return isMetaArtifact(value) || value === 'die-latch' || ARTIFACTS.some((id) => id === value) }
 export function isItem(value: unknown): value is Item { return ITEMS.some((id) => id === value) }
 export function isPreparation(value: unknown): value is Preparation { return PREPARATIONS.some((id) => id === value) }
 export function isShard(value: unknown): value is Shard { return SHARDS.some((id) => id === value) }
@@ -77,14 +80,14 @@ export function isArmedConsumable(value: unknown): value is ArmedConsumable {
 }
 
 export function isSevenTreasure(value: unknown): value is Treasure {
-  return isConsumable(value) || COMMON_ARTIFACTS.some((id) => id === value) || RARE_ARTIFACTS.some((id) => id === value) ||
+  return isMetaArtifact(value) || isConsumable(value) || COMMON_ARTIFACTS.some((id) => id === value) || RARE_ARTIFACTS.some((id) => id === value) ||
     value === 'bandage' || value === 'medicine' || value === 'kit' || value === 'whetstone' || value === 'lining'
 }
 
-export function isNewTreasureId(value: unknown) { return NEW_TREASURES.some((id) => id === value) }
+export function isNewTreasureId(value: unknown) { return isMetaArtifact(value) || NEW_TREASURES.some((id) => id === value) }
 
 export function treasureRarity(value: Treasure): 'common' | 'rare' | undefined {
-  if (RARE_ARTIFACTS.some((id) => id === value) || RARE_CONSUMABLES.some((id) => id === value)) return 'rare'
+  if (value === 'linked-cup' || RARE_ARTIFACTS.some((id) => id === value) || RARE_CONSUMABLES.some((id) => id === value)) return 'rare'
   if (isSevenTreasure(value)) return 'common'
 }
 export function itemUses(state: TreasureState, item: Item): number { return (state.items[item] ?? 0) - (state.spentItems[item] ?? 0) }
@@ -109,6 +112,7 @@ export function equipArtifact(state: TreasureState, artifact: Artifact, options:
     ...state, equipped, acquired: state.acquired.includes(artifact) ? state.acquired : [...state.acquired, artifact],
     ...(artifact === 'heart-die' && { heartParity: options.parity }),
     ...(artifact === 'incomplete' && !state.consumables && { sealHand: options.hand }),
+    ...(options.replace === 'scabbard' && { scabbard: undefined }),
   }
 }
 
@@ -117,11 +121,13 @@ export function nextTreasureBattle(state: TreasureState): TreasureState {
   return {
     items, prep: {}, prepared: prep, shards, equipped, acquired, spent: [], spentItems: {},
     ...(consumables && { consumables }),
+    ...(state.scabbard && equipped.includes('scabbard') && { scabbard: state.scabbard }),
     ...(heartParity && { heartParity }), ...(sealHand && { sealHand }), ...(sealUsed && { sealUsed }),
   }
 }
 
 export const TREASURE_CARDS = {
+  ...META_ARTIFACTS,
   tongs: { name: '봉인집게', icon: 'treasure-tongs', value: '−2', description: '봉인 턴에 봉인되지 않은 주사위 두 개 이상으로 방어하면 적 공격으로 잃는 체력을 최대 2 줄입니다.' },
   mantle: { name: '분할 망토', icon: 'treasure-mantle', value: '−2', description: '연타 턴에 공격 1개·방어 2개 이상을 쓰면 받는 피해를 최대 2 줄입니다.' },
   knot: { name: '회수 매듭', icon: 'treasure-knot', value: '10→8', description: '주사위를 빼앗길 때 하나를 써서 되찾는 피해 기준을 10에서 8로 낮춥니다.' },
