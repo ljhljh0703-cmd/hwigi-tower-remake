@@ -26,7 +26,7 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
   const battleFloor = page.locator('#fight')
   const mapFloor = page.locator('#map-floor')
   const mapHealth = page.locator('#map-health')
-  const poolDice = page.locator('#pool-dice').getByRole('button')
+  const poolDice = page.locator('#pool-dice button')
   const attackDice = page.locator('#attack-dice').getByRole('button')
   const attack = page.getByRole('button', { name: /^공격 칸/ })
   const attackSlot = page.locator('.slot[data-dice-zone="attack"]')

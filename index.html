@@ -289,8 +289,9 @@
               <svg class="icon" aria-hidden="true"><use href="#icon-die"/></svg>
             </button>
             <div id="pool-dice" class="dice-row">
-              <span id="locked-die" class="die unlock-hint" role="img" tabindex="0" aria-label="같은 눈 셋을 놓으면 에고 주사위가 열려요." data-hold-help>
+              <span id="locked-die" class="die unlock-hint" role="button" tabindex="0" aria-label="에고 주사위 해금 조건" aria-haspopup="dialog" aria-controls="unlock-conditions">
                 <svg class="icon companion-closed" aria-hidden="true"><use href="#icon-lock"/></svg>
+                <svg class="icon unlock-help" aria-hidden="true"><use href="#icon-guide"/></svg>
               </span>
             </div>
             <span class="pool-return" aria-label="놓은 주사위를 클릭하거나 탭하면 배치를 빼요. 키보드로는 주사위를 고른 뒤 이 화살표를 누르세요." data-hold-help>
@@ -398,6 +399,10 @@
     </div>
     <p id="first-run-status" class="sr-only" role="status"></p>
     <p id="hold-help" role="tooltip" hidden></p>
+    <dialog id="unlock-conditions" aria-label="주사위 해금 조건">
+      <form method="dialog"><button class="icon-button" aria-label="닫기" autofocus>×</button></form>
+      <div id="unlock-examples"></div>
+    </dialog>
     <dialog id="inventory-detail" aria-labelledby="inventory-title">
       <form method="dialog">
         <h2 id="inventory-title"></h2>

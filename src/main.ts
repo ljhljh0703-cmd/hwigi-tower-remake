@@ -413,7 +413,7 @@ document.addEventListener('pointermove', (event) => {
 for (const type of ['pointerup', 'pointercancel'] as const) document.addEventListener(type, stopHolding)
 document.addEventListener('pointerdown', () => { holdHelp.hidden = true }, { capture: true })
 document.addEventListener('keydown', (event) => { if (event.key === 'Escape') holdHelp.hidden = true })
-for (const target of [ui.intent, ui.lockedDie, element('pool-help')]) {
+for (const target of [ui.intent, element('pool-help')]) {
   target.addEventListener('click', () => showHelp(target))
 }
 ui.bladeMeter.addEventListener('click', (event) => {
@@ -465,6 +465,39 @@ for (const zone of combatSlots) {
 const stolenPlaceholder = document.createElement('span')
 stolenPlaceholder.className = 'die stolen-die'
 stolenPlaceholder.setAttribute('role', 'img')
+
+const unlockConditions = element<HTMLDialogElement>('unlock-conditions')
+const unlockExamples = element('unlock-examples')
+
+function pips(face: number) {
+  return `<span class="gimmick-die" data-face="${face}">${'<b></b>'.repeat(face)}</span>`
+}
+
+function showUnlockConditions(hand: Hand) {
+  if (unlockConditions.open) return
+  const triple = hand === 'triple'
+  const name = triple ? '에고 주사위' : '재굴림 주사위'
+  unlockConditions.setAttribute('aria-label', `${name} 해금 조건`)
+  unlockExamples.innerHTML = (['attack', 'guard'] as const).map((slot) => {
+    const exact = triple && slot === 'guard'
+    const faces = triple ? [4, 4, 4] : slot === 'attack' ? [6, 5, 4] : [4, 6, 5]
+    const label = `${slot === 'attack' ? '공격' : '방어'} 한 칸에 ${triple ? '같은 눈 셋' : '이어지는 눈 셋, 순서 무관'}. 예: ${faces.join('·')}.${exact ? ' 정확 방어도 맞춰야 해요.' : ''}`
+    return `<div class="unlock-example" role="img" aria-label="${label}">
+      <span class="unlock-example-slot" data-slot="${slot}" aria-hidden="true">
+        ${icon(slot === 'attack' ? 'sword' : exact ? 'parry' : 'shield')}
+        <span>${faces.map((face) => `<span class="unlock-example-die">${pips(face)}</span>`).join('')}</span>
+      </span>${icon('next')}${icon(unlockInfo[hand].icon)}
+    </div>`
+  }).join('')
+  unlockConditions.showModal()
+}
+
+ui.lockedDie.addEventListener('click', () => showUnlockConditions('triple'))
+ui.lockedDie.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+  event.preventDefault()
+  showUnlockConditions('triple')
+})
 
 function renderUnlockProgress(hint: HTMLElement, preview?: UnlockHint) {
   const { progress, blocked } = preview ?? { progress: 0 }
@@ -537,7 +570,7 @@ function refreshDice(battle: YachtBattle, { attack, guard }: SlotTotals, unlocks
   }
   ui.lockedDie.hidden = unlocks.includes('triple')
   const tripleHint = renderUnlockProgress(ui.lockedDie, ui.lockedDie.hidden ? undefined : pendingUnlock?.triple)
-  ui.lockedDie.setAttribute('aria-label', `공격이나 정확히 막은 방어 칸에 같은 눈 셋을 놓으면 에고 주사위가 열려요${tripleHint}.`)
+  ui.lockedDie.setAttribute('aria-label', `에고 주사위 해금 조건${tripleHint}`)
 
   const withoutPerk = allocationPower(battle)
   const bladeReady = planning && bladeChargePreview(battle)?.ready
@@ -580,15 +613,19 @@ function refreshDice(battle: YachtBattle, { attack, guard }: SlotTotals, unlocks
   ui.reroll.title = '다시 굴리기'
   const rerollLocked = !unlocks.includes('straight')
   ui.extraReroll.classList.toggle('unlock-hint', rerollLocked)
-  ui.extraReroll.disabled = selected.size !== 1 || rerollable.length !== 1 || !battle.rerolled || !battle.extraRerollAvailable
+  ui.extraReroll.disabled = !rerollLocked && (selected.size !== 1 || rerollable.length !== 1 || !battle.rerolled || !battle.extraRerollAvailable)
   const extra = Number(battle.extraRerollAvailable)
   const straight = pendingUnlock?.straight
   const sealedStraight = rerollLocked && straight?.blocked === 'seal'
   const rerollStatus = !rerollLocked ? '열림' : sealedStraight ? '봉인됨' : straight?.progress === 3 ? '준비' : '잠김'
-  ui.extraReroll.innerHTML = sealedStraight ? icon('seal')
-    : `${icon(unlockInfo.straight.icon)}${rerollLocked ? '' : extra}<span class="reroll-state">${rerollStatus}</span>`
+  ui.extraReroll.innerHTML = rerollLocked
+    ? `${icon(unlockInfo.straight.icon)}${icon(sealedStraight ? 'seal' : 'lock')}<span class="unlock-help">${icon('guide')}</span>`
+    : `${icon(unlockInfo.straight.icon)}${extra}<span class="reroll-state">${rerollStatus}</span>`
   const straightHint = renderUnlockProgress(ui.extraReroll, rerollLocked && !sealedStraight ? straight : undefined)
-  const rerollLabel = rerollLocked ? `재굴림 ${rerollStatus}, 같은 칸에 이어지는 눈 셋${straightHint}` : `재굴림 열림, 이번 전투 ${extra}회 남음`
+  const rerollLabel = rerollLocked ? `재굴림 주사위 해금 조건, ${rerollStatus}${straightHint}` : `재굴림 열림, 이번 전투 ${extra}회 남음`
+  ui.extraReroll.ariaHasPopup = rerollLocked ? 'dialog' : null
+  if (rerollLocked) ui.extraReroll.setAttribute('aria-controls', unlockConditions.id)
+  else ui.extraReroll.removeAttribute('aria-controls')
   ui.extraReroll.setAttribute('aria-label', rerollLabel)
   ui.extraReroll.title = rerollLabel
   ui.resolve.disabled = !planning || !canResolveYachtTurn(battle)
@@ -633,7 +670,7 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
   const multiplier = effect && 'value' in effect ? `<b>${effect.value}</b>` : ''
   const mark = clause && effect ? `<span class="gimmick-mark" data-kind="${clause.kind}" data-ready="${ready}" aria-hidden="true">
     <i>${icon(clause.slot === 'guard' ? 'shield' : 'sword')}</i>
-    <i>${clause.face === null ? icon('stacked-pair') : `<span class="gimmick-die" data-face="${clause.face}">${'<b></b>'.repeat(clause.face)}</span>`}</i>
+    <i>${clause.face === null ? icon('stacked-pair') : pips(clause.face)}</i>
     <span class="gimmick-arrow">${icon('next')}</span><span class="gimmick-effect">${icon(effect.icon)}${multiplier}</span>
   </span>` : ''
   if (effect) ui.intent.dataset.helpText = effect.help
@@ -1517,8 +1554,8 @@ function renderFirstRun(run: Ascent) {
     firstRun.discover([
       ...(gimmick && condition ? [{ id: `gimmick-${gimmick.kind}`, symbol: gimmick.slot === 'guard' ? 'shield' : 'sword',
         text: condition, spoken: `${gimmick.slot === 'guard' ? '방어' : '공격'} 칸${condition}`, anchor: ui.encounter, beside: ui.inventory }] : []),
-      ...(hand && !unlocks.includes(hand) ? [{ id: `unlock-${hand}`, symbol: 'unlock', anchor: ui.firstRunAnchor,
-        text: hand === 'triple' ? '같은 눈 셋을 공격에 놓아 해금해요.' : '이어지는 눈 셋을 한 칸에 놓아요.' }] : []),
+      ...(hand && !unlocks.includes(hand) ? [{ id: `unlock-${hand}`, symbol: 'lock', anchor: hand === 'triple' ? ui.lockedDie : ui.extraReroll,
+        text: '잠긴 자리를 눌러 해금 조건을 봐요.' }] : []),
     ])
   } else firstRun.clear()
 }
@@ -1916,7 +1953,10 @@ function useReroll(extra: boolean) {
 }
 
 ui.reroll.addEventListener('click', () => useReroll(false))
-ui.extraReroll.addEventListener('click', () => useReroll(true))
+ui.extraReroll.addEventListener('click', () => {
+  if (ascent && !ascent.unlocks.includes('straight')) showUnlockConditions('straight')
+  else useReroll(true)
+})
 function useTuning(change: -1 | 1) {
   if (ui.guide.open || !ascent) return
   const battle = tuneYachtDie(ascent.battle, change)

@@ -226,13 +226,13 @@ test('해금, 상인과 보스 유물 안내는 처음에만 나타난다', asyn
   await page.goto(process.env.HWIGI_SMOKE_URL)
   const mapStart = beginMapAscent(12, 'shield', undefined, 6)
   const run = enterMapNode(mapStart, availableMapNodes(mapStart)[0].id)
-  for (const [id, dice, text] of [
-    ['unlock-triple', [4, 4, 4], '같은 눈 셋을 공격에 놓아 해금해요.'],
-    ['unlock-straight', [2, 3, 4], '이어지는 눈 셋을 한 칸에 놓아요.'],
+  for (const [id, dice] of [
+    ['unlock-triple', [4, 4, 4]],
+    ['unlock-straight', [2, 3, 4]],
   ]) {
     const example = { ...run, battle: { ...run.battle, dice } }
     await resume(page, example)
-    await checkNote(page, id, text)
+    await checkNote(page, id, '잠긴 자리를 눌러 해금 조건을 봐요.')
     await line(page).tap()
     await expect(note(page)).toBeHidden()
     await resume(page, example)
@@ -263,4 +263,48 @@ test('해금, 상인과 보스 유물 안내는 처음에만 나타난다', asyn
   await expect(page.getByRole('heading', { name: '보스 유물 선택' })).toBeVisible()
   await expect(note(page)).toBeHidden()
   expect((await progress(page)).seen).toEqual(expect.arrayContaining(['unlock-triple', 'unlock-straight', 'shop', 'boss-relic']))
+})
+
+test('잠긴 두 자리에서 눈 그림을 열고 공격과 방어에 6·5·4를 써서 해금한다', async ({ page }, info) => {
+  await page.goto(process.env.HWIGI_SMOKE_URL)
+  const start = beginMapAscent(12, 'shield', 'odd', 6)
+  const run = enterMapNode(start, availableMapNodes(start)[0].id)
+  const example = { ...run, battle: { ...run.battle, dice: [6, 5, 4] } }
+  const dialog = page.locator('#unlock-conditions')
+  const triple = page.locator('#locked-die')
+  const straight = page.locator('#extra-reroll')
+  const pips = (slot) => dialog.locator(`[data-slot="${slot}"] .gimmick-die`)
+  const readFaces = (locator) => locator.evaluateAll((faces) => faces.map((face) => Number(face.dataset.face)))
+
+  await resume(page, example)
+  await triple.press('Enter')
+  await expect(dialog).toHaveAccessibleName('에고 주사위 해금 조건')
+  expect(await readFaces(pips('attack'))).toEqual([4, 4, 4])
+  await expect(dialog.locator('[data-slot="guard"] > svg use')).toHaveAttribute('href', '#icon-parry')
+  await dialog.getByRole('button', { name: '닫기' }).tap()
+
+  for (const slot of ['attack', 'guard']) {
+    if (slot === 'guard') await resume(page, example)
+    await straight.tap()
+    await expect(dialog).toHaveAccessibleName('재굴림 주사위 해금 조건')
+    await expect(dialog).toBeInViewport({ ratio: 1 })
+    expect(await readFaces(pips('attack'))).toEqual([6, 5, 4])
+    expect(await readFaces(pips('guard'))).toEqual([4, 6, 5])
+    await expect(pips(slot).locator('b')).toHaveCount(15)
+    const output = process.env.HWIGI_FIRST_RUN_SHOTS
+    if (output && slot === 'attack') {
+      await mkdir(output, { recursive: true })
+      await page.evaluate(() => document.fonts.ready)
+      await page.screenshot({ path: join(output, `${info.project.name.replace('×', 'x')}-unlock-conditions.png`) })
+    }
+    await dialog.getByRole('button', { name: '닫기' }).tap()
+    for (const button of await page.locator('#pool-dice button').all()) await button.tap()
+    await page.locator(`#assign-${slot}`).tap()
+    await expect(straight).toHaveClass(/unlock-ready/)
+    if (slot === 'guard') await expect(page.locator('#guard-exact')).toBeHidden()
+    await page.locator('#resolve').tap()
+    await expect(page.locator('#new-unlock')).toBeVisible()
+    expect((await save(page)).ascent.unlocks).toContain('straight')
+    await expect(dialog).toBeHidden()
+  }
 })
