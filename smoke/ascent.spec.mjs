@@ -29,6 +29,7 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
   const poolDice = page.locator('#pool-dice').getByRole('button')
   const attackDice = page.locator('#attack-dice').getByRole('button')
   const attack = page.getByRole('button', { name: /^공격 칸/ })
+  const attackSlot = page.locator('.slot[data-dice-zone="attack"]')
   const guard = page.getByRole('button', { name: /^방어 칸/ })
   const reroll = page.locator('#reroll')
   const resolve = page.getByRole('button', { name: '턴 끝내기' })
@@ -65,6 +66,18 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     const coins = page.locator('#run-coins')
     await expect(mapHealth).toBeVisible()
     await expect(coins).toBeVisible()
+    const numberStyle = (element) => {
+      const { color, fontFamily, fontSize, fontWeight } = getComputedStyle(element)
+      return { color, fontFamily, fontSize, fontWeight }
+    }
+    expect(await coins.evaluate(numberStyle)).toEqual(await battleFloor.evaluate(numberStyle))
+    const icons = rewardCards.locator('.pixel-icon')
+    await expect(icons).toHaveCount(3)
+    await expect.poll(() => icons.evaluateAll((images) => images.every((image) => {
+      const { width, height } = image.getBoundingClientRect()
+      return image.naturalWidth === 24 && image.naturalHeight === 24 && width === 48 && height === 48 &&
+        getComputedStyle(image).imageRendering === 'pixelated'
+    }))).toBe(true)
     return {
       floor: await battleFloor.innerText(),
       health: await mapHealth.innerText(),
@@ -102,8 +115,10 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
       const dice = await poolDice.all()
       await checkScreen('battle', [...dice, attack, guard, reroll, resolve])
       for (const die of dice) await die.tap()
+      await expect(attackSlot).toHaveCSS('outline-style', 'dashed')
       await attack.tap()
       await expect(attackDice).toHaveCount(3)
+      await expect(attackSlot).toHaveCSS('border-image-source', /stone-selected\.png/)
       await expect(poolDice).toHaveCount(0)
       await checkScreen('battle', [...await attackDice.all(), resolve])
       await expect(resolve).toBeEnabled()

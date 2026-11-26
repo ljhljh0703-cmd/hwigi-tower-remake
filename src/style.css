@@ -53,7 +53,7 @@ h1, h2, p { margin: 0; }
 
 h1, h2,
 #intent strong, .slot-total > strong, .die-face, .die-net, .unlock-value strong,
-#counter-damage, #event-floor > strong, #turn, #run-coins,
+#counter-damage, #event-floor > strong, #turn,
 :is(#player-total, #enemy-total, #escort-guard-total), .damage-number {
   font-family: var(--display-font);
 }
@@ -82,7 +82,11 @@ h1, h2,
   stroke-linejoin: round;
 }
 
-.icon, .icon-library image { image-rendering: pixelated; }
+.pixel-icon {
+  display: block;
+  flex: none;
+  image-rendering: pixelated;
+}
 
 .masthead {
   display: flex;
@@ -603,7 +607,8 @@ main[data-screen='battle'] {
 }
 .fork-art > :is(img, span) { z-index: 1; }
 .fork-portrait { display: block; max-inline-size: none; image-rendering: pixelated; scale: 2; transform-origin: center bottom; }
-.fork-symbol { display: grid; margin-block-end: 15px; color: #dfc29f; font-size: 2rem; }
+.fork-symbol { display: grid; margin-block-end: 15px; }
+.fork-symbol .pixel-icon { inline-size: 48px; block-size: 48px; }
 .fork-hint { display: inline-flex; align-items: center; gap: 5px; color: #d1cabc; font-size: .86rem; }
 #map-rest-marker { display: grid; place-items: center; inline-size: 90px; block-size: 90px; border: 3px double #dbaa7d; background: #44372d; color: #f6c795; font-size: 2.7rem; }
 #event-floor > :is(span, strong) { display: inline-flex; align-items: center; gap: 5px; }
@@ -686,6 +691,10 @@ main[data-screen='battle'] {
   color: #fff4e4;
 }
 .reward-card:focus-visible { outline-offset: 2px; }
+.reward-card:not(:disabled):active { scale: none; }
+@media (min-width: 192px) and (min-height: 229px) {
+  .reward-card .pixel-icon { inline-size: 48px; block-size: 48px; }
+}
 .empty-reward { opacity: .5; }
 
 #reward-panel.boss-reward { inline-size: min(100%, 540px); gap: clamp(10px, 1.5dvh, 14px); }
@@ -706,7 +715,7 @@ main[data-screen='battle'] {
   background: #423528;
   color: #ffe0ae;
 }
-.boss-reward .reward-card .icon { grid-row: span 2; inline-size: clamp(22px, 7vw, 28px); block-size: clamp(22px, 7vw, 28px); }
+.boss-reward .reward-card .pixel-icon { grid-row: span 2; inline-size: 24px; block-size: 24px; }
 .boss-reward .reward-card small { color: #ddc3a3; }
 .boss-reward .reward-card[aria-pressed='true'] { background: #58442e; }
 .reward-actions:has(#skip-reward[hidden]) { grid-template-columns: 1fr; }
@@ -727,7 +736,7 @@ main[data-screen='battle'] {
 .reward-actions button:disabled { color: #c6bbb0; background: #393532; }
 .inventory-strip { display: flex; justify-content: end; gap: 8px; }
 .inventory-strip:not(:has(> :not([hidden]))) { display: none; }
-.coin-total { display: inline-flex; align-items: center; gap: 4px; color: #f6c795; white-space: nowrap; }
+.coin-total { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 #reward-strip { display: flex; justify-content: end; gap: 8px; }
 #reward-strip button { gap: 4px; min-inline-size: 44px; padding-inline: 4px; border: 0; font-size: .86rem; }
 #reward-strip .spent { color: var(--muted); }
@@ -1214,8 +1223,18 @@ meter::-moz-meter-bar { background: #b5b2ad; }
   grid-template-rows: auto auto;
   min-inline-size: 0;
   background: var(--stone-bed);
+  -webkit-tap-highlight-color: transparent;
+}
+.slot:has(.dice-row > .die:not([hidden])) {
+  --stone-frame: var(--stone-selected);
+  background: #3b4842;
+  box-shadow: inset 0 0 0 2px #90a79a;
 }
 .slot:has(.slot-target:enabled) { cursor: pointer; touch-action: manipulation; }
+.slot:has(.slot-target:enabled):not(.drop-active) {
+  outline: 2px dashed #d8bb87;
+  outline-offset: -4px;
+}
 .slot:has(.slot-target:enabled) #blade-meter { cursor: pointer; }
 
 .slot-target, .slot-target:disabled {

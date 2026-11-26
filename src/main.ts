@@ -8,6 +8,7 @@ import { CURRENT_MAP_RULES, enemyForMapNode, MAP_ENEMY_BADGES, MAP_FLOORS, RULES
 import { BOSS_RELIC_CARDS, isBossRelic } from './boss-relic.ts'
 import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, writeAscentSave } from './ascent-save.ts'
 import { Arena } from './arena.ts'
+import { icon, pixelIcon } from './icons.ts'
 import { GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
 import type { BattleHit } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
@@ -180,10 +181,6 @@ const unlockInfo = {
 const parityLabels = { odd: '홀', even: '짝' } as const
 const parityIcons = { odd: 'die', even: 'die-even' } as const
 
-function icon(name: string) {
-  return `<svg class="icon" aria-hidden="true"><use href="#icon-${name}"/></svg>`
-}
-
 ui.guideEntries.innerHTML = BATTLE_GUIDE.map(({ title, entries }) => `
   <section class="guide-section">
     <h3>${title}</h3>
@@ -248,7 +245,7 @@ const counterPanelNext = ui.counterPanel.nextElementSibling
 const sound = new BattleAudio()
 const systemMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 let settings = loadGameSettings()
-const forkView = new ForkView(ui.fork, { health: ui.mapHealth, floor: ui.mapFloor }, icon, enterFork)
+const forkView = new ForkView(ui.fork, { health: ui.mapHealth, floor: ui.mapFloor }, enterFork)
 const firstRun = new FirstRunGuide(icon, () => {
   if (!ascent) return
   if (ascent.battle.phase === 'counter') render()
@@ -1140,7 +1137,8 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
     card.classList.toggle('artifact-card', isArtifact(reward))
     card.dataset.reward = reward
     card.setAttribute('aria-label', name)
-    card.innerHTML = isBossRelic(reward) ? `${icon(symbol)}<strong>${name}</strong><small>${REWARD_CARDS[reward].value}</small>` : icon(symbol)
+    const pictogram = pixelIcon(symbol)
+    card.innerHTML = isBossRelic(reward) ? `${pictogram}<strong>${name}</strong><small>${REWARD_CARDS[reward].value}</small>` : pictogram
     card.addEventListener('click', () => {
       chosenReward = chosenReward === reward ? undefined : reward
       artifactOptions = {}
@@ -1167,7 +1165,7 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
     emptyStock.className = 'reward-card artifact-card empty-reward'
     emptyStock.disabled = true
     emptyStock.setAttribute('aria-label', '유물 품절')
-    emptyStock.innerHTML = icon('lock')
+    emptyStock.innerHTML = pixelIcon('lock')
     const soldOut = document.createElement('div')
     soldOut.className = 'shop-offer unavailable'
     const label = document.createElement('span')
@@ -1182,7 +1180,7 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
       empty.className = 'reward-card empty-reward'
       empty.setAttribute('role', 'img')
       empty.setAttribute('aria-label', '빈 보상 자리')
-      empty.innerHTML = icon('map-reward')
+      empty.innerHTML = pixelIcon('map-reward')
       ui.rewardCards.append(empty)
     }
   }
@@ -1833,7 +1831,7 @@ function perkButton(symbol: string, name: string, description: string) {
   button.type = 'button'
   button.className = 'perk-choice'
   button.innerHTML = `
-    <span class="perk-symbol">${icon(symbol)}</span>
+    <span class="perk-symbol">${pixelIcon(symbol)}</span>
     <span class="perk-name">${name}</span>
   `
   const explanation = document.createElement('span')
