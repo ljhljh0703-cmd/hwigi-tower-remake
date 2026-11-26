@@ -1,3 +1,4 @@
+import { ENEMY_SPRITES } from './arena.ts'
 import { availableMapNodes } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import { enemyForMapNode, MAP_FLOORS, RULES_SIX_BADGES } from './ascent-map.ts'
@@ -47,7 +48,14 @@ export class ForkView {
       const hint = enemy ? `<span class="fork-hint" aria-label="${label ? `${label}, ` : ''}적 체력 ${enemy.hp}">${this.icon('heart')}${enemy.hp}</span>`
         : node.kind === 'shop' && ascent.route!.map.rules >= 3
           ? `<span class="fork-hint" aria-label="가격 ${SHOP_PRICES.kit}에서 ${SHOP_PRICES.artifact}동전">${this.icon('ascent-coin')}${SHOP_PRICES.kit}–${SHOP_PRICES.artifact}</span>` : ''
-      button.innerHTML = `<span class="fork-symbol">${this.icon(MAP_NODE_ICONS[node.kind])}</span><strong>${node.enemyId === 'chain-warden' ? label : name}</strong>${hint}${reward}`
+      const portrait = enemy
+        ? `<img class="fork-portrait" alt="" src="${new URL(`art/${ENEMY_SPRITES[enemy.id].name}-idle.png`, document.baseURI).href}">`
+        : `<span class="fork-symbol">${this.icon(MAP_NODE_ICONS[node.kind])}</span>`
+      button.innerHTML = `
+        <span class="fork-visual" aria-hidden="true"><span class="fork-art">${portrait}</span></span>
+        <span class="fork-caption"><strong>${node.enemyId === 'chain-warden' ? label ?? name : name}</strong>${hint}</span>
+        ${reward}
+      `
       return button
     }))
   }

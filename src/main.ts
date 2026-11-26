@@ -165,33 +165,6 @@ const unlockInfo = {
   straight: { icon: 'reroll-die', value: '1', label: '전투당 재굴림 주사위 1회' },
 } as const
 
-const perkDisplay = {
-  shield: {
-    value: `+${START_PERKS.shield.step}`, detail: `${icon('parry')}${icon('sword')}`,
-    description: PERK_TEXT.shield,
-  },
-  blade: {
-    value: `×${START_PERKS.blade.multiplier}`, detail: `${icon('sword')} ${START_PERKS.blade.threshold}`,
-    description: PERK_TEXT.blade,
-  },
-  collector: {
-    value: `+${START_PERKS.collector.initial}~${START_PERKS.collector.maximum}`, detail: `${icon('die')}=${icon('die')}`,
-    description: PERK_TEXT.collector,
-  },
-  reroll: {
-    value: '+1', detail: `${icon('heart')} −${START_PERKS.reroll.cost}`,
-    description: PERK_TEXT.reroll,
-  },
-  oath: {
-    value: `+${START_PERKS.oath.bonus}`, detail: '홀 / 짝',
-    description: PERK_TEXT.oath,
-  },
-  counter: {
-    value: `+${START_PERKS.counter.step}`, detail: `${icon('parry')}${icon('wheel')}`,
-    description: PERK_TEXT.counter,
-  },
-} as const
-
 const parityLabels = { odd: '홀', even: '짝' } as const
 const parityIcons = { odd: 'die', even: 'die-even' } as const
 
@@ -984,7 +957,7 @@ function renderActivePerk(battle: YachtBattle) {
   const previewLabel = projected
     ? `${blade?.pipsAdded ? `, 공격 눈 합 +${blade.pipsAdded}` : ''}, 배치 후 예상 ${projected}` : ''
   ui.activePerk.innerHTML = `${icon(symbol)}<strong>${value}</strong>${preview}`
-  ui.activePerk.setAttribute('aria-label', `${name} ${value}${previewLabel}, ${perkDisplay[perk.kind].description}`)
+  ui.activePerk.setAttribute('aria-label', `${name} ${value}${previewLabel}, ${PERK_TEXT[perk.kind]}`)
   ui.activePerk.title = name
 }
 
@@ -1585,20 +1558,21 @@ function showPerks() {
   }
   const buttons = offers.map((perk) => {
     const { name, icon: symbol } = START_PERKS[perk]
-    const { description, value, detail } = perkDisplay[perk]
-    const button = perkButton(symbol, name, value, detail, description)
+    const button = perkButton(symbol, name, PERK_TEXT[perk])
     button.addEventListener('click', (event) => {
       if (perk !== 'oath') {
         begin(event, perk)
         return
       }
       const parityButtons = (['odd', 'even'] as const).map((parity) => {
-        const choice = perkButton(parityIcons[parity], name, parityLabels[parity], `${icon('sword')} ${value}`, oathDescription(parity))
+        const label = parity === 'odd' ? '홀수 서약' : '짝수 서약'
+        const choice = perkButton(parityIcons[parity], label, oathDescription(parity))
         choice.addEventListener('click', (event) => begin(event, perk, parity))
         return choice
       })
       const back = document.createElement('button')
       back.type = 'button'
+      back.className = 'perk-back'
       back.innerHTML = icon('return')
       back.setAttribute('aria-label', '시작 특전으로 돌아가기')
       back.addEventListener('click', () => {
@@ -1614,15 +1588,13 @@ function showPerks() {
   buttons[0].focus()
 }
 
-function perkButton(symbol: string, name: string, value: string, detail: string, description: string) {
+function perkButton(symbol: string, name: string, description: string) {
   const button = document.createElement('button')
   button.type = 'button'
   button.className = 'perk-choice'
   button.innerHTML = `
     <span class="perk-symbol">${icon(symbol)}</span>
     <span class="perk-name">${name}</span>
-    <strong class="perk-value">${value}</strong>
-    <span class="perk-detail">${detail}</span>
   `
   const explanation = document.createElement('span')
   explanation.className = 'perk-description'
