@@ -1715,10 +1715,15 @@ async function playCounter(choice?: CounterChoice) {
   const fieldCounter = animate && arena.golemParryHeld
   if (next.perk?.kind === 'counter') renderActivePerk(next)
   if (!choice) {
-    if (fieldCounter) ui.counter.hidden = true
-    await roulette.reveal(reward, animate, () => sound.play('roulette-tick'), animationSpeed() * (fieldCounter ? 1.48 : 1))
-    sound.play('roulette-stop')
-    if (fieldCounter && !pending) await wait(110)
+    if (fieldCounter) {
+      ui.counter.hidden = true
+      sound.play('roulette-engage', 1, .26)
+      sound.play('roulette-ratchet', animationSpeed(), .23)
+    }
+    await roulette.reveal(reward, animate, () => sound.play('roulette-tick'), animationSpeed() * (fieldCounter ? 1.24 : 1))
+    if (fieldCounter) sound.play('roulette-latch', 1, .37)
+    else sound.play('roulette-stop')
+    if (fieldCounter && !pending) await wait(245)
   }
   if (pending) {
     ascent = checkpoint

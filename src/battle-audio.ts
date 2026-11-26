@@ -1,10 +1,12 @@
+const wheelEffects = ['roulette-engage', 'roulette-ratchet', 'roulette-latch'] as const
 const effects = [
   'dice-roll', 'dice-place', 'stone-hit', 'perfect-block', 'roulette-tick',
-  'roulette-stop', 'unlock', 'victory', 'defeat',
+  'roulette-stop', 'unlock', 'victory', 'defeat', ...wheelEffects,
 ] as const
 
 type Effect = (typeof effects)[number]
 type Track = Effect | 'chamber-loop'
+const waveFiles = new Set<Track>(wheelEffects)
 
 export class BattleAudio {
   private context?: AudioContext
@@ -78,7 +80,8 @@ export class BattleAudio {
   private load(track: Track) {
     let pending = this.tracks.get(track)
     if (!pending) {
-      pending = fetch(new URL(`sfx/${track}.mp3`, document.baseURI)).then((response) => {
+      const extension = waveFiles.has(track) ? 'wav' : 'mp3'
+      pending = fetch(new URL(`sfx/${track}.${extension}`, document.baseURI)).then((response) => {
         if (!response.ok) throw new Error(`Audio unavailable: ${track}`)
         return response.arrayBuffer()
       }).then((bytes) => this.context!.decodeAudioData(bytes)).catch((error: unknown) => {

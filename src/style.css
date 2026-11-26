@@ -1140,17 +1140,103 @@ button.die:disabled { background: transparent; }
 #counter-panel.counter-over-field {
   position: absolute;
   z-index: 3;
-  inset: 10px 0 auto;
-  width: clamp(82px, 16dvh, 126px);
+  inset: clamp(14px, 3dvh, 25px) 0 auto;
+  width: min(calc(100% - 32px), clamp(200px, 32dvh, 258px));
   min-block-size: 0;
   grid-template-columns: minmax(0, 1fr);
   padding: 0;
   background: transparent;
   border: 0;
+  --wheel-face: #2e2d28;
+  --wheel-inset: #39362d;
+  --wheel-divider: #95856a;
+  --wheel-winner: #93533b;
 }
 .counter-over-field .roulette-stage { width: 100%; }
-.counter-over-field .roulette-label span { font-size: .72rem; }
-.counter-over-field .roulette-label .icon { width: 11px; height: 11px; }
+.counter-over-field .roulette-stage::before {
+  position: absolute;
+  inset: -6px;
+  background: repeating-conic-gradient(from -1deg, #8c7d60 0deg 2deg, #373128 2deg 10deg);
+  border-radius: 50%;
+  mask: radial-gradient(circle closest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+  content: '';
+}
+.counter-over-field #counter-wheel {
+  border: 5px solid #625641;
+  box-shadow: inset 0 0 0 2px #29251e;
+}
+.counter-over-field #counter-wheel::after {
+  inset: 38%;
+  border: 2px solid #80725a;
+  background: #27251f;
+}
+.counter-over-field .roulette-label span {
+  font-size: clamp(1.05rem, 4vw, 1.32rem);
+  color: #f2eadd;
+}
+.counter-over-field .roulette-label .icon { width: 15px; height: 15px; }
+.counter-over-field .roulette-pointer {
+  z-index: 2;
+  top: -10px;
+  width: 27px;
+  height: 29px;
+  border: 0;
+  clip-path: polygon(0 0,100% 0,100% 30%,50% 100%,0 30%);
+  background: linear-gradient(90deg, #a58a63 0 23%, #f8e8c8 23% 76%, #ae926a 76%);
+}
+#counter-medallion { display: none; }
+.counter-over-field[data-roll-state='locked'] #counter-medallion {
+  position: absolute;
+  z-index: 1;
+  inset: 32%;
+  display: grid;
+  place-items: center;
+  border: 2px solid #dbb17e;
+  border-radius: 50%;
+  background: #302319;
+  color: #fff0d3;
+  font-size: clamp(2.5rem, 12vw, 3.65rem);
+  line-height: 1;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.counter-over-field[data-roll-state='locked'] .roulette-label:not(.winner) span { color: #cfc5b3; }
+.counter-over-field[data-roll-state='locked'] .roulette-stage {
+  animation: roulette-latch calc(200ms * var(--animation-scale, 1)) ease-out both;
+}
+.counter-over-field[data-roll-state='locked'] .roulette-stage::after {
+  position: absolute;
+  pointer-events: none;
+  inset: -7px;
+  border: 2px solid #e8bd86;
+  border-radius: 50%;
+  content: '';
+  animation: roulette-ring calc(240ms * var(--animation-scale, 1)) ease-out both;
+}
+.counter-over-field[data-roll-state='spinning'] .roulette-stage {
+  animation: roulette-seat calc(150ms * var(--animation-scale, 1)) ease-out both;
+}
+.counter-over-field[data-roll-state='spinning'] .roulette-pointer {
+  animation: roulette-teeth calc(742ms * var(--animation-scale, 1)) linear both;
+}
+@keyframes roulette-teeth {
+  0%, 7%, 12%, 19%, 27%, 37%, 48%, 63%, 81%, 100% { transform: translateY(0); }
+  4%, 9%, 15%, 23%, 32%, 43%, 57%, 75%, 92% { transform: translateY(-2px); }
+}
+@keyframes roulette-seat {
+  from { scale: .91; opacity: .54; }
+  to { scale: 1; opacity: 1; }
+}
+@keyframes roulette-latch {
+  0% { scale: 1; }
+  28% { scale: 1.026; }
+  60% { scale: .993; }
+  100% { scale: 1; }
+}
+@keyframes roulette-ring {
+  from { opacity: .91; scale: .993; }
+  to { opacity: 0; scale: 1.052; }
+}
 .counter-over-field #counter { min-block-size: 30px; }
 .counter-over-field #counter-result {
   position: absolute;

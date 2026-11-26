@@ -6,6 +6,7 @@ export class CounterRoulette {
   private readonly damage: HTMLElement
   private readonly stage: HTMLElement
   private readonly action: HTMLElement
+  private readonly medallion: HTMLElement
   private labels: HTMLElement[] = []
   private degreesPerSlot = 0
   private spin?: Animation
@@ -17,6 +18,7 @@ export class CounterRoulette {
     this.damage = panel.querySelector<HTMLElement>('#counter-damage')!
     this.stage = panel.querySelector<HTMLElement>('.roulette-stage')!
     this.action = button.querySelector<HTMLElement>('#counter-action')!
+    this.medallion = panel.querySelector<HTMLElement>('#counter-medallion')!
   }
 
   private setRewards(rewards: readonly CounterReward[]) {
@@ -49,10 +51,11 @@ export class CounterRoulette {
     const segments = this.labels.map((_, index) => {
       const start = index * this.degreesPerSlot
       const end = start + this.degreesPerSlot
-      const shade = index === winner ? 'var(--rust)' : 'var(--stone-bed)'
-      return `var(--stone-edge) ${start - 0.45}deg ${start + 0.45}deg, ${shade} ${start + 0.45}deg ${end - 0.45}deg`
+      const shade = index === winner ? 'var(--wheel-winner, var(--rust))'
+        : index % 2 === 0 ? 'var(--wheel-face, var(--stone-bed))' : 'var(--wheel-inset, var(--stone-bed))'
+      return `var(--wheel-divider, var(--stone-edge)) ${start - 0.45}deg ${start + 0.45}deg, ${shade} ${start + 0.45}deg ${end - 0.45}deg`
     })
-    this.wheel.style.background = `conic-gradient(from -${this.degreesPerSlot / 2}deg, ${segments.join(', ')}, var(--stone-edge) 359.55deg)`
+    this.wheel.style.backgroundImage = `conic-gradient(from -${this.degreesPerSlot / 2}deg, ${segments.join(', ')}, var(--wheel-divider, var(--stone-edge)) 359.55deg)`
   }
 
   setVisible(rewards: readonly CounterReward[] | null, companionAwake = false) {
@@ -63,6 +66,8 @@ export class CounterRoulette {
       this.wheel.style.removeProperty('--label-turn')
       this.result.hidden = true
       this.damage.textContent = ''
+      this.medallion.textContent = ''
+      delete this.panel.dataset.rollState
       this.button.hidden = false
       this.button.disabled = false
       this.action.textContent = '반격 룰렛'
@@ -77,9 +82,11 @@ export class CounterRoulette {
   async reveal(reward: CounterResult, animate: boolean, onTick: () => void, speed = 1) {
     this.button.disabled = true
     this.action.textContent = '회전 중'
+    const onField = this.panel.classList.contains('counter-over-field')
     const angle = 1080 + (360 - reward.slot * this.degreesPerSlot) % 360
     const rotate = `rotate(${angle}deg)`
     if (animate) {
+      this.panel.dataset.rollState = 'spinning'
       const spin = this.wheel.animate(
         [{ transform: 'rotate(0deg)' }, { transform: rotate }],
         { duration: 920 / speed, easing: 'cubic-bezier(.15,.65,.22,1)' },
@@ -98,7 +105,7 @@ export class CounterRoulette {
         lastSlot = slot
         frame = requestAnimationFrame(tick)
       }
-      frame = requestAnimationFrame(tick)
+      if (!onField) frame = requestAnimationFrame(tick)
       try {
         await spin.finished
       } catch {
@@ -119,5 +126,7 @@ export class CounterRoulette {
     this.result.querySelector('use')!.setAttribute('href', joint ? '#icon-joint' : '#icon-sword')
     this.result.setAttribute('aria-label', `${joint ? '합공' : '반격'} 피해 ${reward.damage}`)
     this.damage.textContent = String(reward.damage)
+    this.medallion.textContent = String(reward.damage)
+    this.panel.dataset.rollState = 'locked'
   }
 }
