@@ -127,6 +127,7 @@ test('황제의 공격 턴과 힘을 모으는 턴의 수치가 구분된다', a
   const intent = page.locator('#intent')
   await expect(intent).toHaveAttribute('data-intent', 'attack')
   await expect(intent.locator('strong')).toHaveText('11 + 10')
+  await expect(page.locator('#first-run-note')).toBeHidden()
   await photograph(page, info, 'intent-attack')
 
   await resume(page, withBattle(boss, { turn: 2 }))
@@ -138,6 +139,7 @@ test('황제의 공격 턴과 힘을 모으는 턴의 수치가 구분된다', a
     const size = (selector) => parseFloat(getComputedStyle(element.querySelector(selector)).fontSize)
     return size('.intent-next') < size('strong')
   })).toBe(true)
+  await expect(page.locator('#first-run-note')).toBeHidden()
   await photograph(page, info, 'intent-charge')
 })
 

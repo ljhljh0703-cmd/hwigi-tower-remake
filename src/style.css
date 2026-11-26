@@ -972,6 +972,11 @@ main[data-screen='battle'] {
   color: #a7b8cc;
   border-inline-end: 1px solid #617084;
 }
+@media (max-width: 360px) {
+  #intent:is([data-intent='attack'], [data-intent='charge']) { gap: 3px; font-size: 23px; }
+  #intent:is([data-intent='attack'], [data-intent='charge']) > span:first-child { padding-inline: 2px; }
+  #intent .intent-next { padding-inline-end: 2px; }
+}
 #intent .intent-escort { color: #f6c795; white-space: nowrap; }
 #encounter-name { position: absolute; z-index: 1; inset: 10px auto auto 10px; color: #f9d9ab; font-size: .9rem; }
 #intent .gimmick-mark { gap: 2px; padding-inline: 2px; color: #ffdf9f; }
