@@ -252,7 +252,7 @@ test('패배한 전장을 남기고 키보드로 다시 오르기와 로비에 �
     await placeAll(page, 'attack')
     await page.locator('#resolve').tap()
     await expect(page.getByRole('heading', { name: '게임 오버' })).toBeFocused()
-    await expect(page.locator('#defeat-floor')).toHaveText('1층에서 쓰러졌어요.')
+    await expect(page.locator('#defeat-floor')).toHaveText('1층에서 쓰러졌습니다.')
     await expect(page.getByRole('region', { name: /마지막 전장/ })).toBeVisible()
     await expect(page.locator('#resolve')).toBeHidden()
     await expect(page.locator('#completion-seal')).toBeHidden()

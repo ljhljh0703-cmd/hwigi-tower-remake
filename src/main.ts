@@ -360,7 +360,7 @@ ui.confirm.addEventListener('close', () => {
 
 ui.abandonAscent.addEventListener('click', () => {
   if (ascent?.battle.phase !== 'assign' && ascent?.battle.phase !== 'counter') return
-  confirmLobbyAction('등반을 포기할까요?', '포기하면 현재 등반의 저장이 사라져요.', '등반 포기', () => {
+  confirmLobbyAction('등반을 포기할까요?', '포기하면 현재 등반의 저장이 사라집니다.', '등반 포기', () => {
     clearAscentSave()
     ui.settings.close()
     showLobby(true)
@@ -1583,7 +1583,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   const floor = route ? (route.node === null ? route.completed.length : route.map.byId[route.node].floor) : fight
   const floors = route ? MAP_FLOORS : FIGHT_COUNT
   ui.gameOver.hidden = !defeated
-  if (defeated) ui.defeatFloor.textContent = `${floor}층에서 쓰러졌어요.`
+  if (defeated) ui.defeatFloor.textContent = `${floor}층에서 쓰러졌습니다.`
   ui.fight.textContent = `${floor}/${floors} 층`
   renderActivePerk(battle)
   ui.turn.hidden = !inCombat
@@ -2326,7 +2326,7 @@ ui.continueAscent.addEventListener('click', (event) => {
 ui.newAscent.addEventListener('click', () => {
   const { checkpoint, invalidMap } = readAscentSave()
   if (checkpoint || invalidMap) {
-    confirmLobbyAction('새로 하기', '새 등반을 시작하면 저장된 등반을 덮어써요.', '새로 하기', showPerks)
+    confirmLobbyAction('새로 하기', '새 등반을 시작하면 저장된 등반을 덮어씁니다.', '새로 하기', showPerks)
   } else showPerks()
 })
 function returnToLobby() {
