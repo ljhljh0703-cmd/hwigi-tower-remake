@@ -680,10 +680,10 @@ main[data-screen='battle'] {
 
 @keyframes companion-flight {
   0% { left: var(--player-x); top: calc(var(--ground) - 46px); rotate: -18deg; }
-  38% { left: calc((var(--player-x) + var(--enemy-x)) / 2); top: max(28px, calc(var(--ground) - 134px)); rotate: 21deg; }
-  70% { left: var(--enemy-x); top: calc(var(--ground) - 52px); rotate: 72deg; }
-  84% { left: var(--enemy-x); top: calc(var(--ground) - 52px); rotate: 72deg; scale: 1.18; opacity: 1; box-shadow: 0 0 17px 4px #9db4d2; }
-  100% { left: var(--enemy-x); top: calc(var(--ground) - 52px); rotate: 72deg; scale: .85; opacity: 0; }
+  38% { left: calc((var(--player-x) + var(--flight-x, var(--enemy-x))) / 2); top: max(28px, calc(var(--ground) - 134px)); rotate: 21deg; }
+  70% { left: var(--flight-x, var(--enemy-x)); top: var(--flight-y, calc(var(--ground) - 52px)); rotate: 72deg; }
+  84% { left: var(--flight-x, var(--enemy-x)); top: var(--flight-y, calc(var(--ground) - 52px)); rotate: 72deg; scale: 1.18; opacity: 1; box-shadow: 0 0 17px 4px #9db4d2; }
+  100% { left: var(--flight-x, var(--enemy-x)); top: var(--flight-y, calc(var(--ground) - 52px)); rotate: 72deg; scale: .85; opacity: 0; }
 }
 
 .combatant {
@@ -1031,6 +1031,8 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 .slot-target:not(:disabled):hover { background: var(--stone-face); }
 .slot-target:not(:disabled):active { scale: none; }
 .slot-target span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: .85rem; }
+#guard-exact { color: #efdb9c; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+#assign-guard:has(#guard-exact:not([hidden])) { box-shadow: inset 0 -2px #ba9a59; }
 .slot-target .slot-total { color: inherit; }
 .slot-target #attack-multiplier { color: #f2ac98; }
 .slot-target strong { font-size: 2rem; line-height: 1; }
@@ -1685,8 +1687,32 @@ main[data-screen='defeat'] {
 [data-screen='battle'] #inventory-overflow { inset-inline: 0 auto; }
 
 :root[data-animation-speed='fast'] { --animation-scale: .5; }
+[data-reduced-motion='true'] .counter-over-field .roulette-stage,
+[data-reduced-motion='true'] .counter-over-field .roulette-stage::after,
+[data-reduced-motion='true'] .counter-over-field .roulette-pointer { animation: none; }
 [data-reduced-motion='true'] button { transition: none; }
 [data-reduced-motion='true'] button:not(:disabled):active { scale: none; }
 [data-reduced-motion='true'] :is(.unlock-ready, #unlock-reveal, .companion-reveal .companion-tile, #companion-flight) { animation: none; }
 [data-reduced-motion='true'] :is(.damage-number, #parry-cue span) { animation: none; }
 [data-reduced-motion='true'] :is(#companion-flight, #unlock-impact, .hp-trail) { visibility: hidden; }
+
+.feel-layer { position: fixed; z-index: 12; pointer-events: none; display: grid; place-items: center; }
+.feel-stolen { color: #eee4d1; background: #635949; border: 1px solid #b1a792; }
+.feel-frost { border: 2px dotted #c6dad8; box-shadow: inset 3px 2px #8eaba9; }
+.feel-stamp { border: 3px double #b7ac9c; clip-path: polygon(8% 0,100% 0,92% 100%,0 100%); }
+.feel-return { outline: 1px solid #9c9989; }
+.feel-socket .icon { padding: 4px; width: 32px; height: 32px; color: #ead3ac; background: #37352f; border: 2px inset #aaa08d; }
+.feel-mend { background: #add1b7; }
+.feel-door { overflow: hidden; place-items: end center; background: #74634c;
+  clip-path: polygon(0 100%,0 31%,7% 31%,7% 22%,14% 22%,14% 14%,22% 14%,22% 7%,32% 7%,32% 0,68% 0,68% 7%,78% 7%,78% 14%,86% 14%,86% 22%,93% 22%,93% 31%,100% 31%,100% 100%); }
+.feel-footstep { background: #b8aa90; clip-path: polygon(0 34%,29% 34%,29% 0,50% 0,50% 60%,85% 60%,85% 25%,100% 25%,100% 100%,0 100%); }
+.feel-pulley i { width: 2px; height: 18px; background: #ac9675; }
+.feel-pulley b { position: absolute; width: 14px; height: 14px; border-radius: 50%; border: 3px dashed #836c49; background: #534537; }
+.rest-ember { display: inline-block; margin-inline-start: 8px; width: 5px; height: 6px; background: #e49e5b; box-shadow: -3px 2px #96724b, 2px 3px #b67a4a; }
+.die-contact-art { width: 32px; height: 23px; background-size: 128px 69px; image-rendering: pixelated; }
+
+.companion-reveal .companion-tile { position: relative; overflow: hidden; }
+.ego-shell { position: absolute; inset-block: 0; width: 50%; background: #58564e; border-block: 3px solid #716d61; }
+.ego-shell.left { left: 0; border-right: 1px solid #d7d1aa; }
+.ego-shell.right { right: 0; border-left: 1px solid #c3b899; }
+[data-reduced-motion='true'] .ego-shell { display: none; }

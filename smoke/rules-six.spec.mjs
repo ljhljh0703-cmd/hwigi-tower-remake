@@ -19,10 +19,12 @@ async function photograph(page, name, info) {
     const root = document.scrollingElement
     return [root.scrollWidth - root.clientWidth, root.scrollHeight - root.clientHeight]
   })).toEqual([0, 0])
-  const root = process.env.HWIGI_RETURN_SHOTS
+  const feelShot = ['armor', 'midboss', 'boss-reward'].includes(name) && process.env.HWIGI_FEEL_SHOTS
+  const root = feelShot || process.env.HWIGI_RETURN_SHOTS
   if (!root) return
   await mkdir(root, { recursive: true })
-  await page.screenshot({ path: join(root, `${info.project.name}-${name}.png`), animations: 'disabled' })
+  const dimensions = feelShot ? info.project.name.replace('×', 'x') : info.project.name
+  await page.screenshot({ path: join(root, `${dimensions}-${name}.png`), animations: 'disabled' })
 }
 
 const examples = [
@@ -107,8 +109,8 @@ test('발동한 상태가 적 체력 카드에 남고 공격이나 턴을 소모
   const armor = status.locator('[data-status="armor"]')
   const topple = status.locator('[data-status="topple"]')
   await expect(armor).toHaveText('∞')
+  await expect(page.locator('#counter-panel')).toHaveAttribute('data-roll-state', 'locked')
   await expect(topple).toHaveCount(0)
-  await page.locator('#counter').tap()
   await expect(topple).toHaveText('1')
   await expect(topple).toHaveAccessibleName('넘어짐 · 1턴 남음')
   await expect(status).toBeInViewport({ ratio: 1 })

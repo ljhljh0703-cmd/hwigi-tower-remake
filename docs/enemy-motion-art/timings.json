@@ -1,0 +1,30 @@
+{
+  "defaultAttack": {
+    "illustratedPoseTimesMs": {
+      "anticipate": 0,
+      "approach": 74,
+      "contact": 152,
+      "follow": 203
+    },
+    "returnToReadyAtMs": 284
+  },
+  "repeat": {
+    "offsetFromPreviousContactMs": 248,
+    "illustratedPoseTimesFromPreviousContactMs": {
+      "follow": 51,
+      "reload": 107,
+      "approach": 173,
+      "repeat-contact": 248
+    }
+  },
+  "damage": {
+    "light": [{"pose":"hit","durationMs":57},{"pose":"ready","durationMs":80}],
+    "heavy": [{"pose":"hit","durationMs":45},{"pose":"heavy-hit","durationMs":93},{"pose":"ready","durationMs":60}],
+    "defeat": [{"pose":"hit","durationMs":53},{"pose":"fall","durationMs":96},{"pose":"down","hold":true}]
+  },
+  "effects": {
+    "chipMs": [24, 41, 48, 45],
+    "frostMs": [26, 53, 65, 51],
+    "sealMs": [38, 70, 64, 52]
+  }
+}

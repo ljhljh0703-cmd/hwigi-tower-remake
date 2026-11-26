@@ -97,7 +97,7 @@ export class CounterRoulette {
       let lastTick = -Infinity
       const tick = (now: number) => {
         const progress = spin.effect?.getComputedTiming().progress ?? 0
-        const slot = Math.floor(angle * progress / this.degreesPerSlot)
+        const slot = Math.floor(angle * progress / this.degreesPerSlot + .5)
         if (slot !== lastSlot && now - lastTick >= 65) {
           onTick()
           lastTick = now
@@ -122,6 +122,9 @@ export class CounterRoulette {
     this.paintSegments(reward.slot)
     this.button.hidden = true
     this.result.hidden = false
+    if (animate) this.panel.querySelector('.roulette-pointer')?.animate(
+      [{ rotate: '-9deg' }, { rotate: '4deg' }, { rotate: '0deg' }], { duration: 95 / speed })
+
     const joint = reward.joint && this.companionAwake
     this.result.querySelector('use')!.setAttribute('href', joint ? '#icon-joint' : '#icon-sword')
     this.result.setAttribute('aria-label', `${joint ? '합공' : '반격'} 피해 ${reward.damage}`)

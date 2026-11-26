@@ -1,3 +1,6 @@
+import { atlasCell, frame, readyFrame, attackFrame, hurtFrame } from './enemy-motion.ts'
+import type { MotionFrame } from './enemy-motion.ts'
+import type { EnemyIntent } from './combat.ts'
 import { enemyIntentAt, incomingAttack, splitEnemyDamage } from './combat.ts'
 import type { Exchange } from './combat.ts'
 import type { AscentEnemyId } from './enemy-roster.ts'
@@ -28,12 +31,12 @@ const golem: Sprite = { name: 'golem', footY: 39, poses: { idle: 15, charge: 15,
 type PoseFrame = { pose: string; duration: number }
 export type ImpactTarget = 'player' | 'enemy' | 'escort'
 export type BattleHit = { target: ImpactTarget; damage: number; defeated?: boolean }
-type Impact = BattleHit & { start: number; markedUntil: number }
-type ContactOptions = { parry?: boolean; counter?: boolean; ordered?: boolean; guarded?: boolean }
-const flashDuration = 80
-const debrisDuration = 400
+type Impact = BattleHit & { start: number; hold: number; x: number; y: number; dust: boolean }
+type ContactOptions = { parry?: boolean; counter?: boolean; ordered?: boolean; guarded?: boolean; incoming?: boolean; final?: boolean; joint?: boolean }
+type Attack = { start: number; intent: EnemyIntent; count: number; index: number; last?: number; escort: boolean; weakened: boolean; guarded: boolean }
+type Swing = { target: 'escort' | 'enemy'; start: number; contact: number }
+const debrisDuration = 330
 const shadowFade = 60
-const escortMark = ['..D..', '.DLD.', 'DLLLD', '.DLD.', '..D..']
 
 function enemySprite(name: string, footX: number, footY: number, scale: number, reach: Sprite['reach'], head: Sprite['head']): Sprite {
   return { name, footY, poses: { idle: footX, charge: footX, attack: footX, hit: footX }, scale, reach, head }
@@ -146,17 +149,6 @@ export function heroExchangePoses(before: YachtBattle, exchange: Exchange) {
   return frames
 }
 
-function poseAt(frames: readonly PoseFrame[], elapsed: number) {
-  for (const frame of frames) {
-    if (elapsed < frame.duration) return frame.pose
-    elapsed -= frame.duration
-  }
-}
-
-function strikeProgress(elapsed: number, oneWay: number) {
-  return Math.max(0, 1 - Math.abs(elapsed / oneWay - 1))
-}
-
 export class Arena {
   private readonly frame: HTMLElement
   private readonly encounter: HTMLElement
@@ -164,8 +156,15 @@ export class Arena {
   private readonly inventory: HTMLElement
   private readonly canvas = document.createElement('canvas')
   private readonly context = this.canvas.getContext('2d')!
-  private readonly flashCanvas = document.createElement('canvas')
-  private readonly flashContext = this.flashCanvas.getContext('2d')!
+  private readonly pixelData = new Map<string, ImageData>()
+  private attack?: Attack
+  private swing?: Swing
+  private brace?: { at: number; parry: boolean }
+  private falls = new Map<ImpactTarget, Impact>()
+  private transition?: { at: number; pose: MotionFrame }
+  private recoverUntil = 0
+  private firstGolem = false
+  private golemChamber?: HTMLCanvasElement
   private readonly images = new Map<string, HTMLImageElement>()
   private density = 1
   private placements = new Map<Sprite, Placement>()
@@ -173,15 +172,13 @@ export class Arena {
   private floor = 0
   private battle?: YachtBattle
   private enemyId: AscentEnemyId = 'thorns'
-  private strike?: { start: number }
   private golemParry?: number
   private golemCounter?: { start: number; defeated: boolean }
-  private motion?: { start: number; duration: number; hero: readonly PoseFrame[]; enemy: readonly PoseFrame[]; escort: readonly PoseFrame[] }
   private animation = 0
   private animationSpeed = 1
   private reducedMotion = false
   private impacts: Impact[] = []
-  private reaction?: { start: number; until: number; block: boolean; recoil: BattleHit[] }
+  private heldParryAt?: number
   private frozen?: { at: number; until: number }
   private shadows: { at: number; multi: boolean }[] = []
   private trauma = 0
@@ -205,7 +202,17 @@ export class Arena {
     if (this.images.has(name)) return
     const image = new Image()
     this.images.set(name, image)
-    image.addEventListener('load', () => this.draw(), { once: true })
+    image.addEventListener('load', () => {
+      if (name.startsWith('motion/') || name.startsWith('hero-') || name.startsWith('chain-warden-')) {
+        const pixels = document.createElement('canvas')
+        pixels.width = image.width
+        pixels.height = image.height
+        const ctx = pixels.getContext('2d')!
+        ctx.drawImage(image, 0, 0)
+        this.pixelData.set(name, ctx.getImageData(0, 0, image.width, image.height))
+      }
+      this.draw()
+    }, { once: true })
     image.src = new URL(`art/${name}.png`, document.baseURI).href
   }
 
@@ -272,8 +279,29 @@ export class Arena {
   }
 
   private drawBackground() {
-    const image = this.images.get('chamber')
-    if (!image?.naturalWidth) return
+    const original = this.images.get('chamber')
+    if (!original?.naturalWidth) return
+    if (this.firstGolem && !this.golemChamber) {
+      const layer = document.createElement('canvas')
+      layer.width = original.width
+      layer.height = original.height
+      const ctx = layer.getContext('2d')!
+      ctx.drawImage(original, 0, 0)
+      const pixels = ctx.getImageData(0, 0, layer.width, layer.height)
+      for (let i = 0; i < pixels.data.length; i += 4) {
+        const y = Math.floor(i / 4 / layer.width)
+        const value = pixels.data[i]
+        // Four source stone tones. Preserve the masonry silhouette while
+        // grouping the bright chips into the plane behind the actors' feet.
+        const base = y < 128 ? 38 + (value - 52) * .39 : 84 + (value - 86) * .21
+        pixels.data[i] = base + 3
+        pixels.data[i + 1] = base + 1
+        pixels.data[i + 2] = base - 5
+      }
+      ctx.putImageData(pixels, 0, 0)
+      this.golemChamber = layer
+    }
+    const image = this.firstGolem && this.golemChamber ? this.golemChamber : original
     const { width, height } = this.canvas
     const floor = this.floor
     const scale = Math.ceil(Math.max(width / image.width, floor / chamberFloor, (height - floor) / (image.height - chamberFloor)))
@@ -281,42 +309,76 @@ export class Arena {
       floor - chamberFloor * scale, image.width * scale, image.height * scale)
   }
 
-  private drawSprite(sprite: Sprite, pose: string, shift = 0, flash = 0, shieldMark = false) {
-    const image = this.images.get(`${sprite.name}-${pose}`)
-    const readyPose = image?.naturalWidth ? pose : 'idle'
-    const readyImage = this.images.get(`${sprite.name}-${readyPose}`)
-    if (!readyImage?.naturalWidth) return
-    const placement = this.placements.get(sprite)
-    if (!placement) return
-    const { scale, travel } = placement
-    const foot = Math.round(placement.foot + Math.max(-travel, Math.min(travel, shift)))
-    const left = foot - sprite.poses[readyPose] * scale
-    const top = this.floor - sprite.footY * scale
-    const { naturalWidth: width, naturalHeight: height } = readyImage
-    this.context.drawImage(readyImage, left, top, width * scale, height * scale)
-    if (flash > 0) {
-      this.flashCanvas.width = width
-      this.flashCanvas.height = height
-      const mask = this.flashContext
-      mask.drawImage(readyImage, 0, 0)
-      mask.globalCompositeOperation = 'source-in'
-      mask.fillStyle = '#fff'
-      mask.fillRect(0, 0, width, height)
-      this.context.save()
-      this.context.globalAlpha = flash
-      this.context.drawImage(this.flashCanvas, left, top, width * scale, height * scale)
-      this.context.restore()
-    }
-    if (shieldMark) {
-      const markLeft = foot + (4 - ESCORT_SPRITE.poses.hit) * scale
-      for (const [row, cells] of escortMark.entries()) {
-        for (const [column, cell] of [...cells].entries()) {
-          if (cell === '.') continue
-          this.context.fillStyle = cell === 'L' ? '#fff0b8' : '#211b29'
-          this.context.fillRect(markLeft + column * scale, top + (19 + row) * scale, scale, scale)
+  private drawHero(pose: string, shift = 0, lift = 0) {
+    const image = this.images.get('hero-' + pose)
+    if (!image?.naturalWidth) return
+    const { foot, scale } = this.placements.get(hero)!
+    this.context.drawImage(image, Math.round(foot + shift - hero.poses[pose] * scale),
+      Math.round(this.floor + lift - hero.footY * scale), image.width * scale, image.height * scale)
+  }
+
+  private drawCell(pose: MotionFrame, foot: number, ground: number, scale: number) {
+    const { cell, atlas, art } = atlasCell(pose)
+    const image = this.images.get(art)
+    if (!image?.naturalWidth) return
+    const [x, y, w, h] = cell.rect
+    this.context.drawImage(image, x, y, w, h, Math.round(foot - atlas.pivot[0] * scale),
+      Math.round(ground - atlas.pivot[1] * scale), w * scale, h * scale)
+  }
+
+  // Scan the illustrated row that the blade actually crosses. A sprite's bounding box
+  // can include empty air beside a bent arm or several rows above a short guard.
+  private edgePixel(key: string, rect: number[], row: number, right: boolean) {
+    const [sx, sy, width, height] = rect
+    const pixels = this.pixelData.get(key)
+    const center = Math.max(0, Math.min(height - 1, Math.round(row)))
+    if (pixels) for (let delta = 0; delta < height; delta++) {
+      for (const y of delta ? [center + delta, center - delta] : [center]) {
+        if (y < 0 || y >= height) continue
+        for (let i = 0; i < width; i++) {
+          const x = right ? width - 1 - i : i
+          if (pixels.data[((sy + y) * pixels.width + sx + x) * 4 + 3] > 100) return { x, y }
         }
       }
     }
+    return { x: right ? width - 1 : 0, y: center }
+  }
+
+  private atlasFoot(sprite: Sprite) {
+    const { atlas, cell } = atlasCell(frame(sprite.name, 'ready'))
+    const [left, right] = sprite.restReach ?? sprite.reach
+    const placement = this.placements.get(sprite)!
+    // Centre the illustrated resting silhouette in the approved B layout.
+    // The dedicated parry sheets retain their original pair of foot anchors.
+    const center = cell.bounds[0] + cell.bounds[2] / 2 - atlas.pivot[0]
+    return Math.round(placement.foot + ((right - left) / 2 - center) * placement.scale)
+  }
+
+  private bladePoint(target: 'enemy' | 'escort') {
+    const sprite = target === 'enemy' ? ENEMY_SPRITES[this.enemyId] : ESCORT_SPRITE
+    const { scale } = this.placements.get(sprite)!
+    const foot = this.atlasFoot(sprite)
+    const hand = this.placements.get(hero)!
+    const { atlas, cell, art } = atlasCell(frame(sprite.name, 'hit'))
+    const edge = this.edgePixel(art, cell.rect,
+      atlas.pivot[1] - 11 * hand.scale / scale, false)
+    return { x: foot + (edge.x + .5 - atlas.pivot[0]) * scale,
+      y: this.floor + (edge.y + .5 - atlas.pivot[1]) * scale }
+  }
+
+  private incomingPoint(pose: MotionFrame, sprite: Sprite, guarded: boolean) {
+    const { atlas, cell } = atlasCell(pose)
+    const tip = cell.candidateContact ?? [cell.bounds[0], cell.bounds[1] + cell.bounds[3] / 2]
+    const actor = this.placements.get(sprite)!
+    const hand = this.placements.get(hero)!
+    const stance = guarded ? 'guard' : 'hit'
+    const pixel = this.pixelData.get('hero-' + stance)
+    const height = (tip[1] + .5 - atlas.pivot[1]) * actor.scale
+    const edge = this.edgePixel('hero-' + stance, [0, 0, pixel?.width ?? 32, pixel?.height ?? 40],
+      hero.footY + height / hand.scale, true)
+    const x = hand.foot + (edge.x + .5 - hero.poses[stance]) * hand.scale
+    const y = this.floor + (edge.y + .5 - hero.footY) * hand.scale
+    return { x, y, shift: x - (this.atlasFoot(sprite) + (tip[0] + .5 - atlas.pivot[0]) * actor.scale), lift: y - this.floor - height }
   }
 
   private drawShadow(now: number, { at, multi }: (typeof this.shadows)[number]) {
@@ -342,26 +404,22 @@ export class Arena {
   }
 
   private drawDebris(impact: Impact, now: number) {
-    if (this.reducedMotion) return
-    const progress = (now - impact.start) * this.animationSpeed / debrisDuration
-    const { context, density } = this
-    const sprite = { player: hero, enemy: ENEMY_SPRITES[this.enemyId], escort: ESCORT_SPRITE }[impact.target]
-    const placement = this.placements.get(sprite)
-    if (!placement) return
-    const x = placement.foot
-    const y = this.floor - sprite.footY * placement.scale * .51
-    const count = 6 + Math.min(6, Math.floor(impact.damage / 2))
-    context.save()
-    context.globalAlpha = (1 - progress) ** 2
-    for (let i = 0; i < count; i++) {
-      const distance = (14 + (i * 13) % 30) * progress
-      const angle = i * 2.4
-      const side = (2 + i % 3) * density
-      context.fillStyle = ['#cbbcb0', '#8d7d72', '#e7d9c5'][i % 3]
-      context.fillRect(Math.round(x + Math.cos(angle) * distance * density),
-        Math.round(y + (Math.sin(angle) * distance + 32 * progress ** 2) * density), side, side)
+    const age = (now - impact.start) * this.animationSpeed
+    if (age < 0 || age >= debrisDuration) return
+    const dir = impact.target === 'player' ? -1 : 1
+    const px = Math.max(1, Math.round(this.density))
+    if (age < 78) {
+      this.drawCell(frame('effects', age < 25 ? 'chip-start' : 'chip-burst'), impact.x, impact.y, px)
     }
-    context.restore()
+    if (this.reducedMotion || !impact.dust) return
+    for (let i = 0; i < 7; i++) {
+      const t = Math.max(0, (age - (i > 3 ? 72 : 20)) / debrisDuration)
+      if (!t) continue
+      this.context.fillStyle = i > 3 ? '#a89880' : '#d5c6aa'
+      const size = (i > 3 ? 1 : 2) * px
+      this.context.fillRect(Math.round(impact.x + dir * (8 + i * 5) * t * px),
+        Math.round(impact.y + (50 * t * t - (i % 3 + 1) * 9 * t) * px), size, size)
+    }
   }
 
   private drawDefeat(battle: YachtBattle) {
@@ -406,32 +464,13 @@ export class Arena {
   }
 
   private draw(now = performance.now()) {
-    const { motion, strike, battle, canvas, context, reaction } = this
+    now = this.heldParryAt ?? now
+    const { battle, canvas, context } = this
     context.clearRect(0, 0, canvas.width, canvas.height)
     if (!battle || !this.floor || !this.placements.size) return
     if (battle.phase === 'lost') {
       this.drawDefeat(battle)
       return
-    }
-    const clock = this.frozen?.at ?? now
-    const elapsed = strike ? (clock - strike.start) * this.animationSpeed : Infinity
-    const recoil = reaction && now < reaction.until ? reaction.recoil : []
-    const isHit = (target: ImpactTarget) => recoil.some((hit) => hit.target === target)
-    const block = reaction?.block && now < reaction.until
-    const heroPose = block ? 'guard' : isHit('player') ? 'hit' : recoil.length ? 'attack'
-      : motion && poseAt(motion.hero, (clock - motion.start) * this.animationSpeed)
-    const enemyPose = isHit('enemy') ? 'hit' : (block || isHit('player')) ? 'attack'
-      : motion && poseAt(motion.enemy, (clock - motion.start) * this.animationSpeed)
-    const escortPose = isHit('escort') ? 'hit' : motion && poseAt(motion.escort, (clock - motion.start) * this.animationSpeed)
-    const flash = (target: ImpactTarget) => this.reducedMotion ? 0 : this.impacts.some((impact) =>
-      impact.target === target && (now - impact.start) * this.animationSpeed < flashDuration) ? 1 : 0
-    const offset = (target: ImpactTarget, side: number) => {
-      if (this.reducedMotion) return 0
-      const strength = this.frozen ? Math.max(0, (this.frozen.until - now) / (this.frozen.until - this.frozen.at)) : 0
-      const jitter = Math.sin(now / 7) * side * strength * 1.6
-      const hit = recoil.find((impact) => impact.target === target)
-      const remaining = reaction ? Math.max(0, (reaction.until - now) / (reaction.until - reaction.start)) : 0
-      return jitter + (hit ? side * Math.min(10, 6 + hit.damage / 2) * remaining : 0)
     }
     this.drawBackground()
     context.save()
@@ -448,54 +487,113 @@ export class Arena {
       context.restore()
       return
     }
-    const restingGolem = this.enemyId === 'thorns' && battle.playerHp > 0 && battle.enemyHp > 0
-      && !motion && !strike && !reaction && !this.impacts.length
-    if (parryArt?.naturalWidth && (this.golemParry !== undefined || restingGolem)) {
-      const elapsed = this.golemParry === undefined ? 0 : Math.min(GOLEM_PARRY.end, (now - this.golemParry) * this.animationSpeed)
+    if (parryArt?.naturalWidth && this.golemParry !== undefined) {
+      const elapsed = Math.min(GOLEM_PARRY.end, (now - this.golemParry) * this.animationSpeed)
       drawGolemParry(context, parryArt, elapsed, this.floor, this.density, this.placements.get(hero)!, this.placements.get(golem)!)
       context.restore()
       return
     }
     for (const shadow of this.shadows) this.drawShadow(now, shadow)
+    const age = (start: number) => Math.max(0, (now - start) * this.animationSpeed)
     const enemy = ENEMY_SPRITES[this.enemyId]
-    if (battle.playerHp > 0 || heroPose) {
-      const lunge = this.placements.get(hero)!.travel * strikeProgress(elapsed, 128) ** 3
-      this.drawSprite(hero, heroPose ?? 'idle', lunge + offset('player', -1) * this.density, flash('player'))
+    const attack = this.attack
+    const since = attack?.last === undefined ? Infinity : age(attack.last)
+    const left = attack ? 152 + (attack.index + 1) * 248 - age(attack.start) : Infinity
+    const approaching = attack && attack.index + 1 < attack.count && left < 154
+    const contactHold = this.brace?.parry ? 120 : 51
+    const atContact = attack && since < contactHold
+    const brace = this.brace && age(this.brace.at) < 140 ? this.brace : undefined
+    const swing = this.swing
+    const swingAge = swing ? age(swing.start) : Infinity
+    const swingProgress = swing ? Math.max(0, Math.min(1, swingAge / swing.contact,
+      1 - (swingAge - swing.contact - 50) / 94)) : 0
+    const hit = this.falls.get('player') ?? this.impacts.filter(item => item.target === 'player').at(-1)
+    const hurt = hit && (hit.defeated || age(hit.start) < 145)
+    const hand = this.placements.get(hero)!
+    const pose = atContact && attack.guarded || brace ? 'guard' : hurt ? 'hit' : swingProgress > 0 ? 'attack' : approaching && attack.guarded ? 'guard' : 'idle'
+    let dx = 0, dy = 0
+    if (swing && pose === 'attack') {
+      const point = this.bladePoint(swing.target)
+      const t = this.reducedMotion ? 1 : swingProgress ** 2
+      dx = (point.x - hand.foot - (30.5 - hero.poses.attack) * hand.scale) * t
+      dy = (point.y - this.floor + 10.5 * hand.scale) * t
+      if (!this.reducedMotion && swingAge < swing.contact * .35) dy += 2 * this.density
+      if (!this.reducedMotion && t > .45 && swingAge < swing.contact) {
+        context.fillStyle = '#c9b89d'
+        context.fillRect(Math.round(hand.foot + dx), Math.round(point.y + 2 * hand.scale), 8 * hand.scale, hand.scale)
+      }
+    } else if (!this.reducedMotion && (hurt || (brace && !brace.parry))) {
+      const elapsed = age(brace?.at ?? hit!.start)
+      dx = -(brace ? 3 : attack && attack.index < attack.count - 1 ? 4 : 9) * this.density * Math.sin(Math.PI * Math.min(1, Math.max(0, elapsed - 40) / 105))
+      if (hit?.defeated) dy = Math.min(9, elapsed / 16) * this.density
     }
-    if (battle.enemyHp > 0 || enemyPose) {
-      const retreat = 12 * strikeProgress(elapsed - 128, 68)
-      this.drawSprite(enemy, enemyPose ?? enemyPlanPose(this.enemyId, battle),
-        (retreat + offset('enemy', 1)) * this.density, flash('enemy'))
+    if (battle.playerHp > 0 || hurt) this.drawHero(pose, dx, dy)
+    const paintEnemy = (sprite: Sprite, target: 'enemy' | 'escort') => {
+      const placement = this.placements.get(sprite)
+      if (!placement) return
+      const impact = this.falls.get(target) ?? this.impacts.filter(item => item.target === target).at(-1)
+      if (target === 'escort' && !battle.escort && !impact) return
+      const elapsed = impact ? age(impact.start) : Infinity
+      const striking = attack && (target === 'enemy' || (attack.escort && attack.index <= 0 && !(since >= 105 && attack.index === 0)))
+      const intent = enemyIntentAt(battle)
+      const interrupted = this.transition && target === 'enemy' && age(this.transition.at) < 200
+      let cell = target === 'enemy' ? readyFrame(sprite.name, intent, battle.erasedStrikeTurn === battle.turn) : frame(sprite.name, 'ready')
+      let shift = 0, lift = 0
+      if (impact && (impact.defeated || (elapsed < 135 && (!striking || !atContact || impact.start >= (attack.last ?? 0))))) {
+        cell = hurtFrame(sprite.name, impact.damage, Boolean(impact.defeated), elapsed)
+        if (!this.reducedMotion && elapsed > impact.hold) shift = 6 * this.density * Math.sin(Math.PI * Math.min(1, (elapsed - impact.hold) / 88))
+      } else if (striking && (since < contactHold + 54 || approaching)) {
+        const stage = atContact ? 'contact' : since < contactHold + 54 ? 'follow' : left <= 78 ? 'approach' : 'anticipate'
+        const repeated = atContact || since < contactHold + 54 ? attack.index > 0 : attack.index >= 0
+        const attackIntent = target === 'escort' ? { ...attack.intent, id: 'impact', mechanic: undefined } : attack.intent
+        cell = attackFrame(sprite.name, attackIntent, repeated, attack.weakened, stage)
+        const tip = this.incomingPoint(attackFrame(sprite.name, attackIntent, repeated, attack.weakened, 'contact'), sprite, attack.guarded)
+        const t = atContact ? 1 : since < contactHold + 54 ? 1 - (since - contactHold) / 54 : Math.max(0, 1 - left / 90)
+        shift = tip.shift * Math.min(1, t)
+        lift = tip.lift * Math.min(1, t)
+      } else if (interrupted) cell = this.transition!.pose
+      this.drawCell(cell, this.atlasFoot(sprite) + shift, this.floor + lift, placement.scale)
     }
-    const shieldMark = this.impacts.some((hit) => hit.target === 'escort' && now < hit.markedUntil)
-    if (escortPose || shieldMark || (battle.escort && battle.enemyHp > 0)) {
-      const ready = battle.phase === 'assign' && enemyIntentAt(battle).hits.length > 0
-      this.drawSprite(ESCORT_SPRITE, escortPose ?? (ready ? 'charge' : 'idle'),
-        shieldMark ? 0 : offset('escort', 1) * this.density, flash('escort'), shieldMark)
+    paintEnemy(enemy, 'enemy')
+    if (this.enemyId === 'escort') paintEnemy(ESCORT_SPRITE, 'escort')
+    if (brace && attack) {
+      const p = this.incomingPoint(attackFrame(enemy.name, attack.intent, attack.index > 0, attack.weakened, 'contact'), enemy, true)
+      context.fillStyle = brace.parry ? '#fff4d6' : '#b89f87'
+      const size = Math.max(1, Math.round(this.density))
+      for (let i = 0; i < (brace.parry ? 3 : 1); i++) context.fillRect(Math.round(p.x + i * 4 * size), Math.round(p.y - i * size), (3 + i) * size, size)
+    }
+    if (attack?.last !== undefined && attack.intent.id === 'critical' && since < 155 && !this.reducedMotion) {
+      const px = Math.max(1, Math.round(this.density))
+      const t = since / 155
+      const strength = attack.weakened ? .48 : 1
+      const foot = this.placements.get(hero)!.foot + 8 * px
+      for (const dir of [-1, 1]) for (let i = 0; i < 4; i++) {
+        context.fillStyle = i % 2 ? '#a3957c' : '#c7b798'
+        context.fillRect(Math.round(foot + dir * (5 + i * 7) * t * strength * px),
+          Math.round(this.floor - Math.sin(Math.PI * t) * (2 + i) * strength * px), 2 * px, px)
+      }
     }
     for (const hit of this.impacts) this.drawDebris(hit, now)
     context.restore()
   }
 
   private animate = () => {
+    if (this.heldParryAt !== undefined) return
     const now = performance.now()
     this.trauma = Math.max(0, this.trauma - Math.max(0, now - this.lastFrame) / 1000 * 1.5 * this.animationSpeed)
     this.lastFrame = now
     if (this.frozen && now >= this.frozen.until) {
-      const duration = this.frozen.until - this.frozen.at
-      if (this.motion) this.motion.start += duration
-      if (this.strike) this.strike.start += duration
       this.frozen = undefined
     }
     const parryIsPlaying = this.golemParry !== undefined && (now - this.golemParry) * this.animationSpeed < GOLEM_PARRY.end
     const counterIsPlaying = this.golemCounter && (now - this.golemCounter.start) * this.animationSpeed < GOLEM_COUNTER.end
-    if (!this.frozen && this.motion && (now - this.motion.start) * this.animationSpeed >= this.motion.duration) this.motion = undefined
-    if (this.strike && (now - this.strike.start) * this.animationSpeed >= 288 && !this.frozen) this.strike = undefined
-    if (this.reaction && now >= this.reaction.until) this.reaction = undefined
     this.shadows = this.shadows.filter(({ at }) => (now - at) * this.animationSpeed < 80 + shadowFade)
     this.impacts = this.impacts.filter((hit) => now - hit.start < (this.reducedMotion ? 144 : debrisDuration / this.animationSpeed))
+    if (this.attack && this.attack.index + 1 >= this.attack.count && now - (this.attack.last ?? this.attack.start) > 180 / this.animationSpeed) this.attack = undefined
+    if (this.swing && (now - this.swing.start) * this.animationSpeed > this.swing.contact + 150) this.swing = undefined
+    if (this.transition && (now - this.transition.at) * this.animationSpeed > 200) this.transition = undefined
     this.draw(now)
-    if (parryIsPlaying || counterIsPlaying || this.motion || this.strike || this.impacts.length || this.frozen || this.reaction || this.shadows.length || this.trauma) {
+    if (this.attack || this.swing || this.transition || parryIsPlaying || counterIsPlaying || this.impacts.length || this.frozen || this.shadows.length || this.trauma) {
       this.animation = requestAnimationFrame(this.animate)
     }
   }
@@ -508,20 +606,32 @@ export class Arena {
       this.trauma = 0
       this.golemParry = undefined
       this.golemCounter = undefined
-      this.motion = undefined
-      this.reaction = undefined
-      this.strike = undefined
       this.frozen = undefined
       this.shadows = []
     }
     this.restartAnimation()
   }
 
+  holdFieldParry() {
+    if (this.reducedMotion) return
+    if (this.golemParry !== undefined) this.heldParryAt = this.golemParry + GOLEM_PARRY.end / this.animationSpeed
+    else if (this.attack?.last) this.heldParryAt = this.attack.last + 60 / this.animationSpeed
+    else return
+    this.draw()
+  }
+
   clearContact() {
+    this.heldParryAt = undefined
+    this.attack = undefined
+    this.trauma = 0
+    this.recoverUntil = 0
+    this.swing = undefined
+    this.brace = undefined
+    this.transition = undefined
+    this.falls.clear()
     this.golemParry = undefined
     this.golemCounter = undefined
     this.impacts = []
-    this.reaction = undefined
     this.frozen = undefined
     this.shadows = []
   }
@@ -544,10 +654,25 @@ export class Arena {
     }
   }
 
-  contact(hits: BattleHit[], { parry, counter, ordered, guarded }: ContactOptions = {}) {
+  contact(hits: BattleHit[], { parry, counter, ordered, guarded, incoming, joint }: ContactOptions = {}) {
     const now = performance.now()
+    this.recoverUntil = Math.max(this.recoverUntil, now + (parry ? 180 : 150) / this.animationSpeed)
+    if (incoming && this.attack) {
+      this.attack.last = now
+      this.attack.index++
+      this.attack.guarded = Boolean(parry || guarded)
+      this.brace = this.attack.guarded ? { at: now, parry: Boolean(parry) } : undefined
+    }
     for (const hit of hits) {
-      this.impacts.push({ ...hit, start: now, markedUntil: now + (this.reducedMotion ? 144 : 95 / this.animationSpeed) })
+      const enemy = ENEMY_SPRITES[this.enemyId]
+      const current = this.attack
+      const point = hit.target !== 'player' ? this.bladePoint(hit.target)
+        : this.incomingPoint(attackFrame(enemy.name, current?.intent ?? enemyIntentAt(this.battle!), (current?.index ?? 0) > 0, Boolean(current?.weakened), 'contact'), enemy, false)
+      const hold = this.reducedMotion ? 0 : Math.min(100, ordered ? 48 : 38 + 5 * hit.damage)
+      const impact = { ...hit, ...point, start: now, hold, dust: !ordered || !incoming || Boolean(current && current.index === current.count - 1) }
+      this.impacts.push(impact)
+      if (hit.defeated) this.falls.set(hit.target, impact)
+      if (hit.target !== 'player' && !joint) this.swing = { start: now - 96 / this.animationSpeed, contact: 96, target: hit.target }
     }
     if (this.reducedMotion || (parry && this.golemParry !== undefined)) {
       this.restartAnimation()
@@ -555,7 +680,6 @@ export class Arena {
     }
     const damage = Math.max(0, ...hits.map((hit) => hit.damage))
     const duration = parry ? 120 : ordered ? 80 : damage ? Math.min(140, 50 + 8 * damage) : 0
-    this.reaction = { start: now, until: now + Math.max(duration, 96) / this.animationSpeed, block: Boolean(parry || guarded), recoil: hits }
     const strong = hits.some((hit) => hit.defeated || (hit.target === 'enemy' && this.enemyId === 'boss'))
     const added = damage < 5 ? 0 : strong ? .8 : counter ? .5 : .3
     this.trauma = Math.min(1, this.trauma + added)
@@ -566,18 +690,37 @@ export class Arena {
 
   beginGolemParry(now: number) {
     if (this.reducedMotion || this.enemyId !== 'thorns' || !this.images.get(GOLEM_PARRY.art)?.naturalWidth) return false
-    this.motion = undefined
     this.golemParry = now
     this.restartAnimation()
     return true
   }
 
-  playExchange(before: YachtBattle, exchange: Exchange) {
-    if (this.reducedMotion) return
-    const heroFrames = before.slots.includes('attack') ? [{ pose: 'attack', duration: 160 }]
-      : heroExchangePoses(before, exchange).filter(({ pose }) => pose === 'guard')
-    const enemyFrames = enemyAttacked(before, exchange) ? [{ pose: 'charge', duration: 152 }] : []
-    this.playPoses(heroFrames, enemyFrames)
+  playExchange(before: YachtBattle, exchange: Exchange, count: number, intent: EnemyIntent) {
+    const now = performance.now()
+    this.attack = { start: now, count, index: -1, intent, escort: Boolean(before.escort && (exchange.escortDealt ?? 0) < before.escort.hp),
+      weakened: before.weakenedStrikeTurn === before.turn, guarded: before.slots.includes('guard') }
+    if (exchange.escortDealt || exchange.dealt) this.swing = { target: exchange.escortDealt ? 'escort' : 'enemy', start: now, contact: exchange.escortDealt ? 45 : 96 }
+    this.restartAnimation()
+  }
+
+  settlePose(pose: string) {
+    const name = ENEMY_SPRITES[this.enemyId].name
+    const at = performance.now()
+    this.transition = { at, pose: frame(name === 'boss' ? 'boss-special' : name, pose) }
+    this.recoverUntil = Math.max(this.recoverUntil, at + 200 / this.animationSpeed)
+    this.restartAnimation()
+  }
+
+  async finishExchange() {
+    // Persisted combat has already advanced. Keep the outgoing plan on screen
+    // until its last contact and follow-through have been painted.
+    if (this.golemParryHeld) return
+    const remaining = this.recoverUntil - performance.now()
+    if (remaining > 0 && !this.reducedMotion && !document.hidden) {
+      await new Promise<void>(resolve => window.setTimeout(resolve, remaining))
+    }
+    this.clearContact()
+    this.draw()
   }
 
   get golemParryHeld() {
@@ -586,6 +729,7 @@ export class Arena {
 
   beginGolemCounter(defeated: boolean) {
     if (!this.golemParryHeld || !this.images.get(GOLEM_COUNTER.art)?.naturalWidth) return false
+    this.heldParryAt = undefined
     this.golemCounter = { start: performance.now(), defeated }
     this.restartAnimation()
     return true
@@ -594,15 +738,8 @@ export class Arena {
   counterStrike() {
     if (this.reducedMotion) return
     this.golemParry = undefined
-    this.strike = { start: performance.now() }
-    this.playPoses([{ pose: 'attack', duration: 288 }], [])
-  }
-
-  private playPoses(hero: readonly PoseFrame[], enemy: readonly PoseFrame[], escort: readonly PoseFrame[] = []) {
-    const duration = Math.max(...[hero, enemy, escort].map((frames) => frames.reduce((total, frame) => total + frame.duration, 0)))
-    this.motion = duration ? { start: performance.now(), duration, hero, enemy, escort } : undefined
+    this.swing = { start: performance.now(), contact: 128, target: this.battle?.escort ? 'escort' : 'enemy' }
     this.restartAnimation()
-    return duration
   }
 
   private restartAnimation() {
@@ -611,14 +748,39 @@ export class Arena {
   }
 
   finishStrike() {
-    this.strike = undefined
+    this.swing = undefined
     this.restartAnimation()
   }
 
-  refresh(battle: YachtBattle, enemyId: AscentEnemyId) {
+  prime(enemyId: AscentEnemyId) {
+    this.load('chamber')
+    this.loadSprite(hero)
+    const enemy = ENEMY_SPRITES[enemyId]
+    if (enemyId === 'chain-warden') this.loadSprite(enemy)
+    else {
+      this.load('motion/' + enemy.name)
+      this.load(enemy.name + '-idle')
+    }
+    this.load('motion/effects')
+    if (enemyId === 'boss') this.load('motion/boss-special')
+    if (enemyId === 'escort') {
+      this.load('motion/escort-guard')
+      this.load('escort-guard-idle')
+    }
+    if (enemyId === 'thorns') {
+      this.load(GOLEM_PARRY.art)
+      this.load(GOLEM_COUNTER.art)
+    }
+  }
+
+  flightTarget(target: 'escort' | 'enemy') {
+    const point = this.bladePoint(target)
+    return { x: point.x / this.density, y: point.y / this.density }
+  }
+
+  refresh(battle: YachtBattle, enemyId: AscentEnemyId, firstGolem = false) {
+    this.firstGolem = firstGolem
     if (this.battle?.seed !== battle.seed || this.enemyId !== enemyId) {
-      this.motion = undefined
-      this.strike = undefined
       this.clearContact()
       this.trauma = 0
       this.enemyId = enemyId
@@ -627,14 +789,7 @@ export class Arena {
     if (battle.phase !== 'counter') this.golemParry = undefined
     if (this.floor) this.positionActors()
     else this.resize()
-    this.load('chamber')
-    this.loadSprite(hero)
-    this.loadSprite(ENEMY_SPRITES[enemyId])
-    if (enemyId === 'thorns') {
-      this.load(GOLEM_PARRY.art)
-      this.load(GOLEM_COUNTER.art)
-    }
-    if (enemyId === 'escort') this.loadSprite(ESCORT_SPRITE)
+    this.prime(enemyId)
     this.draw()
   }
 }

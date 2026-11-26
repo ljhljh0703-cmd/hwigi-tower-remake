@@ -1,4 +1,6 @@
 import { expect, test as base } from '@playwright/test'
+import { mkdir } from 'node:fs/promises'
+import { join } from 'node:path'
 
 const test = base.extend({
   screenErrors: async ({ page }, use) => {
@@ -12,7 +14,7 @@ const test = base.extend({
   },
 })
 
-test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진입한다', async ({ page, screenErrors }) => {
+test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진입한다', async ({ page, screenErrors }, info) => {
   const main = page.getByRole('main')
   const newAscent = page.getByRole('button', { name: '새로 하기' })
   const continueAscent = page.getByRole('button', { name: '이어 하기' })
@@ -34,6 +36,12 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
   const rewardCards = page.getByRole('group', { name: '보상 카드' }).getByRole('button')
   const confirm = page.getByRole('button', { name: '확인', exact: true })
   const skip = page.getByRole('button', { name: '건너뛰기' })
+  async function photograph(name) {
+    const root = process.env.HWIGI_FEEL_SHOTS
+    if (!root) return
+    await mkdir(root, { recursive: true })
+    await page.screenshot({ path: join(root, `${info.project.name.replace('×', 'x')}-${name}.png`) })
+  }
 
   async function checkScreen(screen, buttons) {
     await expect(main).toHaveAttribute('data-screen', screen)
@@ -73,6 +81,7 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     await expect(page.getByRole('heading', { name: '시작 특전' })).toBeVisible()
     await expect(perks).toHaveCount(3)
     await checkScreen('perks', await perks.all())
+    await photograph('perks')
     await page.getByRole('button', { name: /^방패 저금,/ }).tap()
   })
 
@@ -115,12 +124,17 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     await expect(bandage).toHaveAttribute('aria-pressed', 'true')
     await expect(confirm).toBeEnabled()
     await checkScreen('reward', [...await rewardCards.all(), confirm, skip])
+    const bounds = await Promise.all((await rewardCards.all()).map((card) => card.boundingBox()))
+    expect(new Set(bounds.map(({ y }) => y)).size).toBe(1)
+    await expect(page.locator('#reward-preview')).toContainText(/체력을 \d+ 회복해요/)
+    await photograph('reward')
     await confirm.tap()
 
     await expect(page.getByRole('heading', { name: '두 갈래 길' })).toBeVisible()
     await expect(mapFloor).toHaveText(/^2\s*\//)
     await expect(routeButtons).toHaveCount(2)
     await checkScreen('fork', [fightRoute, eliteRoute])
+    await photograph('fork')
     const healedHealth = Number.parseInt(await mapHealth.innerText(), 10)
     expect(healedHealth, '약초 붕대 수령 후 체력').toBeGreaterThan(beforeHealth)
     await fightRoute.tap()
