@@ -48,13 +48,14 @@ const test = base.extend({
 
 async function photograph(page, info, name) {
   const heroShot = ['golem-parry', 'roulette', 'counter', 'reduced-motion'].includes(name) && process.env.HWIGI_HERO_SHOTS
-  const root = heroShot || process.env.HWIGI_FEEL_SHOTS
+  const gateShot = ['attack', 'game-over'].includes(name) && process.env.HWIGI_FEEL_GATE_SHOTS
+  const root = gateShot || heroShot || process.env.HWIGI_FEEL_SHOTS
   if (!root) return
   await page.screenshot({ path: join(root, `${info.project.name.replace('×', 'x')}-${name}.png`) })
 }
 
 test.beforeAll(async () => {
-  for (const root of [process.env.HWIGI_FEEL_SHOTS, process.env.HWIGI_HERO_SHOTS]) {
+  for (const root of [process.env.HWIGI_FEEL_SHOTS, process.env.HWIGI_HERO_SHOTS, process.env.HWIGI_FEEL_GATE_SHOTS]) {
     if (root) await mkdir(root, { recursive: true })
   }
 })
@@ -83,14 +84,32 @@ test('로비부터 1층 평타의 타점과 소리를 확인한다', async ({ pa
   await page.getByRole('button', { name: '새로 하기' }).tap()
   await page.getByRole('button', { name: /^방패 저금,/ }).tap()
   await page.locator('#fork-options button').tap()
+  await page.getByRole('button', { name: '안내 건너뛰기' }).tap()
   await expect(page.locator('#fight')).toHaveText(/^1\//)
   await expect(page.locator('.slot')).toHaveCount(2)
   await expect(page.locator('#pool-dice .die-arriving')).toHaveCount(0)
   await placeAll(page, 'attack')
   const resolve = page.locator('#resolve')
-  await resolve.tap()
-  await expect(page.locator('#enemy-damage .damage-number')).toBeVisible()
+  await expect(resolve).toBeEnabled()
+  await page.clock.install()
+  const now = await page.evaluate(() => Date.now())
+  await page.clock.pauseAt(now + 500)
+  const { x, y, width, height } = await resolve.boundingBox()
+  await page.touchscreen.tap(x + width / 2, y + height / 2)
+  await page.clock.runFor(115)
+  await expect(page.locator('#intent .intent-attack-label')).toHaveText('적 공격')
+  await expect(page.locator('#intent strong')).toHaveText('7 + 2')
+  await expect(page.locator('#enemy-damage .damage-number')).toHaveText('적−12')
+  await expect(page.locator('#hit-order')).toBeHidden()
   await photograph(page, info, 'attack')
+  await page.clock.runFor(75)
+  const hits = page.getByRole('list', { name: '1턴 내 피해' }).getByRole('listitem')
+  await expect(hits).toHaveText(['7'])
+  await page.clock.runFor(230)
+  await expect(hits).toHaveText(['7', '2'])
+  await expect(page.locator('#enemy-hp')).toHaveJSProperty('value', 11)
+  await expect(page.locator('#player-hp')).toHaveJSProperty('value', 13)
+  await page.clock.resume()
   await expect.poll(() => page.evaluate(() => window.playedEffects)).toEqual(
     expect.arrayContaining(['seat.wav', 'swish.wav', 'stone-hit.mp3']),
   )

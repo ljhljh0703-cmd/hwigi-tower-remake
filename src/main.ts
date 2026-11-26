@@ -15,6 +15,7 @@ import { BATTLE_GUIDE } from './battle-guide.ts'
 import { oathDescription, PERK_TEXT, REWARD_TEXT } from './reward-copy.ts'
 import { COMPANION_LINES, companionDieIndex } from './companion.ts'
 import { enemyForFight } from './enemy-roster.ts'
+import { FirstRunGuide } from './first-run-guide.ts'
 import { loadGameSettings, saveGameSettings, toggleMute } from './game-settings.ts'
 import type { GameSettings } from './game-settings.ts'
 import { MAP_NODE_ICONS, ForkView } from './map-view.ts'
@@ -32,7 +33,7 @@ import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
 import type { Parity } from './perks.ts'
 import {
   bladeChargePreview, canReroll, canResolveYachtTurn, previewUnlockProgress, toggleYachtWedge, tuneYachtDie, yachtAllocationTotals,
-  emperorShieldActive, forecastYacht, resolveYachtTurn, yachtCounterRewards, yachtGimmick, yachtRerollCost,
+  classifyYachtHand, emperorShieldActive, forecastYacht, resolveYachtTurn, yachtCounterRewards, yachtGimmick, yachtRerollCost,
 } from './yacht-combat.ts'
 import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput, rerollSelectedDice } from './dice-drag.ts'
@@ -47,6 +48,7 @@ function element<T extends HTMLElement>(id: string): T {
 
 const ui = {
   main: document.querySelector('main')!,
+  inventory: document.querySelector<HTMLElement>('.inventory-strip')!,
   lobby: element('lobby'),
   masthead: element('masthead'),
   continueAscent: element<HTMLButtonElement>('continue-ascent'),
@@ -89,6 +91,7 @@ const ui = {
   guide: element<HTMLDialogElement>('battle-guide'),
   guideEntries: element('guide-entries'),
   intent: element('intent'),
+  firstRunAnchor: element('first-run-anchor'),
   playerHp: element<HTMLMeterElement>('player-hp'),
   enemyHp: element<HTMLMeterElement>('enemy-hp'),
   playerTotal: element('player-total'),
@@ -102,6 +105,8 @@ const ui = {
   enemyDamage: element('enemy-damage'),
   escortDamage: element('escort-damage'),
   hitOrder: element('hit-order'),
+  hitOrderLabel: element('hit-order-label'),
+  hitResults: element('hit-results'),
   parry: element('parry-cue'),
   unlockImpact: element('unlock-impact'),
   awakening: element('awakening'),
@@ -222,12 +227,12 @@ const enemyBadges: Record<string, { icon: string; label: string }> = {
 }
 const rulesSixBadges: Partial<typeof enemyBadges> = RULES_SIX_BADGES
 const gimmickEffects = {
-  trip: { icon: 'stun', help: '적의 다음 공격을 한 번 건너뛰어요.' },
-  armor: { icon: 'armor-break', value: '×1.5', help: '다음 턴부터 공격 피해가 1.5배예요.' },
-  reflect: { icon: 'reflect', help: '철추 피해를 적에게 돌려줘요.' },
-  topple: { icon: 'knockdown', value: '×2', help: '다음 턴에 적이 쉬고 공격 피해가 2배예요.' },
-  retreat: { icon: 'escort-exit', help: '호위가 물러나고 공격이 본체에 닿아요.' },
-} satisfies Record<Gimmick, { icon: string; value?: string; help: string }>
+  trip: { icon: 'stun', intro: '적 다음 공격 건너뜀', help: '적의 다음 공격을 한 번 건너뛰어요.' },
+  armor: { icon: 'armor-break', value: '×1.5', intro: '갑옷 파괴 ×1.5', help: '다음 턴부터 공격 피해가 1.5배예요.' },
+  reflect: { icon: 'reflect', intro: '큰 한 방 반사', help: '철추 피해를 적에게 돌려줘요.' },
+  topple: { icon: 'knockdown', value: '×2', intro: '넘어짐(쉼·×2)', help: '다음 턴에 적이 쉬고 공격 피해가 2배예요.' },
+  retreat: { icon: 'escort-exit', intro: '호위 퇴장', help: '호위가 물러나고 공격이 본체에 닿아요.' },
+} satisfies Record<Gimmick, { icon: string; value?: string; intro: string; help: string }>
 
 let ascent: Ascent | null = null
 let chosenReward: Reward | undefined
@@ -244,6 +249,12 @@ const sound = new BattleAudio()
 const systemMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 let settings = loadGameSettings()
 const forkView = new ForkView(ui.fork, { health: ui.mapHealth, floor: ui.mapFloor }, icon, enterFork)
+const firstRun = new FirstRunGuide(icon, () => {
+  if (!ascent) return
+  if (ascent.battle.phase === 'counter') render()
+  else renderFirstRun(ascent)
+  resumeCounterOrFocus()
+})
 
 function reducedMotion() { return settings.reducedMotion ?? systemMotion.matches }
 const feel = new FeelEffects(reducedMotion, () => animationSpeed())
@@ -295,6 +306,7 @@ for (const button of [ui.lobbySettings, ui.battleSettings]) {
   button.addEventListener('click', () => {
     const phase = ascent?.battle.phase
     ui.abandonAscent.hidden = phase !== 'assign' && phase !== 'counter'
+    element('replay-first-run-status').textContent = ''
     ui.settings.showModal()
   })
 }
@@ -311,6 +323,10 @@ for (const option of ui.settingsSpeed) {
   option.addEventListener('change', () => updateSettings({ ...settings, speed: option.value === 'fast' ? 'fast' : 'normal' }))
 }
 ui.settingsMotion.addEventListener('click', () => updateSettings({ ...settings, reducedMotion: !reducedMotion() }))
+element('replay-first-run').addEventListener('click', () => {
+  firstRun.replay()
+  element('replay-first-run-status').textContent = '다음 새 등반에서 안내를 다시 봐요.'
+})
 systemMotion.addEventListener('change', renderSettings)
 
 document.addEventListener('visibilitychange', () => { if (document.hidden) sound.suspend() })
@@ -409,7 +425,7 @@ ui.bladeMeter.addEventListener('click', (event) => {
 })
 window.addEventListener('resize', () => { holdHelp.hidden = true })
 
-const arena = new Arena(element('arena'), ui.encounter, ui.intent, document.querySelector<HTMLElement>('.inventory-strip')!)
+const arena = new Arena(element('arena'), ui.encounter, ui.intent, ui.inventory)
 
 const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
   const button = document.createElement('button')
@@ -725,6 +741,7 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: string) 
 }
 
 const damageDuration = 700
+const hitOrderDuration = 1500
 const chipDelay = 350
 const parryDuration = 120
 const unlockImpactDuration = 300
@@ -739,7 +756,7 @@ const damageOutput = { player: ui.playerDamage, enemy: ui.enemyDamage, escort: u
 
 function clearExchange() {
   for (const output of Object.values(damageOutput)) output.replaceChildren()
-  ui.hitOrder.replaceChildren()
+  ui.hitResults.replaceChildren()
   ui.hitOrder.hidden = true
   ui.parry.hidden = true
   ui.awakening.hidden = true
@@ -751,7 +768,9 @@ function showDamage(hit: BattleHit) {
   const number = document.createElement('span')
   number.className = 'damage-number'
   number.classList.toggle('heavy', damage >= 5)
-  number.textContent = `−${damage}`
+  const targetName = document.createElement('small')
+  targetName.textContent = { player: '나', enemy: '적', escort: '호위' }[target]
+  number.append(targetName, `−${damage}`)
   number.style.setProperty('--damage-scale', String(1 + .25 * Math.log2(damage)))
   damageOutput[target].append(number)
   window.setTimeout(() => number.remove(), effectDuration(damageDuration))
@@ -816,28 +835,38 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   const opening = splitEnemyDamage(retreat ? { ...before, escort: undefined } : before, totals.attack)
   const lateEscortDamage = (escortDealt ?? 0) - opening.escortDealt
   // 아이템 추가 피해가 적을 쓰러뜨려도 원래 확정된 공격 타수는 표시한다.
-  const incoming = opening.dealt < before.enemyHp
-    ? Math.min(hitsTaken.length, forecastYacht(before, before.slots, awakenedDice ?? before.dice, yachtGimmick(before)).incoming.hits.length) : 0
+  const incomingHits = opening.dealt < before.enemyHp
+    ? forecastYacht(before, before.slots, awakenedDice ?? before.dice, yachtGimmick(before)).incoming.hits.slice(0, hitsTaken.length) : []
+  const incoming = incomingHits.length
   const thorns = hitsTaken.length > incoming ? hitsTaken.at(-1)! : 0
   const exact = after.phase === 'counter'
   const ordered = incoming > 1
-  const entries = ordered ? hitsTaken.map((_, index) => {
+  if (incoming && (dealt || escortDealt)) {
+    const label = document.createElement('small')
+    label.className = 'intent-attack-label'
+    label.textContent = '적 공격'
+    label.setAttribute('aria-hidden', 'true')
+    ui.intent.append(label)
+  } else if (opening.dealt >= before.enemyHp) {
+    ui.intent.hidden = true
+  }
+  ui.hitOrderLabel.textContent = `${exchange.turn}턴 내 피해`
+  let firstHit: HTMLLIElement | undefined
+  const readHit = (index: number) => {
+    if (!ordered) return
     const item = document.createElement('li')
     const label = index < incoming ? `${index + 1}타` : '가시'
-    item.setAttribute('aria-label', `${label} · 대기`)
-    item.innerHTML = `${icon(index < incoming ? 'sword' : 'thorns')}<span aria-hidden="true">…</span>`
-    return { item, label }
-  }) : []
-  ui.hitOrder.replaceChildren(...entries.map(({ item }) => item))
-  ui.hitOrder.hidden = !ordered
-  const readHit = (index: number) => {
-    const entry = entries[index]
-    if (!entry) return
     const damage = hitsTaken[index]
-    const symbol = index >= incoming ? 'thorns' : damage ? 'sword' : 'shield'
-    entry.item.setAttribute('aria-label', `${entry.label} · ${damage ? `피해 ${damage}` : '막음 0'}`)
-    entry.item.innerHTML = `${icon(symbol)}<span aria-hidden="true">${damage}</span>`
-    entry.item.dataset.result = damage ? 'damage' : 'blocked'
+    const expected = incomingHits[index]
+    const symbol = index >= incoming ? 'thorns' : damage ? 'heart' : 'shield'
+    const preview = expected === undefined ? '' : ` · 예고 ${expected}`
+    const reduced = expected !== undefined && expected !== damage ? `<span class="hit-before">${expected}→</span>` : ''
+    item.setAttribute('aria-label', `${label}${preview} · ${damage ? `내 피해 ${damage}` : '막음, 내 피해 0'}`)
+    item.innerHTML = `${icon(symbol)}<span aria-hidden="true">${reduced}${damage}</span>`
+    item.dataset.result = damage ? 'damage' : 'blocked'
+    firstHit ??= item
+    ui.hitResults.append(item)
+    ui.hitOrder.hidden = false
   }
   const start = performance.now()
   const at = async (time: number) => {
@@ -961,11 +990,11 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   }
   ui.feedback.textContent = `적 피해 ${dealt}, 내 피해 ${taken}${escortDealt ? `, 호위 피해 ${escortDealt}` : ''}${awakenedDice ? `, 각성 ${awakenedDice.join(', ')}` : ''}`
   if (ordered) window.setTimeout(() => {
-    if (entries[0].item.parentElement === ui.hitOrder) {
+    if (firstHit?.parentElement === ui.hitResults) {
       ui.hitOrder.hidden = true
-      ui.hitOrder.replaceChildren()
+      ui.hitResults.replaceChildren()
     }
-  }, effectDuration(damageDuration))
+  }, hitOrderDuration)
   if (exact) {
     if (before.bossRelic?.id === 'brake-crown' && !before.crownUsed) {
       ui.bossRelicSlot.classList.add('crown-ready')
@@ -1421,6 +1450,102 @@ function renderHealth(hp: number, max: number) {
   ui.mapHealth.setAttribute('aria-label', `체력 ${hp}/${max}`)
 }
 
+function matchingGuardDice(battle: YachtBattle, damage: number) {
+  let match: number[] | undefined
+  let fewestMoves = Infinity
+  for (let mask = 1; mask < (1 << battle.dice.length); mask++) {
+    const dice = battle.dice.flatMap((_, index) => mask & (1 << index) ? [index] : [])
+    const slots = battle.slots.map((slot, index) => dice.includes(index) ? 'guard' : slot === 'guard' ? null : slot)
+    const moves = slots.filter((slot, index) => slot !== battle.slots[index]).length
+    if (moves >= fewestMoves || yachtAllocationTotals(battle, slots).guard !== damage) continue
+    match = dice
+    fewestMoves = moves
+  }
+  return match
+}
+
+function teachOpening({ battle }: Ascent) {
+  const pool = battle.slots.flatMap((slot, index) => slot === null ? [index] : [])
+  const firstDie = diceButtons[pool.find((index) => selected.has(index)) ?? pool[0]]
+  const placeIn = (zone: 'attack' | 'guard', id: string, text: string, die = firstDie, extra: HTMLElement[] = []) => {
+    const to = ui.assign[zone]
+    firstRun.teach({ id, text, symbol: zone === 'attack' ? 'sword' : 'shield', anchor: ui.firstRunAnchor,
+      marks: [...extra, to, ...(die ? [die] : [])], from: die, to })
+  }
+  const endTurn = (id: string, text: string) => {
+    firstRun.teach({ id, text, symbol: 'turn', anchor: ui.firstRunAnchor, marks: [ui.resolve] })
+  }
+
+  if (battle.phase === 'counter') {
+    firstRun.teach({ id: 'defend', text: '딱 막았어요! 반격 룰렛을 돌려요.', symbol: 'wheel',
+      anchor: ui.counter, marks: [ui.counter] })
+  } else if (battle.turn === 1) {
+    if (!battle.slots.includes('attack')) placeIn('attack', 'attack', '주사위를 공격 칸에 넣어요.', firstDie ?? diceButtons[0])
+    else if (pool.length) placeIn('guard', 'end-turn', '남은 주사위를 방어에 놓아요.')
+    else endTurn('end-turn', '턴 끝내기를 눌러요.')
+  } else {
+    const { incoming, counter } = forecastYacht(battle)
+    const damage = incoming.totalDamage
+    const guard = yachtAllocationTotals(battle).guard
+    if (damage > 0 && guard === damage) {
+      if (pool.length) placeIn('attack', 'defend', '남은 주사위를 공격에 놓아요.')
+      else endTurn('defend', counter ? '턴을 끝내 반격 룰렛을 열어요.' : '턴을 끝내 결과를 봐요.')
+    } else if (damage === 0 && pool.length) placeIn('attack', 'defend', '적이 쉬어요. 이번 턴은 공격해요.')
+    else {
+      const match = damage > 0 ? matchingGuardDice(battle, damage) : undefined
+      const misplaced = match && battle.slots.findIndex((slot, index) => slot === 'guard' && !match.includes(index))
+      if (misplaced !== undefined && misplaced >= 0) {
+        firstRun.teach({ id: 'defend', text: '방어에서 표시한 주사위를 빼요.', symbol: 'return', anchor: ui.firstRunAnchor,
+          marks: [diceButtons[misplaced], ui.assign.pool], from: diceButtons[misplaced], to: ui.dice.pool })
+      } else if (match) {
+        const needed = match.filter((index) => battle.slots[index] !== 'guard')
+        const suggested = needed.find((index) => selected.has(index)) ?? needed[0]
+        placeIn('guard', 'defend', `방어 합을 적 공격 ${damage}에 맞춰요.`, diceButtons[suggested], [ui.intent])
+      } else if (damage > 0 && yachtRerollCost(battle) !== null && firstDie) {
+        firstRun.teach({ id: 'defend', text: '다시 굴려 방어할 눈을 찾아요.', symbol: 'reroll', anchor: ui.firstRunAnchor,
+          marks: [firstDie, ui.reroll] })
+      } else if (pool.length) placeIn('attack', 'defend', '남은 주사위를 놓아요.')
+      else endTurn('defend', '턴 끝내기를 눌러요.')
+    }
+  }
+}
+
+function renderFirstRun(run: Ascent) {
+  const { battle, route, unlocks } = run
+  if (firstRun.includes(run)) {
+    if (battle.phase === 'won' || battle.phase === 'lost') firstRun.complete()
+    else if (route?.screen === 'battle' && (!ui.planning.hidden || !ui.counterPanel.hidden)) {
+      teachOpening(run)
+      return
+    }
+  }
+
+  if (!ui.fork.hidden && availableMapNodes(run).length > 1) {
+    firstRun.discover([{ id: 'fork', symbol: 'map-pin', text: '다음에 갈 길을 골라요.', anchor: element('fork-heading') }])
+  } else if (!ui.rewardPanel.hidden) {
+    const room = currentTreasureRoom(run)
+    const anchor = ui.rewardHeading
+    if (room?.kind === 'shop') {
+      const text = route && route.map.rules >= 3 ? '동전으로 물건을 살 수 있어요.' : '필요한 물건을 골라요.'
+      firstRun.discover([{ id: 'shop', symbol: 'map-shop', text, anchor }])
+    } else if (room?.enemyId === 'chain-warden') {
+      firstRun.discover([{ id: 'boss-relic', symbol: 'crown', text: '보스 유물 한 장을 골라요.', anchor }])
+    } else if (route?.screen === 'reward' || (!route && battle.phase === 'won')) {
+      firstRun.discover([{ id: 'reward', symbol: 'map-reward', text: '카드 한 장을 골라 확인해요.', anchor }])
+    } else firstRun.clear()
+  } else if (!ui.battle.hidden && !ui.planning.hidden) {
+    const gimmick = yachtGimmick(battle)
+    const hand = classifyYachtHand(battle, battle.dice)
+    const condition = gimmick && `에 ${gimmick.face ?? '같은 눈 둘'} → ${gimmickEffects[gimmick.kind].intro}`
+    firstRun.discover([
+      ...(gimmick && condition ? [{ id: `gimmick-${gimmick.kind}`, symbol: gimmick.slot === 'guard' ? 'shield' : 'sword',
+        text: condition, spoken: `${gimmick.slot === 'guard' ? '방어' : '공격'} 칸${condition}`, anchor: ui.encounter, beside: ui.inventory }] : []),
+      ...(hand && !unlocks.includes(hand) ? [{ id: `unlock-${hand}`, symbol: 'unlock', anchor: ui.firstRunAnchor,
+        text: hand === 'triple' ? '같은 눈 셋을 공격에 놓아 해금해요.' : '이어지는 눈 셋을 한 칸에 놓아요.' }] : []),
+    ])
+  } else firstRun.clear()
+}
+
 function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) {
   stopDiceMotion?.()
   stopPlacementMotion?.()
@@ -1478,6 +1603,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
       const foe = enemyForMapNode(node, route!.map.rules)
       if (foe) arena.prime(foe.id)
     }
+    renderFirstRun(ascent)
     return
   }
   renderRewardStrip(battle, presentation !== 'normal')
@@ -1523,7 +1649,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.intent.classList.toggle('parry-in-progress', fieldCounter)
   roulette.setVisible(showActions && phase === 'counter' ? yachtCounterRewards(battle) : null, companionAwake)
   if (fieldCounter) {
-    ui.counter.hidden = true
+    ui.counter.hidden = !firstRun.includes(ascent) || Boolean(battle.loot?.counter)
     if (battle.loot?.counter && ui.counterPanel.dataset.rollState !== 'locked') {
       void roulette.reveal(battle.loot.counter, false, () => {})
     }
@@ -1562,6 +1688,9 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.next.innerHTML = route ? `다음 층 ${icon('next')}` : `다음 전투 ${icon('next')}`
   ui.retry.hidden = !finished
   refreshDice(battle, totals, unlocks)
+  const gimmick = ui.encounter.dataset.gimmick
+  ui.encounter.classList.toggle('gimmick-intro', !ui.planning.hidden && !!gimmick &&
+    !firstRun.includes(ascent) && firstRun.needsSpace(`gimmick-${gimmick}`))
   arena.refresh(battle, enemy.id, floor === 1 && enemy.id === 'thorns')
   if (rollTurn && !ui.planning.hidden && !reducedMotion()) {
     const ego = companionDieIndex(battle)
@@ -1583,6 +1712,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
     sound.play('seat', 1, .09)
     if (battle.fourthDieUnlocked) sound.play('hum', 1, .065)
   }
+  if (presentation === 'normal') renderFirstRun(ascent)
 }
 
 function refreshLobbyActions() {
@@ -1595,6 +1725,7 @@ function refreshLobbyActions() {
 }
 
 function resetPresentation() {
+  firstRun.clear()
   turnSignals.abort()
   turnSignals = new AbortController()
   feel.clear()
@@ -1660,6 +1791,7 @@ function showPerks() {
   const begin = (event: MouseEvent, perk: keyof typeof START_PERKS, parity?: Parity) => {
     if (event.isTrusted) sound.activate()
     ascent = beginMapAscent(seed, perk, parity, CURRENT_MAP_RULES)
+    firstRun.start(seed)
     saveCurrent()
     render()
     focusPhase()
@@ -1898,12 +2030,14 @@ ui.resolve.addEventListener('click', async () => {
   if (ui.guide.open || exchangeBusy || !ascent) return
   const previous = ascent
   const before = ascent.battle
-  const next = resolveAscentTurn(ascent)
-  if (next === ascent) return
+  const resolved = resolveAscentTurn(ascent)
+  if (resolved === ascent) return
+  const next = firstRun.opening(resolved, before.turn)
   turnSignals.abort()
   turnSignals = new AbortController()
   feel.clear()
   lockExchange(true)
+  firstRun.clear()
   if (!before.stolenDie && next.battle.stolenDie) {
     const die = diceButtons[DIE_COUNT - 1]
     const stolen = feel.layer(die.getBoundingClientRect(), 'stolen', String(before.dice[DIE_COUNT - 1]))
@@ -1958,8 +2092,7 @@ ui.resolve.addEventListener('click', async () => {
     render('normal', next.battle.turn !== before.turn)
     if (before.turn !== next.battle.turn && !ui.planning.hidden) turnCues(before, true)
     finishCues(previous, next)
-    if (phase === 'counter') void playCounter()
-    else focusPhase()
+    resumeCounterOrFocus()
   }
 })
 function finishCues(previous: Ascent, next: Ascent) {
@@ -2027,16 +2160,26 @@ function turnCues(before: YachtBattle | undefined, changedTurn: boolean) {
 }
 
 let counterBusy = false
+
+function resumeCounterOrFocus() {
+  if (ascent?.battle.phase === 'counter' && !ascent.battle.loot?.counter && !firstRun.includes(ascent)) void playCounter()
+  else focusPhase()
+}
+
 async function playCounter(choice?: CounterChoice) {
   if (ui.guide.open || exchangeBusy || !ascent || ascent.battle.phase !== 'counter' || counterBusy || (!choice && ascent.battle.loot?.counter)) return
   const previous = ascent
-  const checkpoint = spinAscentCounter(ascent, choice)
-  if (checkpoint === ascent) return
+  const spun = spinAscentCounter(ascent, choice)
+  if (spun === ascent) return
+  const checkpoint = firstRun.opening(spun, ascent.battle.turn)
   const next = checkpoint.battle
   const pending = next.loot?.counter
   const reward = pending ?? next.lastExchange?.counter
   if (!reward) return
+  if (firstRun.includes(ascent) && ascent.battle.turn >= 2) firstRun.complete()
+  else firstRun.clear()
   counterBusy = true
+  ui.counter.hidden = true
   saveCurrent(checkpoint)
   const before = ascent.battle
   const dealt = before.enemyHp - next.enemyHp
@@ -2125,7 +2268,7 @@ function enterFork(id: number) {
   const next = enterMapNode(ascent, id)
   if (next === ascent) return
   resetPresentation()
-  ascent = next
+  ascent = firstRun.opening(next)
   saveCurrent()
   sound.play('step')
   render('normal', true)
@@ -2173,8 +2316,7 @@ ui.continueAscent.addEventListener('click', (event) => {
   for (const index of checkpoint.selected) selected.add(index)
   if (event.isTrusted) sound.activate()
   render()
-  if (ascent.battle.phase === 'counter' && !ascent.battle.loot?.counter) void playCounter()
-  else focusPhase()
+  resumeCounterOrFocus()
 })
 ui.newAscent.addEventListener('click', () => {
   const { checkpoint, invalidMap } = readAscentSave()

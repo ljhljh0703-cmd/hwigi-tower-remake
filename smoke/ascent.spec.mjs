@@ -37,7 +37,7 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
   const confirm = page.getByRole('button', { name: '확인', exact: true })
   const skip = page.getByRole('button', { name: '건너뛰기' })
   async function photograph(name) {
-    const root = process.env.HWIGI_FEEL_SHOTS
+    const root = (name === 'perks' && process.env.HWIGI_FEEL_GATE_SHOTS) || process.env.HWIGI_FEEL_SHOTS
     if (!root) return
     await mkdir(root, { recursive: true })
     await page.screenshot({ path: join(root, `${info.project.name.replace('×', 'x')}-${name}.png`) })
@@ -79,8 +79,10 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     await expect(continueAscent).toHaveCount(0)
     await newAscent.tap()
     await expect(page.getByRole('heading', { name: '시작 특전' })).toBeVisible()
+    await expect(page.locator('#perks-instruction')).toHaveText('이번 등반에 쓸 특전을 하나 고르세요.')
     await expect(perks).toHaveCount(3)
     await checkScreen('perks', await perks.all())
+    expect((await perks.first().boundingBox()).y).toBeLessThan(page.viewportSize().height * .4)
     await photograph('perks')
     await page.getByRole('button', { name: /^방패 저금,/ }).tap()
   })
@@ -90,6 +92,7 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     await expect(routeButtons).toHaveCount(1)
     await checkScreen('fork', [fightRoute])
     await fightRoute.tap()
+    await page.getByRole('button', { name: '안내 건너뛰기' }).tap()
 
     // 시드 12에서 방패 저금을 고르면 두 턴 모두 공격에 배치해 1층을 이긴다.
     for (const turn of [1, 2]) {
