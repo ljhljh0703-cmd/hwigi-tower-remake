@@ -738,23 +738,11 @@ main[data-screen='battle'] {
 .item-effect { display: inline-flex; min-block-size: 28px; align-items: center; gap: 5px; padding-inline: 5px; }
 .item-effect[data-applies='true'] { color: #ffe1ad; }
 .item-effect[data-applies='false'] { opacity: .58; }
-@media (max-height: 620px) {
-  [data-screen='battle'] #battle:has(> #treasure-controls[data-item-planning]:not([hidden])) { position: relative; }
-  [data-screen='battle'] #treasure-controls[data-item-planning] {
-    position: absolute;
-    z-index: 2;
-    inset: 62px 6px auto;
-    box-shadow: 0 3px 8px #171615a0;
-  }
-  [data-screen='battle'] #treasure-controls[data-item-planning]:has(> .item-effect:only-child) {
-    inset-block-start: 6px;
-    inset-inline-start: auto;
-    pointer-events: none;
-  }
-  [data-screen='battle'] #battle:has(.gimmick-intro) #treasure-controls[data-item-planning] {
-    margin-block-start: var(--gimmick-intro-space);
-  }
-}
+.elite-equipped { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 8px; }
+.elite-equipped > span { display: inline-flex; align-items: center; gap: 4px; font-size: .76rem; white-space: nowrap; }
+.elite-equipped :is(.icon, .pixel-icon) { inline-size: 16px; block-size: 16px; color: #d7bfdc; }
+#skip-reward:has(small) { flex-direction: column; justify-content: center; gap: 1px; font-size: .86rem; padding-inline: 4px; }
+#skip-reward small { color: #f6dfbf; display: inline-flex; align-items: center; gap: 4px; }
 .reward-actions:has(#skip-reward[hidden]) { grid-template-columns: 1fr; }
 
 #reward-preview {
@@ -830,9 +818,33 @@ main[data-screen='battle'] {
 #reward-heading > .icon { color: #f6c795; vertical-align: middle; }
 #treasure-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px; padding: 5px; border: 1px solid #b9a2db; background: var(--stone-bed); }
 #treasure-controls button { min-inline-size: 44px; gap: 4px; }
+.item-dock-line { display: flex; align-items: center; gap: 4px; inline-size: 100%; }
+.item-dock-line button { min-block-size: 44px; padding-inline: 8px; white-space: nowrap; }
+.item-dock-line .item-dock-info { justify-content: start; flex: 1; border: 0; background: transparent; font-size: .84rem; }
+.item-dock-info .pixel-icon { inline-size: 24px; block-size: 24px; }
+.item-dock-info .item-effect { padding-inline: 1px; }
+.item-dock-line .item-dock-close { padding-inline: 0; font-size: 1.2rem; }
+.item-dock-line .primary { min-inline-size: 62px; }
+.item-dock-options { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px; min-block-size: 44px; inline-size: 100%; }
 .treasure-die-choice { display: flex; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--stone-edge); }
-#tuning-controls { display: flex; justify-content: center; align-items: center; gap: 6px; color: #f6c795; }
-#tuning-controls button { min-inline-size: 44px; padding-inline: 6px; }
+#inventory-detail .confirm-actions { grid-template-columns: 1fr; }
+[data-screen='battle'] #battle:has(> #treasure-controls[data-item-counter]:not([hidden])) {
+  align-self: stretch;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+@media (max-width: 560px) and (max-height: 620px) {
+  [data-screen='battle'] #battle:has(> #treasure-controls[data-item-planning]:not([hidden])) {
+    align-self: stretch;
+    grid-template-rows: minmax(124px, 1fr) auto auto;
+    gap: 8px;
+  }
+  [data-screen='battle'] #battle:has(> #treasure-controls[data-item-planning]:not([hidden])) .encounter {
+    block-size: auto;
+    --arena-footer: 70px;
+    --vital-offset: 24px;
+    --hit-order-offset: 57px;
+  }
+}
 
 #completion-seal { display: inline-flex; align-items: center; gap: 6px; color: #f6c795; font-weight: 700; }
 #completion-seal .icon { font-size: 1.6rem; }

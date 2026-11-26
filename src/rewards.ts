@@ -7,7 +7,8 @@ export const RELICS = ['weight', 'buckle', 'rewind', 'wedge'] as const
 export type Relic = (typeof RELICS)[number]
 export type LegacyReward = Relic | 'bandage' | 'tuning'
 export type Reward = Treasure | BossRelic
-export type RewardChoice = Reward | 'skip'
+export type RewardChoice = Reward | 'skip' | 'keep-artifacts'
+export const ELITE_KEEP_COINS = 2
 
 export interface CombatRewards {
   readonly relics: readonly Relic[]

@@ -366,7 +366,7 @@
             <button id="confirm-reward" class="primary" type="button" disabled>확인</button>
           </div>
         </section>
-        <div id="treasure-controls" role="group" aria-label="유물과 잔편 조작" hidden></div>
+        <div id="treasure-controls" role="group" aria-label="아이템 조작" tabindex="-1" hidden></div>
 
         <section id="game-over" aria-labelledby="game-over-title" hidden>
           <h2 id="game-over-title" tabindex="-1" aria-describedby="defeat-floor">게임 오버</h2>
@@ -402,14 +402,8 @@
       <form method="dialog">
         <h2 id="inventory-title"></h2>
         <p id="inventory-description"></p>
-        <div id="tuning-controls" role="group" aria-label="조율 잔편" hidden>
-          <svg class="icon" aria-hidden="true"><use href="#icon-reward-tuning"/></svg>
-          <button id="tune-down" type="button" aria-label="첫 번째 주사위 눈을 1 내리기">−1</button>
-          <button id="tune-up" type="button" aria-label="첫 번째 주사위 눈을 1 올리기">+1</button>
-        </div>
         <div class="confirm-actions">
           <button type="submit" value="cancel" autofocus>닫기</button>
-          <button id="inventory-use" class="primary" type="submit" value="use" hidden></button>
         </div>
       </form>
     </dialog>

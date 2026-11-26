@@ -40,6 +40,20 @@ export function encounter(enemyId, floor, rules = 6) {
   return enterMapNode(mapBefore(seed, node.floor, rules), node.id)
 }
 
+export function eliteWithThreeArtifacts() {
+  for (let seed = 0; seed < 64; seed++) {
+    let run = beginMapAscent(seed, undefined, 'odd', 7)
+    while (run.route.completed.length < 10) {
+      const nodes = availableMapNodes(run)
+      const node = nodes.find(({ kind }) => kind === 'elite') ?? nodes.find(({ kind }) => kind === 'fight') ?? nodes[0]
+      run = enterMapNode(run, node.id)
+      if (node.kind === 'elite' && run.battle.loot.equipped.length === 3) return run
+      run = returnToMap(finishRoom(run))
+    }
+  }
+  throw new Error('유물 세 개 장착 뒤의 강적 전투를 찾지 못했습니다.')
+}
+
 export function checkpoint(run, rewardPreview, selected = []) {
   let json
   const storage = { setItem: (_key, value) => { json = value }, getItem: () => json ?? null, removeItem: () => { json = undefined } }

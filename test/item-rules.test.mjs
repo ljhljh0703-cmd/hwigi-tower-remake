@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
-import { availableMapNodes, beginMapAscent, enterMapNode, resolveAscentTurn, returnToMap, rewardOffers, spinAscentCounter, takeAscentReward } from '../src/ascent.ts'
+import { availableMapNodes, beginMapAscent, canKeepEliteArtifacts, enterMapNode, resolveAscentTurn, returnToMap, rewardOffers, spinAscentCounter, takeAscentReward } from '../src/ascent.ts'
 import { CURRENT_MAP_RULES, generateAscentMap } from '../src/ascent-map.ts'
 import { loadAscentSave } from '../src/ascent-save.ts'
 import { adjustItemDie, chooseReserveRoll, selectLatchDie, toggleConsumable } from '../src/item-effects.ts'
@@ -10,7 +10,7 @@ import { startPerk } from '../src/perks.ts'
 import { COMMON_ARTIFACTS, COMMON_CONSUMABLES, emptyTreasure, isSevenTreasure, NEW_TREASURES, RARE_ARTIFACTS, RARE_CONSUMABLES } from '../src/treasure.ts'
 import { availableCounterChoices, toggleArtifact } from '../src/treasure-combat.ts'
 import { canResolveYachtTurn, forecastYacht, rerollYachtDice, resolveYachtTurn, spendExtraReroll, spinYachtCounter, startYachtBattle, yachtAllocationTotals, yachtCounterRewards, yachtCounterSlot, yachtRerollCost } from '../src/yacht-combat.ts'
-import { checkpoint, encounter, mapBefore, playWith } from '../smoke/rules-six-fixtures.mjs'
+import { checkpoint, eliteWithThreeArtifacts, encounter, mapBefore, playWith } from '../smoke/rules-six-fixtures.mjs'
 
 const a = 'attack', g = 'guard'
 const gear = (...equipped) => ({ equipped, acquired: equipped })
@@ -268,4 +268,47 @@ test('rare shop price persists after purchase and rules-six pending deleted loot
   const invalid = JSON.parse(json)
   invalid.ascent.battle.loot.items.hook = 1
   assert.equal(loadAscentSave({ getItem: () => JSON.stringify(invalid) }), null)
+})
+
+test('an elite victory can preserve all three artifacts and awards two extra coins only once', () => {
+  const fight = eliteWithThreeArtifacts()
+  const equipped = fight.battle.loot.equipped
+  const dice = fight.battle.dice.map(() => 6)
+  const reward = playWith(fight, dice, dice.map(() => a), { enemyHp: 1, awakened: true })
+  assert.equal(reward.route.coins, fight.route.coins + 2)
+  assert.ok(canKeepEliteArtifacts(reward))
+  const preview = checkpoint(reward, rewardOffers(reward)[0]).restored.ascent
+  const kept = takeAscentReward(preview, 'keep-artifacts')
+  assert.equal(kept.route.coins, reward.route.coins + 2)
+  assert.deepEqual(kept.battle.loot, reward.battle.loot)
+  assert.deepEqual(kept.route.declinedEliteRewards, [reward.route.node])
+  const { json, restored } = checkpoint(kept)
+  assert.equal(restored.ascent.rewardChoice, 'keep-artifacts')
+  assert.equal(takeAscentReward(restored.ascent, 'keep-artifacts'), restored.ascent)
+  const map = returnToMap(restored.ascent)
+  assert.equal(checkpoint(map).restored.ascent.route.coins, reward.route.coins + 2)
+  const invalid = JSON.parse(json)
+  invalid.ascent.route.declinedEliteRewards.push(reward.route.node)
+  invalid.ascent.route.coins += 2
+  assert.equal(loadAscentSave({ getItem: () => JSON.stringify(invalid) }), null)
+
+  const swapped = takeAscentReward(preview, rewardOffers(preview)[0], { replace: equipped[0] })
+  assert.equal(swapped.route.coins, preview.route.coins)
+  assert.ok(!swapped.battle.loot.equipped.includes(equipped[0]))
+  const withRoom = { ...reward, battle: { ...reward.battle, loot: { ...reward.battle.loot, equipped: equipped.slice(1) } } }
+  assert.equal(takeAscentReward(withRoom, 'keep-artifacts'), withRoom)
+})
+
+test('a full artifact rack cannot skip the sixth-floor boss relic and the boss has its own slot', () => {
+  const boss = encounter('chain-warden', 6, 7)
+  const dice = boss.battle.dice.map(() => 6)
+  const loot = { ...boss.battle.loot, ...gear('banner', 'mirror', 'overflow') }
+  const reward = playWith(boss, dice, dice.map(() => a), { loot, enemyHp: 1, awakened: true })
+  assert.equal(canKeepEliteArtifacts(reward), false)
+  assert.equal(takeAscentReward(reward, 'keep-artifacts'), reward)
+  assert.equal(takeAscentReward(reward, 'skip'), reward)
+  const granted = takeAscentReward(reward, 'emperor-shield')
+  assert.deepEqual(granted.battle.loot.equipped, loot.equipped)
+  assert.equal(granted.battle.bossRelic.id, 'emperor-shield')
+  assert.equal(checkpoint(granted).restored.ascent.battle.bossRelic.id, 'emperor-shield')
 })

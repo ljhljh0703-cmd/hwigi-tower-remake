@@ -5,10 +5,10 @@ import { draw, PLAYER_HP } from './combat.ts'
 import { ASCENT_ENEMIES, enemyForFight } from './enemy-roster.ts'
 import { startPerk } from './perks.ts'
 import type { Parity, StartPerk } from './perks.ts'
-import { BANDAGE_HEAL, BANDAGE_THRESHOLD, RELICS, isLegacyReward, isRelic } from './rewards.ts'
+import { BANDAGE_HEAL, BANDAGE_THRESHOLD, ELITE_KEEP_COINS, RELICS, isLegacyReward, isRelic } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
 import { grantTreasure, shopPrice, treasureOffers } from './map-treasure.ts'
-import { emptyTreasure, nextTreasureBattle } from './treasure.ts'
+import { ARTIFACT_SLOTS, emptyTreasure, isArtifact, nextTreasureBattle } from './treasure.ts'
 import type { ArtifactOptions, CounterChoice, Treasure } from './treasure.ts'
 import { activateYachtHand, resolveYachtTurn, spinYachtCounter, startYachtBattle } from './yacht-combat.ts'
 import type { Hand, YachtBattle } from './yacht-combat.ts'
@@ -24,6 +24,7 @@ export interface MapProgress {
   readonly offers?: readonly Reward[]
   readonly coins?: number
   readonly shopPurchase?: Treasure
+  readonly declinedEliteRewards?: readonly number[]
 }
 
 export interface Ascent {
@@ -189,9 +190,22 @@ export function rewardHealth(ascent: Ascent) {
   return Math.min(ascent.maxHp, ascent.battle.playerHp + BANDAGE_HEAL)
 }
 
+export function canKeepEliteArtifacts({ route, battle }: Ascent) {
+  return route?.map.rules === 7 && route.screen === 'reward' && route.node !== null &&
+    route.map.byId[route.node]?.kind === 'elite' && battle.loot?.equipped.length === ARTIFACT_SLOTS &&
+    Boolean(route.offers?.some(isArtifact))
+}
+
 export function takeAscentReward(ascent: Ascent, choice: RewardChoice, options: ArtifactOptions = {}): Ascent {
   const offers = rewardOffers(ascent)
   const { battle, route } = ascent
+  if (choice === 'keep-artifacts') {
+    if (!route || !canKeepEliteArtifacts(ascent)) return ascent
+    return { ...ascent, rewardChoice: choice, route: {
+      ...completeMapNode(route, 'return'), offers, coins: (route.coins ?? 0) + ELITE_KEEP_COINS,
+      declinedEliteRewards: [...(route.declinedEliteRewards ?? []), route.node!],
+    } }
+  }
   const atRoom = route && route.map.rules >= 2 && (route.screen === 'rest' || route.screen === 'event' || route.screen === 'shop')
   const atReward = route ? route.screen === 'reward' || atRoom : offers.length > 0
   if (!atReward || (choice !== 'skip' && !offers.includes(choice))) return ascent

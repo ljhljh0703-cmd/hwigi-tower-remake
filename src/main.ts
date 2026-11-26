@@ -1,6 +1,6 @@
 import { FeelEffects } from './feel-effects.ts'
 import {
-  ascentFinished, availableMapNodes, beginMapAscent, enterMapNode, FIGHT_COUNT, nextAscentFight, resolveAscentTurn,
+  ascentFinished, availableMapNodes, beginMapAscent, canKeepEliteArtifacts, enterMapNode, FIGHT_COUNT, nextAscentFight, resolveAscentTurn,
   returnToMap, rewardOffers, spinAscentCounter, takeAscentReward,
 } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
@@ -25,7 +25,7 @@ import { ARTIFACT_SLOTS, COMMON_CONSUMABLES, RARE_CONSUMABLES, ITEMS, PREPARATIO
 import type { Artifact, ArtifactOptions, CounterChoice } from './treasure.ts'
 import { availableCounterChoices, cancelSeal, chooseHourglass, counterDamage, draftSeal, startHourglass, toggleArtifact, toggleShard } from './treasure-combat.ts'
 import { adjustItemDie, canSelectItemDie, chooseReserveRoll, consumableReady, selectLatchDie, toggleConsumable } from './item-effects.ts'
-import { relicReady, REWARD_CARDS, WEDGE_BONUS } from './rewards.ts'
+import { ELITE_KEEP_COINS, relicReady, REWARD_CARDS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
 import {
   allocationPower, assignDie, attackFor, chargedStrikePreview, combatSlots, DIE_COUNT, enemyIntentAt, incomingAttack, respondingIntent, splitEnemyDamage,
@@ -137,9 +137,6 @@ const ui = {
   bossRelicSlot: element('boss-relic-slot'),
   artifactOptions: element('artifact-options'),
   treasureControls: element('treasure-controls'),
-  tuningControls: element('tuning-controls'),
-  tuneDown: element<HTMLButtonElement>('tune-down'),
-  tuneUp: element<HTMLButtonElement>('tune-up'),
   planning: element('planning'),
   dice: {
     pool: element('pool-dice'),
@@ -236,6 +233,7 @@ let ascent: Ascent | null = null
 let chosenReward: Reward | undefined
 let artifactOptions: ArtifactOptions = {}
 let itemControl: 'tuning' | 'twin-mold' | 'hourglass' | 'die-latch' | undefined
+let dockItem: Reward | undefined
 let exchangeBusy = false
 let stopDiceMotion: (() => void) | undefined
 let stopPlacementMotion: (() => void) | undefined
@@ -1113,6 +1111,7 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   const bossReward = room?.enemyId === 'chain-warden'
   const seven = run.battle.itemsSeven === true
   const eliteReward = room?.kind === 'elite' && (run.route?.map.rules ?? 0) >= 6
+  const canKeep = canKeepEliteArtifacts(run)
   ui.rewardPanel.classList.toggle('battle-reward', !atRoom)
   ui.rewardPanel.classList.toggle('boss-reward', bossReward)
   const atShop = room?.kind === 'shop' && (run.route?.map.rules ?? 0) >= 3
@@ -1120,7 +1119,12 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   ui.rewardHeading.innerHTML = bossReward ? '보스 유물 선택' : atRoom ? `${icon(MAP_NODE_ICONS[room.kind])} ${room.kind === 'event' ? eventName : room.kind === 'rest' ? '11층 휴식' : atShop ? '상인' : '장터 경유'}` : eliteReward && seven ? '강적 유물 선택' : '전투 보상'
   if (room?.kind === 'rest') ui.rewardHeading.insertAdjacentHTML('beforeend', '<span class="rest-ember" aria-hidden="true"></span>')
   ui.skipReward.textContent = atRoom ? '떠나기' : '건너뛰기'
-  ui.skipReward.hidden = bossReward || Boolean(eliteReward && offers.length)
+  ui.skipReward.hidden = bossReward || Boolean(eliteReward && offers.length && !canKeep)
+  ui.skipReward.removeAttribute('aria-label')
+  if (canKeep) {
+    ui.skipReward.innerHTML = `<span>지금 유물 유지</span><small>${icon('ascent-coin')}+${ELITE_KEEP_COINS}</small>`
+    ui.skipReward.setAttribute('aria-label', `지금 유물 유지 (받지 않음), 동전 +${ELITE_KEEP_COINS}`)
+  }
   const eventContext = {
     medicine: '깨진 약상자에 약봉지와 천이 남아 있어요.',
     pulley: '도르래를 당기면 돌 밑의 숫돌을 꺼낼 수 있어요.',
@@ -1128,6 +1132,13 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   }
   ui.rewardContext.replaceChildren()
   if (room?.event) ui.rewardContext.textContent = eventContext[room.event]
+  if (canKeep) {
+    ui.artifactStrip.hidden = true
+    ui.rewardContext.innerHTML = `<span class="elite-equipped" role="group" aria-label="장착 중인 유물 세 개">${run.battle.loot!.equipped.map((id) => {
+      const { icon: symbol, name } = REWARD_CARDS[id]
+      return `<span title="${name}">${itemIcon(symbol)}${name}</span>`
+    }).join('')}</span>`
+  }
   if (!run.route) {
     const next = enemyForFight(seed, fight + 1)
     const badge = enemyBadges[next.id]
@@ -1217,15 +1228,19 @@ ui.rewardCards.addEventListener('keydown', (event) => {
 })
 
 const inventoryDetail = element<HTMLDialogElement>('inventory-detail')
-const inventoryUse = element<HTMLButtonElement>('inventory-use')
-let useInventory: (() => void) | undefined
-inventoryDetail.addEventListener('close', () => {
-  const action = useInventory
-  useInventory = undefined
-  if (inventoryDetail.returnValue === 'use') action?.()
-})
+type ItemAction = { label: string; apply?: () => void }
+const itemActions = new Map<Reward, ItemAction>()
+const dockActionSelector = '#treasure-controls [data-item-activate]'
 
-function inventoryChip(id: Reward, uses: number, capacity: number, disabled: boolean, action?: () => void, label = '사용', effect?: string) {
+function showInventoryInfo(id: Reward, effect?: string) {
+  const seven = ascent?.battle.itemsSeven
+  element('inventory-title').textContent = REWARD_CARDS[id].name
+  element('inventory-description').textContent = isBossRelic(id) ? bossRelicText(id, seven)
+    : effect && !seven ? `${rewardText(id)} ${effect}` : rewardText(id, seven)
+  inventoryDetail.showModal()
+}
+
+function inventoryChip(id: Reward, uses: number, capacity: number, disabled: boolean, action?: ItemAction, effect?: string) {
   const card = REWARD_CARDS[id]
   const seven = ascent?.battle.itemsSeven
   const button = document.createElement('button')
@@ -1234,25 +1249,30 @@ function inventoryChip(id: Reward, uses: number, capacity: number, disabled: boo
   button.disabled = disabled
   button.classList.toggle('spent', capacity > 0 && uses === 0)
   button.setAttribute('aria-label', capacity ? `${card.name}, ${uses}회 남음` : card.name)
-  button.setAttribute('aria-haspopup', 'dialog')
+  if (action && ascent?.battle.phase === 'assign') {
+    itemActions.set(id, action)
+    button.setAttribute('aria-controls', 'treasure-controls')
+    button.setAttribute('aria-expanded', String(dockItem === id))
+    button.addEventListener('click', () => {
+      if (!ascent || exchangeBusy) return
+      dockItem = dockItem === id ? undefined : id
+      itemControl = undefined
+      refreshSelection(ascent)
+      if (dockItem) (ui.treasureControls.querySelector<HTMLElement>('[data-item-activate]:enabled') ?? ui.treasureControls).focus({ preventScroll: true })
+      else focusInventoryChip(id)
+    })
+  } else {
+    button.setAttribute('aria-haspopup', 'dialog')
+    button.addEventListener('click', () => showInventoryInfo(id, effect))
+  }
   const dots = !seven && Array.from({ length: capacity }, (_, i) => `<i class="${i < uses ? 'filled' : ''}"></i>`).join('')
   const count = seven && capacity ? `<span class="item-count" aria-hidden="true">${uses}</span>` : ''
   button.innerHTML = `${itemIcon(card.icon)}${count}${dots ? `<span class="use-dots" aria-hidden="true">${dots}</span>` : ''}`
-  button.addEventListener('click', () => {
-    element('inventory-title').textContent = card.name
-    element('inventory-description').textContent = isBossRelic(id) ? bossRelicText(id, seven)
-      : effect && !seven ? `${rewardText(id)} ${effect}` : rewardText(id, seven)
-    useInventory = action
-    ui.tuningControls.hidden = Boolean(seven) || id !== 'tuning' || (ui.tuneDown.disabled && ui.tuneUp.disabled)
-    inventoryUse.hidden = !action
-    inventoryUse.textContent = label
-    inventoryDetail.returnValue = ''
-    inventoryDetail.showModal()
-  })
   return button
 }
 
 function renderRewardStrip(battle: YachtBattle, disabled: boolean) {
+  itemActions.clear()
   if (battle.loot) {
     renderTreasureStrips(battle, disabled)
     return
@@ -1265,12 +1285,19 @@ function renderRewardStrip(battle: YachtBattle, disabled: boolean) {
   ui.rewardStrip.replaceChildren(...held.map((reward) => {
     const remaining = reward === 'tuning' ? rewards?.tuning === 'ready' : relicReady(rewards, reward)
     const toggle = reward === 'wedge' && remaining && battle.phase === 'assign'
-    const toggleLabel = battle.wedgeArmed ? '끄기' : '켜기'
-    const action = toggle ? () => updateTreasureBattle(battle, toggleYachtWedge(battle), '#reward-strip [data-reward="wedge"]') : undefined
-    const button = inventoryChip(reward, Number(remaining), 1, disabled, action, toggleLabel)
+    const action = reward === 'wedge' ? { label: battle.wedgeArmed ? '끄기' : '켜기',
+      apply: toggle ? () => updateTreasureBattle(battle, toggleYachtWedge(battle), dockActionSelector) : undefined }
+      : reward === 'tuning' ? { label: '사용' } : undefined
+    const button = inventoryChip(reward, Number(remaining), 1, disabled, action)
     if (toggle) button.setAttribute('aria-pressed', String(Boolean(battle.wedgeArmed)))
     return button
   }))
+}
+
+function focusInventoryChip(id: Reward) {
+  const chip = ui.main.querySelector<HTMLButtonElement>(`.inventory-strip [data-reward="${id}"]`)
+  if (chip?.closest('#inventory-overflow')) setInventoryOverflow(true)
+  chip?.focus({ preventScroll: true })
 }
 
 function updateTreasureBattle(before: YachtBattle, next: YachtBattle, selector?: string, clearSelection = false) {
@@ -1345,29 +1372,29 @@ function renderTreasureStrips(battle: YachtBattle, disabled: boolean) {
       const armed = loot.consumableArmed === id
       const selectable = ready && consumableReady(loot, id)
       const toggle = isArmedConsumable(id) && selectable && toggleConsumable(battle, id) !== battle
-      const selector = `#reward-strip [data-reward="${id}"]`
-      const action = toggle && isArmedConsumable(id) ? () => {
-        itemControl = undefined
-        updateTreasureBattle(battle, toggleConsumable(battle, id), selector)
-      } : selectable && (id === 'tuning' || id === 'twin-mold') ? () => openItemControl(id) : undefined
-      const button = inventoryChip(id, uses, Math.max(1, uses), disabled, action, toggle ? (armed ? '끄기' : '켜기') : '주사위 선택')
-      if (toggle) button.setAttribute('aria-pressed', String(armed))
+      const action = isArmedConsumable(id) ? { label: armed ? '끄기' : '켜기',
+        apply: toggle ? () => updateTreasureBattle(battle, toggleConsumable(battle, id), dockActionSelector) : undefined }
+        : id === 'tuning' || id === 'twin-mold' ? { label: '사용', apply: selectable ? () => openItemControl(id) : undefined } : undefined
+      const button = inventoryChip(id, uses, Math.max(1, uses), disabled, action)
+      if (isArmedConsumable(id)) button.setAttribute('aria-pressed', String(armed))
       return button
     }) : ITEMS.filter((id) => loot.items[id]).map((id) => {
     const uses = itemUses(loot, id)
     const wedge = ready && id === 'wedge' && uses > 0
-    const button = inventoryChip(id, uses, loot.items[id]!, disabled,
-      wedge ? () => updateTreasureBattle(battle, toggleYachtWedge(battle), '#reward-strip [data-reward="wedge"]') : undefined,
-      battle.wedgeArmed ? '끄기' : '켜기')
+    const button = inventoryChip(id, uses, loot.items[id]!, disabled, id === 'wedge' ? {
+      label: battle.wedgeArmed ? '끄기' : '켜기',
+      apply: wedge ? () => updateTreasureBattle(battle, toggleYachtWedge(battle), dockActionSelector) : undefined,
+    } : undefined)
     if (wedge) button.setAttribute('aria-pressed', String(Boolean(battle.wedgeArmed)))
     return button
   })
   const shardButtons = SHARDS.filter((id) => loot.shards[id] || loot.triggered?.includes(id)).map((id) => {
     const clickable = ready && id !== 'tuning' && loot.shards[id] && !loot.tuned && !loot.sealDraft
     const count = loot.shards[id] ?? 0
-    const button = inventoryChip(id, count, Math.max(count, 1), disabled,
-      clickable ? () => updateTreasureBattle(battle, toggleShard(battle, id), `#reward-strip [data-reward="${id}"]`) : undefined,
-      loot.shardArmed === id ? '끄기' : '켜기')
+    const button = inventoryChip(id, count, Math.max(count, 1), disabled, {
+      label: id === 'tuning' ? '사용' : loot.shardArmed === id ? '끄기' : '켜기',
+      apply: clickable ? () => updateTreasureBattle(battle, toggleShard(battle, id), dockActionSelector) : undefined,
+    })
     if (clickable) button.setAttribute('aria-pressed', String(loot.shardArmed === id))
     return button
   })
@@ -1381,12 +1408,15 @@ function renderTreasureStrips(battle: YachtBattle, disabled: boolean) {
     const hourglass = !battle.itemsSeven && ready && id === 'hourglass' && startHourglass(battle, [...selected]) !== battle
     const pickDie = battle.itemsSeven && ready && available && (id === 'hourglass' && battle.playerHp > 2 || id === 'die-latch')
     const delay = id === 'mirror' ? loot.mirrorDamage : id === 'overflow' ? loot.overflowDamage : undefined
-    const action = toggle && (id === 'banner' || id === 'hammer') ? () => updateTreasureBattle(battle, toggleArtifact(battle, id), `#artifact-strip [data-reward="${id}"]`)
-      : hourglass ? () => updateTreasureBattle(battle, startHourglass(battle, [...selected]), '#treasure-controls button', true)
-      : pickDie && (id === 'hourglass' || id === 'die-latch') ? () => openItemControl(id) : undefined
     const on = loot.armed?.includes(id as 'banner' | 'hammer') ?? false
+    const action = id === 'banner' || id === 'hammer' ? { label: on ? '끄기' : '켜기',
+      apply: toggle ? () => updateTreasureBattle(battle, toggleArtifact(battle, id), dockActionSelector) : undefined }
+      : id === 'hourglass' || id === 'die-latch' ? { label: '사용',
+        apply: pickDie ? () => openItemControl(id) : hourglass
+          ? () => updateTreasureBattle(battle, startHourglass(battle, [...selected]), '#treasure-controls button', true) : undefined }
+      : !battle.itemsSeven && id === 'incomplete' ? { label: '사용' } : undefined
     const button = inventoryChip(id, Number(available), id === 'heart-die' ? 0 : 1, disabled, action,
-      toggle ? (on ? '끄기' : '켜기') : pickDie ? '주사위 선택' : '사용', delay ? `다음 공격에 피해 ${delay}를 더해요.` : undefined)
+      delay ? `다음 공격에 피해 ${delay}를 더해요.` : undefined)
     if (toggle) button.setAttribute('aria-pressed', String(on))
     if (battle.itemsSeven && delay) button.insertAdjacentHTML('beforeend', `<span class="item-count">→${delay}</span>`)
     if (id === 'die-latch' && loot.latchDraft !== undefined) button.setAttribute('aria-pressed', 'true')
@@ -1399,7 +1429,8 @@ function renderTreasureStrips(battle: YachtBattle, disabled: boolean) {
   ui.artifactStrip.hidden = !relicButtons.length
 
   const items = [...itemButtons, ...shardButtons, ...prepButtons]
-  items.sort((first, second) => Number(second.hasAttribute('aria-pressed')) - Number(first.hasAttribute('aria-pressed')))
+  items.sort((first, second) => Number(second.getAttribute('aria-expanded') === 'true') - Number(first.getAttribute('aria-expanded') === 'true') ||
+    Number(second.hasAttribute('aria-pressed')) - Number(first.hasAttribute('aria-pressed')))
   const overflow = document.createElement('button')
   overflow.type = 'button'
   overflow.disabled = disabled
@@ -1443,9 +1474,10 @@ function openItemControl(id: NonNullable<typeof itemControl>) {
 function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
   ui.treasureControls.replaceChildren()
   ui.treasureControls.hidden = true
-  ui.treasureControls.toggleAttribute('data-item-planning', Boolean(battle.itemsSeven && battle.phase === 'assign'))
+  ui.treasureControls.toggleAttribute('data-item-planning', battle.phase === 'assign')
+  ui.treasureControls.toggleAttribute('data-item-counter', battle.phase === 'counter')
   const { loot } = battle
-  if (!loot || !enabled) return
+  if (!enabled) return
   const control = (label: string, content: string, action: () => void, disabled = false) => {
     const button = document.createElement('button')
     button.type = 'button'
@@ -1455,9 +1487,43 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
     button.addEventListener('click', action)
     return button
   }
-  const splitRoll = loot.reserveRoll ?? loot.hourglass
+  const splitRoll = loot?.reserveRoll ?? loot?.hourglass
+  const action = battle.phase === 'assign' && dockItem ? itemActions.get(dockItem) : undefined
+  let dockLine: HTMLElement | undefined
+  if (action && dockItem && !splitRoll) {
+    const id = dockItem
+    const card = REWARD_CARDS[id]
+    dockLine = document.createElement('div')
+    dockLine.className = 'item-dock-line'
+    const info = control(`${card.name} 설명`, `${itemIcon(card.icon)}<strong>${card.name}</strong>`, () => showInventoryInfo(id))
+    info.className = 'item-dock-info'
+    dockLine.append(info)
+    if (!battle.itemsSeven && id === 'tuning') {
+      for (const change of [-1, 1] as const) {
+        const next = tuneYachtDie(battle, change)
+        const button = control(`첫 주사위 눈 ${change < 0 ? '−1' : '+1'}`, change < 0 ? '−1' : '+1',
+          () => updateTreasureBattle(battle, next, '#resolve'), next === battle)
+        button.dataset.itemActivate = ''
+        dockLine.append(button)
+      }
+    } else if (!itemControl && (battle.itemsSeven || id !== 'incomplete')) {
+      const use = control(action.label, action.label, () => action.apply?.(), !action.apply)
+      use.classList.add('primary')
+      use.dataset.itemActivate = ''
+      dockLine.append(use)
+    }
+    const close = control('아이템 조작 닫기', '×', () => {
+      dockItem = undefined
+      itemControl = undefined
+      if (ascent) refreshSelection(ascent)
+      focusInventoryChip(id)
+    })
+    close.className = 'item-dock-close'
+    dockLine.append(close)
+    ui.treasureControls.append(dockLine)
+  }
   if (splitRoll) {
-    const choose = loot.reserveRoll ? chooseReserveRoll : chooseHourglass
+    const choose = loot?.reserveRoll ? chooseReserveRoll : chooseHourglass
     for (const entry of splitRoll) {
       const group = document.createElement('div')
       group.className = 'treasure-die-choice'
@@ -1468,20 +1534,22 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
         control(`주사위 ${entry.index + 1} 새 눈 ${entry.rolled}`, `${icon('reroll')}${entry.rolled}`, () => updateTreasureBattle(battle, choose(battle, entry.index, true), '#treasure-controls button')))
       ui.treasureControls.append(group)
     }
-  } else if (loot.counter) {
+  } else if (loot?.counter) {
     const choices = availableCounterChoices(battle)
     const damage = counterDamage(battle, loot.counter.damage)
     ui.treasureControls.append(control('지금 룰렛 피해 주기', `${icon('wheel')}${damage}`, () => void playCounter('now')))
     if (choices.includes('coin')) ui.treasureControls.append(control('새긴 동전으로 룰렛 한 번 더 돌리기', `${icon('treasure-coin')}↻1`, () => void playCounter('coin')))
     if (choices.includes('mirror') || !battle.itemsSeven && loot.equipped.includes('mirror')) ui.treasureControls.append(control('반전 거울로 미루기', `${icon('treasure-mirror')}→${Math.min(12, damage * 2)}`, () => void playCounter('mirror'), !choices.includes('mirror')))
     if (choices.includes('horn') || !battle.itemsSeven && loot.equipped.includes('horn')) ui.treasureControls.append(control('교대의 뿔로 합공', `${icon('treasure-horn')}${counterDamage(battle, 8)}`, () => void playCounter('horn'), !choices.includes('horn')))
-  } else if (battle.itemsSeven && battle.phase === 'assign') {
+  } else if (battle.itemsSeven && loot && battle.phase === 'assign') {
     const id = itemControl
     if (id) {
       const targets = [...selected].filter((index) => canSelectItemDie(battle, index))
       const targetCount = id === 'twin-mold' ? 2 : 1
-      const item = REWARD_CARDS[id]
-      ui.treasureControls.insertAdjacentHTML('beforeend', `<span class="item-effect">${itemIcon(item.icon)} <span>${targets.length}/${targetCount}</span></span>`)
+      dockLine?.querySelector('.item-dock-info')?.insertAdjacentHTML('beforeend', `<span class="item-effect">${targets.length}/${targetCount}</span>`)
+      const options = document.createElement('div')
+      options.className = 'item-dock-options'
+      ui.treasureControls.append(options)
       const add = (label: string, display: string, next: YachtBattle) => {
         if (next === battle) return
         const button = control(label, display, () => {
@@ -1489,7 +1557,7 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
           updateTreasureBattle(battle, next, '#resolve')
         })
         button.dataset.itemChoice = ''
-        ui.treasureControls.append(button)
+        options.append(button)
       }
       if (targets.length === targetCount && selected.size === targetCount) {
         const [index, other] = targets
@@ -1500,26 +1568,33 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
         }
         if (id === 'die-latch') add(`주사위 ${index + 1}의 눈 ${battle.dice[index]} 유지`, `${icon('return')}${battle.dice[index]}`, selectLatchDie(battle, index))
       }
-    } else if (loot.consumableArmed || loot.latchDraft !== undefined) {
-      const armed = loot.consumableArmed ?? 'die-latch'
+    } else if (loot.consumableArmed || loot.latchDraft !== undefined || loot.armed?.includes('banner')) {
+      const armed = loot.consumableArmed ?? (loot.latchDraft !== undefined ? 'die-latch' : 'banner')
       const card = REWARD_CARDS[armed]
       const forecast = forecastYacht(battle)
       let effect = SEVEN_REWARD_VALUES[armed] ?? card.value
       if (armed === 'die-latch') effect = `→${battle.dice[loot.latchDraft!]}`
-      if (armed === 'weight') effect = `+${Math.max(0, ...battle.dice.filter((_, index) => battle.slots[index] === 'attack'))}`
+      if (armed === 'weight' || armed === 'banner') effect = `+${Math.max(0, ...battle.dice.filter((_, index) => battle.slots[index] === 'attack'))}`
       if (armed === 'buckle') effect = `−${forecastYacht({ ...battle, loot: { ...loot, consumableArmed: undefined } }).damage - forecast.damage}`
       const applies = armed === 'reserve-gauge' || forecast.loot?.triggered?.includes(armed)
-      ui.treasureControls.insertAdjacentHTML('beforeend', `<span class="item-effect" data-applies="${Boolean(applies)}">${itemIcon(card.icon)}<strong>${effect}</strong></span>`)
+      const status = `<span class="item-effect" data-applies="${Boolean(applies)}">${dockItem === armed ? '' : itemIcon(card.icon)}<strong>${effect}</strong></span>`
+      if (dockItem === armed && dockLine) dockLine.querySelector('.item-dock-info')!.insertAdjacentHTML('beforeend', status)
+      else ui.treasureControls.insertAdjacentHTML('beforeend', status)
     }
-  } else if (loot.sealDraft) {
+  } else if (loot?.sealDraft) {
     ui.treasureControls.append(control('미완의 인장 조정 취소', `${icon('treasure-incomplete')}${icon('return')}`, () => updateTreasureBattle(battle, cancelSeal(battle), '#resolve')))
-  } else if (battle.phase === 'assign' && selected.size === 1 && loot.equipped.includes('incomplete') && loot.sealHand && !ascent?.unlocks.includes(loot.sealHand)) {
-    const index = [...selected][0]
-    for (const change of [-2, -1, 1, 2] as const) {
-      const next = draftSeal(battle, index, change)
-      if (next === battle) continue
-      const number = change > 0 ? `+${change}` : `−${-change}`
-      ui.treasureControls.append(control(`미완의 인장 ${number}`, `${icon('treasure-incomplete')}${number}`, () => updateTreasureBattle(battle, next, '#treasure-controls button', true)))
+  } else if (battle.phase === 'assign' && dockItem === 'incomplete' && loot?.sealHand && !ascent?.unlocks.includes(loot.sealHand)) {
+    const options = document.createElement('div')
+    options.className = 'item-dock-options'
+    ui.treasureControls.append(options)
+    if (selected.size === 1) {
+      const index = [...selected][0]
+      for (const change of [-2, -1, 1, 2] as const) {
+        const next = draftSeal(battle, index, change)
+        if (next === battle) continue
+        const number = change > 0 ? `+${change}` : `−${-change}`
+        options.append(control(`미완의 인장 ${number}`, number, () => updateTreasureBattle(battle, next, '#treasure-controls button', true)))
+      }
     }
   }
   ui.treasureControls.hidden = !ui.treasureControls.childElementCount
@@ -1618,7 +1693,8 @@ function renderFirstRun(run: Ascent) {
     } else if (room?.enemyId === 'chain-warden') {
       firstRun.discover([{ id: 'boss-relic', symbol: 'crown', text: '보스 유물 한 장을 골라요.', anchor }])
     } else if (route?.screen === 'reward' || (!route && battle.phase === 'won')) {
-      firstRun.discover([{ id: 'reward', symbol: 'map-reward', text: '카드 한 장을 골라 확인해요.', anchor }])
+      const text = canKeepEliteArtifacts(run) ? '새 유물로 바꾸거나 지금 유물을 지켜요.' : '카드 한 장을 골라 확인해요.'
+      firstRun.discover([{ id: 'reward', symbol: 'map-reward', text, anchor }])
     } else firstRun.clear()
   } else if (!ui.battle.hidden && !ui.planning.hidden) {
     const gimmick = yachtGimmick(battle)
@@ -1725,8 +1801,6 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
     ui.feedback.textContent = revealLabel
   }
   ui.planning.hidden = !showActions || phase !== 'assign'
-  ui.tuneDown.disabled = tuneYachtDie(battle, -1) === battle
-  ui.tuneUp.disabled = tuneYachtDie(battle, 1) === battle
   const fieldCounter = showActions && phase === 'counter'
   if (fieldCounter && ui.counterPanel.parentElement !== ui.encounter) ui.encounter.append(ui.counterPanel)
   if (!fieldCounter && ui.counterPanel.parentElement !== counterPanelHome) {
@@ -1813,6 +1887,7 @@ function refreshLobbyActions() {
 
 function resetPresentation() {
   itemControl = undefined
+  dockItem = undefined
   firstRun.clear()
   turnSignals.abort()
   turnSignals = new AbortController()
@@ -2027,20 +2102,6 @@ function useReroll(extra: boolean) {
 
 ui.reroll.addEventListener('click', () => useReroll(false))
 ui.extraReroll.addEventListener('click', () => useReroll(true))
-function useTuning(change: -1 | 1) {
-  if (ui.guide.open || !ascent) return
-  const battle = tuneYachtDie(ascent.battle, change)
-  if (battle === ascent.battle) return
-  if (inventoryDetail.open) inventoryDetail.close()
-  ascent = { ...ascent, battle }
-  saveCurrent()
-  render()
-  diceButtons[0].focus()
-}
-
-ui.tuneDown.addEventListener('click', () => useTuning(-1))
-ui.tuneUp.addEventListener('click', () => useTuning(1))
-
 function claimReward(choice: RewardChoice) {
   if (!ascent || ui.guide.open) return
   const previous = ascent
@@ -2056,7 +2117,10 @@ function claimReward(choice: RewardChoice) {
   artifactOptions = {}
   saveCurrent()
   render()
-  if (choice !== 'skip') {
+  if (choice === 'keep-artifacts') {
+    feel.pulse(ui.runCoins)
+    sound.play('pay')
+  } else if (choice !== 'skip') {
     const paid = (previous.route?.coins ?? 0) - (ascent.route?.coins ?? 0)
     if (paid > 0) {
       feel.pulse(ui.runCoins)
@@ -2103,10 +2167,11 @@ function claimReward(choice: RewardChoice) {
 }
 
 ui.confirmReward.addEventListener('click', () => { if (chosenReward) claimReward(chosenReward) })
-ui.skipReward.addEventListener('click', () => claimReward('skip'))
+ui.skipReward.addEventListener('click', () => claimReward(ascent && canKeepEliteArtifacts(ascent) ? 'keep-artifacts' : 'skip'))
 function lockExchange(locked: boolean) {
   exchangeBusy = locked
   ui.planning.inert = locked
+  ui.treasureControls.inert = locked
   ui.rewardStrip.inert = locked
   ui.artifactStrip.inert = locked
   ui.bossRelicSlot.inert = locked
@@ -2123,6 +2188,7 @@ ui.resolve.addEventListener('click', async () => {
   const resolved = resolveAscentTurn(ascent)
   if (resolved === ascent) return
   itemControl = undefined
+  dockItem = undefined
   const next = firstRun.opening(resolved, before.turn)
   turnSignals.abort()
   turnSignals = new AbortController()
