@@ -6,6 +6,7 @@ import type { Ascent } from './ascent.ts'
 import { CURRENT_MAP_RULES, MAP_ENEMY_BADGES, MAP_FLOORS } from './ascent-map.ts'
 import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, writeAscentSave } from './ascent-save.ts'
 import { Arena } from './arena.ts'
+import { GOLEM_PARRY } from './golem-parry.ts'
 import type { BattleHit } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
 import { BATTLE_GUIDE } from './battle-guide.ts'
@@ -747,7 +748,8 @@ function updateEscortVital(hp: number) {
   }
 }
 
-function showParry() {
+function showParry(authored = false) {
+  ui.parry.classList.toggle('sr-only', authored)
   ui.parry.hidden = false
   sound.play('perfect-block')
 }
@@ -804,7 +806,9 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   const heroHit = (damage: number, final = true): BattleHit[] => damage ? [{ target: 'player', damage, defeated: final && after.playerHp === 0 }] : []
   const updatePlayer = () => updateVital(ui.playerHp, ui.playerTotal, after.playerHp)
   const updateEnemy = () => updateVital(ui.enemyHp, ui.enemyTotal, after.enemyHp)
-  arena.playExchange(before, exchange)
+  const golemParry = exact && incoming === 1 && !dealt && !escortDealt && arena.beginGolemParry(start)
+  ui.intent.classList.toggle('parry-in-progress', golemParry)
+  if (!golemParry) arena.playExchange(before, exchange)
   ui.awakening.hidden = !awakenedDice
   ui.awakening.innerHTML = awakenedDice ? `${icon('die')}${awakenedDice.map((face) => `<span>${face}</span>`).join('')}` : ''
   ui.awakening.setAttribute('aria-label', awakenedDice ? `각성 ${awakenedDice.join(', ')}` : '')
@@ -839,7 +843,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
       if (final) updatePlayer()
     }
   } else if (incoming || earlyEnemyHit.length || thorns) {
-    if (!reducedMotion()) await at(incoming ? incomingContact : 96)
+    if (!reducedMotion()) await at(golemParry ? GOLEM_PARRY.contact : incoming ? incomingContact : 96)
     emit([...earlyEnemyHit, ...heroHit(taken)], { parry: exact, guarded: incoming > 0 && hitsTaken[0] === 0 && !exact })
     if (earlyEnemyHit.length) updateEnemy()
     updatePlayer()
@@ -862,8 +866,14 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     }
   }, effectDuration(damageDuration))
   if (exact) {
-    showParry()
-    await wait(parryDuration)
+    showParry(golemParry)
+    if (golemParry) {
+      await at(GOLEM_PARRY.landing)
+      if (!reducedMotion()) sound.play('stone-hit', .76)
+      await at(GOLEM_PARRY.end)
+    } else {
+      await wait(parryDuration)
+    }
     ui.parry.hidden = true
   } else if (escortDealt && !after.escort && after.phase === 'assign' && !reducedMotion()) {
     await wait(escortDefeatPause)
@@ -1661,6 +1671,7 @@ ui.resolve.addEventListener('click', async () => {
       await wait(reducedMotion() ? 320 : damageDuration)
     }
   } finally {
+    ui.intent.classList.remove('parry-in-progress')
     lockExchange(false)
     render('normal', next.battle.turn !== before.turn)
     if (phase === 'won') sound.play('victory')

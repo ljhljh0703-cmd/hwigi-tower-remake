@@ -753,6 +753,8 @@ meter::-moz-meter-bar { background: #b5b2ad; }
 #hit-order li[data-result='blocked'] { border-color: #a0a9b3; }
 #hit-order li[data-result='damage'] { border-color: #b68278; }
 
+#intent.parry-in-progress { visibility: hidden; }
+
 #parry-cue {
   position: absolute;
   z-index: 2;
