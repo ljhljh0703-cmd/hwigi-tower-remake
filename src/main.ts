@@ -16,7 +16,7 @@ import { battleGuideFor } from './battle-guide.ts'
 import { oathDescription, PERK_TEXT, REWARD_TEXT } from './reward-copy.ts'
 import { COMPANION_LINES, companionDieIndex } from './companion.ts'
 import { enemyForFight } from './enemy-roster.ts'
-import { FirstRunGuide } from './first-run-guide.ts'
+import { firstBattlePlan, FirstRunGuide } from './first-run-guide.ts'
 import { loadGameSettings, saveGameSettings, toggleMute } from './game-settings.ts'
 import type { GameSettings } from './game-settings.ts'
 import { MAP_NODE_ICONS, ForkView } from './map-view.ts'
@@ -1453,63 +1453,37 @@ function renderHealth(hp: number, max: number) {
   ui.mapHealth.setAttribute('aria-label', `체력 ${hp}/${max}`)
 }
 
-function matchingGuardDice(battle: YachtBattle, damage: number) {
-  let match: number[] | undefined
-  let fewestMoves = Infinity
-  for (let mask = 1; mask < (1 << battle.dice.length); mask++) {
-    const dice = battle.dice.flatMap((_, index) => mask & (1 << index) ? [index] : [])
-    const slots = battle.slots.map((slot, index) => dice.includes(index) ? 'guard' : slot === 'guard' ? null : slot)
-    const moves = slots.filter((slot, index) => slot !== battle.slots[index]).length
-    if (moves >= fewestMoves || yachtAllocationTotals(battle, slots).guard !== damage) continue
-    match = dice
-    fewestMoves = moves
-  }
-  return match
-}
-
 function teachOpening({ battle }: Ascent) {
-  const pool = battle.slots.flatMap((slot, index) => slot === null ? [index] : [])
-  const firstDie = diceButtons[pool.find((index) => selected.has(index)) ?? pool[0]]
-  const placeIn = (zone: 'attack' | 'guard', id: string, text: string, die = firstDie, extra: HTMLElement[] = []) => {
-    const to = ui.assign[zone]
-    firstRun.teach({ id, text, symbol: zone === 'attack' ? 'sword' : 'shield', anchor: ui.firstRunAnchor,
-      marks: [...extra, to, ...(die ? [die] : [])], from: die, to })
-  }
-  const endTurn = (id: string, text: string) => {
-    firstRun.teach({ id, text, symbol: 'turn', anchor: ui.firstRunAnchor, marks: [ui.resolve] })
-  }
-
   if (battle.phase === 'counter') {
     firstRun.teach({ id: 'defend', text: '딱 막았어요! 반격 룰렛을 돌려요.', symbol: 'wheel',
       anchor: ui.counter, marks: [ui.counter] })
-  } else if (battle.turn === 1) {
-    if (!battle.slots.includes('attack')) placeIn('attack', 'attack', '주사위를 공격 칸에 넣어요.', firstDie ?? diceButtons[0])
-    else if (pool.length) placeIn('guard', 'end-turn', '남은 주사위를 방어에 놓아요.')
-    else endTurn('end-turn', '턴 끝내기를 눌러요.')
+    return
+  }
+
+  const { slots, outcome } = firstBattlePlan(battle)
+  const misplaced = battle.slots.findIndex((slot, index) => slot !== null && slot !== slots[index])
+  if (misplaced >= 0) {
+    const from = diceButtons[misplaced]
+    const slot = battle.slots[misplaced] === 'guard' ? '방어' : '공격'
+    firstRun.teach({ id: 'correct', text: `${slot}에서 표시한 주사위를 빼요.`, symbol: 'return', anchor: ui.firstRunAnchor,
+      marks: [from, ui.assign.pool], from, to: ui.dice.pool })
+    return
+  }
+
+  const attack = slots.flatMap((slot, index) => slot === 'attack' && battle.slots[index] === null ? [diceButtons[index]] : [])
+  const guard = slots.flatMap((slot, index) => slot === 'guard' && battle.slots[index] === null ? [diceButtons[index]] : [])
+  const guardFirst = battle.turn > 1 && guard.length > 0
+  if (attack.length && !guardFirst) {
+    firstRun.teach({ id: 'attack', text: '표시한 주사위를 공격에 놓아요.', symbol: 'sword', anchor: ui.firstRunAnchor,
+      marks: [ui.assign.attack, ...attack], from: attack[0], to: ui.assign.attack })
+  } else if (guard.length) {
+    const damage = outcome.incoming.totalDamage
+    const text = outcome.counter ? `방어 ${damage} = 적 공격 ${damage} → 정확 방어` : '표시한 주사위를 방어에 놓아요.'
+    firstRun.teach({ id: 'defend', text, symbol: 'shield', anchor: ui.firstRunAnchor,
+      marks: [ui.intent, ui.assign.guard, ...guard], from: guard[0], to: ui.assign.guard })
   } else {
-    const { incoming, counter } = forecastYacht(battle)
-    const damage = incoming.totalDamage
-    const guard = yachtAllocationTotals(battle).guard
-    if (damage > 0 && guard === damage) {
-      if (pool.length) placeIn('attack', 'defend', '남은 주사위를 공격에 놓아요.')
-      else endTurn('defend', counter ? '턴을 끝내 반격 룰렛을 열어요.' : '턴을 끝내 결과를 봐요.')
-    } else if (damage === 0 && pool.length) placeIn('attack', 'defend', '적이 쉬어요. 이번 턴은 공격해요.')
-    else {
-      const match = damage > 0 ? matchingGuardDice(battle, damage) : undefined
-      const misplaced = match && battle.slots.findIndex((slot, index) => slot === 'guard' && !match.includes(index))
-      if (misplaced !== undefined && misplaced >= 0) {
-        firstRun.teach({ id: 'defend', text: '방어에서 표시한 주사위를 빼요.', symbol: 'return', anchor: ui.firstRunAnchor,
-          marks: [diceButtons[misplaced], ui.assign.pool], from: diceButtons[misplaced], to: ui.dice.pool })
-      } else if (match) {
-        const needed = match.filter((index) => battle.slots[index] !== 'guard')
-        const suggested = needed.find((index) => selected.has(index)) ?? needed[0]
-        placeIn('guard', 'defend', `방어 합을 적 공격 ${damage}에 맞춰요.`, diceButtons[suggested], [ui.intent])
-      } else if (damage > 0 && yachtRerollCost(battle) !== null && firstDie) {
-        firstRun.teach({ id: 'defend', text: '다시 굴려 방어할 눈을 찾아요.', symbol: 'reroll', anchor: ui.firstRunAnchor,
-          marks: [firstDie, ui.reroll] })
-      } else if (pool.length) placeIn('attack', 'defend', '남은 주사위를 놓아요.')
-      else endTurn('defend', '턴 끝내기를 눌러요.')
-    }
+    const text = outcome.counter ? '턴을 끝내 반격 룰렛을 열어요.' : '턴 끝내기를 눌러요.'
+    firstRun.teach({ id: 'end-turn', text, symbol: 'turn', anchor: ui.firstRunAnchor, marks: [ui.resolve] })
   }
 }
 
@@ -1881,8 +1855,10 @@ function place(indices: readonly number[], zone: DropZone) {
   if (animated.length) {
     stopPlacementMotion = playPlacementMotion(ui.planning, animated, () => { stopPlacementMotion = undefined }, seat, animationSpeed())
   } else if (moved.length) seat()
+  const guideTarget = ui.planning.querySelector<HTMLElement>('[data-first-run-target]:is(.die, #resolve)')
   const unassigned = battle.slots.indexOf(null)
-  if (unassigned < 0) ui.resolve.focus()
+  if (guideTarget) guideTarget.focus({ preventScroll: true })
+  else if (unassigned < 0) ui.resolve.focus()
   else diceButtons[unassigned].focus()
 }
 
@@ -1897,7 +1873,8 @@ function focusPhase() {
   else if (ascent.battle.loot?.hourglass || ascent.battle.loot?.counter) ui.treasureControls.querySelector('button')?.focus()
   else if (ascent.battle.phase === 'counter') ui.counter.focus()
   else if (ascent.battle.phase === 'assign') {
-    const target = stopDiceMotion ? ui.planning : diceButtons[selected.values().next().value ?? 0]
+    const guideTarget = ui.planning.querySelector<HTMLElement>('[data-first-run-target]:is(.die, #resolve)')
+    const target = stopDiceMotion ? ui.planning : guideTarget ?? diceButtons[selected.values().next().value ?? 0]
     target.focus({ preventScroll: true })
   }
   else if (!ui.next.hidden) ui.next.focus()
@@ -2178,8 +2155,7 @@ async function playCounter(choice?: CounterChoice) {
   const pending = next.loot?.counter
   const reward = pending ?? next.lastExchange?.counter
   if (!reward) return
-  if (firstRun.includes(previous) && before.turn >= 2) firstRun.complete()
-  else firstRun.clear()
+  firstRun.clear()
 
   try {
     await roulette.play(() => presentCounter(previous, checkpoint, reward, choice))
