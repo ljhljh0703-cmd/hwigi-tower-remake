@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { availableMapNodes, enterMapNode, returnToMap, rewardOffers, spinAscentCounter, takeAscentReward } from '../src/ascent.ts'
+import { availableMapNodes, beginMapAscent, enterMapNode, returnToMap, rewardOffers, spinAscentCounter, takeAscentReward } from '../src/ascent.ts'
 import { CURRENT_MAP_RULES, enemyForMapNode } from '../src/ascent-map.ts'
 import { BOSS_RELICS, EMPEROR_SHIELD_CAP, HEART_REVIVAL_HP } from '../src/boss-relic.ts'
 import { attackFor, draw, enemyIntentAt } from '../src/combat.ts'
@@ -10,6 +10,43 @@ import { forecastYacht, resolveYachtTurn, yachtAllocationTotals, yachtGimmick } 
 import { checkpoint, encounter, finishRoom, mapBefore, playWith } from '../smoke/rules-six-fixtures.mjs'
 
 const a = 'attack', g = 'guard'
+
+test('시드 0의 가시 동시 사망은 가시로 기록하고 선제 처치에는 적의 타격이 없어요', () => {
+  const start = beginMapAscent(0, 'shield', 'odd', 6)
+  const golem = enterMapNode(start, availableMapNodes(start)[0].id)
+  assert.deepEqual(golem.battle.dice, [6, 6, 5])
+  const afterOne = playWith(golem, golem.battle.dice, [a, a, a])
+  assert.deepEqual([afterOne.battle.playerHp, afterOne.battle.enemyHp], [13, 5])
+  assert.deepEqual(afterOne.battle.dice, [2, 4, 3])
+  const both = playWith(afterOne, afterOne.battle.dice, [a, a, a]).battle
+  assert.deepEqual([both.phase, both.playerHp, both.enemyHp, both.lastExchange.hitsTaken, both.lastExchange.defeatedByThorns],
+    ['lost', 0, 0, [18], true])
+
+  const survive = playWith(afterOne, afterOne.battle.dice, [g, a, a]).battle
+  assert.deepEqual([survive.phase, survive.playerHp, survive.enemyHp, survive.lastExchange.hitsTaken, survive.lastExchange.defeatedByThorns],
+    ['won', 1, 0, [12], undefined])
+
+  const direct = playWith(golem, golem.battle.dice, [a, g, g], { playerHp: 1, enemyHp: 6, awakened: true }).battle
+  assert.deepEqual([direct.phase, direct.playerHp, direct.enemyHp, direct.lastExchange.hitsTaken], ['won', 1, 0, []])
+})
+
+test('선제 처치에서 철추 반사 피해는 추가되지 않고 숫돌 처치는 적 공격 뒤예요', () => {
+  const thrower = encounter('chain-warden', 6)
+  const direct = { ...thrower.battle, turn: 2, playerHp: 1, enemyHp: 6, awakened: true, dice: [6, 5, 1], slots: [a, g, g] }
+  const reflect = forecastYacht(direct)
+  assert.equal(reflect.opening.dealt, 6)
+  assert.equal(reflect.reflected.dealt, 0)
+  assert.deepEqual(resolveYachtTurn(direct).battle.lastExchange.hitsTaken, [])
+
+  const golem = encounter('thorns', 1)
+  const delayed = { ...golem.battle, dice: [6, 2, 1], slots: [a, g, g], enemyHp: 8,
+    loot: { ...golem.battle.loot, prepared: { whetstone: 1 } } }
+  const result = forecastYacht(delayed)
+  assert.equal(result.opening.dealt, 6)
+  assert.equal(result.dealt, 8)
+  assert.deepEqual(result.hits, [6])
+  assert.deepEqual(resolveYachtTurn(delayed).battle.lastExchange.hitsTaken, [6])
+})
 
 test('다섯 기믹은 지정된 칸의 눈으로만 성립하고 현재 턴과 다음 턴을 구분한다', () => {
   const trip = encounter('freeze', 2)

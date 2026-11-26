@@ -472,6 +472,7 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
       ...(result.chargeBroken && { chargeBroken: true }),
       ...(activated && { gimmick: activated }),
       ...(heartRevived && { heartRevived: true }),
+      ...(playerHp === 0 && result.retaliation > 0 && result.damage - result.retaliation < battle.playerHp && { defeatedByThorns: true }),
     },
   }
 

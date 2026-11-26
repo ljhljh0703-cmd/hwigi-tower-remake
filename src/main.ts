@@ -27,7 +27,7 @@ import { availableCounterChoices, cancelSeal, chooseHourglass, draftSeal, startH
 import { relicReady, REWARD_CARDS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
 import {
-  allocationPower, assignDie, attackFor, chargedStrikePreview, combatSlots, DIE_COUNT, enemyIntentAt, incomingAttack, respondingIntent, splitEnemyDamage,
+  allocationPower, assignDie, attackFor, chargedStrikePreview, combatSlots, DIE_COUNT, enemyIntentAt, incomingAttack, respondingIntent,
 } from './combat.ts'
 import type { CounterResult, Exchange, Gimmick, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
@@ -829,13 +829,12 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   const reflected = exchange.gimmick === 'reflect'
   const taken = hitsTaken.reduce((sum, value) => sum + value, 0)
   const totals = yachtAllocationTotals(before, before.slots, awakenedDice ?? before.dice)
-  const opening = splitEnemyDamage(retreat ? { ...before, escort: undefined } : before, totals.attack)
-  const lateEscortDamage = (escortDealt ?? 0) - opening.escortDealt
-  // 아이템 추가 피해가 적을 쓰러뜨려도 원래 확정된 공격 타수는 표시한다.
-  const incomingHits = opening.dealt < before.enemyHp
-    ? forecastYacht(before, before.slots, awakenedDice ?? before.dice, yachtGimmick(before)).incoming.hits.slice(0, hitsTaken.length) : []
+  const outcome = forecastYacht(before, before.slots, awakenedDice ?? before.dice, yachtGimmick(before))
+  const { opening, reflected: reflection, retaliation: thorns } = outcome
+  const lateEnemyDamage = dealt - opening.dealt - reflection.dealt
+  const lateEscortDamage = (escortDealt ?? 0) - opening.escortDealt - reflection.escortDealt
+  const incomingHits = outcome.incoming.hits.slice(0, hitsTaken.length - Number(thorns > 0))
   const incoming = incomingHits.length
-  const thorns = hitsTaken.length > incoming ? hitsTaken.at(-1)! : 0
   const exact = after.phase === 'counter'
   const ordered = incoming > 1
   if (incoming && (dealt || escortDealt)) {
@@ -893,16 +892,19 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     for (const hit of hits) showDamage(hit)
     if (hits.some(hit => hit.target !== 'player')) feel.after(effectDuration(105), () => sound.play('grit', 1, .085))
   }
-  const enemyHit: BattleHit[] = dealt ? [{ target: 'enemy', damage: dealt, defeated: after.enemyHp === 0 }] : []
-  const earlyEnemyHit = lateEscortDamage ? [] : enemyHit
   const heroHit = (damage: number, final = true): BattleHit[] => damage ? [{ target: 'player', damage, defeated: final && after.playerHp === 0 }] : []
   const renewed = exchange.heartRevived || after.phase === 'won' && before.bossRelic?.id === 'healing-scepter' && after.playerHp > before.playerHp - taken
   const updatePlayer = () => updateVital(ui.playerHp, ui.playerTotal, renewed ? Math.max(0, before.playerHp - taken) : after.playerHp)
-  const updateEnemy = () => updateVital(ui.enemyHp, ui.enemyTotal, after.enemyHp)
+  let visibleEnemyHp = before.enemyHp
+  const hitEnemy = (damage: number) => {
+    visibleEnemyHp -= damage
+    emit([{ target: 'enemy', damage, defeated: visibleEnemyHp === 0 }])
+    updateVital(ui.enemyHp, ui.enemyTotal, visibleEnemyHp)
+  }
   ui.intent.classList.toggle('parry-in-progress', golemParry)
   if (!golemParry) {
     arena.playExchange(before, exchange, incoming, intent)
-    if (earlyEnemyHit.length || opening.escortDealt) sound.play('swish', 1, .09, effectDuration(opening.escortDealt ? 45 : 96) / 1000)
+    if (opening.dealt || opening.escortDealt) sound.play('swish', 1, .09, effectDuration(opening.escortDealt ? 45 : 96) / 1000)
   }
   ui.awakening.hidden = !awakenedDice
   ui.awakening.innerHTML = awakenedDice ? `${icon('die')}${awakenedDice.map((face) => `<span>${face}</span>`).join('')}` : ''
@@ -917,10 +919,6 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     sound.play('dice-place', .72)
     updateEscortVital(0)
   }
-  if (reflected) {
-    if (!reducedMotion()) await at(65)
-    showParry()
-  }
   if (exchange.gimmick === 'armor' || exchange.gimmick === 'trip' || exchange.gimmick === 'topple') {
     if (!reducedMotion()) await at(75)
     sound.play('stone-hit', exchange.gimmick === 'armor' ? 1.33 : .82)
@@ -931,10 +929,17 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     hitEscort(opening.escortDealt, before.escort.hp - opening.escortDealt)
   }
   if (incoming) arena.queueShadow(start + effectDuration(incomingContact), false)
-  if (earlyEnemyHit.length) {
+  if (opening.dealt) {
     await at(96)
-    emit(earlyEnemyHit)
-    updateEnemy()
+    hitEnemy(opening.dealt)
+  }
+  if (reflected && opening.dealt < before.enemyHp) {
+    await at(incomingContact)
+    showParry()
+    if (reflection.escortDealt && before.escort) {
+      hitEscort(reflection.escortDealt, before.escort.hp - opening.escortDealt - reflection.escortDealt)
+    }
+    if (reflection.dealt) hitEnemy(reflection.dealt)
   }
   if (golemSingle && dealt && !reducedMotion()) {
     parryOffset = 170
@@ -947,7 +952,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     await at(time)
     const damage = hitsTaken[index]
     const final = index === incoming - 1
-    emit(heroHit(damage, final), { delay: reducedMotion() ? index * 40 : 0, incoming: true, ordered, final,
+    emit(heroHit(damage, final && !exchange.defeatedByThorns), { delay: reducedMotion() ? index * 40 : 0, incoming: true, ordered, final,
       guarded: damage === 0 && !(exact && final), parry: exact && final })
     readHit(index)
   }
@@ -973,11 +978,11 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     const lastContact = incoming ? incomingContact + (incoming - 1) * repeatContact : 96
     if (!reducedMotion()) await at(lastContact + 70)
     hitEscort(lateEscortDamage, after.escort?.hp ?? 0)
-    if (dealt) {
-      if (!reducedMotion()) await at(lastContact + 140)
-      emit(enemyHit)
-      updateEnemy()
-    }
+  }
+  if (lateEnemyDamage > 0) {
+    const lastContact = incoming ? incomingContact + (incoming - 1) * repeatContact : reflected ? incomingContact : 96
+    await at(lastContact + (lateEscortDamage ? 140 : 70))
+    hitEnemy(lateEnemyDamage)
   }
   if (renewed) {
     if (!reducedMotion()) await wait(160)
@@ -1583,7 +1588,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   const floor = route ? (route.node === null ? route.completed.length : route.map.byId[route.node].floor) : fight
   const floors = route ? MAP_FLOORS : FIGHT_COUNT
   ui.gameOver.hidden = !defeated
-  if (defeated) ui.defeatFloor.textContent = `${floor}층에서 쓰러졌습니다.`
+  if (defeated) ui.defeatFloor.textContent = `${floor}층에서 ${battle.lastExchange?.defeatedByThorns ? '가시에 찔려 ' : ''}쓰러졌습니다.`
   ui.fight.textContent = `${floor}/${floors} 층`
   renderActivePerk(battle)
   ui.turn.hidden = !inCombat

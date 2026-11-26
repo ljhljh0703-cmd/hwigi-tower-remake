@@ -278,3 +278,47 @@ test('패배한 전장을 남기고 키보드로 다시 오르기와 로비에 �
   await expect(page.getByRole('button', { name: '새로 하기' })).toBeVisible()
   await expect(page.getByRole('button', { name: '이어 하기' })).toHaveCount(0)
 })
+
+test('시드 0에서 선제 처치가 일반 타격을 막고 동시 사망 이유가 가시로 표시된다', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('hwigi-tower.first-run-guide', JSON.stringify({ complete: true, seen: [] }))
+  })
+  await page.goto(new URL('?seed=0', process.env.HWIGI_SMOKE_URL).href)
+  await page.getByRole('button', { name: '새로 하기' }).tap()
+  await page.getByRole('button', { name: /^방패 저금,/ }).tap()
+  await page.locator('#fork-options button').tap()
+  await expect(page.locator('#pool-dice .die-face')).toHaveText(['6', '6', '5'])
+  await placeAll(page, 'attack')
+  await page.locator('#resolve').tap()
+  await expect(page.locator('#turn')).toHaveAttribute('aria-label', '2턴')
+  await expect(page.locator('#player-hp')).toHaveJSProperty('value', 13)
+  await expect(page.locator('#enemy-hp')).toHaveJSProperty('value', 5)
+  await expect(page.locator('#pool-dice .die-face')).toHaveText(['2', '4', '3'])
+  await placeAll(page, 'attack')
+  await page.locator('#resolve').tap()
+  await expect(page.locator('#defeat-floor')).toHaveText('1층에서 가시에 찔려 쓰러졌습니다.')
+  await expect(page.locator('#player-hp')).toHaveJSProperty('value', 0)
+  await expect(page.locator('#enemy-hp')).toHaveJSProperty('value', 0)
+  await expect(page.locator('#hit-order')).toBeHidden()
+  await expect(page.locator('#game-over-title')).toBeFocused()
+})
+
+test('턴 끝 숫돌 피해로 이기면 적 타격과 내 체력이 격파보다 먼저 표시된다', async ({ page }) => {
+  const golem = encounter('thorns', 1)
+  await resume(page, withBattle(golem, { dice: [6, 2, 1], enemyHp: 8,
+    loot: { ...golem.battle.loot, prepared: { whetstone: 1 } } }))
+  await page.locator('#die-0').tap()
+  await page.locator('#assign-attack').tap()
+  await placeAll(page, 'guard')
+  await page.evaluate(() => {
+    window.meterUpdates = []
+    const property = Object.getOwnPropertyDescriptor(HTMLMeterElement.prototype, 'value')
+    Object.defineProperty(HTMLMeterElement.prototype, 'value', { ...property, set(value) {
+      if (this.value !== value) window.meterUpdates.push([this.id, value])
+      property.set.call(this, value)
+    } })
+  })
+  await page.locator('#resolve').tap()
+  await expect(page.getByRole('heading', { name: '전투 보상' })).toBeVisible()
+  expect(await page.evaluate(() => window.meterUpdates)).toEqual([['enemy-hp', 2], ['player-hp', 16], ['enemy-hp', 0]])
+})

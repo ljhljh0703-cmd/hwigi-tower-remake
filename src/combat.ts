@@ -70,6 +70,7 @@ export interface Exchange {
   readonly gimmick?: Gimmick
   readonly heartRevived?: true
   readonly crownTriggered?: true
+  readonly defeatedByThorns?: true
 }
 
 export interface Battle {
@@ -314,6 +315,8 @@ export function forecast(
   const retaliation = Math.min(thorns, MAX_ENEMY_DAMAGE - attackDamage)
   if (retaliation) hits.push(retaliation)
   return {
+    opening: inflicted,
+    reflected: { dealt: dealt - inflicted.dealt, escortDealt: escortDealt - inflicted.escortDealt },
     dealt,
     escortDealt,
     intent,
@@ -321,6 +324,7 @@ export function forecast(
     chargeBroken: breaksCharge(intent, attack - escortDealt),
     hits,
     damage: attackDamage + retaliation,
+    retaliation,
     counter: suppress === undefined && dealt < battle.enemyHp && incoming.totalDamage > 0 && guard === incoming.totalDamage,
   }
 }
