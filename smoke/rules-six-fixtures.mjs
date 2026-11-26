@@ -2,9 +2,9 @@ import { availableMapNodes, beginMapAscent, enterMapNode, resolveAscentTurn, ret
 import { generateAscentMap } from '../src/ascent-map.ts'
 import { loadAscentSave, writeAscentSave } from '../src/ascent-save.ts'
 
-export function nodeFor(enemyId, floor) {
+export function nodeFor(enemyId, floor, rules = 6) {
   for (let seed = 0; seed < 1024; seed++) {
-    const node = generateAscentMap(seed, 6).nodes.find((entry) => entry.enemyId === enemyId && (!floor || entry.floor === floor))
+    const node = generateAscentMap(seed, rules).nodes.find((entry) => entry.enemyId === enemyId && (!floor || entry.floor === floor))
     if (node) return { seed, node }
   }
   throw new Error(`적 방을 찾지 못했습니다: ${enemyId}`)
@@ -20,7 +20,7 @@ export function finishRoom(run, relic = 'revived-heart') {
     run = playWith(run, dice, dice.map(() => 'attack'), { enemyHp: 1 })
   }
   const node = run.route.map.byId[run.route.node]
-  const choice = node.enemyId === 'chain-warden' ? relic : run.route.map.rules === 6 && node.kind === 'elite' ? rewardOffers(run)[0] ?? 'skip' : 'skip'
+  const choice = node.enemyId === 'chain-warden' ? relic : run.route.map.rules >= 6 && node.kind === 'elite' ? rewardOffers(run)[0] ?? 'skip' : 'skip'
   return takeAscentReward(run, choice, choice === 'incomplete' ? { hand: 'straight' } : {})
 }
 
@@ -35,9 +35,9 @@ export function mapBefore(seed, floor, rules = 6, relic, fifthLane) {
   return run
 }
 
-export function encounter(enemyId, floor) {
-  const { seed, node } = nodeFor(enemyId, floor)
-  return enterMapNode(mapBefore(seed, node.floor), node.id)
+export function encounter(enemyId, floor, rules = 6) {
+  const { seed, node } = nodeFor(enemyId, floor, rules)
+  return enterMapNode(mapBefore(seed, node.floor, rules), node.id)
 }
 
 export function checkpoint(run, rewardPreview, selected = []) {

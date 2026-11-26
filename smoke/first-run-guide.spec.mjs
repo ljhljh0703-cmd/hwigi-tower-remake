@@ -249,7 +249,7 @@ test('해금, 상인과 보스 유물 안내는 처음에만 나타난다', asyn
     const example = { ...run, battle: { ...run.battle, dice } }
     await resume(page, example)
     await checkNote(page, id, text)
-    await line(page).tap()
+    await page.locator('#arena').tap({ position: { x: 8, y: 58 } })
     await expect(note(page)).toBeHidden()
     await resume(page, example)
     await expect(note(page)).toBeHidden()

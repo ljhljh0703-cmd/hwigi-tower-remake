@@ -3,8 +3,8 @@ import { ASCENT_ENEMIES, CHAIN_WARDEN, MAP_ENEMIES, RULES_SIX_ENEMIES } from './
 import type { AscentEnemyId, enemyForFight } from './enemy-roster.ts'
 
 export const MAP_RULES = 1
-export type MapRules = 1 | 2 | 3 | 4 | 5 | 6
-export const CURRENT_MAP_RULES = 6
+export type MapRules = 1 | 2 | 3 | 4 | 5 | 6 | 7
+export const CURRENT_MAP_RULES = 7
 export const MAP_START = 0
 export const MAP_FLOORS = 12
 export const MAP_FIGHTS = MAP_FLOORS - 1
@@ -60,7 +60,7 @@ export const RULES_SIX_BADGES = {
 } satisfies Partial<Record<AscentEnemyId, { icon: string; label: string }>>
 
 function forkKinds(seed: number, floor: number, rules: MapRules): readonly MapNodeKind[] {
-  const merchantFloor = rules === 6 ? 7 + draw(seed, 0, 90) % 2 : 6 + draw(seed, 0, 90) % 3
+  const merchantFloor = rules >= 6 ? 7 + draw(seed, 0, 90) % 2 : 6 + draw(seed, 0, 90) % 3
   const earlyEvent = 3 + draw(seed, 0, 91) % 3
   const lateEvent = Math.max(merchantFloor + 1, 8) + draw(seed, 0, 92) % (11 - Math.max(merchantFloor + 1, 8))
   if (floor === merchantFloor) return ['fight', 'shop']
@@ -74,7 +74,7 @@ export function generateAscentMap(seed: number, rules: MapRules = MAP_RULES): As
   let eliteIndex = 0
   const nodes = stageOneFloors.flatMap((types, index) => {
     const floor = index + 1
-    const variants: readonly MapNodeKind[] = rules === 6 && floor === 6 ? ['boss']
+    const variants: readonly MapNodeKind[] = rules >= 6 && floor === 6 ? ['boss']
       : rules >= 4 && types.length === 2 ? forkKinds(seed, floor, rules)
       : rules >= 2 && (floor === 4 || floor === 9) ? ['fight', 'event']
       : rules >= 2 && floor === 7 ? ['fight', 'shop'] : types
@@ -87,10 +87,10 @@ export function generateAscentMap(seed: number, rules: MapRules = MAP_RULES): As
         : kind === 'elite' ? eliteEnemies[(eliteStart + eliteIndex++) % eliteEnemies.length]
           : kind === 'boss' ? (floor === 6 ? 'chain-warden' : 'boss') : undefined
       const enemyId = replacement === 0 && kind === 'fight' && position === ordered.indexOf('fight')
-        ? floor === (rules === 6 ? 8 : 6) ? 'shield-soldier' : floor === 9 ? 'seal-sentinel' : baseEnemy
+        ? floor === (rules >= 6 ? 8 : 6) ? 'shield-soldier' : floor === 9 ? 'seal-sentinel' : baseEnemy
         : replacement === 1 && floor === 10 && kind === 'elite' ? 'iron-knight' : baseEnemy
       const nextBase = (floor + 1) * 4
-      const next = floor === MAP_FLOORS ? [] : floor >= 10 || (rules === 6 && floor === 5) ? [nextBase + 2]
+      const next = floor === MAP_FLOORS ? [] : floor >= 10 || (rules >= 6 && floor === 5) ? [nextBase + 2]
         : rules >= 4 || lane === 2 ? [nextBase, nextBase + 1]
           : lane === (floor + diagonal) % 2 ? [nextBase, nextBase + 1] : [nextBase + lane]
       const eventOrder = rules >= 4 ? draw(seed, floor, 87) : draw(seed, 0, 87) + Number(floor === 9)
@@ -119,16 +119,16 @@ export function enemyForMapNode(node: MapNode, rules: MapRules): ReturnType<type
   if (node.enemyId === 'chain-warden') return CHAIN_WARDEN
   const original = roster.find(({ id }) => id === node.enemyId)
   if (!original) return undefined
-  const newIntents = rules === 6 && original.id !== 'iron-knight' ? RULES_SIX_ENEMIES[original.id] : undefined
+  const newIntents = rules >= 6 && original.id !== 'iron-knight' ? RULES_SIX_ENEMIES[original.id] : undefined
   const enemy = newIntents ? { ...original, intents: newIntents } : original
   const boss = node.kind === 'boss'
   const elite = node.kind === 'elite'
   // Rules 1–4 keep the unlock bonus when an existing ascent enters another battle.
   const attackPerUnlock = rules <= 4 ? Number(elite || boss) : 0
-  if (boss) return { ...enemy, hp: rules === 6 ? 83 : rules >= 2 ? 84 : enemy.hp, attackPerUnlock }
+  if (boss) return { ...enemy, hp: rules >= 6 ? 83 : rules >= 2 ? 84 : enemy.hp, attackPerUnlock }
   const earlyElite = rules >= 4 && elite && node.floor <= 5
   const growthHp = enemy.hp - (earlyElite ? 4 : 0) + 2 * Math.floor((node.floor - (elite ? 5 : 1)) / 2)
-  const hp = rules !== 6 ? growthHp : enemy.id === 'seal-sentinel' ? 27
+  const hp = rules < 6 ? growthHp : enemy.id === 'seal-sentinel' ? 27
     : growthHp + (elite ? 2 : node.floor >= 2 && node.floor <= 8 ? 4 : 0)
   const firstHitAdjustment = Number(node.floor >= 9) - (elite ? 3 : 0) - (earlyElite ? 2 : 0)
   const first = enemy.intents.find((intent) => intent.matches(1))!

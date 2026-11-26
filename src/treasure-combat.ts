@@ -5,6 +5,7 @@ import { artifactReady, changeCount, itemUses } from './treasure.ts'
 import type { Artifact, CounterChoice, Item, Preparation, Shard, Treasure, TreasureState } from './treasure.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 import type { forecast } from './combat.ts'
+import { consumableReady } from './item-effects.ts'
 
 export function spendItem(state: TreasureState, item: Item): TreasureState {
   return { ...state, spentItems: changeCount(state.spentItems, item, 1), triggered: [...(state.triggered ?? []), item] }
@@ -24,14 +25,16 @@ function spendShard(state: TreasureState, id: Shard): TreasureState {
 
 export function openTreasureTurn(battle: YachtBattle): YachtBattle {
   if (!battle.loot) return battle
-  const { armed: _armed, shardArmed: _shard, tuned: _tuned, counter: _counter, counterFlags: _flags, ...loot } = battle.loot
+  const { armed: _armed, shardArmed: _shard, tuned: _tuned, counter: _counter, counterFlags: _flags,
+    consumableArmed: _item, consumableUsed: _used, reserveRoll: _reserve, latchDraft: _latch, counterRecast: _recast, ...loot } = battle.loot
   if (!loot.prepared.emergency || battle.playerHp > 8) return { ...battle, loot }
   return { ...battle, playerHp: Math.min(PLAYER_HP, battle.playerHp + 2), loot: spendPrep(loot, 'emergency') }
 }
 
 export function expireBattleTreasure(battle: YachtBattle): YachtBattle {
   if (!battle.loot) return battle
-  const { mirrorDamage: _mirror, overflowDamage: _overflow, counterFlags: _flags, armed: _armed, shardArmed: _shard, tuned: _tuned, ...loot } = battle.loot
+  const { mirrorDamage: _mirror, overflowDamage: _overflow, counterFlags: _flags, armed: _armed, shardArmed: _shard, tuned: _tuned,
+    consumableArmed: _item, latchDraft: _latch, latched: _latched, ...loot } = battle.loot
   return { ...battle, loot: { ...loot, prepared: {} } }
 }
 
@@ -50,8 +53,8 @@ function changeable(battle: YachtBattle, index: number) {
 
 export function toggleArtifact(battle: YachtBattle, id: 'banner' | 'hammer'): YachtBattle {
   const { loot } = battle
-  if (battle.phase !== 'assign' || !loot || loot.hourglass || !artifactReady(loot, id)) return battle
-  if (id === 'hammer' && enemyIntentAt(battle).chargeThreshold === undefined) return battle
+  if (battle.phase !== 'assign' || !loot || loot.hourglass || loot.reserveRoll || !artifactReady(loot, id)) return battle
+  if (id === 'hammer' && (battle.itemsSeven || enemyIntentAt(battle).chargeThreshold === undefined)) return battle
   const armed = loot.armed ?? []
   return { ...battle, loot: { ...loot, armed: armed.includes(id) ? armed.filter((choice) => choice !== id) : [...armed, id] } }
 }
@@ -73,7 +76,7 @@ export function useTuningShard(battle: YachtBattle, change: -1 | 1): YachtBattle
 
 export function draftSeal(battle: YachtBattle, index: number, change: -2 | -1 | 1 | 2): YachtBattle {
   const { loot } = battle
-  if (!loot || !loot.equipped.includes('incomplete') || !loot.sealHand || loot.sealUsed || loot.sealDraft || loot.hourglass || loot.tuned || loot.shardArmed || !changeable(battle, index)) return battle
+  if (battle.itemsSeven || !loot || !loot.equipped.includes('incomplete') || !loot.sealHand || loot.sealUsed || loot.sealDraft || loot.hourglass || loot.tuned || loot.shardArmed || !changeable(battle, index)) return battle
   if (loot.sealHand === 'triple' ? battle.fourthDieUnlocked : battle.extraRerollAvailable || battle.extraRerollSpent) return battle
   const face = battle.dice[index] + change
   const mechanic = enemyIntentAt(battle).mechanic
@@ -94,7 +97,7 @@ export function cancelSeal(battle: YachtBattle): YachtBattle {
 
 export function startHourglass(battle: YachtBattle, indices: readonly number[]): YachtBattle {
   const { loot } = battle
-  if (!loot || !artifactReady(loot, 'hourglass') || loot.hourglass || loot.sealDraft || !battle.rerolled || battle.playerHp < 4) return battle
+  if (battle.itemsSeven || !loot || !artifactReady(loot, 'hourglass') || loot.hourglass || loot.sealDraft || !battle.rerolled || battle.playerHp < 4) return battle
   if (indices.length !== 2 || new Set(indices).size !== 2 || !indices.every((index) => changeable(battle, index))) return battle
   const hourglass = [...indices].sort((a, b) => a - b).map((index, rank) => ({
     index, original: battle.dice[index], rolled: roll(battle.seed, battle.turn, 90 + rank),
@@ -194,11 +197,23 @@ export function availableCounterChoices(battle: YachtBattle, result = battle.loo
   const { loot } = battle
   if (!loot || !result) return ['now']
   const choices: CounterChoice[] = ['now']
+  if (battle.itemsSeven) {
+    if (battle.bossRelic?.id === 'brake-crown' && !battle.crownUsed) return choices
+    if (!loot.counterRecast && consumableReady(loot, 'coin')) choices.push('coin')
+    const damage = counterDamage(battle, result.damage)
+    if (artifactReady(loot, 'mirror') && damage < battle.enemyHp + (battle.escort?.hp ?? 0) && Math.min(12, damage * 2) > damage) choices.push('mirror')
+    if (artifactReady(loot, 'horn') && battle.fourthDieUnlocked && !result.joint && result.damage < 8) choices.push('horn')
+    return choices
+  }
   const followups = Number(Boolean(loot.counterFlags?.coin)) + Number(Boolean(loot.counterFlags?.assist))
   const remainingHp = battle.enemyHp + (battle.escort?.hp ?? 0)
   if (artifactReady(loot, 'mirror') && result.damage + 2 * followups < remainingHp && Math.min(12, result.damage * 2) > result.damage) choices.push('mirror')
   if (artifactReady(loot, 'horn') && loot.counterFlags?.horn && !result.joint && result.damage < 8) choices.push('horn')
   return choices
+}
+
+export function counterDamage(battle: YachtBattle, damage: number) {
+  return battle.itemsSeven && battle.bossRelic?.id === 'emperor-shield' ? Math.floor(damage / 2) : damage
 }
 
 export function settleTreasureCounter(battle: YachtBattle, result: CounterResult, choice: CounterChoice) {

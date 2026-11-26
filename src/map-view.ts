@@ -43,12 +43,13 @@ export class ForkView {
       button.dataset.kind = node.kind
       const name = names[node.kind]
       const enemy = enemyForMapNode(node, ascent.route!.map.rules)
-      const rulesSix = ascent.route!.map.rules === 6
+      const rules = ascent.route!.map.rules
+      const rulesSix = rules >= 6
       const label = rulesSix && node.enemyId ? rulesSixBadges[node.enemyId]?.label : undefined
       const reward = rulesSix && node.kind === 'elite' ? `<span class="fork-relic" role="img" aria-label="유물 보상">${icon('map-reward')}</span>` : ''
       const hint = enemy ? `<span class="fork-hint" aria-label="${label ? `${label}, ` : ''}적 체력 ${enemy.hp}">${icon('heart')}${enemy.hp}</span>`
         : node.kind === 'shop' && ascent.route!.map.rules >= 3
-          ? `<span class="fork-hint" aria-label="가격 ${SHOP_PRICES.kit}에서 ${SHOP_PRICES.artifact}동전">${icon('ascent-coin')}${SHOP_PRICES.kit}–${SHOP_PRICES.artifact}</span>` : ''
+          ? `<span class="fork-hint" aria-label="가격 ${SHOP_PRICES.kit}에서 ${rules === 7 ? SHOP_PRICES.rare : SHOP_PRICES.artifact}동전">${icon('ascent-coin')}${SHOP_PRICES.kit}–${rules === 7 ? SHOP_PRICES.rare : SHOP_PRICES.artifact}</span>` : ''
       const portrait = enemy
         ? `<img class="fork-portrait" alt="" src="${new URL(`art/${ENEMY_SPRITES[enemy.id].name}-idle.png`, document.baseURI).href}">`
         : `<span class="fork-symbol">${pixelIcon(MAP_NODE_ICONS[node.kind])}</span>`

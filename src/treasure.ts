@@ -5,17 +5,25 @@ export const ITEMS = ['weight', 'buckle', 'rewind', 'wedge', 'tongs', 'mantle', 
 export const PREPARATIONS = ['whetstone', 'lining', 'emergency'] as const
 export const SHARDS = ['tuning', 'assist', 'smash'] as const
 export const ARTIFACTS = ['mirror', 'overflow', 'incomplete', 'heart-die', 'hourglass', 'hammer', 'banner', 'horn'] as const
+export const COMMON_CONSUMABLES = ['weight', 'buckle', 'wedge', 'coin', 'tuning', 'twin-mold', 'spacer', 'advance-knot'] as const
+export const RARE_CONSUMABLES = ['reserve-gauge', 'clash-seal'] as const
+export const COMMON_ARTIFACTS = ['mirror', 'overflow', 'banner', 'horn', 'die-latch'] as const
+export const RARE_ARTIFACTS = ['incomplete', 'heart-die', 'hourglass'] as const
+export const NEW_TREASURES = ['twin-mold', 'spacer', 'advance-knot', 'reserve-gauge', 'clash-seal', 'die-latch'] as const
 export const ARTIFACT_SLOTS = 3
 export const REST_HEAL = 5
 
 export type Item = (typeof ITEMS)[number]
 export type Preparation = (typeof PREPARATIONS)[number]
 export type Shard = (typeof SHARDS)[number]
-export type Artifact = (typeof ARTIFACTS)[number]
-export type Treasure = Item | Preparation | Shard | Artifact | 'bandage' | 'medicine' | 'kit'
+export type Artifact = (typeof ARTIFACTS)[number] | (typeof COMMON_ARTIFACTS)[number]
+export type Consumable = (typeof COMMON_CONSUMABLES)[number] | (typeof RARE_CONSUMABLES)[number]
+export type ArmedConsumable = Exclude<Consumable, 'coin' | 'tuning' | 'twin-mold'>
+export type Treasure = Item | Preparation | Shard | Artifact | Consumable | 'bandage' | 'medicine' | 'kit'
 export type HandChoice = 'triple' | 'straight'
-export type CounterChoice = 'now' | 'mirror' | 'horn'
+export type CounterChoice = 'now' | 'mirror' | 'horn' | 'coin'
 export type Counts<T extends string> = Readonly<Partial<Record<T, number>>>
+export type PendingDie = { readonly index: number; readonly original: number; readonly rolled: number }
 
 export interface ArtifactOptions {
   readonly replace?: Artifact
@@ -39,20 +47,46 @@ export interface TreasureState {
   readonly shardArmed?: 'assist' | 'smash'
   readonly tuned?: true
   readonly sealDraft?: { readonly index: number; readonly before: number }
-  readonly hourglass?: readonly { readonly index: number; readonly original: number; readonly rolled: number }[]
+  readonly hourglass?: readonly PendingDie[]
   readonly mirrorDamage?: number
   readonly overflowDamage?: number
   readonly counter?: CounterResult
   readonly counterFlags?: { readonly coin: boolean; readonly assist: boolean; readonly horn: boolean }
   readonly triggered?: readonly Treasure[]
+  readonly consumables?: Counts<Consumable>
+  readonly consumableArmed?: ArmedConsumable
+  readonly consumableUsed?: true
+  readonly reserveRoll?: readonly PendingDie[]
+  readonly latchDraft?: number
+  readonly latched?: { readonly index: number; readonly face: number }
+  readonly counterRecast?: true
 }
 
 export const emptyTreasure: TreasureState = { items: {}, spentItems: {}, prep: {}, prepared: {}, shards: {}, equipped: [], acquired: [], spent: [] }
 
-export function isArtifact(value: unknown): value is Artifact { return ARTIFACTS.some((id) => id === value) }
+export function isArtifact(value: unknown): value is Artifact { return value === 'die-latch' || ARTIFACTS.some((id) => id === value) }
 export function isItem(value: unknown): value is Item { return ITEMS.some((id) => id === value) }
 export function isPreparation(value: unknown): value is Preparation { return PREPARATIONS.some((id) => id === value) }
 export function isShard(value: unknown): value is Shard { return SHARDS.some((id) => id === value) }
+export function isConsumable(value: unknown): value is Consumable {
+  return COMMON_CONSUMABLES.some((id) => id === value) || RARE_CONSUMABLES.some((id) => id === value)
+}
+
+export function isArmedConsumable(value: unknown): value is ArmedConsumable {
+  return isConsumable(value) && value !== 'coin' && value !== 'tuning' && value !== 'twin-mold'
+}
+
+export function isSevenTreasure(value: unknown): value is Treasure {
+  return isConsumable(value) || COMMON_ARTIFACTS.some((id) => id === value) || RARE_ARTIFACTS.some((id) => id === value) ||
+    value === 'bandage' || value === 'medicine' || value === 'kit' || value === 'whetstone' || value === 'lining'
+}
+
+export function isNewTreasureId(value: unknown) { return NEW_TREASURES.some((id) => id === value) }
+
+export function treasureRarity(value: Treasure): 'common' | 'rare' | undefined {
+  if (RARE_ARTIFACTS.some((id) => id === value) || RARE_CONSUMABLES.some((id) => id === value)) return 'rare'
+  if (isSevenTreasure(value)) return 'common'
+}
 export function itemUses(state: TreasureState, item: Item): number { return (state.items[item] ?? 0) - (state.spentItems[item] ?? 0) }
 export function artifactReady(state: TreasureState, artifact: Artifact): boolean { return state.equipped.includes(artifact) && !state.spent.includes(artifact) }
 
@@ -69,19 +103,20 @@ export function equipArtifact(state: TreasureState, artifact: Artifact, options:
   const full = state.equipped.length === ARTIFACT_SLOTS
   if (full ? !options.replace || !state.equipped.includes(options.replace) : options.replace !== undefined) return null
   if (artifact === 'heart-die' && options.parity !== 'odd' && options.parity !== 'even') return null
-  if (artifact === 'incomplete' && options.hand !== 'triple' && options.hand !== 'straight') return null
+  if (artifact === 'incomplete' && !state.consumables && options.hand !== 'triple' && options.hand !== 'straight') return null
   const equipped = full ? state.equipped.map((id) => id === options.replace ? artifact : id) : [...state.equipped, artifact]
   return {
     ...state, equipped, acquired: state.acquired.includes(artifact) ? state.acquired : [...state.acquired, artifact],
     ...(artifact === 'heart-die' && { heartParity: options.parity }),
-    ...(artifact === 'incomplete' && { sealHand: options.hand }),
+    ...(artifact === 'incomplete' && !state.consumables && { sealHand: options.hand }),
   }
 }
 
 export function nextTreasureBattle(state: TreasureState): TreasureState {
-  const { items, prep, shards, equipped, acquired, heartParity, sealHand, sealUsed } = state
+  const { items, prep, shards, equipped, acquired, heartParity, sealHand, sealUsed, consumables } = state
   return {
     items, prep: {}, prepared: prep, shards, equipped, acquired, spent: [], spentItems: {},
+    ...(consumables && { consumables }),
     ...(heartParity && { heartParity }), ...(sealHand && { sealHand }), ...(sealUsed && { sealUsed }),
   }
 }
@@ -107,6 +142,12 @@ export const TREASURE_CARDS = {
   hammer: { name: '금 가르는 망치', icon: 'treasure-hammer', value: '12→15 · 0', description: '전투당 한 번, 힘 모으기 턴에 켜고 평소보다 3 높은 문턱을 넘으면 다음 치명 일격을 없앱니다. 켠 채 턴을 확정하면 실패해도 소모됩니다.' },
   banner: { name: '양날 깃발', icon: 'treasure-banner', value: '≤4 −', description: '전투당 1회, 켠 턴에 공격의 가장 낮은 유효 눈만큼(최대 4) 받는 피해를 줄입니다. 피해를 줄일 때만 소모됩니다.' },
   horn: { name: '교대의 뿔', icon: 'treasure-horn', value: '→8 · 1회', description: '전투당 1회, 에고 주사위로 본체 공격·정확 방어 시 룰렛 일반 피해를 에고 주사위 합공 피해 8로 바꿉니다.' },
+  'twin-mold': { name: '쌍금 틀', icon: 'treasure-twin-mold', value: '=', description: '일반 주사위 하나를 다른 일반 주사위와 같은 눈으로 맞춥니다.' },
+  spacer: { name: '간격자', icon: 'treasure-spacer', value: '−1', description: '방어가 예고보다 1 크면 1을 빼 정확히 막습니다.' },
+  'advance-knot': { name: '전진 매듭', icon: 'treasure-advance-knot', value: '+6', description: '방어 칸을 비우고 공격하면 공격 합이 6 오릅니다.' },
+  'reserve-gauge': { name: '예비 눈금', icon: 'treasure-reserve-gauge', value: '↔', description: '기본 재굴림에서 굴린 일반 주사위는 이전 눈과 새 눈 중 고릅니다.' },
+  'clash-seal': { name: '격돌 인장', icon: 'treasure-clash-seal', value: '×2', description: '공격 칸에 같은 눈이 둘 이상이면 공격 합이 두 배가 됩니다.' },
+  'die-latch': { name: '눈금 걸쇠', icon: 'treasure-die-latch', value: '→', description: '전투당 한 번, 일반 주사위 하나의 눈을 다음 턴에 다시 받습니다.' },
 } as const
 
 export function isNewTreasure(value: unknown): value is keyof typeof TREASURE_CARDS {

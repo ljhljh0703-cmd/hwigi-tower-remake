@@ -3,7 +3,7 @@ import { beginAscent, FIGHT_COUNT, nextAscentFight, resolveAscentTurn, takeAscen
 import { DIE_COUNT, draw, intentOf } from '../src/combat.ts'
 import { offerPerks, pickOfferedPerk, START_PERKS } from '../src/perks.ts'
 import {
-  forecastYacht, rerollYachtDice, spendExtraReroll, spinYachtCounter, toggleYachtWedge, yachtRerollCost,
+  canUseExtraReroll, forecastYacht, rerollYachtDice, spendExtraReroll, spinYachtCounter, toggleYachtWedge, yachtRerollCost,
 } from '../src/yacht-combat.ts'
 import { chooseAllocation, chooseReroll, countYachtTradeoffs } from '../src/yacht-policy.ts'
 
@@ -31,21 +31,21 @@ function considerWedge(battle) {
 
 export function planAscentTurn(opening, policy, perkAware = true, observeRoll) {
   let battle = opening
-  if (wantsReroll(battle)) {
+  if (yachtRerollCost(battle) === 0 && wantsReroll(battle)) {
     const indices = chooseReroll(battle, policy, false, perkAware)
     const rerolled = rerollYachtDice(battle, indices)
     if (rerolled !== battle) observeRoll?.(indices, false)
     battle = rerolled
   }
-  if (battle.extraRerollAvailable && battle.rerolled && wantsReroll(battle)) {
+  if (canUseExtraReroll(battle) && wantsReroll(battle)) {
     const [index] = chooseReroll(battle, policy, true, perkAware)
     if (index !== undefined) {
       battle = spendExtraReroll(battle, index)
       observeRoll?.([index], true)
     }
   }
-  const cost = battle.perk?.kind === 'reroll' && battle.rerolled ? yachtRerollCost(battle) : null
-  if (cost !== null && battle.playerHp - cost >= hpReserveAfterPayment && wantsReroll(battle)) {
+  const cost = yachtRerollCost(battle)
+  if (cost !== null && cost > 0 && battle.playerHp - cost >= hpReserveAfterPayment && wantsReroll(battle)) {
     const indices = chooseReroll(battle, policy, false, perkAware)
     const rerolled = rerollYachtDice(battle, indices)
     if (rerolled !== battle) observeRoll?.(indices, false)

@@ -135,6 +135,7 @@ export class CounterRoulette {
 
     this.wheel.style.transform = rotate
     this.wheel.style.setProperty('--label-turn', `${-angle}deg`)
+    this.labels.forEach((label) => label.classList.remove('winner'))
     this.labels[reward.slot].classList.add('winner')
     this.paintSegments(reward.slot)
     this.button.hidden = true

@@ -3,7 +3,8 @@ import type { Parity, StartPerk } from './perks.ts'
 import { BANDAGE_HEAL, BUCKLE_MAX_SHORTFALL, BUCKLE_REDUCTION, WEIGHT_BONUS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward } from './rewards.ts'
 import type { BossRelic } from './boss-relic.ts'
-import { REST_HEAL } from './treasure.ts'
+import { REST_HEAL, TREASURE_CARDS } from './treasure.ts'
+import type { Treasure } from './treasure.ts'
 
 export const REWARD_TEXT: Readonly<Record<Exclude<Reward, BossRelic>, string>> = {
   bandage: `고르면 체력을 ${BANDAGE_HEAL} 회복해요.`,
@@ -32,6 +33,36 @@ export const REWARD_TEXT: Readonly<Record<Exclude<Reward, BossRelic>, string>> =
   hammer: '적이 큰 공격을 준비할 때 망치를 켜고 공격 칸을 표시 숫자까지 채우면 다음 공격을 막아요. 전투당 한 번, 실패해도 소모돼요.',
   banner: '깃발을 켜고 공격하면 공격 칸에서 봉인되지 않은 가장 낮은 눈만큼 피해를 줄여요. 최대 4, 전투마다 한 번이에요.',
   horn: '에고 주사위로 공격하고 적 공격만큼 막으면 8 미만 룰렛 피해를 8로 바꿔요. 전투당 한 번이에요.',
+  'twin-mold': TREASURE_CARDS['twin-mold'].description,
+  spacer: TREASURE_CARDS.spacer.description,
+  'advance-knot': TREASURE_CARDS['advance-knot'].description,
+  'reserve-gauge': TREASURE_CARDS['reserve-gauge'].description,
+  'clash-seal': TREASURE_CARDS['clash-seal'].description,
+  'die-latch': TREASURE_CARDS['die-latch'].description,
+}
+
+export const SEVEN_REWARD_VALUES: Readonly<Partial<Record<Treasure, string>>> = {
+  weight: '+최고 눈', buckle: '−3', wedge: '+3', coin: '↻1', tuning: '±1', whetstone: '+2/개', lining: '−4',
+  incomplete: '2→3', hourglass: '−2 · 1~6', banner: '+최고 눈', horn: '→8', bandage: '+5',
+}
+
+const SEVEN_REWARD_TEXT: Readonly<Partial<Record<Treasure, string>>> = {
+  weight: '이번 턴 공격 칸의 가장 높은 눈을 한 번 더 더합니다.',
+  buckle: '이번 턴 적 공격으로 받는 피해를 최대 3 줄입니다.',
+  wedge: '공격 주사위를 놓은 턴의 공격 합이 3 오릅니다.',
+  coin: '정확 방어 룰렛에서 첫 칸을 포기하고 한 번 더 돌립니다.',
+  tuning: '고른 일반 주사위의 눈을 1 올리거나 내립니다.',
+  whetstone: '다음 전투 첫 턴에 공격 주사위마다 공격 합이 2 오릅니다.',
+  lining: '다음 전투에서 처음 받는 적 공격 피해를 최대 4 줄입니다.',
+  incomplete: '등반당 한 번, 공격 칸의 같은 눈 둘로 에고 주사위를 해금합니다.',
+  hourglass: '전투당 한 번, 체력 2를 내고 일반 주사위 하나를 원하는 눈으로 맞춥니다.',
+  banner: '전투당 한 번, 공격 칸의 가장 높은 눈을 방어 합에도 더합니다.',
+  horn: '전투당 한 번, 낮은 일반 반격을 에고 합공 피해 8로 바꿉니다.',
+  bandage: '체력 14 이하에서 고르면 체력이 5 오릅니다.',
+}
+
+export function rewardText(id: Treasure, seven?: boolean) {
+  return (seven && SEVEN_REWARD_TEXT[id]) || REWARD_TEXT[id]
 }
 
 export function oathDescription(parity?: Parity) {
@@ -46,4 +77,11 @@ export const PERK_TEXT: Readonly<Record<StartPerk, string>> = {
   reroll: `재굴림 뒤 체력 ${START_PERKS.reroll.cost}을 내면 이번 턴에 한 번 더 굴려요.`,
   oath: oathDescription(),
   counter: `룰렛을 돌릴 때마다 아이콘 없는 칸의 최소 숫자가 ${START_PERKS.counter.step}씩 커져요.`,
+}
+
+export function perkText(perk: StartPerk, seven?: boolean) {
+  if (seven && perk === 'shield') return '정확히 막으면 다음 공격 합이 4 오릅니다.'
+  if (seven && perk === 'collector') return '새 족보를 해금할 때마다 같은 눈이 둘 이상인 칸의 합이 1 오릅니다.'
+  if (seven && perk === 'counter') return '룰렛을 돌릴 때마다 다음 룰렛부터 일반 칸 피해가 1 오릅니다(최대 +3).'
+  return PERK_TEXT[perk]
 }

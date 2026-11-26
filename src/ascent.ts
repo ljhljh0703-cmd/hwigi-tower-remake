@@ -66,7 +66,9 @@ export function beginMapAscent(seed: number, perk?: StartPerk, parity: Parity = 
   const enemy = enemyForMapNode(first, rules)!
   return {
     seed, fight: 0, enemy, maxHp: PLAYER_HP, unlocks: [], newUnlock: null,
-    battle: startYachtBattle(first.battleSeed, PLAYER_HP, false, false, startPerk(perk, parity), enemy, 0, rules >= 2 ? emptyTreasure : undefined, rules === 6 ? true : undefined),
+    battle: startYachtBattle(first.battleSeed, PLAYER_HP, false, false, startPerk(perk, parity), enemy, 0,
+      rules === 7 ? { ...emptyTreasure, consumables: {} } : rules >= 2 ? emptyTreasure : undefined,
+      rules >= 6 ? true : undefined, undefined, rules === 7 ? true : undefined),
     route: { map, completed: [], node: null, screen: 'map', ...(rules >= 3 && { coins: 0 }) },
   }
 }
@@ -78,11 +80,12 @@ export function availableMapNodes({ route }: Ascent): readonly MapNode[] {
 
 function enterBattle(ascent: Ascent, enemy: Ascent['enemy'], fightSeed: number): Ascent {
   const { unlocks, battle: previousBattle, rewardChoice: _choice, ...previous } = ascent
-  const perk = previousBattle.perk?.kind === 'blade' ? startPerk('blade') : previousBattle.perk
+  const kind = previousBattle.perk?.kind
+  const perk = kind === 'blade' || kind === 'shield' && previousBattle.itemsSeven ? startPerk(kind) : previousBattle.perk
   const battle = startYachtBattle(
     fightSeed, previousBattle.playerHp, unlocks.includes('triple'), unlocks.includes('straight'), perk,
     enemy, unlocks.length * enemy.attackPerUnlock, previousBattle.loot && nextTreasureBattle(previousBattle.loot),
-    previousBattle.rulesSix, previousBattle.bossRelic,
+    previousBattle.rulesSix, previousBattle.bossRelic, previousBattle.itemsSeven,
   )
   const { rewards } = previousBattle
   return {
@@ -143,10 +146,13 @@ function settleBattle(ascent: Ascent): Ascent {
 
 export function resolveAscentTurn(ascent: Ascent): Ascent {
   if (ascent.route && ascent.route.screen !== 'battle') return ascent
-  const { battle, hand } = resolveYachtTurn(ascent.battle)
+  let { battle, hand } = resolveYachtTurn(ascent.battle)
   if (battle === ascent.battle) return ascent
   const newUnlock = hand && !ascent.unlocks.includes(hand.hand) ? hand.hand : null
   const unlocks = newUnlock ? [...ascent.unlocks, newUnlock] : ascent.unlocks
+  if (newUnlock && battle.itemsSeven && battle.perk?.kind === 'collector') {
+    battle = { ...battle, perk: { kind: 'collector', hands: unlocks } }
+  }
   // The new power applies to the next allocation, including in the current fight.
   return settleBattle({ ...ascent, battle: newUnlock ? activateYachtHand(battle, newUnlock) : battle, unlocks, newUnlock })
 }
@@ -196,9 +202,9 @@ export function takeAscentReward(ascent: Ascent, choice: RewardChoice, options: 
     return { ...ascent, rewardChoice: choice, battle: { ...battle, playerHp, bossRelic: { id: choice } },
       route: { ...completeMapNode(route, 'return'), offers } }
   }
-  if (isBossRelic(choice) || choice === 'skip' && route?.map.rules === 6 && node?.kind === 'elite' && offers.length) return ascent
+  if (isBossRelic(choice) || choice === 'skip' && (route?.map.rules ?? 0) >= 6 && node?.kind === 'elite' && offers.length) return ascent
   const purchase = route && route.map.rules >= 3 && route.screen === 'shop' && choice !== 'skip'
-    ? { coins: (route.coins ?? 0) - shopPrice(choice), shopPurchase: choice } : {}
+    ? { coins: (route.coins ?? 0) - shopPrice(choice, route.map.rules), shopPurchase: choice } : {}
   const grantedAscent = { ...ascent, rewardChoice: choice, ...(route && { route: { ...completeMapNode(route, 'return'), offers, ...purchase } }) }
   if (route && route.map.rules >= 2) {
     const next = choice === 'skip' ? battle : grantTreasure(ascent, choice, options)

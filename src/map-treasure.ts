@@ -3,16 +3,18 @@ import type { MapNode, MapRules } from './ascent-map.ts'
 import type { Ascent } from './ascent.ts'
 import { draw } from './combat.ts'
 import { BANDAGE_THRESHOLD, BANDAGE_HEAL } from './rewards.ts'
-import { ARTIFACTS, ITEMS, PREPARATIONS, REST_HEAL, SHARDS, changeCount, equipArtifact, isArtifact, isItem, isPreparation, isShard } from './treasure.ts'
-import type { ArtifactOptions, Treasure } from './treasure.ts'
+import { ARTIFACTS, COMMON_ARTIFACTS, COMMON_CONSUMABLES, ITEMS, PREPARATIONS, RARE_ARTIFACTS, RARE_CONSUMABLES, REST_HEAL, SHARDS, changeCount, equipArtifact, isArtifact, isConsumable, isItem, isPreparation, isShard, treasureRarity } from './treasure.ts'
+import type { Artifact, ArtifactOptions, Treasure } from './treasure.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 
-export const SHOP_PRICES = { kit: 2, artifact: 4 }
+export const SHOP_PRICES = { kit: 2, artifact: 4, rare: 5 }
 export const SHOP_HEAL = 4
 const MAP_THREE_BANDAGE_HEAL = 5
 
-export function shopPrice(choice: Treasure): number {
-  return choice === 'kit' ? SHOP_PRICES.kit : isArtifact(choice) ? SHOP_PRICES.artifact : 0
+export function shopPrice(choice: Treasure, rules?: MapRules): number {
+  if (choice === 'kit') return SHOP_PRICES.kit
+  if (!isArtifact(choice)) return 0
+  return rules === 7 && treasureRarity(choice) === 'rare' ? SHOP_PRICES.rare : SHOP_PRICES.artifact
 }
 
 export function currentTreasureRoom({ route }: Ascent): MapNode | undefined {
@@ -47,10 +49,40 @@ function hasEscortAhead(run: Ascent, node: MapNode) {
   return false
 }
 
+function sevenArtifactOffers(run: Ascent, node: MapNode, previouslyAcquired = false) {
+  const loot = run.battle.loot!
+  const ego = run.unlocks.includes('triple')
+  const eligible = (id: Artifact) =>
+    (previouslyAcquired ? loot.acquired.includes(id) && !loot.equipped.includes(id) : !loot.acquired.includes(id)) &&
+    (id !== 'incomplete' || !ego && !loot.sealUsed) && (id !== 'heart-die' && id !== 'horn' || ego)
+  const common = rotate(COMMON_ARTIFACTS, draw(run.seed, node.id, 89)).filter(eligible)
+  const rare = rotate(RARE_ARTIFACTS, draw(run.seed, node.id, 96)).filter(eligible)
+  return { common, rare }
+}
+
+function sevenTreasureOffers(run: Ascent, node: MapNode): readonly Treasure[] {
+  if (node.kind === 'elite') {
+    const { common } = sevenArtifactOffers(run, node)
+    return (common.length ? common : sevenArtifactOffers(run, node, true).common).slice(0, 2)
+  }
+  const rareSlot = draw(run.seed, node.id, 95) % 4 === 0
+  if (node.kind === 'shop' || node.event === 'flag') {
+    const { common, rare } = sevenArtifactOffers(run, node)
+    const artifact = rareSlot ? rare[0] ?? common[0] : common[0] ?? rare[0]
+    return [...(node.kind === 'shop' ? ['kit'] as const : []), ...(artifact ? [artifact] : [])]
+  }
+  const common = [...COMMON_CONSUMABLES]
+  const offers: Treasure[] = [0, 1, 2].map((index) => common.splice(draw(run.seed, node.id, 100 + index) % common.length, 1)[0])
+  if (run.battle.playerHp <= BANDAGE_THRESHOLD) offers[2] = 'bandage'
+  else if (rareSlot) offers[2] = RARE_CONSUMABLES[draw(run.seed, node.id, 103) % RARE_CONSUMABLES.length]
+  return offers
+}
+
 export function treasureOffers(run: Ascent, node: MapNode): readonly Treasure[] {
   if (node.kind === 'rest') return ['kit', 'whetstone']
   if (node.event === 'medicine') return ['medicine', 'lining']
   if (node.event === 'pulley') return ['whetstone']
+  if (run.route?.map.rules === 7) return sevenTreasureOffers(run, node)
   if (node.event === 'flag') return artifactChoices(run, node).slice(0, 1)
   if (node.kind === 'shop') {
     if (!run.route || run.route.map.rules < 3) return []
@@ -85,13 +117,18 @@ export function healingFor(choice: Treasure, node?: MapNode, rules?: MapRules): 
     : choice === 'medicine' ? 3 : choice === 'kit' ? (node?.kind === 'shop' ? SHOP_HEAL : REST_HEAL) : 0
 }
 
+export function healingForRun(run: Ascent, choice: Treasure, node = currentTreasureRoom(run)): number {
+  const amount = healingFor(choice, node, run.route?.map.rules)
+  return run.battle.itemsSeven && run.battle.bossRelic?.id === 'revived-heart' ? Math.floor(amount / 2) : amount
+}
+
 export function treasureEnabled(run: Ascent, choice: Treasure): boolean {
   const hp = run.battle.playerHp
   const room = currentTreasureRoom(run)
   const cost = treasureCost(room, choice)
   if (cost && hp <= cost) return false
-  if (room?.kind === 'shop' && (run.route?.coins ?? 0) < shopPrice(choice)) return false
-  if (healingFor(choice, room, run.route?.map.rules) && hp >= run.maxHp) return false
+  if (room?.kind === 'shop' && (run.route?.coins ?? 0) < shopPrice(choice, run.route?.map.rules)) return false
+  if (healingForRun(run, choice, room) && hp >= run.maxHp) return false
   return (run.route?.offers ?? []).includes(choice)
 }
 
@@ -101,13 +138,14 @@ export function grantTreasure(run: Ascent, choice: Treasure, options: ArtifactOp
   if (!treasureEnabled(run, choice)) return null
   if (isArtifact(choice)) {
     if (choice === 'incomplete' && options.hand && run.unlocks.includes(options.hand)) return null
-    const equipped = equipArtifact(loot, choice, options, run.route?.map.rules === 6 && currentTreasureRoom(run)?.kind === 'elite')
+    const equipped = equipArtifact(loot, choice, options, (run.route?.map.rules ?? 0) >= 6 && currentTreasureRoom(run)?.kind === 'elite')
     if (!equipped) return null
     loot = equipped
-  } else if (isItem(choice)) loot = { ...loot, items: changeCount(loot.items, choice, 1) }
+  } else if (battle.itemsSeven && isConsumable(choice)) loot = { ...loot, consumables: changeCount(loot.consumables!, choice, 1) }
+  else if (isItem(choice)) loot = { ...loot, items: changeCount(loot.items, choice, 1) }
   else if (isPreparation(choice)) loot = { ...loot, prep: changeCount(loot.prep, choice, 1) }
   else if (isShard(choice)) loot = { ...loot, shards: changeCount(loot.shards, choice, 1) }
   const room = currentTreasureRoom(run)
-  const playerHp = Math.min(run.maxHp, battle.playerHp - treasureCost(room, choice) + healingFor(choice, room, run.route?.map.rules))
+  const playerHp = Math.min(run.maxHp, battle.playerHp - treasureCost(room, choice) + healingForRun(run, choice, room))
   return { ...battle, playerHp, loot }
 }

@@ -15,6 +15,17 @@ export const BOSS_RELIC_CARDS = {
   'healing-scepter': { name: '회복 왕홀', icon: 'scepter', value: '획득 · 승리', description: '획득 즉시 체력을 모두 회복합니다. 이후 일반·강적 승리마다 보상 전에 체력을 모두 회복합니다.' },
 } satisfies Record<BossRelic, { name: string; icon: string; value: string; description: string }>
 
+export const SEVEN_BOSS_RELICS = {
+  'revived-heart': { benefit: ['heart', '9'], cost: ['heart', '½'], description: '첫 치명상에 체력 9로 되살아나고 다른 회복량은 절반이 됩니다.' },
+  'emperor-shield': { benefit: ['shield', '−7'], cost: ['wheel', '½'], description: '첫 턴 적 공격 피해를 최대 7 줄이고 룰렛 피해는 절반이 됩니다.' },
+  'brake-crown': { benefit: ['knockdown', '×2'], cost: ['wheel', '0'], description: '전투 첫 룰렛의 피해를 포기하고 적을 다음 턴 넘어뜨립니다.' },
+  'healing-scepter': { benefit: ['heart', '22'], cost: ['reroll', '−1'], description: '획득과 일반·강적 승리 시 완전 회복하고 기본 재굴림이 1회 줄어듭니다.' },
+} satisfies Record<BossRelic, { benefit: [string, string]; cost: [string, string]; description: string }>
+
+export function bossRelicText(id: BossRelic, seven?: boolean) {
+  return seven ? SEVEN_BOSS_RELICS[id].description : BOSS_RELIC_CARDS[id].description
+}
+
 export function isBossRelic(value: unknown): value is BossRelic {
   return BOSS_RELICS.some((id) => id === value)
 }

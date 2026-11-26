@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { availableMapNodes, enterMapNode, returnToMap, rewardOffers, spinAscentCounter, takeAscentReward } from '../src/ascent.ts'
-import { CURRENT_MAP_RULES, enemyForMapNode } from '../src/ascent-map.ts'
+import { enemyForMapNode } from '../src/ascent-map.ts'
 import { BOSS_RELICS, EMPEROR_SHIELD_CAP, HEART_REVIVAL_HP } from '../src/boss-relic.ts'
 import { attackFor, draw, enemyIntentAt } from '../src/combat.ts'
 import { treasureOffers } from '../src/map-treasure.ts'
@@ -82,7 +82,6 @@ test('각성은 확정 때 성립한 기믹을 유지하고 다른 칸에서 기
 })
 
 test('5층 어느 갈래에서 복원해도 6층 하나로 모이고 보스 유물 선택 전후를 복원한다', () => {
-  assert.equal(CURRENT_MAP_RULES, 6)
   const initial = mapBefore(3, 5)
   for (const node of availableMapNodes(initial)) {
     const fifth = checkpoint(enterMapNode(initial, node.id)).restored.ascent

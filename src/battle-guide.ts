@@ -1,16 +1,18 @@
 import { CURRENT_MAP_RULES } from './ascent-map.ts'
 import type { MapRules } from './ascent-map.ts'
-import { BOSS_RELIC_CARDS, isBossRelic } from './boss-relic.ts'
+import { bossRelicText, isBossRelic } from './boss-relic.ts'
 import type { Reward } from './rewards.ts'
-import { oathDescription, PERK_TEXT, REWARD_TEXT } from './reward-copy.ts'
+import { oathDescription, perkText, PERK_TEXT, rewardText } from './reward-copy.ts'
 import { REWARD_CARDS } from './rewards.ts'
-import { TREASURE_CARDS } from './treasure.ts'
+import { isNewTreasureId, isSevenTreasure, TREASURE_CARDS } from './treasure.ts'
 
 type GuideEntry = readonly [icon: string, name: string, description: string]
 type VersionedEntry = readonly [...GuideEntry, options?: {
   readonly legacyOnly?: boolean
   readonly legacyName?: string
   readonly legacyDescription?: string
+  readonly sevenDescription?: string
+  readonly reward?: Reward
 }]
 
 interface GuideSection<Entry = GuideEntry> {
@@ -22,10 +24,10 @@ const legacyOnly = { legacyOnly: true }
 
 function rewardEntry(key: Reward): VersionedEntry {
   const { icon, name } = REWARD_CARDS[key]
-  if (key === 'tongs' || key === 'knot') return [icon, name, REWARD_TEXT[key], legacyOnly]
+  const opts = { reward: key, ...(key === 'tongs' || key === 'knot' ? legacyOnly : {}) }
   if (key === 'banner') return [icon, name, '깃발을 켜고 공격하면 공격 칸의 가장 낮은 눈만큼 피해를 줄여요. 최대 4, 전투마다 한 번이에요.',
-    { legacyDescription: REWARD_TEXT[key] }]
-  return [icon, name, isBossRelic(key) ? BOSS_RELIC_CARDS[key].description : REWARD_TEXT[key]]
+    { ...opts, legacyDescription: rewardText(key) }]
+  return [icon, name, isBossRelic(key) ? bossRelicText(key) : rewardText(key), opts]
 }
 
 const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
@@ -35,7 +37,8 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
       ['sword', '일반 전투', '주사위를 공격 칸에 배치해 적을 공격합니다.'],
       ['map-elite', '강적', '일반 전투보다 강한 적과 싸웁니다. 이기면 전리품을 고릅니다.'],
       ['map-event', '이벤트', '체력과 보상을 보고 행동을 고릅니다. 떠나면 효과 없이 지나갑니다.'],
-      ['map-shop', '상인', '치료 도구는 2동전, 유물은 4동전에 살 수 있습니다. 한 번만 구매할 수 있습니다. 이전 등반의 장터는 경유합니다.'],
+      ['map-shop', '상인', '치료 도구는 2동전, 유물은 4동전에 살 수 있습니다. 한 번만 구매할 수 있습니다. 이전 등반의 장터는 경유합니다.',
+        { sevenDescription: '치료 도구 2동전, 일반 유물 4동전, 희귀 유물 5동전 중 한 번 구매합니다.' }],
       ['ascent-coin', '동전', '일반 전투 승리 시 1개, 강적 승리 시 2개를 얻습니다. 이번 등반 상인에게 씁니다.'],
       ['map-rest', '고정 휴식', '11층에서 보스전을 준비합니다. 치료 도구나 다음 전투용 숫돌을 고릅니다.'],
       ['map-boss', '보스', '6층 쇠사슬 집행관과 12층 문지기입니다. 힘 모으기에 대비하고 12층에서 승리하면 완주 인장을 받습니다.',
@@ -114,13 +117,13 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
   {
     title: '상단 특전 표시',
     entries: [
-      ['parry', '방패 저금', PERK_TEXT.shield],
+      ['parry', '방패 저금', PERK_TEXT.shield, { sevenDescription: perkText('shield', true) }],
       ['sword', '큰 칼', PERK_TEXT.blade],
-      ['pair', '족보 수집가', PERK_TEXT.collector],
+      ['pair', '족보 수집가', PERK_TEXT.collector, { sevenDescription: perkText('collector', true) }],
       ['devil-die', '악마의 재굴림', PERK_TEXT.reroll],
       ['die', '홀수 서약', oathDescription('odd')],
       ['die-even', '짝수 서약', oathDescription('even')],
-      ['wheel', '역습 표식', PERK_TEXT.counter],
+      ['wheel', '역습 표식', PERK_TEXT.counter, { sevenDescription: perkText('counter', true) }],
     ],
   },
   {
@@ -145,10 +148,20 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
 
 export function battleGuideFor(rules: MapRules = CURRENT_MAP_RULES): readonly GuideSection[] {
   const legacy = rules <= 5
+  const seven = rules === 7
   return BATTLE_GUIDE.map(({ title, entries }) => ({
     title,
     entries: entries.flatMap(([symbol, name, description, options]): GuideEntry[] => {
       if (!legacy && options?.legacyOnly) return []
+      if (options?.reward) {
+        const id = options.reward
+        if (seven) {
+          if (isBossRelic(id)) return [[symbol, name, bossRelicText(id, true)]]
+          return isSevenTreasure(id) ? [[symbol, name, rewardText(id, true)]] : []
+        }
+        if (isNewTreasureId(id)) return []
+      }
+      if (seven && options?.sevenDescription) return [[symbol, name, options.sevenDescription]]
       return [[symbol, (legacy && options?.legacyName) || name, (legacy && options?.legacyDescription) || description]]
     }),
   }))
