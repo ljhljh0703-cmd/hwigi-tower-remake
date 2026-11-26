@@ -1691,7 +1691,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   const gimmick = ui.encounter.dataset.gimmick
   ui.encounter.classList.toggle('gimmick-intro', !ui.planning.hidden && !!gimmick &&
     !firstRun.includes(ascent) && firstRun.needsSpace(`gimmick-${gimmick}`))
-  arena.refresh(battle, enemy.id, floor === 1 && enemy.id === 'thorns')
+  arena.refresh(battle, enemy.id, floor)
   if (rollTurn && !ui.planning.hidden && !reducedMotion()) {
     const ego = companionDieIndex(battle)
     stopDiceMotion = playDiceMotion(ui.encounter, battle.dice.map((face, index) => ({

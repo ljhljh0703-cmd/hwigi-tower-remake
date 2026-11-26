@@ -21,7 +21,8 @@ type Sprite = {
 }
 type Placement = { foot: number; scale: number; travel: number }
 
-const chamberFloor = 136
+const chamberFloor = 204
+const chambers = ['floor-01-04', 'floor-05-08', 'floor-09-12'] as const
 const footerHeight = 98
 const actorDisplayScale = .8
 const heroFootX = 26
@@ -180,8 +181,7 @@ export class Arena {
   private falls = new Map<ImpactTarget, Impact>()
   private transition?: { at: number; pose: MotionFrame }
   private recoverUntil = 0
-  private firstGolem = false
-  private golemChamber?: HTMLCanvasElement
+  private chamber: typeof chambers[number] = chambers[0]
   private readonly images = new Map<string, HTMLImageElement>()
   private density = 1
   private placements = new Map<Sprite, Placement>()
@@ -302,35 +302,14 @@ export class Arena {
     if (this.enemyId === 'escort') this.encounter.style.setProperty('--escort-x', `${x(ESCORT_SPRITE)}px`)
   }
 
-  private drawBackground() {
-    const original = this.images.get('chamber')
-    if (!original?.naturalWidth) return
-    if (this.firstGolem && !this.golemChamber) {
-      const layer = document.createElement('canvas')
-      layer.width = original.width
-      layer.height = original.height
-      const ctx = layer.getContext('2d')!
-      ctx.drawImage(original, 0, 0)
-      const pixels = ctx.getImageData(0, 0, layer.width, layer.height)
-      for (let i = 0; i < pixels.data.length; i += 4) {
-        const y = Math.floor(i / 4 / layer.width)
-        const value = pixels.data[i]
-        // Four source stone tones. Preserve the masonry silhouette while
-        // grouping the bright chips into the plane behind the actors' feet.
-        const base = y < 128 ? 38 + (value - 52) * .39 : 84 + (value - 86) * .21
-        pixels.data[i] = base + 3
-        pixels.data[i + 1] = base + 1
-        pixels.data[i + 2] = base - 5
-      }
-      ctx.putImageData(pixels, 0, 0)
-      this.golemChamber = layer
-    }
-    const image = this.firstGolem && this.golemChamber ? this.golemChamber : original
-    const { width, height } = this.canvas
-    const floor = this.floor
-    const scale = Math.ceil(Math.max(width / image.width, floor / chamberFloor, (height - floor) / (image.height - chamberFloor)))
-    this.context.drawImage(image, Math.round((width - image.width * scale) / 2),
-      floor - chamberFloor * scale, image.width * scale, image.height * scale)
+  private drawBackground(ground: number, width: number, height: number) {
+    const image = this.images.get('ui/backgrounds/' + this.chamber)
+    if (!image?.naturalWidth) return
+    // Keep the masonry visible in shallow arenas and align the stone floor to the feet.
+    const top = Math.min(42, Math.max(0, Math.round(chamberFloor - ground * image.width / width)))
+    this.context.drawImage(image, 0, top, image.width, chamberFloor - top, 0, 0, width, ground)
+    this.context.drawImage(image, 0, chamberFloor, image.width, image.height - chamberFloor,
+      0, ground, width, height - ground)
   }
 
   private drawHero(pose: string, shift = 0, lift = 0) {
@@ -461,11 +440,7 @@ export class Arena {
     const ground = Math.round(height * 122 / 164)
     context.save()
     context.scale(pixel, pixel)
-    const room = this.images.get('chamber')
-    if (room?.naturalWidth) {
-      const roomWidth = Math.max(132, width)
-      context.drawImage(room, 0, 24, room.width, room.height - 24, (width - roomWidth) / 2, 0, roomWidth, height)
-    }
+    this.drawBackground(ground, width, height)
     context.fillStyle = 'rgba(33, 31, 25, .4)'
     context.fillRect(0, 0, width, height)
 
@@ -497,7 +472,7 @@ export class Arena {
       this.drawDefeat(battle)
       return
     }
-    this.drawBackground()
+    this.drawBackground(this.floor, canvas.width, canvas.height)
     context.save()
     if (!this.reducedMotion && this.trauma) {
       const strength = this.trauma ** 2 * this.density
@@ -783,7 +758,6 @@ export class Arena {
   }
 
   prime(enemyId: AscentEnemyId) {
-    this.load('chamber')
     this.loadSprite(hero)
     const enemy = ENEMY_SPRITES[enemyId]
     if (enemyId === 'chain-warden') this.loadSprite(enemy)
@@ -809,8 +783,9 @@ export class Arena {
     return { x: point.x / this.density, y: point.y / this.density }
   }
 
-  refresh(battle: YachtBattle, enemyId: AscentEnemyId, firstGolem = false) {
-    this.firstGolem = firstGolem
+  refresh(battle: YachtBattle, enemyId: AscentEnemyId, floor: number) {
+    this.chamber = chambers[floor <= 4 ? 0 : floor <= 8 ? 1 : 2]
+    if (!this.encounter.hidden) this.load('ui/backgrounds/' + this.chamber)
     if (this.battle?.seed !== battle.seed || this.enemyId !== enemyId) {
       this.clearContact()
       this.trauma = 0
