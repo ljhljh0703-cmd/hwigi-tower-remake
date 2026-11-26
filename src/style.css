@@ -1860,11 +1860,18 @@ button.die:disabled { background: transparent; }
 
 .roulette-stage { position: relative; width: min(100%, 218px); aspect-ratio: 1; }
 
+@property --counter-angle {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
+}
+
 #counter-wheel {
   position: absolute;
   inset: 0;
   border: 2px solid var(--stone-edge);
   border-radius: 50%;
+  transform: rotate(var(--counter-angle, 0deg));
 }
 
 #counter-wheel::after {
@@ -1892,7 +1899,7 @@ button.die:disabled { background: transparent; }
   display: grid;
   justify-items: center;
   min-inline-size: 1.6em;
-  rotate: var(--label-turn, 0deg);
+  rotate: calc(0deg - var(--counter-angle, 0deg));
   font-size: clamp(.8rem, 2.1vw, 1.05rem);
   font-weight: 750;
   line-height: 1;

@@ -139,7 +139,34 @@ for (const [kind, dice, time, glyph] of [
       await expect(panel).toHaveAttribute('data-roll-state', 'spinning')
       await expect(page.locator('#counter-auto')).toBeVisible()
       await expect(page.locator('#counter-range')).toHaveText(/\d+–\d+/)
-      await expect(page.locator('#counter-wheel')).toHaveCSS('background-image', /wheel-locked|rgb\(22, 21, 18\)/)
+      const wheel = page.locator('#counter-wheel')
+      await expect(wheel).toHaveCSS('background-image', /wheel-locked|rgb\(22, 21, 18\)/)
+      const frames = await wheel.evaluate((element) => {
+        const spin = window.rouletteSpinFrame
+        const snapshotTime = spin.currentTime
+        const labels = [...element.querySelectorAll('.roulette-label > span')]
+        const angleOf = (matrix) => Math.atan2(matrix.b, matrix.a)
+        const frames = [180, 330, 510].map((time) => {
+          spin.currentTime = time
+          const rotation = new DOMMatrix(getComputedStyle(element).transform)
+          return {
+            wheel: angleOf(rotation),
+            labels: labels.map((label) => {
+              const inverse = new DOMMatrix().rotate(parseFloat(getComputedStyle(label).rotate))
+              return angleOf(rotation.multiply(inverse))
+            }),
+          }
+        })
+        spin.currentTime = snapshotTime
+        return frames
+      })
+      expect(new Set(frames.map((frame) => frame.wheel)).size).toBe(3)
+      expect(Math.abs(frames[0].wheel)).toBeGreaterThan(.1)
+      for (const frame of frames) {
+        expect(frame.labels).toHaveLength(6)
+        for (const angle of frame.labels) expect(angle).toBeCloseTo(0, 3)
+      }
+      await expect(wheel.locator('.roulette-label.locked svg')).toHaveCount(2)
       await photograph(page, info, 'roulette-spinning')
       await page.evaluate(() => window.rouletteSpinFrame.finish())
     }

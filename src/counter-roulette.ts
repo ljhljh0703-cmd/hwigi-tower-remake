@@ -88,8 +88,7 @@ export class CounterRoulette {
     this.companionAwake = companionAwake
     if (rewards && this.panel.hidden) {
       this.setRewards(rewards)
-      this.wheel.style.transform = ''
-      this.wheel.style.removeProperty('--label-turn')
+      this.wheel.style.removeProperty('--counter-angle')
       this.range.hidden = false
       this.damage.hidden = true
       this.damage.textContent = ''
@@ -115,11 +114,11 @@ export class CounterRoulette {
     this.action.textContent = '회전 중'
     const onField = this.panel.classList.contains('counter-over-field')
     const angle = 1080 + (360 - reward.slot * this.degreesPerSlot) % 360
-    const rotate = `rotate(${angle}deg)`
+    const rotation = `${angle}deg`
     if (animate) {
       this.panel.dataset.rollState = 'spinning'
       const spin = this.wheel.animate(
-        [{ transform: 'rotate(0deg)' }, { transform: rotate }],
+        [{ '--counter-angle': '0deg' }, { '--counter-angle': rotation }],
         { duration: 920 / speed, easing: 'cubic-bezier(.15,.65,.22,1)' },
       )
       this.spin = spin
@@ -147,8 +146,7 @@ export class CounterRoulette {
       }
     }
 
-    this.wheel.style.transform = rotate
-    this.wheel.style.setProperty('--label-turn', `${-angle}deg`)
+    this.wheel.style.setProperty('--counter-angle', rotation)
     this.labels[reward.slot].classList.add('winner')
     this.paintSegments(reward.slot)
     this.button.hidden = true
