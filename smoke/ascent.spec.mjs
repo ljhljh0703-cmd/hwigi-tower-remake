@@ -81,6 +81,7 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     await expect(routeButtons).toHaveCount(1)
     await checkScreen('fork', [fightRoute])
     await fightRoute.tap()
+    await page.getByRole('button', { name: '안내 건너뛰기' }).tap()
 
     // 시드 12에서 방패 저금을 고르면 두 턴 모두 공격에 배치해 1층을 이긴다.
     for (const turn of [1, 2]) {

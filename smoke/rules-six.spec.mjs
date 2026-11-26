@@ -42,6 +42,10 @@ test('다섯 예고는 조건과 효과를 표시하며 눈을 넣고 빼면 함
     const run = encounter(enemy, floor)
     const battle = { ...run.battle, turn, dice, slots: dice.map(() => null), ...(kind === 'retreat' && { escort: { hp: 5, bonus: 3 } }) }
     await resume(page, { ...run, battle })
+    const firstLook = page.locator('#first-run-note')
+    await expect(firstLook).toBeVisible()
+    await expect(firstLook).toHaveAttribute('data-guide', `gimmick-${kind}`)
+    await expect(firstLook).toHaveText(help)
     const mark = page.locator(`#intent [data-kind="${kind}"]`)
     await expect(mark).toBeInViewport({ ratio: 1 })
     await expect(mark).toHaveAttribute('data-ready', 'false')

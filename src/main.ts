@@ -1,5 +1,5 @@
 import {
-  ascentFinished, beginMapAscent, enterMapNode, FIGHT_COUNT, nextAscentFight, resolveAscentTurn,
+  ascentFinished, availableMapNodes, beginMapAscent, enterMapNode, FIGHT_COUNT, nextAscentFight, resolveAscentTurn,
   returnToMap, rewardOffers, spinAscentCounter, takeAscentReward,
 } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
@@ -13,6 +13,7 @@ import { BATTLE_GUIDE } from './battle-guide.ts'
 import { oathDescription, PERK_TEXT, REWARD_TEXT } from './reward-copy.ts'
 import { COMPANION_LINES, companionDieIndex } from './companion.ts'
 import { enemyForFight } from './enemy-roster.ts'
+import { FirstRunGuide } from './first-run-guide.ts'
 import { loadGameSettings, saveGameSettings, toggleMute } from './game-settings.ts'
 import type { GameSettings } from './game-settings.ts'
 import { MAP_NODE_ICONS, ForkView } from './map-view.ts'
@@ -30,7 +31,7 @@ import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
 import type { Parity } from './perks.ts'
 import {
   bladeChargePreview, canReroll, canResolveYachtTurn, previewUnlockProgress, toggleYachtWedge, tuneYachtDie, yachtAllocationTotals,
-  emperorShieldActive, forecastYacht, yachtCounterRewards, yachtGimmick, yachtRerollCost,
+  classifyYachtHand, emperorShieldActive, forecastYacht, yachtCounterRewards, yachtGimmick, yachtRerollCost,
 } from './yacht-combat.ts'
 import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput, rerollSelectedDice } from './dice-drag.ts'
@@ -87,6 +88,7 @@ const ui = {
   guide: element<HTMLDialogElement>('battle-guide'),
   guideEntries: element('guide-entries'),
   intent: element('intent'),
+  firstRunAnchor: element('first-run-anchor'),
   playerHp: element<HTMLMeterElement>('player-hp'),
   enemyHp: element<HTMLMeterElement>('enemy-hp'),
   playerTotal: element('player-total'),
@@ -261,6 +263,10 @@ const sound = new BattleAudio()
 const systemMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 let settings = loadGameSettings()
 const forkView = new ForkView(ui.fork, { health: ui.mapHealth, floor: ui.mapFloor }, icon, enterFork)
+const firstRun = new FirstRunGuide(icon, () => {
+  if (ascent) renderFirstRun(ascent)
+  focusPhase()
+})
 
 function reducedMotion() { return settings.reducedMotion ?? systemMotion.matches }
 function animationSpeed() { return settings.speed === 'fast' ? 2 : 1 }
@@ -310,6 +316,7 @@ for (const button of [ui.lobbySettings, ui.battleSettings]) {
   button.addEventListener('click', () => {
     const phase = ascent?.battle.phase
     ui.abandonAscent.hidden = phase !== 'assign' && phase !== 'counter'
+    element('replay-first-run-status').textContent = ''
     ui.settings.showModal()
   })
 }
@@ -326,6 +333,10 @@ for (const option of ui.settingsSpeed) {
   option.addEventListener('change', () => updateSettings({ ...settings, speed: option.value === 'fast' ? 'fast' : 'normal' }))
 }
 ui.settingsMotion.addEventListener('click', () => updateSettings({ ...settings, reducedMotion: !reducedMotion() }))
+element('replay-first-run').addEventListener('click', () => {
+  firstRun.replay()
+  element('replay-first-run-status').textContent = '다음 새 등반에서 안내를 다시 봐요.'
+})
 systemMotion.addEventListener('change', renderSettings)
 
 document.addEventListener('visibilitychange', () => { if (document.hidden) sound.suspend() })
@@ -1375,6 +1386,101 @@ function renderHealth(hp: number, max: number) {
   ui.mapHealth.setAttribute('aria-label', `체력 ${hp}/${max}`)
 }
 
+function matchingGuardDice(battle: YachtBattle, damage: number) {
+  let match: number[] | undefined
+  let fewestMoves = Infinity
+  for (let mask = 1; mask < (1 << battle.dice.length); mask++) {
+    const dice = battle.dice.flatMap((_, index) => mask & (1 << index) ? [index] : [])
+    const slots = battle.slots.map((slot, index) => dice.includes(index) ? 'guard' : slot === 'guard' ? null : slot)
+    const moves = slots.filter((slot, index) => slot !== battle.slots[index]).length
+    if (moves >= fewestMoves || yachtAllocationTotals(battle, slots).guard !== damage) continue
+    match = dice
+    fewestMoves = moves
+  }
+  return match
+}
+
+function teachOpening({ battle }: Ascent) {
+  const pool = battle.slots.flatMap((slot, index) => slot === null ? [index] : [])
+  const firstDie = diceButtons[pool.find((index) => selected.has(index)) ?? pool[0]]
+  const placeIn = (zone: 'attack' | 'guard', id: string, text: string, die = firstDie, extra: HTMLElement[] = []) => {
+    const to = ui.assign[zone]
+    firstRun.teach({ id, text, symbol: zone === 'attack' ? 'sword' : 'shield', anchor: ui.firstRunAnchor,
+      marks: [...extra, to, ...(die ? [die] : [])], from: die, to })
+  }
+  const endTurn = (id: string, text: string) => {
+    firstRun.teach({ id, text, symbol: 'turn', anchor: ui.firstRunAnchor, marks: [ui.resolve] })
+  }
+
+  if (battle.phase === 'counter') {
+    firstRun.teach({ id: 'defend', text: '딱 막았어요! 반격 룰렛을 돌려요.', symbol: 'wheel',
+      anchor: ui.firstRunAnchor, marks: [ui.counter] })
+  } else if (battle.turn === 1) {
+    if (!battle.slots.includes('attack')) placeIn('attack', 'attack', '주사위를 공격 칸에 넣어요.', firstDie ?? diceButtons[0])
+    else if (pool.length) placeIn('guard', 'end-turn', '남은 주사위를 방어에 놓아요.')
+    else endTurn('end-turn', '턴 끝내기를 눌러요.')
+  } else {
+    const { incoming, counter } = forecastYacht(battle)
+    const damage = incoming.totalDamage
+    const guard = yachtAllocationTotals(battle).guard
+    if (damage > 0 && guard === damage) {
+      if (pool.length) placeIn('attack', 'defend', '남은 주사위를 공격에 놓아요.')
+      else endTurn('defend', counter ? '턴을 끝내 반격 룰렛을 열어요.' : '턴을 끝내 결과를 봐요.')
+    } else if (damage === 0 && pool.length) placeIn('attack', 'defend', '적이 쉬어요. 이번 턴은 공격해요.')
+    else {
+      const match = damage > 0 ? matchingGuardDice(battle, damage) : undefined
+      const misplaced = match && battle.slots.findIndex((slot, index) => slot === 'guard' && !match.includes(index))
+      if (misplaced !== undefined && misplaced >= 0) {
+        firstRun.teach({ id: 'defend', text: '방어에서 표시한 주사위를 빼요.', symbol: 'return', anchor: ui.firstRunAnchor,
+          marks: [diceButtons[misplaced], ui.assign.pool], from: diceButtons[misplaced], to: ui.dice.pool })
+      } else if (match) {
+        const needed = match.filter((index) => battle.slots[index] !== 'guard')
+        const suggested = needed.find((index) => selected.has(index)) ?? needed[0]
+        placeIn('guard', 'defend', `방어 합을 적 공격 ${damage}에 맞춰요.`, diceButtons[suggested], [ui.intent])
+      } else if (damage > 0 && yachtRerollCost(battle) !== null && firstDie) {
+        firstRun.teach({ id: 'defend', text: '다시 굴려 방어할 눈을 찾아요.', symbol: 'reroll', anchor: ui.firstRunAnchor,
+          marks: [firstDie, ui.reroll] })
+      } else if (pool.length) placeIn('attack', 'defend', '남은 주사위를 놓아요.')
+      else endTurn('defend', '턴 끝내기를 눌러요.')
+    }
+  }
+}
+
+function renderFirstRun(run: Ascent) {
+  const { battle, route, unlocks } = run
+  if (firstRun.includes(run)) {
+    if (battle.phase === 'won' || battle.phase === 'lost') firstRun.complete()
+    else if (route?.screen === 'battle' && (!ui.planning.hidden || !ui.counterPanel.hidden)) {
+      teachOpening(run)
+      return
+    }
+  }
+
+  if (!ui.fork.hidden && availableMapNodes(run).length > 1) {
+    firstRun.discover([{ id: 'fork', symbol: 'map-pin', text: '다음에 갈 길을 골라요.', anchor: element('fork-heading') }])
+  } else if (!ui.rewardPanel.hidden) {
+    const room = currentTreasureRoom(run)
+    const anchor = ui.rewardHeading
+    if (room?.kind === 'shop') {
+      const text = route && route.map.rules >= 3 ? '동전으로 물건을 살 수 있어요.' : '필요한 물건을 골라요.'
+      firstRun.discover([{ id: 'shop', symbol: 'map-shop', text, anchor }])
+    } else if (room?.enemyId === 'chain-warden') {
+      firstRun.discover([{ id: 'boss-relic', symbol: 'crown', text: '보스 유물 한 장을 골라요.', anchor }])
+    } else if (route?.screen === 'reward' || (!route && battle.phase === 'won')) {
+      firstRun.discover([{ id: 'reward', symbol: 'map-reward', text: '카드 한 장을 골라 확인해요.', anchor }])
+    } else firstRun.clear()
+  } else if (!ui.battle.hidden && !ui.planning.hidden) {
+    const gimmick = yachtGimmick(battle)
+    const hand = classifyYachtHand(battle, battle.dice)
+    firstRun.discover([
+      ...(gimmick ? [{ id: `gimmick-${gimmick.kind}`, symbol: gimmickEffects[gimmick.kind].icon,
+        text: gimmickEffects[gimmick.kind].help, anchor: ui.intent, below: true }] : []),
+      ...(hand && !unlocks.includes(hand) ? [{ id: `unlock-${hand}`, symbol: 'unlock', anchor: ui.firstRunAnchor,
+        text: hand === 'triple' ? '같은 눈 셋을 공격에 놓아 해금해요.' : '이어지는 눈 셋을 한 칸에 놓아요.' }] : []),
+    ])
+  } else firstRun.clear()
+}
+
 function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) {
   stopDiceMotion?.()
   stopPlacementMotion?.()
@@ -1424,6 +1530,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
     ui.rewardStrip.hidden = true
     ui.artifactStrip.hidden = true
     forkView.render(ascent)
+    renderFirstRun(ascent)
     return
   }
   renderRewardStrip(battle, presentation !== 'normal')
@@ -1515,6 +1622,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
       if (document.activeElement === ui.planning) focusPhase()
     })
   }
+  if (presentation === 'normal') renderFirstRun(ascent)
 }
 
 function refreshLobbyActions() {
@@ -1526,6 +1634,7 @@ function refreshLobbyActions() {
 }
 
 function showLobby(focus = false) {
+  firstRun.clear()
   stopDiceMotion?.()
   stopPlacementMotion?.()
   renderCoins()
@@ -1548,6 +1657,7 @@ function showLobby(focus = false) {
 }
 
 function showPerks() {
+  firstRun.clear()
   stopDiceMotion?.()
   stopPlacementMotion?.()
   renderCoins()
@@ -1579,6 +1689,7 @@ function showPerks() {
   const begin = (event: MouseEvent, perk: keyof typeof START_PERKS, parity?: Parity) => {
     if (event.isTrusted) sound.activate()
     ascent = beginMapAscent(seed, perk, parity, CURRENT_MAP_RULES)
+    firstRun.start(seed)
     saveCurrent()
     render()
     focusPhase()
@@ -1741,9 +1852,11 @@ function lockExchange(locked: boolean) {
 ui.resolve.addEventListener('click', async () => {
   if (ui.guide.open || exchangeBusy || !ascent) return
   const before = ascent.battle
-  const next = resolveAscentTurn(ascent)
-  if (next === ascent) return
+  const resolved = resolveAscentTurn(ascent)
+  if (resolved === ascent) return
+  const next = firstRun.opening(resolved, before.turn)
   lockExchange(true)
+  firstRun.clear()
   selected.clear()
   clearExchange()
   ascent = next
@@ -1778,12 +1891,15 @@ ui.resolve.addEventListener('click', async () => {
 let counterBusy = false
 async function playCounter(choice?: CounterChoice) {
   if (ui.guide.open || exchangeBusy || !ascent || ascent.battle.phase !== 'counter' || counterBusy || (!choice && ui.counter.disabled)) return
-  const checkpoint = spinAscentCounter(ascent, choice)
-  if (checkpoint === ascent) return
+  const spun = spinAscentCounter(ascent, choice)
+  if (spun === ascent) return
+  const checkpoint = firstRun.opening(spun, ascent.battle.turn)
   const next = checkpoint.battle
   const pending = next.loot?.counter
   const reward = pending ?? next.lastExchange?.counter
   if (!reward) return
+  if (firstRun.includes(ascent) && ascent.battle.turn >= 2) firstRun.complete()
+  else firstRun.clear()
   counterBusy = true
   saveCurrent(checkpoint)
   const before = ascent.battle
@@ -1858,7 +1974,7 @@ function enterFork(id: number) {
   const next = enterMapNode(ascent, id)
   if (next === ascent) return
   clearExchange()
-  ascent = next
+  ascent = firstRun.opening(next)
   saveCurrent()
   render('normal', true)
   if (ascent.route?.screen === 'battle') sound.play('dice-roll')
