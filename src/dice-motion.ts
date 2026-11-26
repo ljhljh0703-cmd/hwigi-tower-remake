@@ -85,7 +85,7 @@ export function dieCenter(button: HTMLButtonElement, scene: DOMRect): Point {
   return { x: left - scene.left + width / 2, y: top - scene.top + height / 2 }
 }
 
-function createMotion(parent: HTMLElement, dice: readonly RollDie[], motionClass: string, done: () => void) {
+function createMotion(parent: HTMLElement, dice: readonly RollDie[], motionClass: string, done: () => void, speed = 1) {
   const layer = effect('dice-motion')
   layer.setAttribute('aria-hidden', 'true')
   parent.append(layer)
@@ -95,7 +95,7 @@ function createMotion(parent: HTMLElement, dice: readonly RollDie[], motionClass
   const clock = document.timeline.currentTime
 
   function run(target: HTMLElement, frames: Keyframe[], duration: number, delay: number, fill: FillMode) {
-    const animation = target.animate(frames, { duration, delay, fill })
+    const animation = target.animate(frames, { duration: duration / speed, delay: delay / speed, fill })
     animation.startTime = clock
     tracks.push(animation)
     return animation
@@ -115,12 +115,20 @@ function createMotion(parent: HTMLElement, dice: readonly RollDie[], motionClass
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) cleanUp()
   }, { signal })
-  return { layer, run, cleanUp }
+  // Zero-paint timeline markers share the same document clock as the visible
+  // keyframes. A cancelled track rejects before its contact can be heard.
+  function cue(time: number, callback: () => void) {
+    void run(layer, [{}], 1, Math.max(0, time - 1), 'none').finished.then(() => {
+      if (!signal.aborted && !document.hidden) callback()
+    }, () => {})
+  }
+  return { layer, run, cue, cleanUp }
 }
 
-export function playPlacementMotion(planning: HTMLElement, dice: readonly PlacedDie[], done: () => void) {
+export function playPlacementMotion(planning: HTMLElement, dice: readonly PlacedDie[], done: () => void, onSeat: () => void, speed: number) {
   const scene = planning.getBoundingClientRect()
-  const { layer, run, cleanUp } = createMotion(planning, dice, 'die-placing', done)
+  const { layer, run, cue, cleanUp } = createMotion(planning, dice, 'die-placing', done, speed)
+  cue(suctionMs * .87, onSeat)
   const finished = dice.map(({ button, face: value, ego, from }, index) => {
     const { wrapper, face } = movingDie('dice-tumble', ego)
     face.textContent = String(value)
@@ -133,16 +141,17 @@ export function playPlacementMotion(planning: HTMLElement, dice: readonly Placed
   return cleanUp
 }
 
-export function playDiceMotion(encounter: HTMLElement, dice: readonly RollDie[], done: () => void) {
+export function playDiceMotion(encounter: HTMLElement, dice: readonly RollDie[], done: () => void,
+  onContact: (type: 'land' | 'bounce' | 'seat', index: number, ego: boolean) => void, speed = 1) {
   const scene = encounter.getBoundingClientRect()
   const destinations = dice.map(({ button }) => button.getBoundingClientRect())
   if (!dice.length || !scene.height || destinations.some(({ width }) => !width)) return
 
   const timers: number[] = []
-  const { layer, run, cleanUp } = createMotion(encounter, dice, 'die-arriving', () => {
+  const { layer, run, cue, cleanUp } = createMotion(encounter, dice, 'die-arriving', () => {
     for (const timer of timers) window.clearTimeout(timer)
     done()
-  })
+  }, speed)
   const arrivals = rollMs + (dice.length - 1) * rollStep + resultMs
   // The result row sits below the health cards, across the bottom edge of the arena.
   const y = scene.height
@@ -164,7 +173,7 @@ export function playDiceMotion(encounter: HTMLElement, dice: readonly RollDie[],
     face.textContent = String((value + index) % 6 + 1)
     for (const [step, time] of [92, 177, 276, 386, 489, 610].entries()) {
       const shown = step === 5 ? value : (value + index + step + 2) % 6 + 1
-      timers.push(window.setTimeout(() => { face.textContent = String(shown) }, delay + time))
+      timers.push(window.setTimeout(() => { face.textContent = String(shown) }, (delay + time) / speed))
     }
     run(wrapper, rollPath(x, y, reach), rollMs, delay, 'both')
     run(shadow, [
@@ -187,6 +196,9 @@ export function playDiceMotion(encounter: HTMLElement, dice: readonly RollDie[],
       ], duration, Math.round(rollMs * contact) + delay, 'none')
     }
 
+    for (const [time, type] of [[delay + rollMs * .45, 'land'], [delay + rollMs * .76, 'bounce'], [arrive + suctionMs * .87, 'seat']] as const) {
+      cue(time, () => onContact(type, index, ego))
+    }
     const path = suctionPath({ x, y }, { x, y: dy }, leans[index])
     // The delayed track takes over the held roll pose only when suction starts.
     return playSuction(wrapper, ego, path, arrive, run)

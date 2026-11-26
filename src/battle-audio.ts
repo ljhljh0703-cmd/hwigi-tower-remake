@@ -1,12 +1,13 @@
+const materials = ['swish', 'grit', 'block', 'tap', 'charge', 'slam', 'release', 'rebound', 'seat', 'hum', 'latch', 'coin', 'pay', 'mend', 'frost', 'stamp', 'rise', 'step', 'pulley', 'ember', 'engrave'] as const
 const wheelEffects = ['roulette-engage', 'roulette-ratchet', 'roulette-latch'] as const
 const effects = [
   'dice-roll', 'dice-place', 'stone-hit', 'perfect-block', 'roulette-tick',
-  'roulette-stop', 'unlock', 'victory', 'defeat', ...wheelEffects,
+  'roulette-stop', 'unlock', 'victory', 'defeat', ...wheelEffects, ...materials,
 ] as const
 
 type Effect = (typeof effects)[number]
 type Track = Effect | 'chamber-loop'
-const waveFiles = new Set<Track>(wheelEffects)
+const waveFiles = new Set<Track>([...wheelEffects, ...materials])
 
 export class BattleAudio {
   private context?: AudioContext
@@ -15,6 +16,13 @@ export class BattleAudio {
   private readonly tracks = new Map<Track, Promise<AudioBuffer>>()
   private musicPending = false
   private revision = 0
+  private readonly voices = new Set<AudioBufferSourceNode>()
+
+  clearEffects() {
+    this.revision++
+    for (const source of this.voices) source.stop()
+    this.voices.clear()
+  }
   private music = true
   private effects = true
   private needsResume = false
@@ -47,7 +55,7 @@ export class BattleAudio {
   }
 
   setEnabled(music: boolean, effects: boolean) {
-    if (effects !== this.effects) this.revision++
+    if (effects !== this.effects) this.clearEffects()
     this.music = music
     this.effects = effects
     this.updateGains()
@@ -69,11 +77,11 @@ export class BattleAudio {
     if (this.effectsGain) this.effectsGain.gain.value = Number(this.effects)
   }
 
-  play(effect: Effect, pitch = 1, volume = effect === 'roulette-tick' ? .12 : .19) {
+  play(effect: Effect, pitch = 1, volume = effect === 'roulette-tick' ? .12 : .19, seconds?: number) {
     if (!this.context || !this.effects || this.needsResume) return
     const revision = this.revision
     void this.load(effect).then((buffer) => {
-      if (revision === this.revision) this.start(buffer, volume, false, pitch)
+      if (revision === this.revision) this.start(buffer, volume, false, pitch, seconds)
     }).catch(() => {})
   }
 
@@ -93,7 +101,7 @@ export class BattleAudio {
     return pending
   }
 
-  private start(buffer: AudioBuffer, volume: number, loop = false, pitch = 1) {
+  private start(buffer: AudioBuffer, volume: number, loop = false, pitch = 1, seconds?: number) {
     const context = this.context!
     const source = context.createBufferSource()
     const gain = context.createGain()
@@ -102,10 +110,17 @@ export class BattleAudio {
     source.loop = loop
     source.playbackRate.value = pitch
     source.connect(gain).connect((loop ? this.musicGain : this.effectsGain)!)
+    if (!loop) this.voices.add(source)
     source.addEventListener('ended', () => {
+      this.voices.delete(source)
       source.disconnect()
       gain.disconnect()
     }, { once: true })
-    source.start()
+    if (seconds !== undefined) {
+      gain.gain.setValueAtTime(volume, context.currentTime)
+      gain.gain.setTargetAtTime(.0001, context.currentTime + seconds * .7, seconds * .09)
+      source.start()
+      source.stop(context.currentTime + seconds)
+    } else source.start()
   }
 }

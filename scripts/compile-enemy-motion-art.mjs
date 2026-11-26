@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
-import { readFile, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 
 const [sharpModule, ...selected] = process.argv.slice(2)
 assert.ok(sharpModule, 'Pass an installed sharp module folder')
@@ -214,6 +214,8 @@ async function compile(id) {
   })
   const output = 'art-source/enemy-motion/atlases/' + id + '.png'
   await sharp(sheet, { raw: { width, height: cellHeight * rows, channels: 4 } }).png().toFile(fileURLToPath(path(output)))
+  await mkdir(path('public/art/motion/'), { recursive: true })
+  await copyFile(path(output), path('public/art/motion/' + id + '.png'))
   return { id, label: labels[id], source: 'art-source/enemy-motion/raw/' + id + '.png', sheet: output,
     frameCount: frames.length, width, height: cellHeight * rows, pivot: [pivotX, pivotY],
     reference: effects ? null : reference(id), frames: metadata }

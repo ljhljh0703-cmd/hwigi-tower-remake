@@ -1,9 +1,10 @@
+import { FeelEffects } from './feel-effects.ts'
 import {
-  ascentFinished, beginMapAscent, enterMapNode, FIGHT_COUNT, nextAscentFight, resolveAscentTurn,
+  ascentFinished, availableMapNodes, beginMapAscent, enterMapNode, FIGHT_COUNT, nextAscentFight, resolveAscentTurn,
   returnToMap, rewardOffers, spinAscentCounter, takeAscentReward,
 } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
-import { CURRENT_MAP_RULES, MAP_ENEMY_BADGES, MAP_FLOORS } from './ascent-map.ts'
+import { CURRENT_MAP_RULES, enemyForMapNode, MAP_ENEMY_BADGES, MAP_FLOORS } from './ascent-map.ts'
 import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, writeAscentSave } from './ascent-save.ts'
 import { Arena } from './arena.ts'
 import { GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
@@ -23,7 +24,7 @@ import { availableCounterChoices, cancelSeal, chooseHourglass, draftSeal, startH
 import { relicReady, REWARD_CARDS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
 import {
-  allocationPower, assignDie, attackFor, chargedStrikePreview, combatSlots, DIE_COUNT, enemyIntentAt, incomingAttack, splitEnemyDamage,
+  allocationPower, assignDie, attackFor, chargedStrikePreview, combatSlots, DIE_COUNT, enemyIntentAt, incomingAttack, respondingIntent, splitEnemyDamage,
 } from './combat.ts'
 import type { Exchange, SlotTotals } from './combat.ts'
 import { collectorBonus, offerPerks, START_PERKS } from './perks.ts'
@@ -217,6 +218,7 @@ let artifactOptions: ArtifactOptions = {}
 let exchangeBusy = false
 let stopDiceMotion: (() => void) | undefined
 let stopPlacementMotion: (() => void) | undefined
+let turnSignals = new AbortController()
 const selected = new Set<number>()
 const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
 const counterPanelHome = ui.counterPanel.parentElement!
@@ -227,6 +229,7 @@ let settings = loadGameSettings()
 const forkView = new ForkView(ui.fork, { health: ui.mapHealth, floor: ui.mapFloor }, icon, enterFork)
 
 function reducedMotion() { return settings.reducedMotion ?? systemMotion.matches }
+const feel = new FeelEffects(reducedMotion, () => animationSpeed())
 function animationSpeed() { return settings.speed === 'fast' ? 2 : 1 }
 function effectDuration(milliseconds: number) { return milliseconds / animationSpeed() }
 
@@ -236,6 +239,7 @@ function renderSettings() {
   document.documentElement.dataset.animationSpeed = settings.speed
   arena.setAnimation(animationSpeed(), reduced)
   if (reduced) {
+    feel.clear()
     roulette.finishMotion()
     stopDiceMotion?.()
     stopPlacementMotion?.()
@@ -726,7 +730,7 @@ function updateEscortVital(hp: number) {
 function showParry(authored = false) {
   ui.parry.classList.toggle('sr-only', authored)
   ui.parry.hidden = false
-  sound.play('perfect-block', authored ? .94 : 1, authored ? .32 : .19)
+  sound.play('perfect-block', authored ? .94 : 1, authored ? .32 : .19, authored ? undefined : effectDuration(120) / 1000)
 }
 
 function wait(milliseconds: number): Promise<void> {
@@ -770,20 +774,35 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
       await new Promise<void>((finish) => window.setTimeout(finish, remaining))
     }
   }
-  type HitCue = { pitch?: number; guarded?: boolean; ordered?: boolean; parry?: boolean }
-  const emit = (hits: BattleHit[], { pitch = 1, ...contact }: HitCue = {}) => {
+  const intent = respondingIntent(enemyIntentAt(before), totals.attack)
+  const critical = intent.id === 'critical'
+  const weak = before.weakenedStrikeTurn === before.turn
+  const golemParry = exact && incoming === 1 && !dealt && !escortDealt && arena.beginGolemParry(start)
+  type HitCue = { delay?: number; incoming?: boolean; final?: boolean; guarded?: boolean; ordered?: boolean; parry?: boolean }
+  const emit = (hits: BattleHit[], contact: HitCue = {}) => {
     arena.contact(hits, contact)
     for (const hit of hits) showDamage(hit)
-    if (hits.length || contact.guarded) sound.play('stone-hit', pitch)
+    const material = () => {
+      if (contact.parry) showParry(golemParry)
+      else if (contact.guarded) sound.play('block')
+      else if (contact.incoming && critical) sound.play('slam', weak ? 1.28 : .9, weak ? .15 : .28)
+      else if (contact.ordered && !contact.final) sound.play('tap')
+      else if (hits.length) sound.play('stone-hit', contact.ordered ? .85 : 1)
+    }
+    if (contact.delay) feel.after(effectDuration(contact.delay), material)
+    else material()
+    if (hits.some(hit => hit.target !== 'player')) feel.after(effectDuration(105), () => sound.play('grit', 1, .085))
   }
   const enemyHit: BattleHit[] = dealt ? [{ target: 'enemy', damage: dealt, defeated: after.enemyHp === 0 }] : []
   const earlyEnemyHit = lateEscortDamage ? [] : enemyHit
   const heroHit = (damage: number, final = true): BattleHit[] => damage ? [{ target: 'player', damage, defeated: final && after.playerHp === 0 }] : []
   const updatePlayer = () => updateVital(ui.playerHp, ui.playerTotal, after.playerHp)
   const updateEnemy = () => updateVital(ui.enemyHp, ui.enemyTotal, after.enemyHp)
-  const golemParry = exact && incoming === 1 && !dealt && !escortDealt && arena.beginGolemParry(start)
   ui.intent.classList.toggle('parry-in-progress', golemParry)
-  if (!golemParry) arena.playExchange(before, exchange)
+  if (!golemParry) {
+    arena.playExchange(before, exchange, incoming, intent)
+    if (earlyEnemyHit.length || opening.escortDealt) sound.play('swish', 1, .09, effectDuration(opening.escortDealt ? 45 : 96) / 1000)
+  }
   ui.awakening.hidden = !awakenedDice
   ui.awakening.innerHTML = awakenedDice ? `${icon('die')}${awakenedDice.map((face) => `<span>${face}</span>`).join('')}` : ''
   ui.awakening.setAttribute('aria-label', awakenedDice ? `각성 ${awakenedDice.join(', ')}` : '')
@@ -797,31 +816,38 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     hitEscort(opening.escortDealt, before.escort.hp - opening.escortDealt)
   }
   if (incoming) arena.queueShadow(start + effectDuration(incomingContact), false)
-  if (ordered) {
-    if (earlyEnemyHit.length || thorns) {
-      if (!reducedMotion()) await at(96)
-      emit([...earlyEnemyHit, ...heroHit(thorns, false)])
-      if (earlyEnemyHit.length) updateEnemy()
-      if (thorns) readHit(incoming)
-    }
-    for (let index = 0; index < incoming; index++) {
-      const time = incomingContact + index * repeatContact
-      if (index) arena.queueShadow(start + effectDuration(time), true)
-      if (!reducedMotion()) await at(time)
-      const damage = hitsTaken[index]
-      const final = index === incoming - 1
-      emit(heroHit(damage, final), {
-        pitch: 1 + index * .08, ordered: true,
-        guarded: damage === 0 && !(exact && final), parry: exact && final,
-      })
-      readHit(index)
-      if (final) updatePlayer()
-    }
-  } else if (incoming || earlyEnemyHit.length || thorns) {
-    if (!reducedMotion()) await at(golemParry ? GOLEM_PARRY.contact : incoming ? incomingContact : 96)
-    emit([...earlyEnemyHit, ...heroHit(taken)], { parry: exact, guarded: incoming > 0 && hitsTaken[0] === 0 && !exact })
-    if (earlyEnemyHit.length) updateEnemy()
-    updatePlayer()
+  if (earlyEnemyHit.length) {
+    await at(96)
+    emit(earlyEnemyHit)
+    updateEnemy()
+  }
+  for (let index = 0; index < incoming; index++) {
+    const time = golemParry ? GOLEM_PARRY.contact : incomingContact + index * repeatContact
+    if (index) arena.queueShadow(start + effectDuration(time), true)
+    await at(time)
+    const damage = hitsTaken[index]
+    const final = index === incoming - 1
+    emit(heroHit(damage, final), { delay: reducedMotion() ? index * 40 : 0, incoming: true, ordered, final,
+      guarded: damage === 0 && !(exact && final), parry: exact && final })
+    readHit(index)
+  }
+  if (thorns) {
+    await at(incoming ? incomingContact + (incoming - 1) * repeatContact + 48 : 96)
+    const reflected = heroHit(thorns)
+    arena.contact(reflected)
+    for (const hit of reflected) showDamage(hit)
+    sound.play('grit', .78)
+    readHit(incoming)
+  }
+  if (thorns || incoming) updatePlayer()
+  if (critical && before.erasedStrikeTurn === before.turn) {
+    arena.settlePose(ascent?.enemy.id === 'boss' ? 'interrupted' : 'heavy-hit')
+    sound.play('release')
+  } else if (intent.id === 'charge' && after.enemyHp > 0 && (after.weakenedStrikeTurn || after.erasedStrikeTurn)) {
+    arena.settlePose(ascent?.enemy.id === 'boss' ? 'interrupted' : 'heavy-hit')
+    sound.play('release', .85)
+  } else if (intent.id === 'knockdown' && after.enemyHp > 0) {
+    arena.settlePose(ascent?.enemy.id === 'boss' ? 'get-up' : 'reload')
   }
   if (lateEscortDamage > 0) {
     const lastContact = incoming ? incomingContact + (incoming - 1) * repeatContact : 96
@@ -841,7 +867,6 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     }
   }, effectDuration(damageDuration))
   if (exact) {
-    showParry(golemParry)
     if (golemParry) {
       await at(GOLEM_PARRY.landing)
       if (!reducedMotion()) sound.play('stone-hit', .84, .13)
@@ -951,6 +976,7 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   const atShop = room?.kind === 'shop' && (run.route?.map.rules ?? 0) >= 3
   const eventName = room?.event === 'medicine' ? '무너진 약상자' : room?.event === 'pulley' ? '녹슨 도르래' : '빈 깃대'
   ui.rewardHeading.innerHTML = atRoom ? `${icon(MAP_NODE_ICONS[room.kind])} ${room.kind === 'event' ? eventName : room.kind === 'rest' ? '11층 휴식' : atShop ? '상인' : '장터 경유'}` : '전투 보상'
+  if (room?.kind === 'rest') ui.rewardHeading.insertAdjacentHTML('beforeend', '<span class="rest-ember" aria-hidden="true"></span>')
   ui.skipReward.textContent = atRoom ? '떠나기' : '건너뛰기'
   const eventContext = {
     medicine: '깨진 약상자에 약봉지와 천이 남아 있어요.',
@@ -1306,6 +1332,10 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
     ui.rewardStrip.hidden = true
     ui.artifactStrip.hidden = true
     forkView.render(ascent)
+    for (const node of availableMapNodes(ascent)) {
+      const foe = enemyForMapNode(node, route!.map.rules)
+      if (foe) arena.prime(foe.id)
+    }
     return
   }
   renderRewardStrip(battle, presentation !== 'normal')
@@ -1326,7 +1356,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
     const revealLabel = newUnlock === 'triple' ? `${unlock.label} 깨어남` : `${unlock.label} 해금`
     if (newUnlock === 'triple') {
       ui.unlockHeading.innerHTML = `${icon(unlock.icon)}${unlock.label}`
-      ui.unlockReveal.innerHTML = `<span class="companion-tile" aria-hidden="true">${icon(unlock.icon)}</span>`
+      ui.unlockReveal.innerHTML = `<span class="companion-tile" aria-hidden="true">${icon(unlock.icon)}<i class="ego-shell left"></i><i class="ego-shell right"></i></span>`
     } else {
       const faces = [2, 4, 1, 3, 6, 5].map((face) => `<span>${face}</span>`).join('')
       ui.unlockHeading.innerHTML = `${icon('unlock')}해금`
@@ -1391,27 +1421,50 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.next.innerHTML = route ? `다음 층 ${icon('next')}` : `다음 전투 ${icon('next')}`
   ui.retry.hidden = !finished
   refreshDice(battle, totals, unlocks)
-  arena.refresh(battle, enemy.id)
+  arena.refresh(battle, enemy.id, floor === 1 && enemy.id === 'thorns')
   if (rollTurn && !ui.planning.hidden && !reducedMotion()) {
     const ego = companionDieIndex(battle)
     stopDiceMotion = playDiceMotion(ui.encounter, battle.dice.map((face, index) => ({
       button: diceButtons[index], face, ego: index === ego,
     })), () => {
       stopDiceMotion = undefined
+      diceButtons.forEach(die => die.dispatchEvent(new Event('die-landed')))
       if (document.activeElement === ui.planning) focusPhase()
-    })
+    }, (cue, index, companion) => {
+      if (cue === 'land') sound.play('dice-roll', 1 + index * .05, index === 0 ? .17 : .075, .052)
+      if (cue === 'bounce') sound.play('rebound', 1 + index * .06, index === 0 ? .13 : .045)
+      if (cue === 'seat') {
+        if (index === 0) sound.play('seat', 1, .09)
+        if (companion) sound.play('hum', 1, .08)
+      }
+    }, animationSpeed())
+  } else if (rollTurn && !ui.planning.hidden) {
+    sound.play('seat', 1, .09)
+    if (battle.fourthDieUnlocked) sound.play('hum', 1, .065)
   }
 }
 
 function refreshLobbyActions() {
   const { checkpoint, invalidMap } = readAscentSave()
   const hasSave = checkpoint !== null
+  if (checkpoint) arena.prime(checkpoint.ascent.enemy.id)
   ui.continueAscent.hidden = !hasSave
   ui.saveNotice.hidden = !invalidMap
   ui.newAscent.classList.toggle('primary', !hasSave)
 }
 
+function resetPresentation() {
+  turnSignals.abort()
+  turnSignals = new AbortController()
+  feel.clear()
+  sound.clearEffects()
+  stopDiceMotion?.()
+  stopPlacementMotion?.()
+  clearExchange()
+}
+
 function showLobby(focus = false) {
+  resetPresentation()
   stopDiceMotion?.()
   stopPlacementMotion?.()
   renderCoins()
@@ -1434,6 +1487,7 @@ function showLobby(focus = false) {
 }
 
 function showPerks() {
+  resetPresentation()
   stopDiceMotion?.()
   stopPlacementMotion?.()
   renderCoins()
@@ -1524,10 +1578,14 @@ function place(indices: readonly number[], zone: DropZone) {
   let battle = before
   for (const index of indices) battle = assignDie(battle, index, slot)
   const moved = indices.filter((index) => battle.slots[index] !== before.slots[index])
-  if (moved.length) sound.play('dice-place')
+  for (const i of moved) diceButtons[i].getAnimations().filter(a => a.id === 'reroll').forEach(a => a.cancel())
+  const seat = () => {
+    sound.play(slot ? 'dice-place' : 'seat', slot ? 1 : 1.25, slot ? .19 : .13)
+    feel.pulse(ui.dice[zone], slot ? 2 : -2)
+  }
   const scene = ui.planning.getBoundingClientRect()
   const ego = companionDieIndex(battle)
-  const animated = slot && !reducedMotion() ? moved.map((index) => ({
+  const animated = !reducedMotion() ? moved.map((index) => ({
     button: diceButtons[index],
     face: battle.dice[index],
     ego: index === ego,
@@ -1538,8 +1596,8 @@ function place(indices: readonly number[], zone: DropZone) {
   saveCurrent()
   render()
   if (animated.length) {
-    stopPlacementMotion = playPlacementMotion(ui.planning, animated, () => { stopPlacementMotion = undefined })
-  }
+    stopPlacementMotion = playPlacementMotion(ui.planning, animated, () => { stopPlacementMotion = undefined }, seat, animationSpeed())
+  } else if (moved.length) seat()
   const unassigned = battle.slots.indexOf(null)
   if (unassigned < 0) ui.resolve.focus()
   else diceButtons[unassigned].focus()
@@ -1572,12 +1630,27 @@ for (const zone of ['pool', ...combatSlots] as const) {
 }
 function useReroll(extra: boolean) {
   if (ui.guide.open || exchangeBusy || !ascent) return
+  const before = ascent.battle
+  const indices = [...selected].filter(index => canReroll(before, index))
+  const seal = enemyIntentAt(before).mechanic
   const rerolled = rerollSelectedDice(ascent.battle, selected, extra)
   if (!rerolled) return
   ascent = { ...ascent, battle: rerolled.battle }
   saveCurrent()
   render()
-  sound.play('dice-roll')
+  sound.play('dice-roll', 1.2, .13, effectDuration(120) / 1000)
+  for (const index of indices) {
+    const die = diceButtons[index]
+    const animation = feel.animate(die, [{ transform: 'none' }, { transform: 'translateY(-5px) rotate(-15deg)' },
+      { transform: 'translateY(-2px) rotate(10deg)' }, { transform: 'none' }], 125,
+      () => {
+        if (index === indices[0]) sound.play('rebound')
+        if (seal?.kind === 'seal' && before.dice[index] !== seal.value && rerolled.battle.dice[index] === seal.value) {
+          dieStatusCue(rerolled.battle, index, 'stamp')
+        }
+      })
+    animation.id = 'reroll'
+  }
   diceButtons[rerolled.focusIndex].focus()
 }
 
@@ -1599,6 +1672,12 @@ ui.tuneUp.addEventListener('click', () => useTuning(1))
 
 function claimReward(choice: RewardChoice) {
   if (!ascent || ui.guide.open) return
+  const previous = ascent
+  const room = currentTreasureRoom(previous)
+  const selectedItem = ui.artifactOptions.querySelector<HTMLElement>('[data-option="replace"][aria-pressed="true"]')
+    ?? ui.rewardCards.querySelector<HTMLElement>('[aria-pressed="true"]') ?? ui.confirmReward
+  const seat = selectedItem.getBoundingClientRect()
+  const replacement = artifactOptions.replace
   const next = takeAscentReward(ascent, choice, artifactOptions)
   if (next === ascent) return
   ascent = returnToMap(next)
@@ -1606,6 +1685,49 @@ function claimReward(choice: RewardChoice) {
   artifactOptions = {}
   saveCurrent()
   render()
+  if (choice !== 'skip') {
+    const paid = (previous.route?.coins ?? 0) - (ascent.route?.coins ?? 0)
+    if (paid > 0) {
+      feel.pulse(ui.runCoins)
+      sound.play('pay')
+    }
+    if (isArtifact(choice) && next.battle.loot?.equipped.includes(choice)) {
+      const node = feel.layer(seat, 'socket', icon(REWARD_CARDS[replacement ?? choice].icon))
+      const latch = () => {
+        node.innerHTML = icon(REWARD_CARDS[choice].icon)
+        feel.animate(node, [{ transform: 'translateY(-7px)' }, { transform: 'translateY(2px) scaleY(.89)' }], 48, () => {
+          sound.play('latch')
+          feel.animate(node, [{ transform: 'translateY(2px) scaleY(.89)' }, { transform: 'none', opacity: 1 }, { opacity: 0 }], 132,
+            () => feel.release(node))
+        })
+      }
+      if (replacement) {
+        sound.play('tap', 1.4, .12)
+        feel.animate(node, [{ transform: 'none' }, { transform: 'translateY(-5px)', opacity: .3 }], 65, latch)
+      } else if (paid) feel.after(effectDuration(52), latch)
+      else latch()
+    }
+    const healed = next.battle.playerHp - previous.battle.playerHp
+    if (healed > 0) {
+      const meter = feel.layer(ui.mapHealth.getBoundingClientRect(), 'mend')
+      const length = 58 + Math.min(5, healed) * 24
+      const fill = (hp: number) => 'inset(calc(100% - 3px) ' + (100 - 100 * hp / next.maxHp) + '% 0 0)'
+      const duration = reducedMotion() ? Math.min(length, 85) : length
+      sound.play('mend', 1.1, .15, effectDuration(duration) / 1000)
+      feel.animate(meter, [{ clipPath: fill(previous.battle.playerHp) }, { clipPath: fill(next.battle.playerHp) }], length,
+        () => feel.release(meter))
+    }
+    if (room?.event === 'pulley' && choice === 'whetstone') {
+      const wheel = feel.layer(seat, 'pulley', '<i></i><b></b>')
+      feel.animate(wheel.querySelector('i')!, [{ transform: 'rotate(16deg) scaleY(.65)' }, { transform: 'none' }], 42, () => {
+        sound.play('pulley')
+        feel.animate(wheel.querySelector('b')!, [{ rotate: '-22deg' }, { rotate: '70deg' }], 140, () => {
+          sound.play('release')
+          feel.release(wheel)
+        })
+      })
+    }
+  }
   focusPhase()
 }
 
@@ -1624,10 +1746,21 @@ function lockExchange(locked: boolean) {
 
 ui.resolve.addEventListener('click', async () => {
   if (ui.guide.open || exchangeBusy || !ascent) return
+  const previous = ascent
   const before = ascent.battle
   const next = resolveAscentTurn(ascent)
   if (next === ascent) return
+  turnSignals.abort()
+  turnSignals = new AbortController()
+  feel.clear()
   lockExchange(true)
+  if (!before.stolenDie && next.battle.stolenDie) {
+    const die = diceButtons[DIE_COUNT - 1]
+    const stolen = feel.layer(die.getBoundingClientRect(), 'stolen', String(before.dice[DIE_COUNT - 1]))
+    sound.play('swish', .8, .11)
+    const enemyX = ui.encounter.getBoundingClientRect().left + parseFloat(ui.encounter.style.getPropertyValue('--enemy-x'))
+    feel.animate(stolen, [{ transform: 'none' }, { transform: 'translate(' + (enemyX - die.getBoundingClientRect().left) * .28 + 'px,-26px)', opacity: 0 }], 165, () => feel.release(stolen))
+  }
   selected.clear()
   clearExchange()
   ascent = next
@@ -1636,8 +1769,15 @@ ui.resolve.addEventListener('click', async () => {
   const { phase, lastExchange } = next.battle
   try {
     if (lastExchange) await showExchange(before, next.battle, lastExchange)
+    if (next.battle.turn !== before.turn || next.newUnlock) {
+      await arena.finishExchange()
+      for (const output of Object.values(damageOutput)) output.replaceChildren()
+    }
     if (next.newUnlock) {
-      sound.play('unlock')
+      if (next.newUnlock === 'triple') {
+        feel.animate(ui.lockedDie, [{ boxShadow: 'inset 0 -2px #c4b48b' }, { boxShadow: 'inset 0 -8px #ffe7ab, 0 4px 9px #a49579' }], 220)
+        sound.play('rise')
+      }
       if (next.newUnlock === 'triple' && !reducedMotion()) {
         ui.unlockImpact.hidden = false
         arena.freeze(unlockImpactDuration)
@@ -1647,6 +1787,14 @@ ui.resolve.addEventListener('click', async () => {
         await wait(250)
       }
       render('unlock')
+      if (next.newUnlock === 'triple' && !reducedMotion()) {
+        // Reveal the first slice of the face and strike the opening chime together.
+        for (const shell of Array.from(ui.unlockReveal.querySelectorAll<HTMLElement>('.ego-shell'))) {
+          shell.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(' + (shell.classList.contains('left') ? '-110%' : '110%') + ')' }],
+            { duration: effectDuration(190), easing: 'ease-out', fill: 'forwards' })
+        }
+      }
+      sound.play('unlock')
       await wait(next.newUnlock === 'triple' ? companionAwakenDuration : unlockDuration)
     } else if (phase === 'won' || phase === 'lost') {
       await wait(reducedMotion() ? 320 : damageDuration)
@@ -1655,15 +1803,80 @@ ui.resolve.addEventListener('click', async () => {
     ui.intent.classList.remove('parry-in-progress')
     lockExchange(false)
     render('normal', next.battle.turn !== before.turn)
-    if (phase === 'won') sound.play('victory')
-    if (phase === 'lost') sound.play('defeat')
+    if (before.turn !== next.battle.turn && !ui.planning.hidden) turnCues(before, true)
+    finishCues(previous, next)
     if (phase === 'counter' && arena.golemParryHeld) void playCounter()
     else focusPhase()
   }
 })
+function finishCues(previous: Ascent, next: Ascent) {
+  if (next.battle.phase === 'lost') sound.play('defeat')
+  if (next.battle.phase !== 'won') return
+  sound.play('victory')
+  if ((next.route?.coins ?? 0) > (previous.route?.coins ?? 0)) {
+    const coin = ui.runCoins.querySelector<SVGElement>('svg')
+    if (coin) feel.animate(coin, [{ transform: 'translateY(-4px)' }, { transform: 'none' }], 95,
+      () => sound.play('coin'))
+  }
+  if (!ui.completionSeal.hidden) {
+    feel.animate(ui.completionSeal, [{ transform: 'scale(1.1)' }, { transform: 'scale(.97)' }, { transform: 'none' }], 110,
+      () => sound.play('engrave'))
+  }
+}
+
+function dieStatusCue(b: YachtBattle, index: number, type: 'frost' | 'stamp' | 'return') {
+  const die = diceButtons[index]
+  const landed = () => {
+    if (die.hidden || !die.isConnected || ui.planning.hidden || ascent?.battle.turn !== b.turn) return
+    const node = feel.layer(die.getBoundingClientRect(), type)
+    if (type !== 'return') {
+      const mark = document.createElement('i')
+      mark.className = 'die-contact-art'
+      mark.style.backgroundImage = 'url(' + new URL('art/motion/effects.png', document.baseURI).href + ')'
+      mark.style.backgroundPositionY = type === 'frost' ? '-23px' : '-46px'
+      node.append(mark)
+      if (!reducedMotion()) mark.animate([{ backgroundPositionX: '0px' }, { backgroundPositionX: '-128px' }],
+        { duration: effectDuration(100), easing: 'steps(4,end)' })
+    }
+    const frames = type === 'frost' ? [{ clipPath: 'inset(75% 74% 0 0)' }, { clipPath: 'inset(0)' }]
+      : [{ transform: 'translateY(-6px)', opacity: .3 }, { transform: 'none', opacity: 1 }]
+    feel.animate(node, frames, 100, () => {
+      sound.play(type === 'return' ? 'seat' : type)
+      feel.release(node)
+    })
+  }
+  // A die with an active entrance is represented by its moving face.
+  // Apply the mark after the slot becomes visible; cancel if the turn is left.
+  if (die.classList.contains('die-arriving')) die.addEventListener('die-landed', landed, { once: true, signal: turnSignals.signal })
+  else landed()
+}
+
+function turnCues(before: YachtBattle | undefined, changedTurn: boolean) {
+  if (!ascent || ui.planning.hidden || ui.encounter.hidden) return
+  const b = ascent.battle
+  const intent = enemyIntentAt(b)
+  if (intent.id === 'charge') {
+    sound.play('charge')
+    arena.settlePose(ascent.enemy.id === 'boss' ? 'charge-set' : 'anticipate')
+  } else if (intent.id === 'knockdown') arena.settlePose(ascent.enemy.id === 'boss' ? 'knee-down' : 'fall')
+  if (before && !before.escort && b.escort) {
+    // The summon has a visible result on the next plan. Remove the previous
+    // damage label before the new escort HP and forecast share that space.
+    ui.playerDamage.replaceChildren()
+    feel.pulse(ui.escortGuard)
+  }
+  if (!changedTurn && !b.fixedDie && intent.mechanic?.kind !== 'seal') return
+  if (b.fixedDie?.kind === 'freeze') dieStatusCue(b, b.fixedDie.index, 'frost')
+  if (b.fixedDie?.kind === 'lock') dieStatusCue(b, b.fixedDie.index, 'stamp')
+  const mechanic = intent.mechanic
+  if (mechanic?.kind === 'seal') b.dice.forEach((value, index) => { if (value === mechanic.value) dieStatusCue(b, index, 'stamp') })
+  if (before?.stolenDie && !b.stolenDie && b.dice.length > before.dice.length) dieStatusCue(b, DIE_COUNT - 1, 'return')
+}
+
 let counterBusy = false
 async function playCounter(choice?: CounterChoice) {
   if (ui.guide.open || exchangeBusy || !ascent || ascent.battle.phase !== 'counter' || counterBusy || (!choice && ui.counter.disabled)) return
+  const previous = ascent
   const checkpoint = spinAscentCounter(ascent, choice)
   if (checkpoint === ascent) return
   const next = checkpoint.battle
@@ -1709,6 +1922,9 @@ async function playCounter(choice?: CounterChoice) {
     ui.counterPanel.hidden = true
     await wait(GOLEM_COUNTER.contact)
   } else if (companionJoint && animate) {
+    const point = arena.flightTarget(escortDealt ? 'escort' : 'enemy')
+    ui.companionFlight.style.setProperty('--flight-x', point.x + 'px')
+    ui.companionFlight.style.setProperty('--flight-y', point.y + 'px')
     ui.companionFlight.style.setProperty('--flight-duration', `${effectDuration(companionFlightDuration)}ms`)
     ui.companionFlight.hidden = false
     await wait(companionImpactTime)
@@ -1719,18 +1935,18 @@ async function playCounter(choice?: CounterChoice) {
   if (!choreographed) clearExchange()
   if (escortDealt > 0) {
     const hit = { target: 'escort', damage: escortDealt, defeated: !next.escort } as const
-    arena.contact([hit], { counter: true })
+    arena.contact([hit], { counter: true, joint: companionJoint })
     showDamage(hit)
     updateEscortVital(next.escort?.hp ?? 0)
-    sound.play('stone-hit')
+    sound.play('stone-hit', companionJoint ? 1.32 : 1)
     if (dealt && animate) await wait(70)
   }
   if (dealt > 0) {
     const hit = { target: 'enemy', damage: dealt, defeated: next.enemyHp === 0 } as const
-    if (!choreographed) arena.contact([hit], { counter: true })
+    if (!choreographed) arena.contact([hit], { counter: true, joint: companionJoint })
     showDamage(hit)
     if (choreographed) ui.feedback.textContent = `반격 피해 ${dealt}`
-    sound.play('stone-hit', choreographed ? .80 : 1, choreographed ? .31 : .19)
+    sound.play('stone-hit', choreographed ? .80 : companionJoint ? 1.32 : 1, choreographed ? .31 : .19)
   }
   updateVital(ui.enemyHp, ui.enemyTotal, next.enemyHp)
   if (!ui.companionFlight.hidden) {
@@ -1743,19 +1959,39 @@ async function playCounter(choice?: CounterChoice) {
   ascent = checkpoint
   counterBusy = false
   render('normal', next.phase === 'assign')
-  if (next.phase === 'won') sound.play('victory')
+  if (next.turn !== before.turn && !ui.planning.hidden) turnCues(before, true)
+  finishCues(previous, checkpoint)
   focusPhase()
 }
 ui.counter.addEventListener('click', () => void playCounter())
 function enterFork(id: number) {
   if (ui.guide.open || exchangeBusy || ascent?.route?.screen !== 'map') return
+  const door = ui.fork.querySelector<HTMLElement>('[data-node="' + id + '"] .fork-art')
+  const rect = door?.getBoundingClientRect()
   const next = enterMapNode(ascent, id)
   if (next === ascent) return
-  clearExchange()
+  resetPresentation()
   ascent = next
   saveCurrent()
+  sound.play('step')
   render('normal', true)
-  if (ascent.route?.screen === 'battle') sound.play('dice-roll')
+  if (rect && door) {
+    const doorWidth = Math.min(rect.width * .84, 152) - 13
+    const inside = new DOMRect(rect.x + (rect.width - doorWidth) / 2, rect.y + 10, doorWidth, rect.height - 10)
+    const overlay = feel.layer(inside, 'door', door.innerHTML)
+    feel.animate(overlay, [{ opacity: .96 }, { opacity: .78, offset: .55 }, { opacity: 0 }], 125, () => feel.release(overlay))
+  }
+  const floor = ui.encounter.hidden ? ui.rewardHeading : ui.encounter
+  const ground = floor.getBoundingClientRect()
+  const dust = feel.layer(new DOMRect(ground.x + (ui.encounter.hidden ? ground.width / 2 : parseFloat(ui.encounter.style.getPropertyValue('--player-x')) || ground.width / 3),
+    ground.y + (ui.encounter.hidden ? ground.height : parseFloat(ui.encounter.style.getPropertyValue('--ground')) || ground.height * .6), 14, 3), 'footstep')
+  feel.animate(dust, [{ opacity: .8 }, { transform: 'scaleX(1.4)', opacity: 0 }], 96, () => feel.release(dust))
+  if (ascent.route?.screen === 'rest') {
+    const ember = ui.rewardHeading.querySelector<HTMLElement>('.rest-ember')
+    sound.play('ember')
+    if (ember) feel.animate(ember, [{ transform: 'scale(.7)' }, { transform: 'scale(1.22)' }, { transform: 'none' }], 180)
+  }
+  turnCues(undefined, false)
   focusPhase()
 }
 ui.next.addEventListener('click', () => {
@@ -1766,7 +2002,6 @@ ui.next.addEventListener('click', () => {
   ascent = next
   saveCurrent()
   render('normal', true)
-  if (!ascent.route) sound.play('dice-roll')
   focusPhase()
 })
 ui.retry.addEventListener('click', showPerks)
