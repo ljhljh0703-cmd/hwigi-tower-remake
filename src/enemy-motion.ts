@@ -22,6 +22,10 @@ const chainWardenPoses: Readonly<Record<string, keyof typeof chainWardenBounds>>
 }
 
 export function atlasCell({ sheet, pose }: MotionFrame) {
+  if (sheet === 'freeze' && pose === 'ready') {
+    const cell: AtlasCell = { id: pose, rect: [0, 0, 48, 33], bounds: [14, 11, 28, 18] }
+    return { atlas: { pivot: [34, 29] }, cell, art: 'freeze-ready' }
+  }
   if (sheet === 'chain-warden') {
     const id = chainWardenPoses[pose]
     const cell: AtlasCell = { id, rect: [0, 0, 40, 44], bounds: chainWardenBounds[id] }

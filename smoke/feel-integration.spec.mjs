@@ -47,13 +47,16 @@ const test = base.extend({
 })
 
 async function photograph(page, info, name) {
-  const root = process.env.HWIGI_FEEL_SHOTS
+  const heroShot = ['golem-parry', 'roulette', 'counter', 'reduced-motion'].includes(name) && process.env.HWIGI_HERO_SHOTS
+  const root = heroShot || process.env.HWIGI_FEEL_SHOTS
   if (!root) return
   await page.screenshot({ path: join(root, `${info.project.name.replace('×', 'x')}-${name}.png`) })
 }
 
 test.beforeAll(async () => {
-  if (process.env.HWIGI_FEEL_SHOTS) await mkdir(process.env.HWIGI_FEEL_SHOTS, { recursive: true })
+  for (const root of [process.env.HWIGI_FEEL_SHOTS, process.env.HWIGI_HERO_SHOTS]) {
+    if (root) await mkdir(root, { recursive: true })
+  }
 })
 
 function withBattle(run, state) {
@@ -127,7 +130,8 @@ test('가시 골렘 정확 방어 자세가 룰렛 동안 정지하고 자동 �
   await page.locator('#resolve').tap()
   await expect(page.locator('#parry-cue')).toHaveClass(/sr-only/)
   await expect(page.locator('#parry-cue')).not.toHaveAttribute('hidden', '')
-  expect(await pose()).not.toBe(planningPose)
+  const parryPose = await pose()
+  expect(parryPose).not.toBe(planningPose)
   await photograph(page, info, 'golem-parry')
   await expect(panel).toHaveAttribute('data-roll-state', 'spinning')
   const wheel = page.locator('.roulette-stage')
@@ -137,6 +141,7 @@ test('가시 골렘 정확 방어 자세가 룰렛 동안 정지하고 자동 �
   await photograph(page, info, 'roulette')
   const { spinning, locked } = await page.evaluate(() => window.roulettePoses)
   expect(spinning).toBeTruthy()
+  expect(spinning).not.toBe(parryPose)
   expect(locked).toBe(spinning)
   await expect(page.locator('#counter-damage')).toHaveText(String(expected.lastExchange.counter.damage))
   await expect(page.locator('#enemy-damage .damage-number')).toBeVisible()

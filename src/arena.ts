@@ -24,14 +24,24 @@ type Placement = { foot: number; scale: number; travel: number }
 const chamberFloor = 136
 const footerHeight = 98
 const actorDisplayScale = .8
-const hero: Sprite = { name: 'hero', footY: 39, poses: { idle: 14, attack: 12, guard: 11, hit: 17 }, scale: 3.75, reach: [17, 20], head: 4, restReach: [11, 15] }
-const boss: Sprite = { name: 'boss', footY: 47, poses: { idle: 30, charge: 25, attack: 37, knockdown: 36 }, scale: 4, reach: [35, 19], head: 1 }
+const heroFootX = 26
+const heroPoses = [
+  'idle', 'guard-lift', 'guard', 'guard-brace', 'attack-prepare', 'step',
+  'attack', 'attack-follow', 'hit', 'recover', 'fall', 'down',
+] as const
+const hero: Sprite = {
+  name: 'hero', footY: 39,
+  poses: Object.fromEntries(heroPoses.map((pose) => [pose, heroFootX])),
+  scale: 3.75, reach: [20, 22], head: 8, restReach: [7, 21],
+}
+const heroSwordTip = [47 + .5, 20 + .5] as const
+const boss: Sprite = { name: 'boss', footY: 47, poses: { idle: 30, charge: 25, attack: 37, knockdown: 36 }, scale: 4, reach: [35, 19], head: 1, restReach: [20, 6] }
 const golem: Sprite = { name: 'golem', footY: 39, poses: { idle: 15, charge: 15, attack: 21, hit: 13 }, scale: 5, reach: [18, 17], head: 18, restReach: [15, 16] }
 
 type PoseFrame = { pose: string; duration: number }
 export type ImpactTarget = 'player' | 'enemy' | 'escort'
 export type BattleHit = { target: ImpactTarget; damage: number; defeated?: boolean }
-type Impact = BattleHit & { start: number; hold: number; x: number; y: number; dust: boolean }
+type Impact = BattleHit & { start: number; hold: number; x: number; y: number; lift: number; dust: boolean }
 type ContactOptions = { parry?: boolean; counter?: boolean; ordered?: boolean; guarded?: boolean; incoming?: boolean; final?: boolean; joint?: boolean }
 type Attack = { start: number; intent: EnemyIntent; count: number; index: number; last?: number; escort: boolean; weakened: boolean; guarded: boolean }
 type Swing = { target: 'escort' | 'enemy'; start: number; contact: number }
@@ -45,7 +55,7 @@ function enemySprite(name: string, footX: number, footY: number, scale: number, 
 export const ENEMY_SPRITES = {
   thorns: golem,
   lock: enemySprite('lock', 16, 38, 5, [15, 11], 17),
-  freeze: enemySprite('freeze', 16, 38, 5, [15, 11], 17),
+  freeze: { ...enemySprite('freeze', 16, 38, 5, [30, 14], 17), restReach: [14, 14] },
   rage: enemySprite('rage', 16, 38, 7, [14, 15], 22),
   reaction: enemySprite('reaction', 20, 46, 4, [16, 11], 18),
   vitality: enemySprite('vitality', 20, 46, 5, [18, 15], 22),
@@ -57,35 +67,42 @@ export const ENEMY_SPRITES = {
   boss,
 } satisfies Record<AscentEnemyId, Sprite>
 
-export const ESCORT_SPRITE = enemySprite('escort-guard', 12, 26, 4, [11, 8], 14)
+export const ESCORT_SPRITE: Sprite = { ...enemySprite('escort-guard', 12, 26, 4, [11, 8], 14), restReach: [11, 3] }
 
 function layoutSprites(sprites: readonly Sprite[], width: number, density: number, headroom: number, forecastHeight: number) {
   const edge = 8 * density
   const scales = sprites.map((sprite, index) => {
     const height = headroom - (index === sprites.length - 1 ? forecastHeight : 0)
-    const preferred = Math.round(sprite.scale * actorDisplayScale * density)
+    const preferred = Math.round(Math.round(sprite.scale * actorDisplayScale) * density)
+    if (sprite === hero) return preferred
+    if (sprite === boss && headroom >= 50 * preferred) return preferred
     return Math.max(1, Math.min(preferred, Math.floor(height / (sprite.footY - sprite.head))))
   })
 
-  const footprint = (sprite: Sprite, index: number) => (sprite.reach[0] + sprite.reach[1]) * scales[index]
-  const available = width - (sprites.length + 1) * edge
+  const last = sprites.length - 1
+  const resting = sprites.map((sprite) => sprite.restReach ?? sprite.reach)
+  // The actors move into the shared space for contact. Only the two outer edges
+  // need to reserve the full pose overhang when choosing a pixel scale.
+  const footprint = (sprite: Sprite, index: number) =>
+    ((index === 0 ? sprite.reach[0] : resting[index][0]) +
+      (index === last ? sprite.reach[1] : resting[index][1])) * scales[index]
+  const available = width - 2 * edge
   while (sprites.reduce((sum, sprite, index) => sum + footprint(sprite, index), 0) > available) {
     let widest = -1
     for (const [index, sprite] of sprites.entries()) {
-      if (scales[index] > 1 && (widest < 0 || footprint(sprite, index) > footprint(sprites[widest], widest))) widest = index
+      if (sprite !== hero && scales[index] > 1 && (widest < 0 || footprint(sprite, index) > footprint(sprites[widest], widest))) widest = index
     }
     if (widest < 0) break
     scales[widest]--
   }
 
-  const resting = sprites.map((sprite) => sprite.restReach ?? sprite.reach)
   const bodyWidth = resting.reduce((sum, [left, right], index) => sum + (left + right) * scales[index], 0)
-  const last = sprites.length - 1
-  const overhang = Math.max((sprites[0].reach[0] - resting[0][0]) * scales[0],
-    (sprites[last].reach[1] - resting[last][1]) * scales[last])
-  const gap = Math.max(0, Math.min(30 * density, (width - bodyWidth - 2 * (edge + overhang)) / last))
-  let start = (width - bodyWidth - gap * last) / 2
-  const freeEdge = Math.max(0, start - overhang - edge)
+  const leftOverhang = Math.max(0, (sprites[0].reach[0] - resting[0][0]) * scales[0])
+  const rightOverhang = Math.max(0, (sprites[last].reach[1] - resting[last][1]) * scales[last])
+  const gap = Math.max(0, Math.min(30 * density, (width - bodyWidth - 2 * edge - leftOverhang - rightOverhang) / last))
+  const center = (width - bodyWidth - gap * last) / 2
+  let start = Math.max(edge + leftOverhang, Math.min(center, width - bodyWidth - gap * last - edge - rightOverhang))
+  const freeEdge = Math.max(0, Math.min(start - leftOverhang, width - start - bodyWidth - gap * last - rightOverhang) - edge)
   const travel = Math.min(35 * density, freeEdge / 2)
   const shake = Math.min(10 * density, freeEdge - travel)
   const placements = new Map<Sprite, Placement>()
@@ -241,14 +258,14 @@ export class Arena {
     this.canvas.style.width = `${this.canvas.width / density}px`
     this.canvas.style.height = `${this.canvas.height / density}px`
     this.context.imageSmoothingEnabled = false
-    const footer = parseFloat(getComputedStyle(this.encounter).getPropertyValue('--arena-footer')) || footerHeight
-    this.floor = Math.max(1, this.canvas.height - Math.round(footer * density))
     this.positionActors()
     this.draw()
   }
 
   private positionActors() {
-    if (!this.canvas.width || !this.floor) return
+    if (!this.canvas.width || !this.canvas.height) return
+    const footer = parseFloat(getComputedStyle(this.encounter).getPropertyValue('--arena-footer')) || footerHeight
+    this.floor = Math.max(1, this.canvas.height - Math.round(footer * this.density))
     const enemy = ENEMY_SPRITES[this.enemyId]
     const actors = this.enemyId === 'escort' ? [hero, ESCORT_SPRITE, enemy] : [hero, enemy]
     const { width: intentWidth, height: intentHeight } = this.intent.getBoundingClientRect()
@@ -257,7 +274,7 @@ export class Arena {
     const gap = 6
     const top = rail.height ? Math.max(gap, rail.bottom - stage.top + gap) : gap
     const { placements, shake } = layoutSprites(actors, this.canvas.width, this.density,
-      this.floor - top * this.density, (intentHeight + gap) * this.density)
+      this.floor - (enemy === boss ? gap : top) * this.density, (intentHeight + gap) * this.density)
     this.placements = placements
     this.shake = shake
 
@@ -266,11 +283,18 @@ export class Arena {
     const x = (sprite: Sprite) => canvasLeft + placements.get(sprite)!.foot / this.density
     const ground = canvasTop + this.floor / this.density
     const foe = placements.get(enemy)!
-    const headY = ground - (enemy.footY - enemy.head) * foe.scale / this.density
+    let headY = ground - (enemy.footY - enemy.head) * foe.scale / this.density
     const half = intentWidth / 2
-    const center = Math.max(half + gap, Math.min(x(enemy), stage.width - half - gap))
+    let center = Math.max(half + gap, Math.min(x(enemy), stage.width - half - gap))
+    if (enemy === boss && this.battle) {
+      const intent = enemyIntentAt(this.battle)
+      const { cell, atlas } = atlasCell(readyFrame(boss.name, intent, this.battle.erasedStrikeTurn === this.battle.turn))
+      headY = ground - (atlas.pivot[1] - cell.bounds[1]) * foe.scale / this.density
+      const left = canvasLeft + (this.atlasFoot(boss) + (cell.bounds[0] - atlas.pivot[0]) * foe.scale) / this.density
+      if (headY - intentHeight - gap < top && left >= intentWidth + gap * 2) center = left - half - gap
+    }
     this.encounter.style.setProperty('--intent-center', `${center}px`)
-    this.encounter.style.setProperty('--intent-top', `${Math.max(gap, headY - intentHeight - gap)}px`)
+    this.encounter.style.setProperty('--intent-top', `${Math.max(top, headY - intentHeight - gap)}px`)
     this.encounter.style.setProperty('--ground', `${ground}px`)
     this.encounter.style.setProperty('--player-x', `${x(hero)}px`)
     this.encounter.style.setProperty('--enemy-x', `${x(enemy)}px`)
@@ -313,7 +337,9 @@ export class Arena {
     const image = this.images.get('hero-' + pose)
     if (!image?.naturalWidth) return
     const { foot, scale } = this.placements.get(hero)!
-    this.context.drawImage(image, Math.round(foot + shift - hero.poses[pose] * scale),
+    const anchoredX = Math.round(foot + shift - hero.poses[pose] * scale)
+    const x = pose === 'down' ? Math.max(Math.ceil(3 * this.density), anchoredX) : anchoredX
+    this.context.drawImage(image, x,
       Math.round(this.floor + lift - hero.footY * scale), image.width * scale, image.height * scale)
   }
 
@@ -360,10 +386,13 @@ export class Arena {
     const foot = this.atlasFoot(sprite)
     const hand = this.placements.get(hero)!
     const { atlas, cell, art } = atlasCell(frame(sprite.name, 'hit'))
-    const edge = this.edgePixel(art, cell.rect,
-      atlas.pivot[1] - 11 * hand.scale / scale, false)
+    const bladeHeight = (heroSwordTip[1] - hero.footY) * hand.scale
+    const edge = this.edgePixel(art, cell.rect, atlas.pivot[1] - .5 + bladeHeight / scale, false)
+    const y = (edge.y + .5 - atlas.pivot[1]) * scale
+    // Let the short guard recoil up into the blade while the hero keeps their footing.
+    const lift = target === 'escort' ? Math.min(0, bladeHeight - y) : 0
     return { x: foot + (edge.x + .5 - atlas.pivot[0]) * scale,
-      y: this.floor + (edge.y + .5 - atlas.pivot[1]) * scale }
+      y: this.floor + y + lift, lift }
   }
 
   private incomingPoint(pose: MotionFrame, sprite: Sprite, guarded: boolean) {
@@ -371,11 +400,12 @@ export class Arena {
     const tip = cell.candidateContact ?? [cell.bounds[0], cell.bounds[1] + cell.bounds[3] / 2]
     const actor = this.placements.get(sprite)!
     const hand = this.placements.get(hero)!
-    const stance = guarded ? 'guard' : 'hit'
+    const stance = guarded ? 'guard-brace' : 'hit'
     const pixel = this.pixelData.get('hero-' + stance)
     const height = (tip[1] + .5 - atlas.pivot[1]) * actor.scale
-    const edge = this.edgePixel('hero-' + stance, [0, 0, pixel?.width ?? 32, pixel?.height ?? 40],
-      hero.footY + height / hand.scale, true)
+    const row = hero.footY - .5 + height / hand.scale
+    const edge = this.edgePixel('hero-' + stance, [0, 0, pixel?.width ?? 72, pixel?.height ?? 44],
+      guarded ? Math.max(15, Math.min(21, row)) : row, true)
     const x = hand.foot + (edge.x + .5 - hero.poses[stance]) * hand.scale
     const y = this.floor + (edge.y + .5 - hero.footY) * hand.scale
     return { x, y, shift: x - (this.atlasFoot(sprite) + (tip[0] + .5 - atlas.pivot[0]) * actor.scale), lift: y - this.floor - height }
@@ -453,13 +483,8 @@ export class Arena {
     context.fillStyle = '#332e25'
     context.fillRect(x - 24, ground, 45, 3)
     context.fillRect(x - 20, ground + 3, 35, 1)
-    const fallen = this.images.get('hero-hit')
-    if (fallen?.naturalWidth) {
-      context.translate(x, ground - 7)
-      context.scale(1, .53)
-      context.rotate(-Math.PI / 2)
-      context.drawImage(fallen, -16, -21)
-    }
+    const fallen = this.images.get('hero-down')
+    if (fallen?.naturalWidth) context.drawImage(fallen, x - hero.poses.down, ground - hero.footY)
     context.restore()
   }
 
@@ -508,24 +533,28 @@ export class Arena {
     const swingProgress = swing ? Math.max(0, Math.min(1, swingAge / swing.contact,
       1 - (swingAge - swing.contact - 50) / 94)) : 0
     const hit = this.falls.get('player') ?? this.impacts.filter(item => item.target === 'player').at(-1)
-    const hurt = hit && (hit.defeated || age(hit.start) < 145)
+    const hurtAge = hit ? age(hit.start) : Infinity
+    const hurt = hit && (hit.defeated || hurtAge < 145)
     const hand = this.placements.get(hero)!
-    const pose = atContact && attack.guarded || brace ? 'guard' : hurt ? 'hit' : swingProgress > 0 ? 'attack' : approaching && attack.guarded ? 'guard' : 'idle'
+    let pose = 'idle'
+    if (brace || atContact && attack.guarded) pose = 'guard-brace'
+    else if (hurt) pose = hit.defeated
+      ? hurtAge < 72 ? 'hit' : hurtAge < 190 ? 'fall' : 'down'
+      : hurtAge < 101 ? 'hit' : 'recover'
+    else if (swing && swingProgress > 0) pose = this.reducedMotion ? 'attack'
+      : swingAge < swing.contact * .34 ? 'attack-prepare'
+      : swingAge < swing.contact * .8 ? 'step'
+      : swingAge < swing.contact + 35 ? 'attack' : 'attack-follow'
+    else if (approaching && attack.guarded) pose = this.reducedMotion || left < 113 ? 'guard' : 'guard-lift'
     let dx = 0, dy = 0
-    if (swing && pose === 'attack') {
+    if (swing && (pose === 'attack' || pose === 'step' || pose === 'attack-follow')) {
       const point = this.bladePoint(swing.target)
       const t = this.reducedMotion ? 1 : swingProgress ** 2
-      dx = (point.x - hand.foot - (30.5 - hero.poses.attack) * hand.scale) * t
-      dy = (point.y - this.floor + 10.5 * hand.scale) * t
-      if (!this.reducedMotion && swingAge < swing.contact * .35) dy += 2 * this.density
-      if (!this.reducedMotion && t > .45 && swingAge < swing.contact) {
-        context.fillStyle = '#c9b89d'
-        context.fillRect(Math.round(hand.foot + dx), Math.round(point.y + 2 * hand.scale), 8 * hand.scale, hand.scale)
-      }
+      dx = (point.x - hand.foot - (heroSwordTip[0] - hero.poses.attack) * hand.scale) * t
+      dy = (point.y - this.floor - (heroSwordTip[1] - hero.footY) * hand.scale) * t
     } else if (!this.reducedMotion && (hurt || (brace && !brace.parry))) {
       const elapsed = age(brace?.at ?? hit!.start)
       dx = -(brace ? 3 : attack && attack.index < attack.count - 1 ? 4 : 9) * this.density * Math.sin(Math.PI * Math.min(1, Math.max(0, elapsed - 40) / 105))
-      if (hit?.defeated) dy = Math.min(9, elapsed / 16) * this.density
     }
     if (battle.playerHp > 0 || hurt) this.drawHero(pose, dx, dy)
     const paintEnemy = (sprite: Sprite, target: 'enemy' | 'escort') => {
@@ -541,6 +570,7 @@ export class Arena {
       let shift = 0, lift = 0
       if (impact && (impact.defeated || (elapsed < 135 && (!striking || !atContact || impact.start >= (attack.last ?? 0))))) {
         cell = hurtFrame(sprite.name, impact.damage, Boolean(impact.defeated), elapsed)
+        if (target === 'escort') lift = impact.lift * Math.max(0, 1 - elapsed / 105)
         if (!this.reducedMotion && elapsed > impact.hold) shift = 6 * this.density * Math.sin(Math.PI * Math.min(1, (elapsed - impact.hold) / 88))
       } else if (striking && (since < contactHold + 54 || approaching)) {
         const stage = atContact ? 'contact' : since < contactHold + 54 ? 'follow' : left <= 78 ? 'approach' : 'anticipate'
@@ -763,6 +793,7 @@ export class Arena {
     }
     this.load('motion/effects')
     if (enemyId === 'boss') this.load('motion/boss-special')
+    if (enemyId === 'freeze') this.load('freeze-ready')
     if (enemyId === 'escort') {
       this.load('motion/escort-guard')
       this.load('escort-guard-idle')

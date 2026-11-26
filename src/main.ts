@@ -1492,6 +1492,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   updateVital(ui.enemyHp, ui.enemyTotal, enemyHp, enemy.hp)
   ui.escortGuard.hidden = !battle.escort || enemyHp <= 0
   ui.encounter.classList.toggle('escort-room', enemy.id === 'escort')
+  ui.encounter.classList.toggle('boss-room', enemy.id === 'boss')
   if (battle.escort) updateEscortVital(battle.escort.hp)
   ui.newUnlock.hidden = !atUnlock
   showCompanionLine(ui.companionAwakenLine, atUnlock && newUnlock === 'triple' ? COMPANION_LINES.awaken : '')
@@ -1918,11 +1919,12 @@ ui.resolve.addEventListener('click', async () => {
   const { phase, lastExchange } = next.battle
   try {
     if (lastExchange) await showExchange(before, next.battle, lastExchange)
-    if (next.battle.turn !== before.turn || next.newUnlock) {
+    if (phase !== 'lost' && (next.battle.turn !== before.turn || next.newUnlock)) {
       await arena.finishExchange()
       for (const output of Object.values(damageOutput)) output.replaceChildren()
     }
     if (phase === 'lost') {
+      if (!reducedMotion()) await wait(240)
       clearExchange()
     } else if (next.newUnlock) {
       if (next.newUnlock === 'triple') {

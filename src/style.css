@@ -655,6 +655,16 @@ main[data-screen='battle'] {
   pointer-events: none;
 }
 
+@media (max-height: 620px) {
+  .encounter.boss-room {
+    --arena-footer: 64px;
+    --vital-offset: 22px;
+    --hit-order-offset: 48px;
+  }
+
+  .encounter:has(> .counter-over-field:not([hidden])) { --vital-offset: 78px; }
+}
+
 #arena { position: absolute; inset: 0; overflow: clip; }
 #arena canvas { position: absolute; display: block; image-rendering: pixelated; }
 
