@@ -258,7 +258,7 @@ const counterPanelNext = ui.counterPanel.nextElementSibling
 const sound = new BattleAudio()
 const systemMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
 let settings = loadGameSettings()
-const forkView = new ForkView(ui.fork, { health: ui.mapHealth, floor: ui.mapFloor }, enterFork)
+const forkView = new ForkView(ui.fork, enterFork)
 const firstRun = new FirstRunGuide(icon, () => {
   if (!ascent) return
   if (ascent.battle.phase === 'counter') render()
@@ -391,7 +391,7 @@ ui.confirm.addEventListener('close', () => {
 })
 
 element('clear-meta').addEventListener('click', () => {
-  confirmLobbyAction('영구 해금 기록을 지우겠습니까?', '다음 등반의 해금과 새 표식 기록이 초기화됩니다.', '해금 기록 지우기', () => {
+  confirmLobbyAction('영구 해금 기록을 지우겠습니까?', '다음 등반의 해금과 새 카드 표시 기록이 초기화됩니다.', '해금 기록 지우기', () => {
     metaProgress = resetMetaProgress(metaProgress)
     writeMetaProgress(metaProgress)
     if (ascent) {
@@ -514,6 +514,7 @@ stolenPlaceholder.setAttribute('role', 'img')
 const unlockConditions = element<HTMLDialogElement>('unlock-conditions')
 const unlockExamples = element('unlock-examples')
 const unlockResult = element('unlock-result')
+const unlockRule = element('unlock-rule')
 
 function pips(face: number) {
   return `<span class="gimmick-die" data-face="${face}">${'<b></b>'.repeat(face)}</span>`
@@ -538,6 +539,7 @@ function showUnlockConditions(hand: Hand) {
   unlockResult.innerHTML = triple
     ? `<span class="companion-tile unlock-result-ego" aria-hidden="true">${icon('companion-awake')}</span><strong>${name}</strong>`
     : `<span class="unlock-result-reroll" aria-hidden="true"><span class="die-face unlock-example-die">5</span>${icon('reroll')}</span><strong>${name}</strong>`
+  unlockRule.textContent = triple ? '같은 눈 셋' : '이어지는 눈 셋 · 순서 무관'
   unlockConditions.showModal()
 }
 
@@ -1040,7 +1042,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   }
   const heroHit = (damage: number, final = true): BattleHit[] => damage ? [{ target: 'player', damage, defeated: final && after.playerHp === 0 }] : []
   const renewed = exchange.heartRevived || after.phase === 'won' && before.bossRelic?.id === 'healing-scepter' && after.playerHp > before.playerHp - taken
-  const updatePlayer = () => updateVital(ui.playerHp, ui.playerTotal, renewed ? Math.max(0, before.playerHp - taken) : after.playerHp)
+  const updatePlayer = () => updatePlayerVital(renewed ? Math.max(0, before.playerHp - taken) : after.playerHp)
   let visibleEnemyHp = before.enemyHp
   const hitEnemy = (damage: number) => {
     visibleEnemyHp -= damage
@@ -1144,7 +1146,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   if (renewed) {
     if (!reducedMotion()) await wait(160)
     sound.play('unlock', exchange.heartRevived ? .54 : .72)
-    updateVital(ui.playerHp, ui.playerTotal, after.playerHp)
+    updatePlayerVital(after.playerHp)
     markVital(ui.playerHp.closest<HTMLElement>('.vital')!)
   }
   ui.feedback.textContent = `적 피해 ${dealt}, 내 피해 ${taken}${escortDealt ? `, 호위 피해 ${escortDealt}` : ''}${awakenedDice ? `, 각성 ${awakenedDice.join(', ')}` : ''}`
@@ -1406,11 +1408,15 @@ type ItemAction = { label: string; apply?: () => void }
 const itemActions = new Map<Reward, ItemAction>()
 const dockActionSelector = '#treasure-controls [data-item-activate]'
 
+function inventoryDescription(id: Reward, seven?: boolean) {
+  return isBossRelic(id) ? bossRelicText(id, seven) : rewardText(id, seven)
+}
+
 function showInventoryInfo(id: Reward, effect?: string) {
   const seven = ascent?.battle.itemsSeven
   element('inventory-title').textContent = REWARD_CARDS[id].name
-  element('inventory-description').textContent = isBossRelic(id) ? bossRelicText(id, seven)
-    : effect && !seven ? `${rewardText(id)} ${effect}` : rewardText(id, seven)
+  const description = inventoryDescription(id, seven)
+  element('inventory-description').textContent = effect && !seven && !isBossRelic(id) ? `${description} ${effect}` : description
   inventoryDetail.showModal()
 }
 
@@ -1672,7 +1678,11 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
     dockLine = document.createElement('div')
     dockLine.className = 'item-dock-line'
     const summary = battle.itemsSeven && !isBossRelic(id) ? `<span class="dock-summary">${sevenItemEffect(id)}</span>` : ''
-    const info = control(`${card.name} 설명`, `${itemIcon(card.icon)}<span class="dock-description"><strong>${card.name}</strong>${summary}</span>`, () => showInventoryInfo(id))
+    const description = inventoryDescription(id, battle.itemsSeven)
+    const effect = description.match(/^.*?[.!?](?=\s|$)/u)?.[0] ?? description
+    const info = control(`${card.name} 설명`, `${itemIcon(card.icon)}<span class="dock-description"><strong>${card.name}</strong>${summary}<span class="dock-effect"></span></span>`, () => showInventoryInfo(id))
+    info.querySelector('.dock-effect')!.textContent = effect
+    info.setAttribute('aria-description', effect)
     info.className = 'item-dock-info'
     dockLine.append(info)
     if (!battle.itemsSeven && id === 'tuning') {
@@ -1823,9 +1833,18 @@ function renderHealth(hp: number, max: number) {
   ui.mapHealth.setAttribute('aria-label', `체력 ${hp}/${max}`)
 }
 
+function updatePlayerVital(hp: number, max = ui.playerHp.max) {
+  updateVital(ui.playerHp, ui.playerTotal, hp, max)
+  renderHealth(hp, max)
+}
+
 function teachOpening({ battle }: Ascent) {
   if (battle.phase === 'counter') {
-    firstRun.teach({ id: 'defend', text: '정확히 막았습니다! 반격 룰렛을 돌립니다.', symbol: 'wheel',
+    if (ui.counter.hidden) {
+      firstRun.clear()
+      return
+    }
+    firstRun.teach({ id: 'defend', text: '정확히 막았습니다! 반격 룰렛을 누르세요.', symbol: 'wheel',
       anchor: ui.counter, marks: [ui.counter] })
     return
   }
@@ -1850,7 +1869,8 @@ function teachOpening({ battle }: Ascent) {
     const damage = outcome.incoming.totalDamage
     const text = outcome.counter ? `방어 ${damage} = 적 공격 ${damage} → 정확 방어` : '표시한 주사위를 방어에 두세요.'
     firstRun.teach({ id: 'defend', text, symbol: 'shield', anchor: ui.firstRunAnchor,
-      marks: [ui.intent, ui.assign.guard, ...guard], arrows: guard, to: ui.dice.guard, guardGoal: damage })
+      marks: [ui.intent, ui.assign.guard, ...guard], arrows: guard, to: ui.dice.guard, guardGoal: damage,
+      headings: [ui.assign.attack.closest<HTMLElement>('.attack-heading')!, ui.assign.guard] })
   } else {
     const text = outcome.counter ? '턴을 끝내 반격 룰렛을 여세요.' : '턴 끝내기 누르세요.'
     firstRun.teach({ id: 'end-turn', text, symbol: 'turn', anchor: ui.firstRunAnchor, marks: [ui.resolve],
@@ -1917,21 +1937,22 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   const companionAwake = unlocks.includes('triple')
   ui.main.dataset.screen = defeated ? 'defeat' : atMap ? 'fork' : atRewards ? 'reward' : atEvent ? 'event' : atUnlock ? 'unlock' : 'battle'
   ui.lobby.hidden = true
-  ui.masthead.hidden = defeated
+  ui.masthead.hidden = false
+  ui.returnLobby.hidden = defeated
   ui.returnLobby.disabled = presentation !== 'normal'
   ui.returnLobby.setAttribute('aria-haspopup', 'dialog')
   ui.perks.hidden = true
   ui.battle.hidden = atMap
   ui.fork.hidden = !atMap
-  ui.mapHealth.hidden = inCombat || atUnlock
-  if (!atMap) renderHealth(playerHp, maxHp)
+  ui.mapHealth.hidden = false
+  updatePlayerVital(playerHp, maxHp)
   ui.mapFloor.hidden = !atMap
   renderCoins(route?.coins)
   renderBossRelicSlot(battle, presentation !== 'normal')
   ui.encounter.hidden = !inCombat && !defeated
   ui.encounter.setAttribute('aria-label', defeated ? '돌바닥에 쓰러진 회귀자의 마지막 전장' : '전장')
-  ui.fight.hidden = atMap || (!inCombat && !atRewards)
-  const floor = route ? (route.node === null ? route.completed.length : route.map.byId[route.node].floor) : fight
+  ui.fight.hidden = atMap
+  const floor = route ? (route.node === null ? route.completed.length + Number(atMap) : route.map.byId[route.node].floor) : fight
   const floors = route ? MAP_FLOORS : FIGHT_COUNT
   ui.gameOver.hidden = !defeated
   if (defeated) ui.defeatFloor.textContent = `${floor}층에서 ${battle.lastExchange?.defeatedByThorns ? '가시에 찔려 ' : ''}쓰러졌습니다.`
@@ -1943,14 +1964,15 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
     anchor.before(reveal)
     element('meta-reveal-list').innerHTML = metaRevealContent(opened)
   }
-  ui.fight.textContent = `${floor}/${floors} 층`
+  const headerFloor = atMap ? ui.mapFloor : ui.fight
+  headerFloor.textContent = `${floor}/${floors} 층`
   renderActivePerk(battle)
   ui.turn.hidden = !inCombat
   ui.help.hidden = !inCombat && !atMap
   ui.help.disabled = !showActions && !atMap
   ui.battleSettings.hidden = !inCombat
   ui.battleSettings.disabled = !showActions
-  ui.soundToggle.hidden = atMap
+  ui.soundToggle.hidden = atMap || defeated
   if (atMap) {
     ui.activePerk.hidden = true
     ui.rewardStrip.hidden = true
@@ -1971,7 +1993,6 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.encounterName.textContent = enemy.id === 'boss' ? '황제' : enemy.id === 'chain-warden' ? RULES_SIX_BADGES[enemy.id].label : ''
   renderIntent(battle, totals, enemy.id)
   renderEnemyStatus(battle)
-  updateVital(ui.playerHp, ui.playerTotal, playerHp, maxHp)
   updateVital(ui.enemyHp, ui.enemyTotal, enemyHp, enemy.hp)
   ui.escortGuard.hidden = !battle.escort || enemyHp <= 0
   ui.encounter.classList.toggle('escort-room', enemy.id === 'escort')
@@ -2137,6 +2158,7 @@ function showPerks() {
   ui.rewardStrip.hidden = true
   ui.artifactStrip.hidden = true
   ui.returnLobby.disabled = false
+  ui.returnLobby.hidden = false
   ui.returnLobby.removeAttribute('aria-haspopup')
   ui.battle.hidden = true
   ui.fork.hidden = true
@@ -2631,7 +2653,7 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
   if (next.lastExchange?.crownTriggered) sound.play('stone-hit', .66)
   if (next.phase === 'won' && next.playerHp > before.playerHp) {
     sound.play('unlock', .72)
-    updateVital(ui.playerHp, ui.playerTotal, next.playerHp)
+    updatePlayerVital(next.playerHp)
     markVital(ui.playerHp.closest<HTMLElement>('.vital')!)
   }
   if (!ui.companionFlight.hidden) {

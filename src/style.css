@@ -221,6 +221,7 @@ body:has(#battle-guide[open], #lobby-confirm[open], #inventory-detail[open], #se
 }
 
 #lobby-confirm form, #inventory-detail form { display: grid; gap: 16px; }
+#lobby-confirm { word-break: keep-all; }
 #lobby-confirm h2, #inventory-detail h2 { font-size: 1.2rem; }
 #lobby-confirm-text, #inventory-description { color: var(--muted); line-height: 1.55; word-break: keep-all; }
 .confirm-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-block-start: 8px; }
@@ -920,8 +921,9 @@ main[data-screen='battle'] {
 .item-dock-line button { min-block-size: 44px; padding-inline: 8px; white-space: nowrap; }
 .item-dock-line .item-dock-info { justify-content: start; flex: 1; min-inline-size: 0; border: 0; background: transparent; text-align: start; font-size: .84rem; white-space: normal; }
 .item-dock-info .pixel-icon { inline-size: 24px; block-size: 24px; }
-.dock-description { display: grid; justify-items: start; gap: 1px; }
+.dock-description { display: grid; grid-template-columns: minmax(0, 1fr); flex: 1; min-inline-size: 0; gap: 1px; }
 .dock-summary { justify-content: start; color: #f6dfbf; font-size: .74rem; }
+.dock-effect { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .72rem; }
 .item-dock-info .item-effect { min-block-size: 0; padding: 0; font-size: .74rem; }
 .item-dock-line .item-dock-close { padding-inline: 0; font-size: 1.2rem; }
 .item-dock-line .primary { min-inline-size: 62px; }
@@ -1694,6 +1696,7 @@ button.die:disabled { background: transparent; }
 }
 #unlock-conditions form { position: absolute; inset: 0 0 auto auto; }
 .unlock-diagram, #unlock-examples { display: grid; justify-items: center; gap: 5px; }
+#unlock-rule { color: #e2d7c7; font-size: .82rem; text-align: center; white-space: nowrap; }
 .unlock-example-slot { display: flex; align-items: center; padding: 5px 7px; gap: 7px; border: 1px solid var(--stone-edge); background: var(--stone-face); color: #f6ca88; }
 .unlock-example-slot > .icon { font-size: 1.24rem; }
 .unlock-example-slot > span { display: flex; gap: 5px; }
@@ -1962,12 +1965,14 @@ button.die:disabled { background: transparent; }
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 6px 10px;
   padding: 6px 12px;
   border: 1px solid #9b805b;
   background: #27221b;
   color: #ffe2b0;
 }
+#counter-lock-note { display: inline-flex; align-items: center; gap: 4px; font-size: .74rem; white-space: nowrap; }
 #counter-auto {
   display: inline-flex;
   align-items: center;
@@ -2151,6 +2156,7 @@ main[data-screen='defeat'] {
   grid-template-rows: minmax(100px, 1fr) auto;
   gap: 0;
 }
+[data-screen='defeat'] .masthead { padding-inline: 16px; }
 [data-screen='defeat'] .encounter { block-size: auto; background: #28251f; }
 [data-screen='defeat'] :is(.inventory-strip, #feedback),
 [data-screen='defeat'] .encounter > :not(#arena) { display: none; }
@@ -2233,6 +2239,15 @@ main[data-screen='defeat'] {
   .artifact-option { gap: 8px; margin-block-end: 8px; font-size: .82rem; }
 }
 
+@media (max-width: 360px) {
+  [data-screen='battle'] .masthead { margin-inline: -15px; gap: 2px; }
+  [data-screen='battle'] :is(.run-status, .header-tools) { gap: 2px; }
+  [data-screen='battle'] .run-status { font-size: .75rem; }
+  [data-screen='battle'] .run-status > span { gap: 2px; }
+  [data-screen='battle'] .run-status > span > .icon { font-size: .64rem; }
+  [data-screen='battle'] #run-coins:not([hidden]) { margin-inline-end: 2px; padding-inline-end: 2px; }
+}
+
 @media (max-height: 520px) {
   #ascent-fork { --fork-visual-height: clamp(106px, 44dvh, 210px); }
   .fork-art { --door-height: clamp(74px, 27dvh, 136px); }
@@ -2304,7 +2319,7 @@ main[data-screen='defeat'] {
   justify-content: start;
 }
 [data-screen='battle'] #inventory-overflow { inset-inline: 0 auto; }
-.run-status:has(#fight:not([hidden])) #run-coins:not([hidden]) { padding-inline-end: 6px; border-inline-end: 1px solid #867767; }
+.run-status #run-coins:not([hidden]) { padding-inline-end: 5px; border-inline-end: 1px solid #867767; }
 
 :root[data-animation-speed='fast'] { --animation-scale: .5; }
 [data-reduced-motion='true'] .counter-over-field .roulette-stage,

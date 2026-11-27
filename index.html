@@ -202,8 +202,8 @@
         </div>
         <div class="run-status">
           <span id="map-health" role="img" hidden></span>
-          <span id="map-floor" hidden></span>
           <span id="run-coins" class="coin-total" role="img" hidden></span>
+          <span id="map-floor" hidden></span>
           <span id="active-perk" class="sr-only" role="img" hidden></span>
           <span id="fight" hidden></span>
           <span id="turn" class="sr-only" role="img" hidden></span>
@@ -357,6 +357,7 @@
               <svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg>
               <span id="counter-range"></span><strong id="counter-damage" hidden></strong>
             </p>
+            <span id="counter-lock-note" hidden><svg class="icon" aria-hidden="true"><use href="#icon-lock"/></svg>합공 잠김 · 피해 적용</span>
           </div>
         </section>
 
@@ -423,6 +424,7 @@
       <div class="unlock-diagram">
         <div id="unlock-result"></div>
         <div id="unlock-examples"></div>
+        <p id="unlock-rule"></p>
       </div>
     </dialog>
     <dialog id="inventory-detail" aria-labelledby="inventory-title">

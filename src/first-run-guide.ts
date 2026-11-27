@@ -40,6 +40,7 @@ interface Lesson extends Note {
   marks: readonly HTMLElement[]
   from?: HTMLElement
   arrows?: readonly HTMLElement[]
+  headings?: readonly [HTMLElement, HTMLElement]
   guardGoal?: number
   to?: HTMLElement
 }
@@ -204,22 +205,27 @@ export class FirstRunGuide {
     beside?.classList.toggle('below-first-run-note', !fitsBeside)
     this.note.style.left = `${Math.max(fitsBeside ? besideLeft : 6, Math.min(box.left + (box.width - width) / 2, lastLeft))}px`
 
-    const { from, arrows, to } = this.lesson ?? {}
-    if (arrows?.length && to) {
+    const { from, arrows, to, headings } = this.lesson ?? {}
+    if (arrows?.length && to && headings) {
       this.pointer.hidden = false
       this.pointer.dataset.mode = 'arrows'
       this.pointer.style.left = '0'
       this.pointer.style.top = '0'
-      const seats = to.querySelectorAll('.die-seat')
+      const seats = to.querySelectorAll('.die-seat:not([hidden])')
+      const [attack, guard] = headings.map(heading => heading.getBoundingClientRect())
+      const gutter = (attack.right + guard.left) / 2
+      const aboveHeadings = Math.min(attack.top, guard.top) - 2
+      const belowHeadings = Math.max(attack.bottom, guard.bottom) + 2
       this.pointer.querySelector('g')!.innerHTML = arrows.map((die, index) => {
         const source = die.getBoundingClientRect()
         const seat = (seats[index] ?? to).getBoundingClientRect()
         const x = source.left + source.width / 2
-        const y = source.bottom + 3
+        const y = source.bottom + 1
         const endX = seat.left + seat.width / 2
         const endY = seat.top + seat.height / 2
-        const bend = (y + endY) / 2
-        return `<path d="M${x},${y} C${x},${bend} ${endX},${bend} ${endX},${endY}" marker-end="url(#first-run-arrow)"/>`
+        const lane = gutter + (index - (arrows.length - 1) / 2) * 2
+        return `<path d="M${x},${y} C${x},${aboveHeadings} ${lane},${aboveHeadings} ${lane},${aboveHeadings}
+          L${lane},${belowHeadings} C${lane},${belowHeadings + 6} ${endX},${belowHeadings + 6} ${endX},${endY}" marker-end="url(#first-run-arrow)"/>`
       }).join('')
       return
     }

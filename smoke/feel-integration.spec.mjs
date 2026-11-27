@@ -404,6 +404,8 @@ test('패배한 전장을 남기고 키보드로 다시 오르기와 로비에 �
     await page.locator('#resolve').tap()
     await expect(page.getByRole('heading', { name: '등반 실패' })).toBeFocused()
     await expect(page.locator('#defeat-floor')).toHaveText('1층에서 쓰러졌습니다.')
+    await expect(page.locator('#map-health')).toHaveAccessibleName('체력 0/22')
+    await expect(page.locator('#fight')).toHaveText('1/12 층')
     await expect(page.getByRole('region', { name: /마지막 전장/ })).toBeVisible()
     await expect(page.locator('#resolve')).toBeHidden()
     await expect(page.locator('#completion-seal')).toBeHidden()

@@ -87,7 +87,28 @@ test('첫 등반에서 첫 공격을 하고 정확 방어 뒤 룰렛, 보상, �
   await expect(page.locator('#guard-goal')).toBeVisible()
   await expect(page.locator('#intent strong')).toHaveText('9')
   await expect(page.locator('#intent .intent-equation')).toHaveText('7 + 2')
-  await expect(page.locator('#first-run-point[data-mode="arrows"] g path')).toHaveCount(2)
+  const arrows = page.locator('#first-run-point[data-mode="arrows"] g path')
+  await expect(arrows).toHaveCount(2)
+  expect(await arrows.evaluateAll((paths) => {
+    const rect = (element) => element.getBoundingClientRect()
+    const labels = ['#attack-total', '#assign-guard > span:first-child'].map((selector) => rect(document.querySelector(selector)))
+    const sources = [...document.querySelectorAll('#pool-dice button[data-first-run-target]')].map(rect)
+    const seats = [...document.querySelectorAll('#guard-dice .die-seat:not([hidden])')].map(rect)
+    return paths.every((path, index) => {
+      const length = path.getTotalLength()
+      const start = path.getPointAtLength(0)
+      const end = path.getPointAtLength(length)
+      const source = sources[index]
+      const seat = seats[index]
+      if (Math.abs(start.x - source.left - source.width / 2) > 1 || Math.abs(start.y - source.bottom) > 2) return false
+      if (Math.abs(end.x - seat.left - seat.width / 2) > 1 || Math.abs(end.y - seat.top - seat.height / 2) > 1) return false
+      for (let distance = 0; distance < length; distance += 1) {
+        const { x, y } = path.getPointAtLength(distance)
+        if (labels.some(({ left, right, top, bottom }) => x >= left && x <= right && y >= top && y <= bottom)) return false
+      }
+      return true
+    })
+  })).toBe(true)
   await expect(resolve).toBeDisabled()
   await expect(markedDice.locator('.die-face')).toHaveText(['6', '3'])
   await placeMarked()
@@ -102,7 +123,10 @@ test('첫 등반에서 첫 공격을 하고 정확 방어 뒤 룰렛, 보상, �
   expect(actions).toBe(10)
   console.log(`${info.project.name} 첫 공격 ${JSON.stringify(measure)}`)
 
-  await checkNote(page, 'defend', '정확히 막았습니다! 반격 룰렛을 돌립니다.')
+  await checkNote(page, 'defend', '정확히 막았습니다! 반격 룰렛을 누르세요.', '06-counter', info)
+  await expect(page.locator('#counter-lock-note')).toHaveText('합공 잠김 · 피해 적용')
+  await expect(page.locator('#counter-lock-note')).toBeInViewport({ ratio: 1 })
+  await expect(page.locator('#counter-range')).toHaveText('1–8')
   await expect(page.locator('#player-hp')).toHaveJSProperty('value', 22)
   await tap(page.locator('#counter'))
 
@@ -236,7 +260,7 @@ test('키보드로 배치하고 재개할 수 있고 건너뛰기와 다시 보�
   await page.keyboard.press('Enter')
   await expect(page.locator('#resolve')).toBeFocused()
   await page.keyboard.press('Enter')
-  await checkNote(page, 'defend', '정확히 막았습니다! 반격 룰렛을 돌립니다.')
+  await checkNote(page, 'defend', '정확히 막았습니다! 반격 룰렛을 누르세요.')
   await expect(page.locator('#counter')).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(note(page)).toBeHidden()
@@ -325,15 +349,25 @@ test('잠긴 두 자리에서 눈 그림을 열고 공격과 방어에 6·5·4�
   const straight = page.locator('#extra-reroll')
   const pips = (slot) => dialog.locator(`[data-slot="${slot}"] .die-face`)
   const readFaces = (locator) => locator.evaluateAll((faces) => faces.map((face) => Number(face.dataset.face)))
+  async function photograph(name) {
+    const output = process.env.HWIGI_FIRST_RUN_SHOTS
+    if (!output) return
+    await mkdir(output, { recursive: true })
+    await page.evaluate(() => document.fonts.ready)
+    await page.screenshot({ path: join(output, `${info.project.name.replace('×', 'x')}-${name}.png`) })
+  }
 
   await resume(page, example)
   await triple.press('Enter')
   await expect(dialog).toHaveAccessibleName('에고 주사위 해금 조건')
   await expect(dialog.locator('#unlock-result')).toHaveText('에고 주사위')
+  await expect(dialog.locator('#unlock-rule')).toHaveText('같은 눈 셋')
+  await expect(dialog.locator('#unlock-rule')).toBeInViewport({ ratio: 1 })
   await expect(dialog.locator('.unlock-or')).toHaveText('또는')
   await expect(dialog.locator('#unlock-result use')).toHaveAttribute('href', '#icon-companion-awake')
   expect(await readFaces(pips('attack'))).toEqual([4, 4, 4])
   await expect(dialog.locator('[data-slot="guard"] > svg use')).toHaveAttribute('href', '#icon-parry')
+  await photograph('unlock-triple')
   await dialog.getByRole('button', { name: '닫기' }).tap()
 
   for (const slot of ['attack', 'guard']) {
@@ -342,18 +376,18 @@ test('잠긴 두 자리에서 눈 그림을 열고 공격과 방어에 6·5·4�
     await expect(dialog).toHaveAccessibleName('재굴림 주사위 해금 조건')
     await expect(dialog).toBeInViewport({ ratio: 1 })
     await expect(dialog.locator('#unlock-result strong')).toHaveText('재굴림 주사위')
+    const rule = dialog.locator('#unlock-rule')
+    await expect(rule).toHaveText('이어지는 눈 셋 · 순서 무관')
+    await expect(rule).toBeInViewport({ ratio: 1 })
+    const examples = await dialog.locator('#unlock-examples').boundingBox()
+    expect((await rule.boundingBox()).y).toBeGreaterThanOrEqual(examples.y + examples.height)
     await expect(dialog.locator('#unlock-result use')).toHaveAttribute('href', '#icon-reroll')
     await expect(page.locator('#intent strong')).toBeInViewport({ ratio: 1 })
     expect((await dialog.boundingBox()).y).toBeGreaterThan((await page.locator('#arena').boundingBox()).y + (await page.locator('#arena').boundingBox()).height)
     expect(await readFaces(pips('attack'))).toEqual([6, 5, 4])
     expect(await readFaces(pips('guard'))).toEqual([4, 6, 5])
     await expect(pips(slot)).toHaveText(slot === 'attack' ? ['6', '5', '4'] : ['4', '6', '5'])
-    const output = process.env.HWIGI_FIRST_RUN_SHOTS
-    if (output && slot === 'attack') {
-      await mkdir(output, { recursive: true })
-      await page.evaluate(() => document.fonts.ready)
-      await page.screenshot({ path: join(output, `${info.project.name.replace('×', 'x')}-unlock-conditions.png`) })
-    }
+    if (slot === 'attack') await photograph('unlock-conditions')
     await dialog.getByRole('button', { name: '닫기' }).tap()
     for (const button of await page.locator('#pool-dice button').all()) await button.tap()
     await page.locator(`#assign-${slot}`).tap()

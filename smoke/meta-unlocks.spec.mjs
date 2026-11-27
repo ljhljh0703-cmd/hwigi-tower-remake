@@ -156,6 +156,7 @@ test('설정에서 확인해야 해금만 초기화하고 기존 등반 저장�
   await page.locator('#lobby-settings').tap()
   await page.getByRole('button', { name: '영구 해금 기록 지우기' }).tap()
   const confirmation = page.getByRole('dialog', { name: '영구 해금 기록을 지우겠습니까?' })
+  await expect(confirmation.locator('#lobby-confirm-text')).toHaveText('다음 등반의 해금과 새 카드 표시 기록이 초기화됩니다.')
   await confirmation.getByRole('button', { name: '취소' }).tap()
   expect((await record(page)).unlocked).toEqual(initialStages)
   await page.getByRole('button', { name: '영구 해금 기록 지우기' }).tap()

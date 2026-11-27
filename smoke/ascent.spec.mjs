@@ -121,6 +121,17 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
       return root.scrollHeight - root.clientHeight
     }), { message: '문서의 세로 스크롤 가능 범위(px)' }).toBe(0)
     expect(screenErrors, '이 단계까지의 브라우저 오류').toEqual([])
+    if (['fork', 'battle', 'reward'].includes(screen)) {
+      const floor = screen === 'fork' ? mapFloor : battleFloor
+      await expect(floor).toHaveText(/^\d+\/12 층$/)
+      const ordered = [mapHealth, page.locator('#run-coins'), floor]
+      for (const entry of ordered) await expect(entry).toBeInViewport({ ratio: 1 })
+      const [health, coins, level] = await Promise.all(ordered.map((entry) => entry.boundingBox()))
+      expect(health.x + health.width).toBeLessThanOrEqual(coins.x)
+      expect(coins.x + coins.width).toBeLessThanOrEqual(level.x)
+      const home = await page.locator('#return-lobby').boundingBox()
+      expect(home.x + home.width).toBeLessThanOrEqual(health.x)
+    }
   }
 
   async function readRewardScreen() {

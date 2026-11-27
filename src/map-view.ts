@@ -2,7 +2,7 @@ import { ENEMY_SPRITES } from './arena.ts'
 import { availableMapNodes, enterMapNode } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import { attackFor, enemyIntentAt } from './combat.ts'
-import { MAP_ENEMY_BADGES, MAP_FLOORS, RULES_SIX_BADGES } from './ascent-map.ts'
+import { MAP_ENEMY_BADGES, RULES_SIX_BADGES } from './ascent-map.ts'
 import type { MapNode, MapNodeKind } from './ascent-map.ts'
 import type { AscentEnemyId } from './enemy-roster.ts'
 import { SHOP_PRICES } from './map-treasure.ts'
@@ -48,8 +48,7 @@ export class ForkView {
   private choice?: HTMLButtonElement
   private ascent?: Ascent
 
-  constructor(private readonly panel: HTMLElement, private readonly status: { health: HTMLElement; floor: HTMLElement },
-    enter: (id: number) => void) {
+  constructor(private readonly panel: HTMLElement, enter: (id: number) => void) {
     this.heading = panel.querySelector('#fork-heading')!
     this.options = panel.querySelector('#fork-options')!
     this.preview = panel.querySelector('#fork-preview')!
@@ -109,9 +108,6 @@ export class ForkView {
     this.ascent = ascent
     const nodes = availableMapNodes(ascent)
     this.heading.textContent = nodes.length === 2 ? '두 갈래 길' : '다음 층'
-    this.status.floor.textContent = `${nodes[0]?.floor ?? 1}/${MAP_FLOORS}층`
-    this.status.health.innerHTML = `${icon('heart')}${ascent.battle.playerHp}/${ascent.maxHp}`
-    this.status.health.setAttribute('aria-label', `체력 ${ascent.battle.playerHp}/${ascent.maxHp}`)
     this.options.replaceChildren(...nodes.map((node) => {
       const button = document.createElement('button')
       button.type = 'button'
