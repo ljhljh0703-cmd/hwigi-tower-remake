@@ -12,7 +12,7 @@ async function resume(page, run, preview) {
   if (page.url() === 'about:blank') await page.goto(process.env.HWIGI_SMOKE_URL)
   await page.evaluate(({ key, json }) => localStorage.setItem(key, json), { key: ASCENT_SAVE_KEY, json })
   await page.reload()
-  await page.getByRole('button', { name: '이어 하기' }).tap()
+  await page.getByRole('button', { name: '이어하기' }).tap()
   await expect(page.locator('#room-transition')).toBeHidden()
 }
 
@@ -152,7 +152,7 @@ test('발동한 상태가 적 체력 카드에 남고 공격이나 턴을 소모
   await expect(topple).toHaveAccessibleName('넘어짐 · 1턴 남음')
   await expect(status).toBeInViewport({ ratio: 1 })
   await page.reload()
-  await page.getByRole('button', { name: '이어 하기' }).tap()
+  await page.getByRole('button', { name: '이어하기' }).tap()
   await expect(armor).toHaveText('∞')
   await expect(topple).toHaveText('1')
   await photograph(page, 'enemy-status', info)
@@ -194,7 +194,7 @@ test('6층 전투에서 보스 유물 네 장을 보고 고른 뒤 7층의 두 �
   expect(await rewardCenter()).toBeCloseTo(0.4, 2)
   await photograph(page, 'boss-reward', info)
   await page.reload()
-  await page.getByRole('button', { name: '이어 하기' }).tap()
+  await page.getByRole('button', { name: '이어하기' }).tap()
   await expect(cards.filter({ hasText: '제동 왕관' })).toHaveAttribute('aria-pressed', 'true')
   await page.locator('#confirm-reward').tap()
   await expect(page.locator('#boss-relic-slot button')).toHaveAccessibleName('제동 왕관')

@@ -70,7 +70,7 @@ async function resume(page, run) {
   await page.goto(process.env.HWIGI_SMOKE_URL)
   await page.evaluate(({ key, json }) => localStorage.setItem(key, json), { key: ASCENT_SAVE_KEY, json })
   await page.reload()
-  await page.getByRole('button', { name: '이어 하기' }).tap()
+  await page.getByRole('button', { name: '이어하기' }).tap()
   await expect(page.locator('#room-transition')).toBeHidden()
 }
 
@@ -352,7 +352,7 @@ test('움직임 줄이기와 무음에서 저장된 정확 방어가 한 번만 
   expect(await page.evaluate(() => window.playedEffects)).toEqual([])
   await expect(page.getByRole('meter', { name: '적 체력' })).toHaveJSProperty('value', expected.enemyHp)
   await page.reload()
-  await page.getByRole('button', { name: '이어 하기' }).tap()
+  await page.getByRole('button', { name: '이어하기' }).tap()
   await expect(page.locator('#counter-panel')).toBeHidden()
   await expect(page.getByRole('meter', { name: '적 체력' })).toHaveJSProperty('value', expected.enemyHp)
 })
@@ -390,7 +390,7 @@ base('룰렛 애니메이션이 실패해도 입력을 풀고 확정된 피해�
   await photograph(page, info, 'roulette-error-recovered')
   await page.locator('#return-lobby').tap()
   await page.getByRole('button', { name: '저장하고 나가기' }).tap()
-  await page.getByRole('button', { name: '이어 하기' }).tap()
+  await page.getByRole('button', { name: '이어하기' }).tap()
   await expect(hp).toHaveJSProperty('value', expected.enemyHp)
   await expect(page.locator('#counter-panel')).toBeHidden()
   expect(pageErrors).toEqual([])
@@ -402,7 +402,7 @@ test('패배한 전장을 남기고 키보드로 다시 오르기와 로비에 �
     await resume(page, run)
     await placeAll(page, 'attack')
     await page.locator('#resolve').tap()
-    await expect(page.getByRole('heading', { name: '게임 오버' })).toBeFocused()
+    await expect(page.getByRole('heading', { name: '등반 실패' })).toBeFocused()
     await expect(page.locator('#defeat-floor')).toHaveText('1층에서 쓰러졌습니다.')
     await expect(page.getByRole('region', { name: /마지막 전장/ })).toBeVisible()
     await expect(page.locator('#resolve')).toBeHidden()
@@ -427,7 +427,7 @@ test('패배한 전장을 남기고 키보드로 다시 오르기와 로비에 �
   await page.keyboard.press('Enter')
   await page.getByRole('button', { name: '나가기' }).press('Enter')
   await expect(page.getByRole('button', { name: '새로 하기' })).toBeVisible()
-  await expect(page.getByRole('button', { name: '이어 하기' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '이어하기' })).toHaveCount(0)
 })
 
 test('시드 0에서 선제 처치하면 가시 피해 없이 살아남고 적이 남으면 가시가 발동한다', async ({ page }, info) => {
@@ -473,7 +473,7 @@ test('시드 0에서 선제 처치하면 가시 피해 없이 살아남고 적�
 
   await page.evaluate(({ key, turnTwo }) => localStorage.setItem(key, turnTwo), { key: ASCENT_SAVE_KEY, turnTwo })
   await page.reload()
-  await page.getByRole('button', { name: '이어 하기' }).tap()
+  await page.getByRole('button', { name: '이어하기' }).tap()
   await expect(arriving).toHaveCount(0)
   await page.locator('#die-2').tap()
   await page.locator('#assign-attack').tap()

@@ -346,7 +346,7 @@ test('치명타 뒤 무릎과 쓰러짐을 표시하고 움직임 줄이기에�
       await photograph(page, info, 'lethal-down')
       await page.clock.resume()
     } else await page.locator('#resolve').tap()
-    await expect(page.getByRole('heading', { name: '게임 오버' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '등반 실패' })).toBeVisible()
     if (reducedMotion === 'no-preference') await photograph(page, info, 'game-over')
     const duration = await page.evaluate(() => {
       const hit = window.arenaFrames.find(({ actors }) => actors.some(({ art }) => art === 'hero-hit.png'))

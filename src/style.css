@@ -463,6 +463,21 @@ main[data-screen='battle'] {
   font-size: .71rem;
 }
 
+@media (max-width: 360px) {
+  #hold-help {
+    padding-inline: 7px;
+    font-size: .8rem;
+  }
+  #first-run-note[data-guide='defend']:has(use[href='#icon-wheel']) {
+    display: grid;
+    gap: 0;
+  }
+  #first-run-note[data-guide='defend']:has(use[href='#icon-wheel']) #skip-first-run {
+    justify-self: end;
+    border-left: 0;
+  }
+}
+
 [data-first-run-target] { outline: 2px solid #f6ca88; outline-offset: 1px; }
 #first-run-point { position: fixed; z-index: 3; pointer-events: none; color: #ffe3ad; }
 #first-run-point > span {

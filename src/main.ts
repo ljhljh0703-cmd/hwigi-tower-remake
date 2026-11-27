@@ -235,11 +235,11 @@ ui.guide.addEventListener('close', () => guideTrigger?.focus())
 
 const rulesSixBadges: Partial<typeof enemyBadges> = RULES_SIX_BADGES
 const gimmickEffects = {
-  trip: { icon: 'stun', intro: '적 다음 공격 건너뜀', help: '적의 다음 공격을 한 번 건너뛰어요.' },
-  armor: { icon: 'armor-break', value: '×1.5', intro: '갑옷 파괴 ×1.5', help: '다음 턴부터 공격 피해가 1.5배예요.' },
-  reflect: { icon: 'reflect', intro: '큰 한 방 반사', help: '철추 피해를 적에게 돌려줘요.' },
-  topple: { icon: 'knockdown', value: '×2', intro: '넘어짐(쉼·×2)', help: '다음 턴에 적이 쉬고 공격 피해가 2배예요.' },
-  retreat: { icon: 'escort-exit', intro: '호위 퇴장', help: '호위가 물러나고 공격이 본체에 닿아요.' },
+  trip: { icon: 'stun', intro: '적 다음 공격 건너뜀', help: '적의 다음 공격을 1회 건너뜁니다.' },
+  armor: { icon: 'armor-break', value: '×1.5', intro: '갑옷 파괴 ×1.5', help: '다음 턴부터 공격 피해가 1.5배가 됩니다.' },
+  reflect: { icon: 'reflect', intro: '큰 한 방 반사', help: '철추 피해를 적에게 돌려줍니다.' },
+  topple: { icon: 'knockdown', value: '×2', intro: '넘어짐(쉼·×2)', help: '다음 턴에 적이 쉬고 공격 피해가 2배가 됩니다.' },
+  retreat: { icon: 'escort-exit', intro: '호위 퇴장', help: '호위가 물러나고 공격이 본체에 닿습니다.' },
 } satisfies Record<Gimmick, { icon: string; value?: string; intro: string; help: string }>
 
 let ascent: Ascent | null = null
@@ -335,7 +335,7 @@ for (const option of ui.settingsSpeed) {
 ui.settingsMotion.addEventListener('click', () => updateSettings({ ...settings, reducedMotion: !reducedMotion() }))
 element('replay-first-run').addEventListener('click', () => {
   firstRun.replay()
-  element('replay-first-run-status').textContent = '다음 새 등반에서 안내를 다시 봐요.'
+  element('replay-first-run-status').textContent = '다음 새 등반에서 안내를 다시 표시합니다.'
 })
 systemMotion.addEventListener('change', renderSettings)
 
@@ -391,7 +391,7 @@ ui.confirm.addEventListener('close', () => {
 })
 
 element('clear-meta').addEventListener('click', () => {
-  confirmLobbyAction('영구 해금 기록을 지울까요?', '다음 등반의 해금과 새 표식 기록이 초기화됩니다.', '해금 기록 지우기', () => {
+  confirmLobbyAction('영구 해금 기록을 지우겠습니까?', '다음 등반의 해금과 새 표식 기록이 초기화됩니다.', '해금 기록 지우기', () => {
     metaProgress = resetMetaProgress(metaProgress)
     writeMetaProgress(metaProgress)
     if (ascent) {
@@ -405,7 +405,7 @@ element('clear-meta').addEventListener('click', () => {
 
 ui.abandonAscent.addEventListener('click', () => {
   if (ascent?.battle.phase !== 'assign' && ascent?.battle.phase !== 'counter') return
-  confirmLobbyAction('등반을 포기할까요?', '포기하면 현재 등반의 저장이 사라집니다.', '등반 포기', () => {
+  confirmLobbyAction('등반을 포기하겠습니까?', '포기하면 현재 등반 기록이 사라집니다.', '등반 포기', () => {
     clearAscentSave()
     ui.settings.close()
     showLobby(true)
@@ -752,7 +752,7 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['
   chargeStop.hidden = true
   ui.intent.hidden = phase === 'won' || phase === 'lost'
   if (phase === 'counter') {
-    display('parry', '', '정확히 막았어요. 룰렛으로 반격할 수 있어요.')
+    display('parry', '', '정확히 막았습니다. 룰렛으로 반격할 수 있습니다.')
   } else if (phase === 'assign') {
     const intent = enemyIntentAt(battle)
     const attackingBattle = escort === battle.escort ? battle : { ...battle, escort }
@@ -769,19 +769,19 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['
       chargeStop.innerHTML = `${icon(hammerThreshold ? 'treasure-hammer' : 'break-charge')}<span class="charge-track"></span><b>${goal}</b>`
       const nextAttack = `<span class="intent-next">${icon('next')}${icon('turn')}<b>${totalDamage}</b></span>`
       const condition = hammerThreshold
-        ? `본체에 닿는 공격 피해가 ${hammerThreshold} 이상이면 망치가 다음 큰 공격을 막아요.`
-        : `본체에 닿는 공격 피해가 ${threshold} 이상이면 다음 큰 공격을 약하게 만들어요.`
+        ? `본체에 닿는 공격 피해가 ${hammerThreshold} 이상이면 망치가 다음 큰 공격을 막습니다.`
+        : `본체에 닿는 공격 피해가 ${threshold} 이상이면 다음 큰 공격을 약하게 만듭니다.`
       display('charge', '0', `힘 모으기 · 이번 턴 피해 0 · 다음 턴 피해 ${totalDamage} · ${condition}`, nextAttack, 'charge')
       return
     }
     if (intent.damageTakenMultiplier !== undefined) {
       const multiplier = intent.damageTakenMultiplier
-      display('knockdown', `×${multiplier}`, `적이 쓰러져 있어 이번 공격이 ${multiplier}배예요.`)
+      display('knockdown', `×${multiplier}`, `적이 쓰러져 있어 이번 공격이 ${multiplier}배입니다.`)
       return
     }
     if (intent.damageTakenBonus !== undefined) {
       const bonus = intent.damageTakenBonus
-      display('knockdown', `+${bonus}`, `적이 쓰러져 있어 이번 공격 피해가 ${bonus} 올라요.`)
+      display('knockdown', `+${bonus}`, `적이 쓰러져 있어 이번 공격 피해가 ${bonus} 오릅니다.`)
       return
     }
     const mechanic = intent.mechanic
@@ -795,11 +795,11 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['
       return
     }
     if (intent.id === 'stunned') {
-      display('stun', '0', '기절해서 공격을 쉬어요.', '')
+      display('stun', '0', '기절해 공격을 쉽니다.', '')
       return
     }
     if (intent.id === 'critical' && battle.erasedStrikeTurn === battle.turn) {
-      display('treasure-hammer', '0', '망치가 적의 큰 공격을 막았어요.')
+      display('treasure-hammer', '0', '망치가 적의 큰 공격을 막았습니다.')
       return
     }
     let label = ''
@@ -808,38 +808,38 @@ function renderIntent(battle: YachtBattle, totals: SlotTotals, enemyId: Ascent['
       switch (mechanic.kind) {
         case 'lock':
           detail = `${icon('lock')}1`
-          label = '다음 차례에 가장 낮은 주사위 하나를 잠가요.'
+          label = '다음 턴 가장 낮은 주사위 하나를 잠급니다.'
           break
         case 'freeze':
           detail = `${icon('freeze')}1`
-          label = '다음 차례에 주사위 하나를 1로 얼려요.'
+          label = '다음 턴 주사위 하나를 1로 얼립니다.'
           break
         case 'thorns':
           detail = `${icon('thorns')}${mechanic.value}`
-          label = `${battle.rulesSix ? '공격 칸 피해로 적을 쓰러뜨리지 못하면 ' : ''}공격에 놓은 주사위마다 가시 피해 ${mechanic.value}를 받아요.`
+          label = `${battle.rulesSix ? '공격 칸 피해로 적을 쓰러뜨리지 못하면 ' : ''}공격에 놓은 주사위마다 가시 피해 ${mechanic.value}를 받습니다.`
           break
         case 'rage':
           detail = `${icon('rage')}${mechanic.value}`
-          label = `다시 굴리면 적 공격이 ${mechanic.value}만큼 세져요.`
+          label = `다시 굴리면 적 공격이 ${mechanic.value}만큼 세집니다.`
           break
         case 'reaction': {
           const alternate = hitNumbers(attackFor(battle, mechanic.alternate).hits)
           detail = `${icon('reaction')}${mechanic.value}`
-          label = `공격 합이 ${mechanic.value} 이상이면 적 공격이 ${alternate}로 바뀌어요.`
+          label = `공격 합이 ${mechanic.value} 이상이면 적 공격이 ${alternate}로 바뀝니다.`
           break
         }
         case 'vitality':
           detail = icon('vitality')
-          label = '내 체력이 높을수록 적의 공격이 세져요.'
+          label = '내 체력이 높을수록 적 공격이 세집니다.'
           break
         case 'seal':
           detail = `${icon('seal')}${mechanic.value}`
-          label = `이번 차례에 ${mechanic.value} 눈은 합계와 해금에서 빠져요.`
+          label = `이번 턴 ${mechanic.value} 눈은 합계와 해금에서 제외됩니다.`
           break
         case 'steal':
           if (!battle.stolenDie) {
             detail = `${icon('steal')}1`
-            label = '다음 차례부터 주사위 하나를 빼앗겨요.'
+            label = '다음 턴부터 주사위 하나를 빼앗깁니다.'
           }
           break
         case 'escort':
@@ -1183,7 +1183,7 @@ function renderActivePerk(battle: YachtBattle) {
     meter.value = blade.ready ? meter.max : blade.nextCharge
     meter.setAttribute('aria-label', `큰 칼 충전 ${meter.value}/${meter.max}`)
     ui.bladeMeter.classList.toggle('charged', meter.value >= meter.max)
-    ui.bladeMeter.setAttribute('aria-label', `큰 칼. 다 차면 다음 공격 피해가 ${START_PERKS.blade.multiplier}배예요.`)
+    ui.bladeMeter.setAttribute('aria-label', `큰 칼. 다 차면 다음 공격 피해가 ${START_PERKS.blade.multiplier}배입니다.`)
   }
   ui.activePerk.hidden = !perk
   if (!perk) return
@@ -1242,7 +1242,7 @@ function renderRewardPreview(run: Ascent) {
   }
   const heal = healingForRun(run, chosenReward, room)
   const cost = treasureCost(room, chosenReward)
-  const effect = heal ? `고르면 체력을 ${heal} 회복해요.` : rewardText(chosenReward, run.battle.itemsSeven)
+  const effect = heal ? `고르면 체력을 ${heal} 회복합니다.` : rewardText(chosenReward, run.battle.itemsSeven)
   const gain = heal ? `${icon('heart')}+${heal}` : `${itemIcon(card.icon)}+1`
   const exchange = room?.kind === 'event' ? `<span class="reward-exchange"><span aria-label="얻음">얻음 ${gain}</span>${cost ? `<span aria-label="잃음">잃음 ${icon('heart')}−${cost}</span>` : ''}</span>` : ''
   ui.rewardPreview.innerHTML = `<strong>${card.name}</strong><span>${effect}</span>${exchange}`
@@ -1298,9 +1298,9 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
     ui.skipReward.setAttribute('aria-label', `지금 유물 유지 (받지 않음), 동전 +${ELITE_KEEP_COINS}`)
   }
   const eventContext = {
-    medicine: '깨진 약상자에 약봉지와 천이 남아 있어요.',
-    pulley: '도르래를 당기면 돌 밑의 숫돌을 꺼낼 수 있어요.',
-    flag: '깃대에 묶인 유물을 풀려면 체력을 써야 해요.',
+    medicine: '깨진 약상자에 약봉지와 천이 남아 있습니다.',
+    pulley: '도르래를 당기면 돌 밑의 숫돌을 꺼낼 수 있습니다.',
+    flag: '깃대에 묶인 유물을 풀려면 체력을 써야 합니다.',
   }
   ui.rewardContext.replaceChildren()
   if (room?.event) ui.rewardContext.textContent = eventContext[room.event]
@@ -1591,7 +1591,7 @@ function renderTreasureStrips(battle: YachtBattle, disabled: boolean) {
           ? () => updateTreasureBattle(battle, startHourglass(battle, [...selected]), '#treasure-controls button', true) : undefined }
       : !battle.itemsSeven && id === 'incomplete' ? { label: '사용' } : undefined
     const button = inventoryChip(id, Number(available), id === 'heart-die' ? 0 : 1, disabled, action,
-      delay ? `다음 공격에 피해 ${delay}를 더해요.` : undefined)
+      delay ? `다음 공격에 피해 ${delay}를 더합니다.` : undefined)
     if (toggle) button.setAttribute('aria-pressed', String(on))
     if (battle.itemsSeven && delay) button.insertAdjacentHTML('beforeend', `<span class="item-count">→${delay}</span>`)
     if (id === 'die-latch' && loot.latchDraft !== undefined || id === 'blood-grip' && bloodDieFor(battle) !== undefined) button.setAttribute('aria-pressed', 'true')
@@ -1825,7 +1825,7 @@ function renderHealth(hp: number, max: number) {
 
 function teachOpening({ battle }: Ascent) {
   if (battle.phase === 'counter') {
-    firstRun.teach({ id: 'defend', text: '딱 막았어요! 반격 룰렛을 돌려요.', symbol: 'wheel',
+    firstRun.teach({ id: 'defend', text: '정확히 막았습니다! 반격 룰렛을 돌립니다.', symbol: 'wheel',
       anchor: ui.counter, marks: [ui.counter] })
     return
   }
@@ -1844,15 +1844,15 @@ function teachOpening({ battle }: Ascent) {
   const guard = slots.flatMap((slot, index) => slot === 'guard' && battle.slots[index] === null ? [diceButtons[index]] : [])
   const guardFirst = battle.turn > 1 && guard.length > 0
   if (attack.length && !guardFirst) {
-    firstRun.teach({ id: 'attack', text: '표시한 주사위를 공격에 놓아요.', symbol: 'sword', anchor: ui.firstRunAnchor,
+    firstRun.teach({ id: 'attack', text: '표시한 주사위를 공격에 두세요.', symbol: 'sword', anchor: ui.firstRunAnchor,
       marks: [ui.assign.attack, ...attack], from: attack[0], to: ui.assign.attack })
   } else if (guard.length) {
     const damage = outcome.incoming.totalDamage
-    const text = outcome.counter ? `방어 ${damage} = 적 공격 ${damage} → 정확 방어` : '표시한 주사위를 방어에 놓아요.'
+    const text = outcome.counter ? `방어 ${damage} = 적 공격 ${damage} → 정확 방어` : '표시한 주사위를 방어에 두세요.'
     firstRun.teach({ id: 'defend', text, symbol: 'shield', anchor: ui.firstRunAnchor,
       marks: [ui.intent, ui.assign.guard, ...guard], arrows: guard, to: ui.dice.guard, guardGoal: damage })
   } else {
-    const text = outcome.counter ? '턴을 끝내 반격 룰렛을 열어요.' : '턴 끝내기를 눌러요.'
+    const text = outcome.counter ? '턴을 끝내 반격 룰렛을 여세요.' : '턴 끝내기 누르세요.'
     firstRun.teach({ id: 'end-turn', text, symbol: 'turn', anchor: ui.firstRunAnchor, marks: [ui.resolve],
       guardGoal: outcome.counter ? outcome.incoming.totalDamage : undefined })
   }
@@ -1869,17 +1869,17 @@ function renderFirstRun(run: Ascent) {
   }
 
   if (!ui.fork.hidden && availableMapNodes(run).length > 1) {
-    firstRun.discover([{ id: 'fork', symbol: 'map-pin', text: '다음에 갈 길을 골라요.', anchor: element('fork-heading') }])
+    firstRun.discover([{ id: 'fork', symbol: 'map-pin', text: '다음 길을 고르세요.', anchor: element('fork-heading') }])
   } else if (!ui.rewardPanel.hidden) {
     const room = currentTreasureRoom(run)
     const anchor = ui.rewardHeading
     if (room?.kind === 'shop') {
-      const text = route && route.map.rules >= 3 ? '동전으로 물건을 살 수 있어요.' : '필요한 물건을 골라요.'
+      const text = route && route.map.rules >= 3 ? '동전으로 물건을 사세요.' : '물건을 고르세요.'
       firstRun.discover([{ id: 'shop', symbol: 'map-shop', text, anchor }])
     } else if (room?.enemyId === 'chain-warden') {
-      firstRun.discover([{ id: 'boss-relic', symbol: 'crown', text: '보스 유물 한 장을 골라요.', anchor }])
+      firstRun.discover([{ id: 'boss-relic', symbol: 'crown', text: '보스 유물 1장을 고르세요.', anchor }])
     } else if (route?.screen === 'reward' || (!route && battle.phase === 'won')) {
-      const text = canKeepEliteArtifacts(run) ? '새 유물로 바꾸거나 지금 유물을 지켜요.' : '카드 한 장을 골라 확인해요.'
+      const text = canKeepEliteArtifacts(run) ? '유물을 바꾸거나 그대로 유지하세요.' : '카드 1장을 골라 확인하세요.'
       firstRun.discover([{ id: 'reward', symbol: 'map-reward', text, anchor }])
     } else firstRun.clear()
   } else if (!ui.battle.hidden && !ui.planning.hidden) {
@@ -1890,7 +1890,7 @@ function renderFirstRun(run: Ascent) {
       ...(gimmick && condition ? [{ id: `gimmick-${gimmick.kind}`, symbol: gimmick.slot === 'guard' ? 'shield' : 'sword',
         text: condition, spoken: `${gimmick.slot === 'guard' ? '방어' : '공격'} 칸${condition}`, anchor: ui.encounter, beside: ui.inventory }] : []),
       ...(hand && !unlocks.includes(hand) ? [{ id: `unlock-${hand}`, symbol: 'lock', anchor: hand === 'triple' ? ui.lockedDie : ui.extraReroll,
-        text: '잠긴 자리를 눌러 해금 조건을 봐요.' }] : []),
+        text: '잠긴 자리를 눌러 조건을 보세요.' }] : []),
     ])
   } else firstRun.clear()
 }
@@ -2767,9 +2767,9 @@ function returnToLobby() {
   if (!ascent) showLobby(true)
   else {
     if (ascentFinished(ascent)) {
-      confirmLobbyAction('로비로 돌아갈까요?', '등반 결과 화면을 닫아요.', '나가기', () => showLobby(true))
+      confirmLobbyAction('로비로 가겠습니까?', '결과 화면을 닫습니다.', '나가기', () => showLobby(true))
     } else {
-      confirmLobbyAction('등반을 저장하고 나갈까요?', '로비에서 이어 할 수 있어요.', '저장하고 나가기', () => {
+      confirmLobbyAction('저장하고 나가겠습니까?', '로비에서 이어할 수 있습니다.', '저장하고 나가기', () => {
         saveCurrent()
         showLobby(true)
       })

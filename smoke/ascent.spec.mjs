@@ -73,7 +73,7 @@ test('선택한 문으로 다가간 뒤 전장을 열고 움직임 줄이기는 
 
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.reload()
-  await page.getByRole('button', { name: '이어 하기' }).tap()
+  await page.getByRole('button', { name: '이어하기' }).tap()
   await expect(main).toHaveAttribute('data-screen', 'battle')
   await expect(cover).toBeHidden()
   expect(await page.evaluate(() => window.roomMotion)).toEqual([['room-transition', 65], ['room-transition', 85]])
@@ -82,7 +82,7 @@ test('선택한 문으로 다가간 뒤 전장을 열고 움직임 줄이기는 
 test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진입한다', async ({ page, screenErrors }, info) => {
   const main = page.getByRole('main')
   const newAscent = page.getByRole('button', { name: '새로 하기' })
-  const continueAscent = page.getByRole('button', { name: '이어 하기' })
+  const continueAscent = page.getByRole('button', { name: '이어하기' })
   const perks = page.locator('#perk-choices').getByRole('button')
   const routes = page.getByRole('group', { name: '다음 층 선택' })
   const routeButtons = routes.getByRole('button')
@@ -212,7 +212,7 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     await checkScreen('reward', [...await rewardCards.all(), confirm, skip])
     const bounds = await Promise.all((await rewardCards.all()).map((card) => card.boundingBox()))
     expect(new Set(bounds.map(({ y }) => y)).size).toBe(1)
-    await expect(page.locator('#reward-preview')).toContainText(/체력을 \d+ 회복해요/)
+    await expect(page.locator('#reward-preview')).toContainText(/체력을 \d+ 회복합니다/)
     await photograph('reward')
     await confirm.tap()
 

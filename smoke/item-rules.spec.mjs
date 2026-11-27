@@ -22,7 +22,7 @@ async function resume(page, run) {
 
 async function reloadRun(page) {
   await page.reload()
-  await page.getByRole('button', { name: '이어 하기' }).tap()
+  await page.getByRole('button', { name: '이어하기' }).tap()
   await expect(page.locator('#room-transition')).toBeHidden()
 }
 
@@ -166,7 +166,7 @@ test('규칙판 7 보상을 받아 쓰고 강적·보스·상점을 거쳐 문�
   const cost = await bossCards.first().locator('.relic-cost').boundingBox()
   expect(cost.y).toBeGreaterThan(benefit.y + benefit.height)
   await card(page, 'healing-scepter').tap()
-  await expect(page.locator('#reward-preview')).toContainText('기본 재굴림에 체력 1')
+  await expect(page.locator('#reward-preview')).toContainText('기본 재굴림 시 체력 1')
   await card(page, 'emperor-shield').tap()
   await expect(page.locator('#reward-preview')).toContainText('룰렛 피해는 절반')
   await shot(page, info, 'boss-relics', [...await bossCards.all(), choose(page)])
@@ -220,7 +220,7 @@ test('강적 승리 뒤 장착 유물 세 개를 유지하고 보너스 동전�
   expect(new Set(positions.map(({ x }) => x)).size).toBe(3)
   const keep = page.getByRole('button', { name: /^지금 유물 유지/ })
   await expect(keep).toContainText('+2')
-  await expect(page.locator('#first-run-line')).toHaveText('새 유물로 바꾸거나 지금 유물을 지켜요.')
+  await expect(page.locator('#first-run-line')).toHaveText('유물을 바꾸거나 그대로 유지하세요.')
   const note = await page.locator('#first-run-note').boundingBox()
   const bossSlot = page.locator('#boss-relic-slot')
   if (await bossSlot.isVisible()) {
