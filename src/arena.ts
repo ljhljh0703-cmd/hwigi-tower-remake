@@ -9,7 +9,7 @@ import type { YachtBattle } from './yacht-combat.ts'
 import { drawGolemCounter, drawGolemParry, GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
 import { drawMaterialChips, impactMaterial, upperMaterials } from './impact-material.ts'
 import type { Material } from './impact-material.ts'
-import { fracture, scatterBody, splitSilhouette } from './body-fragments.ts'
+import { bossFragmentFlights, fracture, scatterBody, splitSilhouette } from './body-fragments.ts'
 import { livingEnemies } from './upper-combat.ts'
 import type { Formation, UpperRole } from './upper-combat.ts'
 
@@ -61,8 +61,8 @@ const impactMotion = {
 type Impact = BattleHit & { start: number; hold: number; x: number; y: number; lift: number; dust: boolean; heavy: boolean }
 type ContactOptions = { parry?: boolean; ordered?: boolean; guarded?: boolean; incoming?: boolean; joint?: boolean }
 type Attack = { start: number; intent: EnemyIntent; count: number; index: number; last?: number; escort: boolean; weakened: boolean; guarded: boolean }
-type Swing = { target: 'escort' | 'enemy'; start: number; contact: number; heavy?: boolean; landed?: number }
-export const heavyStrike = { threshold: 8, approach: 224, hold: 56, follow: 144 } as const
+type Swing = { target: 'escort' | 'enemy'; start: number; contact: number; heavy?: boolean; follow?: number; landed?: number }
+export const heavyStrike = { threshold: 8, approach: 224, hold: 56, follow: 144, shortFollow: 96 } as const
 
 // Convert elapsed presentation time to the original sword animation's clock.
 // The tip reaches source time 96 exactly when damage is committed on screen.
@@ -71,7 +71,8 @@ function swingTime(swing: Swing, now: number, speed: number) {
   if (!swing.heavy) return elapsed
   if (swing.landed === undefined) return Math.min(96, elapsed < 32 ? elapsed : 32 + (elapsed - 32) / 3)
   const release = Math.max(0, (now - swing.landed) * speed - heavyStrike.hold)
-  return 96 + Math.min(release, heavyStrike.follow) / 3 + Math.max(0, release - heavyStrike.follow)
+  const follow = swing.follow ?? heavyStrike.follow
+  return 96 + Math.min(release, follow) / 3 + Math.max(0, release - follow)
 }
 const debrisDuration = 330
 const shadowFade = 60
@@ -112,7 +113,7 @@ const upperHeavyPoses = ['charge-set', 'charge-approach', 'charge-contact', 'cha
 const upperWeakPoses = ['weak-set', 'weak-set', 'weak-contact', 'recover-start'] as const
 type UpperMotion = {
   id: UpperRole; kind: 'swing' | 'hit' | 'advance' | 'attack' | 'block' | 'recoil' | 'support'
-  amount?: number; defeated?: boolean; heavy?: boolean; weakened?: boolean; repeat?: boolean; blade?: boolean
+  amount?: number; defeated?: boolean; heavy?: boolean; weakened?: boolean; repeat?: boolean; blade?: boolean; approach?: number
   from?: Formation
 }
 
@@ -558,7 +559,7 @@ export class Arena {
     if (art === 'motion/escort-guard' && !this.intent.hidden) ceiling += this.intentBottom
     if (this.enemyId === 'boss') ceiling += this.bossNameBottom
     scatterBody(this.context, pieces, foot - pivot[0] * scale, ground - pivot[1] * scale,
-      foot, this.floor, scale, age, this.density, ceiling)
+      foot, this.floor, scale, age, this.density, ceiling, bossFragmentFlights[art])
     return true
   }
 
@@ -834,7 +835,8 @@ export class Arena {
       }
       if (isSource && (motion.kind === 'attack' || motion.kind === 'block' || motion.kind === 'recoil')) {
         const preparing = motion.kind === 'attack'
-        const stage = preparing ? elapsed < 55 ? 'anticipate' : 'approach' : elapsed < 65 ? 'contact' : 'follow'
+        const approach = motion.approach ?? 120
+        const stage = preparing ? elapsed < 55 * approach / 120 ? 'anticipate' : 'approach' : elapsed < 65 ? 'contact' : 'follow'
         const intent = { ...enemyIntentAt(this.battle!), id: 'impact' as const, mechanic: undefined }
         const attackPose = (beat: typeof stage) => motion.heavy
           ? frame(upperBossArt, (motion.weakened ? upperWeakPoses : upperHeavyPoses)[upperAttackStages.indexOf(beat)])
@@ -842,7 +844,7 @@ export class Arena {
         pose = displayLane && stage === 'anticipate' && !motion.heavy && !motion.repeat ? frame(name, 'rear-anticipate') : attackPose(stage)
         const { cell, atlas } = atlasCell(attackPose('contact'))
         const tip = cell.candidateContact ?? [cell.bounds[0], atlas.pivot[1] - 14]
-        const distance = preparing ? Math.min(1, elapsed / 120) : Math.max(0, 1 - Math.max(0, elapsed - 65) / 120)
+        const distance = preparing ? Math.min(1, elapsed / approach) : Math.max(0, 1 - Math.max(0, elapsed - 65) / 120)
         if (!this.reducedMotion || !preparing) {
           x += Math.round((heroX + 10 * px - x - (tip[0] - atlas.pivot[0]) * scale) * distance)
           y += Math.round((floor - 15 * px - y - (tip[1] - atlas.pivot[1]) * scale) * distance)
@@ -861,9 +863,9 @@ export class Arena {
       this.drawCell(pose, x, y, scale)
       context.restore()
       if (isSource && motion.kind === 'swing') {
-        const t = this.reducedMotion ? 1 : Math.min(1, elapsed / 106)
+        const t = this.reducedMotion ? 1 : Math.min(1, elapsed / (motion.approach ?? 106))
         heroPose = t < .35 ? 'attack-prepare' : t < .82 ? 'step' : 'attack'
-        bladeOffset(x + (cell.bounds[0] - atlas.pivot[0]) * scale, y - 18 * px, t)
+        bladeOffset(x + (cell.bounds[0] - atlas.pivot[0]) * scale, y - 18 * px, motion.approach ? t * t : t)
       }
     }
     if (motion?.blade && motion.kind === 'hit' && elapsed < 145) {
@@ -1027,7 +1029,7 @@ export class Arena {
       if (hit.target !== 'player' && !joint) {
         if (heavy && this.swing) this.swing.landed = now
         else this.swing = { start: now - 96 / this.animationSpeed, contact: 96, target: hit.target }
-        const recovery = hit.defeated ? fracture.end : heavy ? heavyStrike.hold + heavyStrike.follow + 80 : 150
+        const recovery = hit.defeated ? fracture.end : heavy ? heavyStrike.hold + (this.swing?.follow ?? heavyStrike.follow) + 80 : 150
         this.recoverUntil = Math.max(this.recoverUntil, now + recovery / this.animationSpeed)
       }
     }
@@ -1044,8 +1046,8 @@ export class Arena {
     else this.restartAnimation()
   }
 
-  windUpHeavy(target: 'enemy' | 'escort', now: number) {
-    this.swing = { start: now, contact: 96, target, heavy: true }
+  windUpHeavy(target: 'enemy' | 'escort', now: number, follow: number) {
+    this.swing = { start: now, contact: 96, target, heavy: true, follow }
     this.restartAnimation()
   }
 

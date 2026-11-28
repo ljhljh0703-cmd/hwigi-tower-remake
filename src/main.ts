@@ -586,8 +586,8 @@ ui.bladeMeter.addEventListener('click', (event) => {
 window.addEventListener('resize', () => { holdHelp.hidden = true })
 
 const arena = new Arena(element('arena'), ui.encounter, ui.intent, ui.inventory)
-const upperView = new UpperView(arena, ui.encounter, sound, wait, reducedMotion, (hit, heavy, pitch) => {
-  weaponContact({ target: 'enemy', damage: hit.amount, defeated: hit.hp === 0 }, heavy, pitch, upperMaterials[hit.id] ?? null)
+const upperView = new UpperView(arena, ui.encounter, sound, wait, reducedMotion, (hit, heavy, pitch, shortBeat) => {
+  weaponContact({ target: 'enemy', damage: hit.amount, defeated: hit.hp === 0 }, heavy, pitch, upperMaterials[hit.id] ?? null, shortBeat)
 })
 const finishLower = element<HTMLButtonElement>('finish-lower')
 let recapNode: number | null = null
@@ -1153,13 +1153,13 @@ function wait(milliseconds: number): Promise<void> {
 }
 
 function weaponContact(hit: BattleHit, heavy = false, pitch = 1,
-  surface: Material | null | undefined = ascent && impactMaterial(ascent.enemy.id, hit.target)) {
+  surface: Material | null | undefined = ascent && impactMaterial(ascent.enemy.id, hit.target), shortBeat = false) {
   const crack = surface === 'ice' ? 'frost' : surface === 'brass' ? 'rebound' : 'grit'
   if (hit.defeated || heavy) {
     if (settings.vibration && !document.hidden) {
       try { navigator.vibrate?.(hit.defeated ? 52 : 24) } catch { /* Device policy can reject haptics. */ }
     }
-    sound.play('slam', hit.defeated ? .7 : .82, hit.defeated ? .34 : .29, hit.defeated ? .19 : .14)
+    sound.play('slam', hit.defeated ? .7 : shortBeat ? 1.02 : .82, hit.defeated ? .34 : shortBeat ? .23 : .29, hit.defeated ? .19 : .14)
     if (hit.defeated) {
       sound.play(crack, .91, .32, .22)
       feel.after(effectDuration(reducedMotion() ? 100 : fracture.firstLanding), () => sound.play('seat', .75, .24, .15))
@@ -1185,6 +1185,16 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   const incoming = incomingHits.length
   const exact = after.phase === 'counter'
   const ordered = incoming > 1
+  const previous = before.lastExchange?.turn === before.turn - 1 ? before.lastExchange : undefined
+  let brightIncoming = (previous?.hitsTaken.at(-1) ?? 0) >= heavyStrike.threshold
+  let incomingTime = incomingContact
+  const beats = hitsTaken.slice(0, incoming).map((damage, index) => {
+    const shortBeat = damage >= heavyStrike.threshold && brightIncoming
+    if (index) incomingTime += shortBeat ? 198 : repeatContact
+    brightIncoming = damage >= heavyStrike.threshold && !shortBeat
+    return { time: incomingTime, shortBeat }
+  })
+  const lastIncomingTime = beats.at(-1)?.time ?? 96
   if (incoming && (dealt || escortDealt)) {
     const label = document.createElement('small')
     label.className = 'intent-attack-label'
@@ -1229,14 +1239,15 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   }
   let golemParry = golemSingle && !dealt && arena.beginGolemParry(start)
   let parryOffset = 0
-  type HitCue = { delay?: number; incoming?: boolean; final?: boolean; guarded?: boolean; ordered?: boolean; parry?: boolean; heavy?: boolean }
+  type HitCue = { delay?: number; incoming?: boolean; final?: boolean; guarded?: boolean; ordered?: boolean; parry?: boolean; heavy?: boolean; shortBeat?: boolean }
   const emit = (hits: BattleHit[], contact: HitCue = {}) => {
     const material = () => {
       if (contact.parry) showParry(golemParry)
       else if (contact.guarded) sound.play('block')
+      else if (contact.incoming && contact.shortBeat) sound.play('slam', 1.05, .22)
       else if (contact.incoming && critical) sound.play('slam', weak ? 1.28 : .9, weak ? .15 : .28)
       else if (contact.ordered && !contact.final) sound.play('tap')
-      else if (hits.length && hits[0].target !== 'player') weaponContact(hits[0], contact.heavy)
+      else if (hits.length && hits[0].target !== 'player') weaponContact(hits[0], contact.heavy, 1, undefined, contact.shortBeat)
       else if (hits.length) sound.play('stone-hit', contact.ordered ? .85 : 1)
     }
     if (contact.delay) feel.after(effectDuration(contact.delay), material)
@@ -1249,13 +1260,16 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   const updatePlayer = () => updatePlayerVital(renewed ? Math.max(0, before.playerHp - taken) : after.playerHp)
   let visiblePlayerHp = before.playerHp
   let visibleEnemyHp = before.enemyHp
-  const hitEnemy = (damage: number, heavy = false) => {
+  const hitEnemy = (damage: number, heavy = false, shortBeat = false) => {
     visibleEnemyHp -= damage
-    emit([{ target: 'enemy', damage, defeated: visibleEnemyHp === 0 }], { heavy })
+    emit([{ target: 'enemy', damage, defeated: visibleEnemyHp === 0 }], { heavy, shortBeat })
     updateVital(ui.enemyHp, ui.enemyTotal, visibleEnemyHp)
   }
-  const heavyTarget = opening.escortDealt >= heavyStrike.threshold ? 'escort'
-    : opening.dealt >= heavyStrike.threshold ? 'enemy' : undefined
+  const escortHeavy = opening.escortDealt >= heavyStrike.threshold
+  const enemyHeavy = opening.dealt >= heavyStrike.threshold
+  const lastAttack = Math.max(previous?.dealt ?? 0, previous?.escortDealt ?? 0, previous?.counter?.damage ?? 0)
+  const escortShort = escortHeavy && lastAttack >= heavyStrike.threshold
+  const enemyShort = enemyHeavy && (escortHeavy ? !escortShort : lastAttack >= heavyStrike.threshold)
   ui.intent.classList.toggle('parry-in-progress', golemParry)
   if (!golemParry) {
     arena.playExchange(before, exchange, incoming, intent)
@@ -1265,7 +1279,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
         ui.intent.animate(fade, effectDuration(148))
         if (!chargeStop.hidden) chargeStop.animate(fade, effectDuration(148))
       }
-      if (reducedMotion() || heavyTarget !== (opening.escortDealt ? 'escort' : 'enemy')) {
+      if (reducedMotion() || !(opening.escortDealt ? escortHeavy : enemyHeavy)) {
         sound.play('swish', 1, .09, effectDuration(opening.escortDealt ? 45 : 96) / 1000)
       }
     }
@@ -1274,25 +1288,26 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   ui.awakening.innerHTML = awakenedDice ? `${icon('die')}${awakenedDice.map((face) => `<span>${face}</span>`).join('')}` : ''
   ui.awakening.setAttribute('aria-label', awakenedDice ? `각성 ${awakenedDice.join(', ')}` : '')
 
-  const hitEscort = (damage: number, hp: number, heavy = false) => {
-    emit([{ target: 'escort', damage, defeated: hp === 0 }], { heavy })
+  const hitEscort = (damage: number, hp: number, heavy = false, shortBeat = false) => {
+    emit([{ target: 'escort', damage, defeated: hp === 0 }], { heavy, shortBeat })
     updateEscortVital(hp)
   }
-  const windUp = (target: 'escort' | 'enemy', beat: number) => {
-    if (heavyTarget !== target || reducedMotion()) return
+  const windUp = (target: 'escort' | 'enemy', heavy: boolean, shortBeat: boolean, beat: number) => {
+    if (!heavy || reducedMotion()) return
     const now = performance.now()
-    arena.windUpHeavy(target, now)
+    const follow = shortBeat ? heavyStrike.shortFollow : heavyStrike.follow
+    arena.windUpHeavy(target, now, follow)
     feel.after(effectDuration(heavyStrike.approach - 60), () => sound.play('swish', 1, .13, effectDuration(60) / 1000))
     responseStart = now + effectDuration(heavyStrike.approach - beat)
-    arena.scheduleResponse(responseStart + effectDuration(heavyStrike.hold + heavyStrike.follow))
+    arena.scheduleResponse(responseStart + effectDuration(heavyStrike.hold + follow))
   }
-  const release = (target: 'escort' | 'enemy', beat: number) => {
-    if (heavyTarget !== target || reducedMotion()) return
-    responseStart = performance.now() + effectDuration(heavyStrike.hold + heavyStrike.follow - beat)
+  const release = (heavy: boolean, shortBeat: boolean, beat: number) => {
+    if (!heavy || reducedMotion()) return
+    responseStart = performance.now() + effectDuration(heavyStrike.hold + (shortBeat ? heavyStrike.shortFollow : heavyStrike.follow) - beat)
     arena.scheduleResponse(responseStart)
   }
-  if (opening.escortDealt) windUp('escort', 45)
-  else windUp('enemy', 96)
+  if (opening.escortDealt) windUp('escort', escortHeavy, escortShort, 45)
+  else windUp('enemy', enemyHeavy, enemyShort, 96)
   if (retreat) {
     if (!reducedMotion()) await at(60)
     sound.play('dice-place', .72)
@@ -1305,14 +1320,14 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   if (emperorShieldActive(before) && !reflected) sound.play('latch', .62)
   if (opening.escortDealt && before.escort) {
     if (!reducedMotion()) await at(45)
-    hitEscort(opening.escortDealt, before.escort.hp - opening.escortDealt, heavyTarget === 'escort')
-    release('escort', 45)
-    windUp('enemy', 96)
+    hitEscort(opening.escortDealt, before.escort.hp - opening.escortDealt, escortHeavy, escortShort)
+    release(escortHeavy, escortShort, 45)
+    windUp('enemy', enemyHeavy, enemyShort, 96)
   }
   if (opening.dealt) {
     await at(96)
-    hitEnemy(opening.dealt, heavyTarget === 'enemy')
-    release('enemy', 96)
+    hitEnemy(opening.dealt, enemyHeavy, enemyShort)
+    release(enemyHeavy, enemyShort, 96)
   }
   if (incoming) arena.queueShadow(responseStart + effectDuration(incomingContact), false)
   if (reflected && opening.dealt < before.enemyHp) {
@@ -1329,7 +1344,8 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     golemParry = arena.beginGolemParry(performance.now())
   }
   for (let index = 0; index < incoming; index++) {
-    const time = golemParry ? parryOffset + GOLEM_PARRY.contact : incomingContact + index * repeatContact
+    const { time: beat, shortBeat } = beats[index]
+    const time = golemParry ? parryOffset + GOLEM_PARRY.contact : beat
     if (index) arena.queueShadow(responseStart + effectDuration(time), true)
     await at(time)
     const damage = hitsTaken[index]
@@ -1338,7 +1354,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
       const extra = final ? totals.guard - outcome.incoming.totalDamage : 0
       showGuardCue('ordinary', damage === 0, extra)
     }
-    emit(heroHit(damage, final && !exchange.defeatedByThorns), { delay: reducedMotion() ? index * 40 : 0, incoming: true, ordered, final,
+    emit(heroHit(damage, final && !exchange.defeatedByThorns), { delay: reducedMotion() ? index * 40 : 0, incoming: true, ordered, final, shortBeat,
       guarded: damage === 0 && !(exact && final), parry: exact && final })
     // Only present intermediate contacts here. The final contact (including
     // thorns) uses the settled battle HP below, with its existing healing cue.
@@ -1349,7 +1365,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     readHit(index)
   }
   if (thorns) {
-    await at(incoming ? incomingContact + (incoming - 1) * repeatContact + 48 : 96)
+    await at(incoming ? lastIncomingTime + 48 : 96)
     const reflected = heroHit(thorns)
     arena.contact(reflected)
     for (const hit of reflected) showDamage(hit)
@@ -1367,12 +1383,12 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     arena.settlePose(ascent?.enemy.id === 'boss' ? 'get-up' : 'reload')
   }
   if (lateEscortDamage > 0) {
-    const lastContact = incoming ? incomingContact + (incoming - 1) * repeatContact : 96
+    const lastContact = lastIncomingTime
     if (!reducedMotion()) await at(lastContact + 70)
     hitEscort(lateEscortDamage, after.escort?.hp ?? 0)
   }
   if (lateEnemyDamage > 0) {
-    const lastContact = incoming ? incomingContact + (incoming - 1) * repeatContact : reflected ? incomingContact : 96
+    const lastContact = incoming ? lastIncomingTime : reflected ? incomingContact : 96
     await at(lastContact + (lateEscortDamage ? 140 : 70))
     hitEnemy(lateEnemyDamage)
   }

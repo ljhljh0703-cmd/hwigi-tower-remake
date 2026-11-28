@@ -1,7 +1,9 @@
 import type { Material } from './impact-material.ts'
 
 // Coordinates and velocities belong to the illustrated silhouette, not the atlas padding.
-type Fragment = { image: HTMLCanvasElement; x: number; y: number; lane: number; arc: number }
+type Fragment = { image: HTMLCanvasElement; x: number; y: number; site: number; lane: number; arc: number }
+type Flight = { lane: number; arc: number; duration: number }
+type FractureFlight = Readonly<Partial<Record<number, Flight>>>
 export const fracture = { release: 84, firstLanding: 348, settled: 540, end: 700 } as const
 // Head and shoulder fragments carry the longest arcs. The heavy centre drops near the feet.
 const sites = [
@@ -10,6 +12,25 @@ const sites = [
   { u: .89, v: .55, lane: 1, arc: 11 }, { u: .29, v: .84, lane: -.36, arc: 4 },
   { u: .69, v: .86, lane: .38, arc: 5 },
 ]
+
+// Whole fragments retain the pixels of the hit pose. These overrides affect
+// only the flight of the atlas regions that carry each boss's landmarks.
+export const bossFragmentFlights: Readonly<Partial<Record<string, FractureFlight>>> = {
+  'chain-warden-hit': {
+    3: { lane: -.64, arc: 19, duration: 322 }, // exposed chain
+    4: { lane: .99, arc: 17, duration: 344 }, // bronze shoulder
+    5: { lane: -.96, arc: 5, duration: 264 }, // heavy flail
+  },
+  'motion/boss': {
+    1: { lane: .91, arc: 23, duration: 343 }, // red shoulder mark
+    5: { lane: -.82, arc: 6, duration: 284 }, // knee on the planted leg
+  },
+  'motion/upper-boss': {
+    0: { lane: -.98, arc: 9, duration: 264 }, // hammer head
+    1: { lane: .86, arc: 23, duration: 350 }, // barred hood
+    3: { lane: .64, arc: 15, duration: 303 }, // broken wrists and rings
+  },
+}
 
 export function splitSilhouette(sheet: ImageData, rect: readonly number[], material?: Material): Fragment[] {
   const [sx, sy, width, height] = rect
@@ -76,19 +97,20 @@ export function splitSilhouette(sheet: ImageData, rect: readonly number[], mater
       pixels.data[at + 3] = alpha
     }
     ctx.putImageData(pixels, 0, 0)
-    return [{ image, x: x - 1, y: y - 1, lane: sites[index].lane, arc: sites[index].arc }]
+    return [{ image, x: x - 1, y: y - 1, site: index, lane: sites[index].lane, arc: sites[index].arc }]
   })
 }
 
 export function scatterBody(ctx: CanvasRenderingContext2D, pieces: Fragment[], originX: number, originY: number,
-  foot: number, ground: number, scale: number, age: number, density: number, ceiling: number) {
+  foot: number, ground: number, scale: number, age: number, density: number, ceiling: number, profile?: FractureFlight) {
   const width = ctx.canvas.width
   const radius = Math.min(22 * scale, width * .24)
   const margin = Math.max(...pieces.map(({ image }) => Math.max(image.width, image.height))) * scale / 2 + 5 * density
   const center = Math.max(margin + radius, Math.min(width - margin - radius, foot + 4 * scale))
   const poses = pieces.map((piece, i) => {
     const { image } = piece
-    const flight = fracture.firstLanding - fracture.release + (i * 19) % 106
+    const custom = profile?.[piece.site]
+    const flight = custom?.duration ?? fracture.firstLanding - fracture.release + (i * 19) % 106
     const t = Math.min(1, Math.max(0, (age - fracture.release) / flight))
     const bounce = Math.max(0, Math.min(1, (age - fracture.release - flight) / 76))
     // Quarter-turns keep the illustrated pixel grid square and crisp.
@@ -98,11 +120,11 @@ export function scatterBody(ctx: CanvasRenderingContext2D, pieces: Fragment[], o
     const h = (turned ? image.width : image.height) * size
     const launchX = originX + (piece.x + image.width / 2) * scale
     const launchY = originY + (piece.y + image.height / 2) * scale
-    const landingX = center + piece.lane * radius
+    const landingX = center + (custom?.lane ?? piece.lane) * radius
     const base = ground + (2 + i % 3 * 3) * density
     const landingY = base - h / 2
     const x = launchX + (landingX - launchX) * (1 - (1 - t) ** 2)
-    const arc = Math.min(piece.arc * scale, Math.max(0, launchY - h / 2 - ceiling))
+    const arc = Math.min((custom?.arc ?? piece.arc) * scale, Math.max(0, launchY - h / 2 - ceiling))
     const y = launchY + (landingY - launchY) * t * t - arc * 4 * t * (1 - t)
       - 3 * size * 4 * bounce * (1 - bounce)
     return { image, turned, size, w, h, x, y, base, t }

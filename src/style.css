@@ -2662,6 +2662,19 @@ main[data-screen='defeat'] {
   font-weight: 700;
   text-shadow: 1px 1px #321e1b, -1px -1px #321e1b;
 }
+.upper-card[data-defeated] .upper-intent { display: none; }
+.upper-card[data-defeated] .upper-hp { margin-block: 0; }
+.upper-card[data-defeated] .upper-damage {
+  position: static;
+  transform: none;
+  justify-self: stretch;
+  margin-block-start: 1px;
+  padding: 1px 4px;
+  background: #513d2b;
+  border-block-start: 1px solid #a17a50;
+  text-align: center;
+  line-height: 1;
+}
 .upper-support-link {
   position: absolute;
   inset-block-start: calc(var(--ground, 130px) - var(--upper-tier, 35px) + 10px);

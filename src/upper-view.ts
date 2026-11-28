@@ -1,4 +1,4 @@
-import { upperCardLanes } from './arena.ts'
+import { heavyStrike, upperCardLanes } from './arena.ts'
 import type { Arena } from './arena.ts'
 import type { BattleAudio } from './battle-audio.ts'
 import { UPPER_ENEMIES } from './enemy-codex.ts'
@@ -13,7 +13,7 @@ export class UpperView {
 
   constructor(private readonly arena: Arena, private readonly field: HTMLElement, private readonly sound: BattleAudio,
     private readonly wait: (ms: number) => Promise<void>, private readonly reduced: () => boolean,
-    private readonly weaponContact: (hit: FormationDamage, heavy: boolean, pitch: number) => void) {
+    private readonly weaponContact: (hit: FormationDamage, heavy: boolean, pitch: number, shortBeat: boolean) => void) {
     this.readout.className = 'upper-readout'
     this.field.append(this.readout)
   }
@@ -40,6 +40,7 @@ export class UpperView {
     this.readout.innerHTML = `<div class="upper-goal">${guardLabel}</div>
       ${alive.map(({ id }, lane) => {
         const enemy = formation.enemies.find(entry => entry.id === id)!
+        const defeated = damage?.id === id && damage.hp === 0
         const { name } = UPPER_ENEMIES[id]
         const position = lane ? '뒤' : '앞'
         const hits = (enemy.hp && !missed.has(id) ? visibleActions : facing.actions).flatMap(action => 'hit' in action && action.hit.id === id ? [action.hit] : [])
@@ -49,7 +50,7 @@ export class UpperView {
         const stance = enemy.toppled ? '넘어짐 ×2' : enemy.action.pose === 'prepare' ? `준비 ${upperHeavyDamage(formation, Boolean(weakened))}`
           : enemy.action.pose === 'cancelled' ? '중단' : enemy.action.pose === 'rest' ? '자세 회복' : '대기'
         const opponent = aiding && alive.findIndex(entry => entry.id === aiding.to)
-        return `<div class="upper-card" data-role="${id}" data-lane="${lane}" style="--lane-x:${lanes[lane] * 100}%" ${target === id ? 'data-counter-target' : ''}>
+        return `<div class="upper-card" data-role="${id}" data-lane="${lane}" style="--lane-x:${lanes[lane] * 100}%" ${target === id ? 'data-counter-target' : ''} ${defeated ? 'data-defeated' : ''}>
           <strong class="upper-name">${name}</strong>
           <span class="upper-hp" aria-label="체력 ${enemy.hp}/${enemy.maxHp}">${icon('heart')}${enemy.hp}<small>/${enemy.maxHp}</small></span>
           <span class="upper-intent"><span class="upper-position" role="img" aria-label="${position}">${icon(lane ? 'formation-rear' : 'formation-front')}</span><span class="upper-action" ${missed.has(id) ? 'data-cancelled' : ''}>${hits.length ? hits.map(action =>
@@ -79,20 +80,30 @@ export class UpperView {
     if (!before.formation || !exchange) return
     let formation = before.formation
     let hp = before.playerHp
+    const previous = before.lastExchange?.turn === before.turn - 1 ? before.lastExchange : undefined
+    const lastAttack = Math.max(previous?.dealt ?? 0, previous?.counter?.damage ?? 0)
+    let brightPlayer = lastAttack >= heavyStrike.threshold
+    let brightEnemy = (previous?.hitsTaken.at(-1) ?? 0) >= heavyStrike.threshold
     const pause = (ms: number) => this.wait(this.reduced() ? Math.min(ms, 84) : ms)
     const playDamage = async (contacts: readonly FormationDamage[], swing: boolean) => {
       for (const [index, contact] of contacts.entries()) {
+        const heavy = contact.amount >= heavyStrike.threshold
+        const shortBeat = heavy && brightPlayer
+        brightPlayer = heavy && !shortBeat
         if (index === 0 && swing) {
-          this.arena.setUpperScene(formation, { id: contact.id, kind: 'swing' })
-          if (!this.reduced()) this.sound.play('swish', counter ? 1.12 : .95)
-          await pause(111)
+          const approach = heavy ? shortBeat ? 176 : heavyStrike.approach : 111
+          this.arena.setUpperScene(formation, { id: contact.id, kind: 'swing', approach: heavy ? approach : undefined })
+          const swishDelay = heavy && !this.reduced() ? approach - 62 : 0
+          if (swishDelay) await pause(swishDelay)
+          if (!this.reduced()) this.sound.play('swish', shortBeat ? 1.14 : counter ? 1.12 : .95)
+          await pause(approach - swishDelay)
         }
         const from = formation
         formation = { ...formation, enemies: formation.enemies.map(enemy => enemy.id === contact.id ? { ...enemy, hp: contact.hp } : enemy) }
         this.arena.setUpperScene(formation, { id: contact.id, kind: 'hit', amount: contact.amount, defeated: contact.hp === 0, from, blade: swing && index === 0 })
         this.show(before, formation, false, contact, from)
-        this.weaponContact(contact, contact.amount >= 8, contact.amount >= 5 ? .82 : 1.15)
-        await pause(contact.hp === 0 ? 147 : 176)
+        this.weaponContact(contact, heavy, contact.amount >= 5 ? .82 : 1.15, shortBeat)
+        await pause(contact.hp === 0 ? 376 : shortBeat ? 128 : 176)
         if (contact.advance) {
           this.readout.dataset.advance = contact.advance
           this.arena.setUpperScene(formation, { id: contact.advance, kind: 'advance', from })
@@ -132,15 +143,19 @@ export class UpperView {
       const enemy = formation.enemies.find(entry => entry.id === id)
       const heavy = id === 'gatekeeper' && before.formation!.bossStep === 'strike'
       const weakened = enemy?.action.pose === 'weakened'
-      const motion = { id, heavy, weakened, repeat: attacker === id }
+      const strongHit = damage >= heavyStrike.threshold
+      const shortBeat = strongHit && brightEnemy
+      brightEnemy = strongHit && !shortBeat
+      const approach = shortBeat ? 96 : 120
+      const motion = { id, heavy, weakened, repeat: attacker === id, approach }
       this.arena.setUpperScene(formation, { ...motion, kind: 'attack' })
-      await pause(120)
+      await pause(approach)
       hp = Math.max(0, hp - damage)
       this.arena.setUpperScene(formation, { ...motion, kind: damage ? 'recoil' : 'block', amount: damage })
       playerContact(damage, hp)
-      this.sound.play(damage ? heavy ? 'slam' : 'stone-hit' : 'block', boosted ? 1.17 : 1, .24)
+      this.sound.play(damage ? heavy || shortBeat ? 'slam' : 'stone-hit' : 'block', shortBeat ? 1.08 : boosted ? 1.17 : 1, shortBeat ? .21 : .24)
       attacker = id
-      await pause(168)
+      await pause(shortBeat ? 132 : 168)
     }
     await playDamage(exchange.delayed, false)
     if (hp !== after.playerHp) playerContact(0, after.playerHp)
