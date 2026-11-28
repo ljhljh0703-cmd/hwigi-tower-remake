@@ -2756,7 +2756,7 @@ function lockExchange(locked: boolean) {
   ui.returnLobby.disabled = true
 }
 
-async function showEgoPlacement(ego: NonNullable<Exchange['ego']>, signal: AbortSignal) {
+async function showEgoPlacement(before: YachtBattle, next: YachtBattle, ego: NonNullable<Exchange['ego']>, signal: AbortSignal) {
   if (signal.aborted || document.hidden) return
   const { slot, face } = ego
   const center = (element: HTMLElement) => {
@@ -2764,34 +2764,75 @@ async function showEgoPlacement(ego: NonNullable<Exchange['ego']>, signal: Abort
     return { x: x + width / 2, y: y + height / 2 }
   }
   const origin = center(egoHover)
-  const target = slot === 'rest' ? origin : center(ui.dice[slot].querySelector<HTMLElement>('.die-seat:not([hidden])') ?? ui.assign[slot])
+  const row = slot === 'rest' ? undefined : ui.dice[slot]
+  const target = row && slot !== 'rest' ? center(row.querySelector<HTMLElement>('.die-seat:not([hidden])') ?? ui.assign[slot]) : origin
   const label = { attack: '공격', guard: '방어', rest: '쉼' }[slot]
   const motion = !reducedMotion()
   const { x, y } = motion ? origin : target
+  const assisted = withEgoDie(before, ego)
+  const totals = yachtAllocationTotals(assisted)
+  const outcome = forecastYacht(assisted)
+  const downs = outcome.upper?.exchange.direct.some(contact => contact.hp === 0)
+  const landed = slot === 'guard' ? `${totals.guard}/${outcome.incoming.totalDamage}`
+    : slot === 'attack' ? downs || next.phase === 'won' ? '격파' : String(totals.attack) : label
+  const resultIcon = slot === 'guard' ? outcome.counter ? 'parry' : 'shield' : slot === 'attack' ? 'sword' : 'companion-awake'
+
   egoHover.hidden = true
   egoPlacement.dataset.slot = slot
   egoPlacement.style.left = `${x}px`
   egoPlacement.style.top = `${y}px`
-  egoPlacement.innerHTML = `<strong>${face}</strong><small>에고 → ${label}</small>`
+  egoPlacement.innerHTML = `<strong>${face}</strong><small>에고</small>`
+  const die = egoPlacement.querySelector('strong')!
+  const caption = egoPlacement.querySelector('small')!
   egoPlacement.hidden = false
-  sound.contact('die-rebound', 1.18, .15)
-  const dx = target.x - origin.x
-  const dy = target.y - origin.y
-  const flight = egoPlacement.animate(motion ? [
-    { transform: 'translate(0, 0) rotate(-15deg)' },
-    { transform: `translate(${dx * .46}px, ${dy * .46 - 26}px) rotate(13deg)`, offset: .46 },
-    { transform: `translate(${dx}px, ${dy}px) rotate(0)` },
-  ] : [{}], { duration: effectDuration(motion ? 400 : 130), easing: 'cubic-bezier(.22,.61,.36,1)', fill: 'forwards' })
-  const cancel = () => flight.cancel()
+  let animation: Animation | undefined
+  let faces: number | undefined
+  const cancel = () => animation?.cancel()
   signal.addEventListener('abort', cancel, { once: true })
   try {
-    await flight.finished
-    if (!signal.aborted) sound.contact('seat', 1, .09)
-  } catch { /* A cancelled flight has no audible arrival. */ }
+    if (motion) {
+      egoPlacement.dataset.egoPhase = 'rolling'
+      faces = window.setInterval(() => {
+        die.textContent = String(Number(die.textContent) % 6 + 1)
+      }, effectDuration(65))
+      animation = die.animate([
+        { transform: 'translateY(0) rotate(-24deg)' },
+        { transform: 'translateY(-12px) rotate(20deg)', offset: .38 },
+        { transform: 'translateY(0) rotate(0)', offset: .66 },
+        { transform: 'none' },
+      ], { duration: effectDuration(480), easing: 'ease-out' })
+      await animation.finished
+      window.clearInterval(faces)
+    }
+    die.textContent = String(face)
+    egoPlacement.dataset.egoPhase = 'settled'
+    caption.textContent = `에고 → ${label}`
+    sound.contact('die-rebound', 1.18, .15)
+    const dx = target.x - origin.x
+    const dy = target.y - origin.y
+    animation = egoPlacement.animate(motion ? [
+      { transform: 'none', offset: .31 },
+      { transform: `translate(${dx * .5}px, ${dy * .5 - 20}px) rotate(10deg)`, offset: .61 },
+      { transform: `translate(${dx}px, ${dy}px)` },
+    ] : [{}], { duration: effectDuration(motion ? 500 : 85), easing: 'ease-out', fill: 'forwards' })
+    await animation.finished
+    egoPlacement.style.left = `${target.x}px`
+    egoPlacement.style.top = `${target.y}px`
+    animation.cancel()
+    egoPlacement.dataset.egoPhase = 'landed'
+    caption.innerHTML = `${icon(resultIcon)} <b>${landed}</b>`
+    row?.closest('.slot')?.setAttribute('data-ego-landed', '')
+    sound.contact('seat', 1, .09)
+    animation = caption.animate([{ opacity: 1 }, { opacity: 1 }], { duration: effectDuration(motion ? 470 : 145) })
+    await animation.finished
+  } catch { /* Feedback may be suspended if the document is hidden. */ }
   finally {
+    window.clearInterval(faces)
     signal.removeEventListener('abort', cancel)
+    row?.closest('.slot')?.removeAttribute('data-ego-landed')
     egoPlacement.hidden = true
-    flight.cancel()
+    delete egoPlacement.dataset.egoPhase
+    animation?.cancel()
   }
 }
 
@@ -2843,7 +2884,7 @@ ui.resolve.addEventListener('click', async () => {
       ascent = next
       saveCurrent()
     }
-    if (lastExchange?.ego) await showEgoPlacement(lastExchange.ego, feedback)
+    if (lastExchange?.ego) await showEgoPlacement(before, resolved.battle, lastExchange.ego, feedback)
     if (!immediatelySaved) {
       next = firstRun.opening(noteMetaVictory(resolved), before.turn)
       ascent = next
