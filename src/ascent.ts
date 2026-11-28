@@ -158,7 +158,7 @@ function scepterHealing(ascent: Ascent, battle: YachtBattle) {
 
 export function resolveAscentTurn(ascent: Ascent): Ascent {
   if (ascent.route && ascent.route.screen !== 'battle') return ascent
-  let { battle, hand } = resolveYachtTurn(ascent.battle)
+  let { battle, hand } = resolveYachtTurn(ascent.battle, ascent.unlocks)
   if (battle === ascent.battle) return ascent
   const newUnlock = hand && !ascent.unlocks.includes(hand.hand) ? hand.hand : null
   const unlocks = newUnlock ? [...ascent.unlocks, newUnlock] : ascent.unlocks

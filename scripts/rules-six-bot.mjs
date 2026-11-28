@@ -8,7 +8,7 @@ import { offerPerks } from '../src/perks.ts'
 import { isMetaPerk } from '../src/meta-unlocks.ts'
 import { ALL_META_FLOORS } from '../src/meta-progress.ts'
 import { treasureOffers } from '../src/map-treasure.ts'
-import { canResolveYachtTurn, forecastYacht, previewYachtHand, yachtAllocationTotals } from '../src/yacht-combat.ts'
+import { canResolveYachtTurn, forecastYacht, previewYachtHand, withEgoDie, yachtAllocationTotals } from '../src/yacht-combat.ts'
 import { pickSevenCounter, pickSevenTreasure, planSevenTurn, sevenRewardOptions } from '../exp/map/item-rules-policy.mjs'
 import { optionsFor, pickTreasure, planTreasureTurn } from '../exp/map/stage-two.mjs'
 import { weightedPerks } from '../exp/map/stage-three.mjs'
@@ -65,7 +65,7 @@ for (let seed = Number(first); seed < Number(first) + Number(count); seed++) {
     while (run.route.screen === 'battle') {
       if (run.battle.turn > 120) throw new Error(`미종료: ${seed}, ${node.floor}층`)
       const opening = run.battle
-      const plan = rules === 7 ? planSevenTurn(opening, aware, (id) => measured?.used.add(id)) : planTreasureTurn(opening, 'guardFirst')
+      const plan = rules === 7 ? planSevenTurn(opening, aware, (id) => measured?.used.add(id), run.unlocks) : planTreasureTurn(opening, 'guardFirst')
       if (!canResolveYachtTurn(plan)) throw new Error(`확정 불가: ${seed}, ${node.floor}층, ${plan.turn}턴`)
       const unlocking = !run.unlocks.includes('straight')
       run = resolveAscentTurn({ ...run, battle: plan })
@@ -78,7 +78,8 @@ for (let seed = Number(first); seed < Number(first) + Number(count); seed++) {
         }
         if ((perk === 'early-reroll' || perk === 'counter-recover') && unlocking &&
           !opening.extraRerollSpent && plan.extraRerollSpent) measured.used.add(perk)
-        recordTurn(measured.used, opening, plan, run.battle)
+        const ego = run.battle.lastExchange?.ego
+        recordTurn(measured.used, opening, ego ? withEgoDie(plan, ego) : plan, run.battle)
       }
       stats.turns++
       if (run.battle.phase === 'counter') {

@@ -1698,17 +1698,106 @@ button.die:disabled { background: transparent; }
 }
 #unlock-conditions form { position: absolute; inset: 0 0 auto auto; }
 .unlock-diagram, #unlock-examples { display: grid; justify-items: center; gap: 5px; }
-#unlock-rule { color: #e2d7c7; font-size: .82rem; text-align: center; white-space: nowrap; }
-.unlock-example-slot { display: flex; align-items: center; padding: 5px 7px; gap: 7px; border: 1px solid var(--stone-edge); background: var(--stone-face); color: #f6ca88; }
-.unlock-example-slot > .icon { font-size: 1.24rem; }
-.unlock-example-slot > span { display: flex; gap: 5px; }
-.unlock-example-die { inline-size: 38px; block-size: 38px; }
-.unlock-or { color: #e2d7c7; font-size: .78rem; line-height: 1; }
+#unlock-rule { color: #e2d7c7; font-size: .82rem; text-align: center; word-break: keep-all; }
 #unlock-result { display: flex; align-items: center; gap: 7px; padding-inline-end: 14px; color: #ffe0a5; font-size: 1rem; }
-.unlock-result-ego { inline-size: 32px; font-size: 1.1rem; }
-.unlock-result-reroll { position: relative; display: grid; place-items: start; inline-size: 34px; block-size: 34px; }
-.unlock-result-reroll .die-face { inline-size: 30px; block-size: 30px; font-size: 1rem; }
-.unlock-result-reroll > .icon { position: absolute; inset: auto 0 0 auto; padding: 2px; background: #343430; border-radius: 50%; font-size: 1.3rem; }
+.unlock-pattern { display: inline-flex; align-items: center; gap: 2px; color: var(--unlock-color, #f6cd80); }
+.unlock-pattern i { inline-size: 1em; block-size: 1em; border: 1px solid currentColor; border-radius: 2px; }
+.unlock-pattern i[data-filled='true'] { background: currentColor; }
+.unlock-pattern b { font-size: .7em; }
+[data-hand='straight'] { --unlock-color: #9bd7f3; }
+[data-hand='triple'] { --unlock-color: #f6cd80; }
+#unlock-examples .unlock-pattern { font-size: 30px; gap: 5px; }
+
+#planning[data-unlock-cues]:has(#locked-die:not([hidden])) { padding-block-start: 17px; }
+#planning[data-unlock-cues]:has(#extra-reroll.unlock-hint, #extra-reroll .unlock-chip) .controls { padding-block-start: 17px; }
+@media (max-width: 560px) and (max-height: 620px) {
+  [data-screen='battle'] #battle:has(#planning[data-unlock-cues]:not([hidden])) {
+    align-self: stretch;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    gap: 8px;
+    --compact-arena-min: 90px;
+  }
+  [data-screen='battle'] #battle:has(#planning[data-unlock-cues]:not([hidden])) .encounter { block-size: auto; }
+  [data-screen='battle'] #battle:has(.item-dock-options):has(#planning[data-unlock-cues]:not([hidden])) {
+    --compact-arena-min: 78px;
+  }
+}
+.unlock-chip {
+  position: absolute;
+  z-index: 1;
+  inset: auto 0 calc(100% + 1px) auto;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  block-size: 17px;
+  padding-inline: 3px;
+  border: 1px solid var(--unlock-color);
+  border-radius: 3px;
+  background: #262a30;
+  color: var(--unlock-color);
+  font-size: .69rem;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+#extra-reroll .unlock-chip { inset-inline: 50% auto; translate: -50%; }
+#extra-reroll .unlock-chip .icon, .unlock-chip .icon { inline-size: 12px; block-size: 12px; }
+.unlock-needed { color: #fff1cf; }
+.die[data-unlock-triple] { --pip-light: #af6a00; }
+.die[data-unlock-straight] { --pip-light: #0b67a3; }
+.die[data-unlock-triple][data-unlock-straight] .die-face { background: linear-gradient(132deg, #f6dda0 48%, #b7dce7 52%); }
+.die:is([data-unlock-triple], [data-unlock-straight]) .die-face {
+  color: var(--pip-light);
+  animation: unlock-pips 1.55s ease-in-out infinite alternate;
+  text-shadow: 0 0 2px #fff7d8;
+}
+.slot[data-unlock-triple] { outline: 1px solid #edc374; --completed-light: #f6c759; }
+.slot[data-unlock-straight] { outline: 1px solid #80c7ef; --completed-light: #80c7ef; }
+.slot:is([data-unlock-triple], [data-unlock-straight]) { animation: unlock-slot .55s ease-out; }
+@keyframes unlock-pips { to { text-shadow: 0 0 6px var(--pip-light), 0 0 2px #fff; } }
+@keyframes unlock-slot { 45% { box-shadow: inset 0 0 14px var(--completed-light), 0 0 10px var(--completed-light); } }
+.encounter[data-ego-presence='triple'] ~ #planning .companion-closed,
+.encounter[data-ego-presence='straight'] ~ #planning #extra-reroll > .icon:nth-child(2) { animation: unlock-rattle .35s ease-in-out 2; }
+@keyframes unlock-rattle { 25% { rotate: -15deg; } 75% { rotate: 15deg; } }
+
+#ego-hover {
+  position: absolute;
+  z-index: 2;
+  inset: max(26px, calc(var(--player-body) - 23px)) auto auto clamp(22px, calc(var(--player-x) + 33px), calc(100% - 40px));
+  inline-size: 28px;
+  pointer-events: none;
+  animation: ego-bob 1.4s ease-in-out infinite alternate;
+}
+#ego-hover[data-awakening] { animation: none; box-shadow: 0 0 14px #a7d7ef; }
+@keyframes ego-bob { to { transform: translateY(-4px); } }
+#ego-placement {
+  position: fixed;
+  z-index: 8;
+  translate: -50% -50%;
+  inline-size: 34px;
+  color: #f7f6ec;
+  box-shadow: 0 0 12px #a7d7ef;
+  pointer-events: none;
+}
+#ego-placement strong { font-size: 1.25rem; }
+#ego-placement small { position: absolute; inset: 100% auto auto 50%; translate: -50%; padding: 2px 5px; white-space: nowrap; background: #27232a; color: #d4eeff; }
+#ego-notices { position: absolute; z-index: 3; inset: 5px auto auto 6px; max-inline-size: 45%; display: grid; justify-items: start; gap: 4px; pointer-events: none; }
+#ego-presence, #unlock-discovery { border: 1px solid #b29464; border-radius: 4px; background: #292722; }
+#ego-presence { padding: 3px 8px; color: #f6d9a7; font-size: .78rem; }
+#unlock-discovery { display: grid; gap: 3px; padding: 4px 6px; font-size: .71rem; color: #f9e4bd; word-break: keep-all; }
+.discovery-diagram { display: flex; gap: 6px; align-items: center; color: var(--unlock-color); }
+.discovery-diagram .unlock-pattern { font-size: .82rem; }
+.discovery-diagram > .icon { inline-size: 14px; block-size: 14px; }
+[data-reduced-motion='true'] :is(#ego-hover, .die[data-unlock-triple] .die-face, .die[data-unlock-straight] .die-face,
+  .slot[data-unlock-triple], .slot[data-unlock-straight], .companion-closed, #extra-reroll > .icon) { animation: none; }
+
+#guide-dice { flex: 1; min-block-size: 0; overflow: auto; }
+.dice-guide-entry { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-block: 8px; padding: 10px; border: 1px solid var(--stone-edge); }
+.dice-guide-entry h3, .dice-guide-state { display: flex; align-items: center; gap: 5px; color: var(--unlock-color); }
+.dice-guide-entry h3 { font-size: .95rem; }
+.dice-guide-state { font-size: .78rem; }
+.dice-guide-entry .unlock-pattern { grid-column: 1 / -1; font-size: 22px; }
+.dice-guide-entry p { grid-column: 1 / -1; font-size: .83rem; word-break: keep-all; }
 .unlock-hint, .unlock-hint:disabled {
   border: 1px dashed var(--stone-edge);
   background: var(--stone-bed);
@@ -2361,7 +2450,7 @@ main[data-screen='defeat'] {
   color: #f6c795;
 }
 .guide-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
-.guide-tabs button { flex: 1; min-block-size: 40px; }
+.guide-tabs button { flex: 1; min-block-size: 40px; padding-inline: 4px; white-space: nowrap; }
 .guide-tabs [aria-selected="true"] { border-color: #e6bb91; color: #f6c795; }
 #guide-meta { min-block-size: 0; overflow: auto; flex: 1; }
 .meta-guide-stage { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 5px; }

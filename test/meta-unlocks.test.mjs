@@ -171,7 +171,7 @@ test('scabbard carries only direct overkill and blood, linked dice and pip trans
   assert.equal(forecastYacht(next).dealt, 14)
   assert.equal(resolveYachtTurn(next).battle.loot.scabbard, undefined)
   const blood = draftMetaDie(board([4, 4, 4], [a, a, a], [], undefined, ['blood-grip'], { playerHp: 8 }), 'blood-grip', 0)
-  assert.equal(previewYachtHand(blood), null)
+  assert.deepEqual(previewYachtHand(blood), { hand: 'triple', slot: 'attack' })
   const used = resolveYachtTurn(blood).battle
   assert.equal(used.playerHp, 12)
   assert.equal(used.lastExchange.dealt, 8)

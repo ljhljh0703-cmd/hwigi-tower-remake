@@ -3,7 +3,7 @@ import {
   enemyIntentAt, escortAfterDamage, forecast, openTurn, PLAYER_HP, rerollChannels, roll, spinCounter, splitEnemyDamage,
   startBattle,
 } from './combat.ts'
-import type { Battle, CounterResult, Enemy, EnemyMechanic, Slot } from './combat.ts'
+import type { Battle, CounterResult, Enemy, EnemyMechanic, Exchange, Slot } from './combat.ts'
 import type { Gimmick } from './combat.ts'
 import { EMPEROR_SHIELD_CAP, HEART_REVIVAL_HP, SEVEN_HEART_REVIVAL_HP, SEVEN_SCEPTER_REROLL_COST } from './boss-relic.ts'
 import type { BossRelicState } from './boss-relic.ts'
@@ -22,6 +22,7 @@ import { META_VALUES } from './meta-unlocks.ts'
 import { canSelectItemDie } from './item-effects.ts'
 
 export type Hand = 'triple' | 'straight'
+type EgoPlacement = NonNullable<Exchange['ego']>
 
 export interface UsedHand {
   readonly hand: Hand
@@ -96,7 +97,7 @@ function openYachtDice(battle: YachtBattle): YachtBattle {
     ...(stillStolen && { stolenDie: stillStolen }),
     ...(kind && { fixedDie: { index, kind } }),
   }
-  return openTreasureTurn(next.fourthDieUnlocked ? addFourthDie(next) : next)
+  return openTreasureTurn(next.fourthDieUnlocked && !next.itemsSeven ? addFourthDie(next) : next)
 }
 
 export function startYachtBattle(
@@ -123,7 +124,12 @@ export function activateYachtHand(battle: YachtBattle, hand: Hand): YachtBattle 
   if (battle.phase === 'won' || battle.phase === 'lost') return battle
   if (hand === 'straight') return { ...battle, extraRerollAvailable: true }
   const unlocked = { ...battle, fourthDieUnlocked: true } as const
-  return battle.phase === 'assign' ? addFourthDie(unlocked) : unlocked
+  return battle.phase === 'assign' && !battle.itemsSeven ? addFourthDie(unlocked) : unlocked
+}
+
+export function hasAutomaticEgo(battle: YachtBattle) {
+  const ordinaryCount = DIE_COUNT - Number(Boolean(battle.stolenDie))
+  return battle.itemsSeven === true && battle.fourthDieUnlocked === true && battle.dice.length === ordinaryCount
 }
 
 export function canReroll(battle: YachtBattle, index: number): boolean {
@@ -150,14 +156,14 @@ export function rerollYachtDice(battle: YachtBattle, indices: readonly number[],
     const channel = channels[drawIndex]
     if (charge) {
       const value = draw(battle.seed, battle.turn, channel)
-      const parity = index === battle.dice.length - 1 && battle.fourthDieUnlocked && battle.loot?.equipped.includes('heart-die')
+      const parity = !hasAutomaticEgo(battle) && index === battle.dice.length - 1 && battle.fourthDieUnlocked && battle.loot?.equipped.includes('heart-die')
         ? battle.loot.heartParity : undefined
       const choices = dieFaces.filter((face) => face >= META_VALUES.chargeMin &&
         (!parity || face % 2 === Number(parity === 'odd')))
       return choices[value % choices.length]
     }
     const next = pair ? pair[drawIndex++] : roll(battle.seed, battle.turn, channels[drawIndex++])
-    return battle.fourthDieUnlocked && index === battle.dice.length - 1 ? companionFace(battle, next) : next
+    return battle.fourthDieUnlocked && !hasAutomaticEgo(battle) && index === battle.dice.length - 1 ? companionFace(battle, next) : next
   })
   const rolled: YachtBattle = {
     ...battle, dice, playerHp: battle.playerHp - reroll.cost, rerolled: true,
@@ -192,7 +198,7 @@ export function spendExtraReroll(battle: YachtBattle, index: number): YachtBattl
   const dice = [...battle.dice]
   dice[index] = roll(battle.seed, battle.turn, EXTRA_REROLL_CHANNEL)
   if (battle.perk?.kind === 'early-reroll' && !battle.rerolled) dice[index] = Math.min(6, dice[index] + META_VALUES.earlyPips)
-  if (battle.fourthDieUnlocked && index === dice.length - 1) dice[index] = companionFace(battle, dice[index])
+  if (battle.fourthDieUnlocked && !hasAutomaticEgo(battle) && index === dice.length - 1) dice[index] = companionFace(battle, dice[index])
   return { ...battle, dice, extraRerollAvailable: false, extraRerollSpent: true }
 }
 
@@ -370,10 +376,16 @@ export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = 
 }
 
 function turnHand(battle: YachtBattle, dice: readonly number[], counter: boolean): UsedHand | null {
+  if (battle.itemsSeven) {
+    const placed = battle.dice.filter((_, index) => battle.slots[index] !== null)
+    if (matchingCount(unsealedFaces(placed, enemyIntentAt(battle).mechanic)) >= DIE_COUNT) {
+      return { hand: 'triple', slot: battle.slots.includes('attack') ? 'attack' : 'guard' }
+    }
+  }
   const slots = metaAllocationSlots(battle)
   if (slots !== battle.slots) battle = { ...battle, slots }
   const matching = usedHand(battle, dice, 'attack') ?? (counter ? usedHand(battle, dice, 'guard') : null)
-  if (matching?.hand === 'triple') return matching
+  if (!battle.itemsSeven && matching?.hand === 'triple') return matching
 
   // 연속 눈은 플레이어가 턴을 끝낼 때 놓아 둔 눈으로 검사한다.
   for (const slot of combatSlots) {
@@ -416,9 +428,47 @@ export function previewYachtHand(battle: YachtBattle): UsedHand | null {
     : turnHand(battle, battle.dice, counter) ?? (hasIncompletePair({ ...battle, slots: metaAllocationSlots(battle) }) ? { hand: 'triple', slot: 'attack' } : null)
 }
 
+export function withEgoDie(battle: YachtBattle, { face, slot }: EgoPlacement): YachtBattle {
+  return slot === 'rest' ? battle : { ...battle, dice: [...battle.dice, face], slots: [...battle.slots, slot] }
+}
+
+export function egoFaces(battle: YachtBattle) {
+  const parity = battle.loot?.equipped.includes('heart-die') ? battle.loot.heartParity : undefined
+  return parity ? dieFaces.filter(face => face % 2 === Number(parity === 'odd')) : dieFaces
+}
+
+export function chooseEgoSlot(battle: YachtBattle, face: number,
+  unlocks?: readonly Hand[]): EgoPlacement['slot'] {
+  return chooseEgoOutcome(battle, face, unlocks).slot
+}
+
+export function chooseEgoOutcome(battle: YachtBattle, face: number,
+  unlocks: readonly Hand[] = ['triple', ...(battle.extraRerollAvailable || battle.extraRerollSpent ? ['straight' as const] : [])]) {
+  const options = ['attack', 'guard', 'rest'] as const
+  let best: { slot: EgoPlacement['slot']; battle: YachtBattle; forecast: YachtForecast; hand: UsedHand | null } | undefined
+  let bestScore = -Infinity
+  for (const slot of options) {
+    const candidate = withEgoDie(battle, { face, slot })
+    const fc = forecastYacht(candidate)
+    const hand = turnHand(candidate, candidate.dice, fc.counter)
+    const rewards = fc.counter ? displayedCounterRewards(candidate) : []
+    const counterDamage = rewards.reduce((sum, { damage }) => sum + damage, 0) / COUNTER_REWARDS.length
+    const score = Number(fc.dealt >= battle.enemyHp) * 1000 + Number(fc.counter) * (400 + counterDamage) +
+      Number(Boolean(hand && !unlocks.includes(hand.hand))) * 250 -
+      (fc.damage - fc.retaliation) * 30 * (battle.playerHp <= 8 ? 2 : 1) + fc.dealt * 10 +
+      Number(fc.chargeBroken) * 200 - fc.retaliation * 30
+    if (score > bestScore) {
+      best = { slot, battle: candidate, forecast: fc, hand }
+      bestScore = score
+    }
+  }
+  return best!
+}
+
 export function previewUnlockProgress(battle: YachtBattle): Record<Hand, UnlockHint> {
   const hints: Record<Hand, UnlockHint> = { triple: { progress: 0 }, straight: { progress: 0 } }
   if (battle.phase !== 'assign') return hints
+  const triple = battle.itemsSeven ? diceUnlockSignals(battle).triple.progress : undefined
   battle = { ...battle, slots: metaAllocationSlots(battle) }
   const mechanic = enemyIntentAt(battle).mechanic
   for (const slot of combatSlots) {
@@ -442,7 +492,52 @@ export function previewUnlockProgress(battle: YachtBattle): Record<Hand, UnlockH
     }
   }
   if (splitStraight(battle)) hints.straight = { progress: 3 }
+  if (triple !== undefined) hints.triple = { progress: triple }
   return hints
+}
+
+export function diceUnlockSignals(battle: YachtBattle) {
+  const mechanic = enemyIntentAt(battle).mechanic
+  const usable = battle.dice.flatMap((face, index) => mechanic?.kind === 'seal' && face === mechanic.value ? [] : [index])
+  const locked = (hand: Hand) => {
+    const slots = hand === 'triple' && battle.itemsSeven ? battle.slots : metaAllocationSlots(battle)
+    const matching = new Set<number>()
+    const complete = new Set<number>()
+    let needed: number[] = []
+    let proximity = -1
+    for (const [position, first] of usable.entries()) {
+      for (const second of usable.slice(position + 1)) {
+        const a = battle.dice[first]
+        const b = battle.dice[second]
+        const pair = hand === 'triple' ? a === b : Math.abs(a - b) === 1
+        const fits = hand === 'triple' || slots[first] === slots[second] && slots[first] !== null
+        const possible = dieFaces.filter(face => (mechanic?.kind !== 'seal' || face !== mechanic.value) && classifyHand([a, b, face]) === hand)
+        if (pair && possible.length) {
+          matching.add(first)
+          matching.add(second)
+        }
+        if (possible.length && (pair || fits)) {
+          const rank = fits ? Number(slots[first] !== null) + Number(slots[second] !== null) : 0
+          if (rank > proximity) {
+            proximity = rank
+            needed = possible
+          }
+        }
+        if (fits && slots[first] !== null && slots[second] !== null) {
+          for (const third of usable) {
+            if (third !== first && third !== second && slots[third] !== null &&
+              (hand === 'triple' || slots[third] === slots[first]) && classifyHand([a, b, battle.dice[third]]) === hand) {
+              complete.add(first).add(second).add(third)
+            }
+          }
+        }
+      }
+    }
+    if (hand === 'straight' && splitStraight(battle, slots)) usable.forEach(index => complete.add(index))
+    const progress: UnlockHint['progress'] = complete.size ? 3 : needed.length ? 2 : 0
+    return { progress, matching, complete, needed }
+  }
+  return { triple: locked('triple'), straight: locked('straight') }
 }
 
 export function bladeChargePreview(battle: YachtBattle, dice = battle.dice) {
@@ -515,11 +610,15 @@ function damageToStolenDie(battle: YachtBattle, dealt: number) {
   return { remaining: battle.stolenDie.remaining - dealt }
 }
 
-export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; hand: UsedHand | null } {
+export function resolveYachtTurn(battle: YachtBattle, unlocks?: readonly Hand[]): { battle: YachtBattle; hand: UsedHand | null } {
   if (!canResolveYachtTurn(battle)) {
     return { battle, hand: null }
   }
 
+  const originalLength = battle.dice.length
+  const egoFace = hasAutomaticEgo(battle) ? companionFace(battle, roll(battle.seed, battle.turn, FOURTH_DIE_CHANNEL)) : undefined
+  const ego = egoFace === undefined ? undefined : { face: egoFace, slot: chooseEgoSlot(battle, egoFace, unlocks) }
+  if (ego) battle = withEgoDie(battle, ego)
   const planned = forecastYacht(battle)
   const gimmick = yachtGimmick(battle)
   const activated = gimmick?.ready ? gimmick.kind : undefined
@@ -528,7 +627,7 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
   const mechanic = enemyIntentAt(battle).mechanic
   const sacrificed = bloodDieFor(battle)
   const awakenedDice = awakened ? battle.dice.map((face, index) =>
-    index === sacrificed || battle.fixedDie?.index === index || (mechanic?.kind === 'seal' && face === mechanic.value) ? face : 6,
+    (ego && index >= originalLength) || index === sacrificed || battle.fixedDie?.index === index || (mechanic?.kind === 'seal' && face === mechanic.value) ? face : 6,
   ) : undefined
   const dice = awakenedDice ?? battle.dice
   const result = awakenedDice ? forecastYacht(battle, battle.slots, awakenedDice, gimmick) : planned
@@ -563,7 +662,8 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
   }
   const resolved: YachtBattle = {
     ...rest,
-    dice,
+    dice: ego ? dice.slice(0, originalLength) : dice,
+    ...(ego && { slots: battle.slots.slice(0, originalLength) }),
     playerHp,
     enemyHp,
     ...(heartRevived && { bossRelic: { id: 'revived-heart', heartUsed: true } }),
@@ -589,6 +689,7 @@ export function resolveYachtTurn(battle: YachtBattle): { battle: YachtBattle; ha
       counter: null,
       awakened,
       ...(awakenedDice && { awakenedDice }),
+      ...(ego && { ego }),
       ...(result.escortDealt > 0 && { escortDealt: result.escortDealt }),
       ...(result.chargeBroken && { chargeBroken: true }),
       ...(activated && { gimmick: activated }),

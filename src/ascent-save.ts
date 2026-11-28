@@ -69,12 +69,13 @@ function perk(value: unknown) {
   }
 }
 
-function exchange(value: unknown, allowDeferred: boolean) {
+function exchange(value: unknown, allowDeferred: boolean, seven: boolean) {
   if (!record(value)) return false
-  const { turn, dealt, hitsTaken, counter, awakened, awakenedDice, escortDealt, chargeBroken } = value
+  const { turn, dealt, hitsTaken, counter, awakened, awakenedDice, ego, escortDealt, chargeBroken } = value
   return integer(turn, 1) && integer(dealt) && Array.isArray(hitsTaken) && hitsTaken.every((hit) => integer(hit)) &&
     (counter === null || (record(counter) && integer(counter.slot, 0, COUNTER_REWARDS.length - 1) && integer(counter.damage, allowDeferred ? 0 : 1) && typeof counter.joint === 'boolean')) &&
     typeof awakened === 'boolean' && (awakenedDice === undefined || faces(awakenedDice)) &&
+    (ego === undefined || seven && record(ego) && integer(ego.face, 1, 6) && (ego.slot === 'attack' || ego.slot === 'guard' || ego.slot === 'rest')) &&
     (escortDealt === undefined || integer(escortDealt, 1)) && (chargeBroken === undefined || chargeBroken === true)
 }
 
@@ -113,7 +114,7 @@ function battleRecord(value: unknown, seed: number, enemy: Ascent['enemy'], rule
     interrupted.turn === (phase === 'assign' ? turn : turn + 1))) return false
   if ((phase === 'won') !== (enemyHp === 0) || !faces(dice) || !Array.isArray(slots) || slots.length !== dice.length) return false
   if (!slots.every((slot) => slot === 'attack' || slot === 'guard' || slot === 'escort' || (phase === 'assign' && slot === null))) return false
-  if (lastExchange === null ? phase !== 'assign' : !exchange(lastExchange, rulesTwo)) return false
+  if (lastExchange === null ? phase !== 'assign' : !exchange(lastExchange, rulesTwo, seven)) return false
   if (!integer(value.enemyAttackBuff) || value.enemyAttackGrowth !== enemy.attackGrowth || !perk(value.perk) || !combatRewards(value.rewards)) return false
   if (seven && record(value.perk)) {
     if (value.perk.kind === 'shield' && value.perk.bonus !== 0 && value.perk.bonus !== 4 &&
@@ -248,10 +249,20 @@ function readCheckpoint(raw: unknown): AscentSave | null {
     if (rewardChoice === 'tuning' && battle.rewards?.tuning !== 'ready') return null
   }
   if (battle.phase !== 'won' && Boolean(battle.fourthDieUnlocked) !== unlocks.includes('triple')) return null
-  if (battle.phase === 'assign' && battle.dice.length !== DIE_COUNT + Number(Boolean(battle.fourthDieUnlocked)) - Number(Boolean(battle.stolenDie))) return null
+  const ordinaryCount = DIE_COUNT - Number(Boolean(battle.stolenDie))
+  const manualCount = ordinaryCount + Number(Boolean(battle.fourthDieUnlocked))
+  const oldPlanningEgo = seven && battle.phase === 'assign' && battle.fourthDieUnlocked && battle.dice.length === manualCount
+  if (battle.phase === 'assign' && battle.dice.length !== (seven ? ordinaryCount : manualCount) && !oldPlanningEgo) return null
+  const dice = oldPlanningEgo ? battle.dice.slice(0, ordinaryCount) : battle.dice
+  const fixedDie = oldPlanningEgo && battle.fixedDie?.index === ordinaryCount
+    ? { ...battle.fixedDie, index: dice.indexOf(Math.min(...dice)) } : battle.fixedDie
+  const metaTurn = oldPlanningEgo && battle.metaTurn?.chargeDie === ordinaryCount
+    ? { ...battle.metaTurn, chargeDie: undefined } : battle.metaTurn
   const restoredBattle: YachtBattle = {
     ...battle,
-    slots: battle.slots.map((slot) => slot === 'escort' ? 'attack' : slot),
+    dice,
+    slots: battle.slots.slice(0, dice.length).map((slot) => slot === 'escort' ? 'attack' : slot),
+    ...(oldPlanningEgo && { fixedDie, metaTurn }),
     enemyIntents: enemy.intents,
     enemyAttackGrowth: enemy.attackGrowth,
   }
@@ -313,7 +324,7 @@ function readCheckpoint(raw: unknown): AscentSave | null {
   if (nodePreview !== undefined && !(mapped?.route.screen === 'map' && integer(nodePreview) && mapped.route.map.byId[nodePreview])) return null
   const { artifactOptions } = raw
   if (artifactOptions !== undefined && !(rulesTwo && previewAvailable && isArtifact(rewardPreview) && artifactOptionsRecord(artifactOptions, seven))) return null
-  return ascentFinished(ascent) ? null : { ascent, selected, ...(previewAvailable && { rewardPreview }), ...(typeof nodePreview === 'number' && { nodePreview }), ...(artifactOptions && { artifactOptions }) }
+  return ascentFinished(ascent) ? null : { ascent, selected: selected.filter(index => index < dice.length), ...(previewAvailable && { rewardPreview }), ...(typeof nodePreview === 'number' && { nodePreview }), ...(artifactOptions && { artifactOptions }) }
 }
 
 export function loadAscentSave(storage?: SaveStorage): AscentSave | null {

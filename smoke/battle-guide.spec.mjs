@@ -10,7 +10,7 @@ test('도감은 저장 파일이 아닌 현재 등반의 규칙판을 따라간�
   const section = dialog.locator('.guide-section').filter({ has: page.getByRole('heading', { name: '적 기믹', exact: true }) })
   const current = ['가시', '자물쇠', '격분', '호위병']
   const legacy = ['가시', '자물쇠', '얼림 · 눈송이', '격분', '반응', '체력 비례', '봉인', '빼앗기', '호위병']
-  const oldOnly = /얼림|눈송이|반응|체력 비례|봉인|빼앗|회수 매듭/
+  const oldOnly = /얼림|눈송이|반응|체력 비례|봉인집게|빼앗|회수 매듭/
   const open = () => page.getByRole('button', { name: '도감', exact: true }).tap()
   const close = () => dialog.getByRole('button', { name: '닫기' }).tap()
   const room = page.locator('#fork-options button')

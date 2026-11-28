@@ -68,6 +68,7 @@ export interface Exchange {
   readonly counter: CounterResult | null
   readonly awakened: boolean
   readonly awakenedDice?: readonly number[]
+  readonly ego?: { readonly face: number; readonly slot: Slot | 'rest' }
   readonly escortDealt?: number
   readonly chargeBroken?: true
   readonly gimmick?: Gimmick

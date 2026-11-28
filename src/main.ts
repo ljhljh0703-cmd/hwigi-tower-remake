@@ -39,7 +39,8 @@ import { metaGuideContent, metaRevealContent } from './meta-view.ts'
 import { bloodDieFor, bloodHealing, canPlaceMetaDie, draftMetaDie, transferMetaPip } from './meta-combat.ts'
 import {
   bladeChargePreview, canReroll, canResolveYachtTurn, canUseExtraReroll, displayedCounterRewards, previewUnlockProgress, toggleYachtWedge, tuneYachtDie, yachtAllocationTotals,
-  classifyYachtHand, emperorShieldActive, forecastYacht, rerollYachtDice, resolveYachtTurn, yachtGimmick, yachtRerollCost,
+  classifyYachtHand, diceUnlockSignals, emperorShieldActive, forecastYacht, hasAutomaticEgo, rerollYachtDice, resolveYachtTurn,
+  withEgoDie, yachtGimmick, yachtRerollCost,
 } from './yacht-combat.ts'
 import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput, rerollSelectedDice } from './dice-drag.ts'
@@ -188,15 +189,31 @@ let metaProgress = loadMetaProgress()
 let guideTrigger: HTMLButtonElement | undefined
 const metaLobby = element<HTMLButtonElement>('meta-lobby')
 const metaGuide = element('guide-meta')
+const diceGuide = element('guide-dice')
 
-function showGuideTab(meta: boolean) {
-  element('guide-run-tab').setAttribute('aria-selected', String(!meta))
-  element('guide-meta-tab').setAttribute('aria-selected', String(meta))
-  ui.guideEntries.hidden = meta
-  metaGuide.hidden = !meta
-  if (meta) {
+function showGuideTab(tab: 'run' | 'dice' | 'meta') {
+  const panels = { run: ui.guideEntries, dice: diceGuide, meta: metaGuide }
+  for (const name of ['run', 'dice', 'meta'] as const) {
+    element(`guide-${name}-tab`).setAttribute('aria-selected', String(name === tab))
+    panels[name].hidden = name !== tab
+  }
+  if (tab === 'meta') {
     metaGuide.innerHTML = metaGuideContent(metaProgress.unlocked)
     metaGuide.scrollTop = 0
+  } else if (tab === 'dice') {
+    const seven = !ascent || ascent.battle.itemsSeven
+    diceGuide.innerHTML = unlockHands.map(hand => {
+      const open = ascent?.unlocks.includes(hand) ?? false
+      return `<section class="dice-guide-entry" data-hand="${hand}">
+        <h3>${icon(unlockInfo[hand].icon)}${unlockNames[hand]}</h3>
+        <span class="dice-guide-state">${icon(open ? 'unlock' : 'lock')}${open ? '열림' : '잠김'}</span>
+        ${unlockPattern(hand)}
+        <p>${unlockCondition(hand, seven)}</p><p>${hand === 'triple'
+          ? seven ? '회귀자 옆에서 기다리다 턴 끝에 굴러 스스로 자리를 고릅니다.' : '이번 등반 동안 주사위 하나를 더 굴립니다.'
+          : '기본 재굴림을 쓴 뒤, 전투당 한 번 더 굴립니다.'}</p>
+      </section>`
+    }).join('')
+    diceGuide.scrollTop = 0
   }
 }
 
@@ -215,7 +232,7 @@ function openGuide(button: HTMLButtonElement, symbol?: string, name?: string) {
     </section>
   `).join('')
   guideTrigger = button
-  showGuideTab(button === metaLobby || !!symbol?.startsWith('meta-'))
+  showGuideTab(button === metaLobby || symbol?.startsWith('meta-') ? 'meta' : 'run')
   ui.guide.showModal()
   ui.guideEntries.scrollTop = 0
   const entry = symbol && (name && ui.guideEntries.querySelector(`[data-guide-icon="${symbol}"][data-guide-name="${name}"]`) || ui.guideEntries.querySelector(`[data-guide-icon="${symbol}"]`))
@@ -226,8 +243,7 @@ for (const button of [ui.help, ui.lobbyGuide]) {
   button.addEventListener('click', () => openGuide(button))
 }
 metaLobby.addEventListener('click', () => openGuide(metaLobby))
-element('guide-run-tab').addEventListener('click', () => showGuideTab(false))
-element('guide-meta-tab').addEventListener('click', () => showGuideTab(true))
+for (const tab of ['run', 'dice', 'meta'] as const) element(`guide-${tab}-tab`).addEventListener('click', () => showGuideTab(tab))
 ui.guide.addEventListener('click', (event) => {
   if (event.target === ui.guide) ui.guide.close()
 })
@@ -515,6 +531,28 @@ const unlockConditions = element<HTMLDialogElement>('unlock-conditions')
 const unlockExamples = element('unlock-examples')
 const unlockResult = element('unlock-result')
 const unlockRule = element('unlock-rule')
+const unlockHands = ['triple', 'straight'] as const
+const unlockNames = { triple: '에고 주사위', straight: '재굴림 주사위' } as const
+const egoHover = element('ego-hover')
+const egoPresence = element('ego-presence')
+const egoPlacement = element('ego-placement')
+const unlockDiscovery = element('unlock-discovery')
+const unlockLessonKey = 'hwigi-tower.dice-lesson'
+const presenceKey = 'hwigi-tower.ego-presence'
+let presenceTimer = 0
+let discoveryTimer = 0
+
+function unlockPattern(hand: Hand, filled = 0) {
+  const text = hand === 'triple' ? '같은 눈 셋' : '이어지는 눈 셋'
+  const join = hand === 'triple' ? '=' : '›'
+  const part = (index: number) => `<i data-filled="${index < filled}"></i>`
+  return `<span class="unlock-pattern" role="img" aria-label="${text}">${part(0)}<b aria-hidden="true">${join}</b>${part(1)}<b aria-hidden="true">${join}</b>${part(2)}</span>`
+}
+
+function unlockCondition(hand: Hand, seven?: boolean) {
+  if (hand === 'straight') return '한 칸에 이어지는 눈 셋 · 순서 무관'
+  return seven ? '어떤 눈이든 같은 눈 셋 · 칸 무관 · 봉인된 눈 제외' : '같은 눈 셋 · 공격 또는 정확 방어'
+}
 
 function pips(face: number) {
   return `<span class="gimmick-die" data-face="${face}">${'<b></b>'.repeat(face)}</span>`
@@ -522,24 +560,12 @@ function pips(face: number) {
 
 function showUnlockConditions(hand: Hand) {
   if (unlockConditions.open) return
-  const triple = hand === 'triple'
-  const name = triple ? '에고 주사위' : '재굴림 주사위'
+  const name = unlockNames[hand]
   unlockConditions.setAttribute('aria-label', `${name} 해금 조건`)
-  unlockExamples.innerHTML = (['attack', 'guard'] as const).map((slot) => {
-    const exact = triple && slot === 'guard'
-    const faces = triple ? [4, 4, 4] : slot === 'attack' ? [6, 5, 4] : [4, 6, 5]
-    const label = `${slot === 'attack' ? '공격' : '방어'} 한 칸에 ${triple ? '같은 눈 셋' : '이어지는 눈 셋, 순서 무관'}. 예: ${faces.join('·')}.${exact ? ' 정확 방어도 맞춰야 해요.' : ''}`
-    return `<div class="unlock-example" role="img" aria-label="${label}">
-      <span class="unlock-example-slot" data-slot="${slot}" aria-hidden="true">
-        ${icon(slot === 'attack' ? 'sword' : exact ? 'parry' : 'shield')}
-        <span>${faces.map((face) => `<span class="die-face unlock-example-die" data-face="${face}">${face}</span>`).join('')}</span>
-      </span>
-    </div>`
-  }).join('<span class="unlock-or">또는</span>')
-  unlockResult.innerHTML = triple
-    ? `<span class="companion-tile unlock-result-ego" aria-hidden="true">${icon('companion-awake')}</span><strong>${name}</strong>`
-    : `<span class="unlock-result-reroll" aria-hidden="true"><span class="die-face unlock-example-die">5</span>${icon('reroll')}</span><strong>${name}</strong>`
-  unlockRule.textContent = triple ? '같은 눈 셋' : '이어지는 눈 셋 · 순서 무관'
+  unlockExamples.dataset.hand = hand
+  unlockExamples.innerHTML = unlockPattern(hand)
+  unlockResult.innerHTML = `${icon(unlockInfo[hand].icon)}<strong>${name}</strong>`
+  unlockRule.textContent = unlockCondition(hand, ascent?.battle.itemsSeven)
   unlockConditions.showModal()
 }
 
@@ -558,6 +584,72 @@ function renderUnlockProgress(hint: HTMLElement, preview?: UnlockHint) {
   if (!blocked) return ''
   hint.insertAdjacentHTML('beforeend', `<span class="unlock-blocker">${icon(blocked === 'guard' ? 'parry' : 'seal')}</span>`)
   return blocked === 'guard' ? ', 정확 방어가 필요함' : ', 봉인된 눈은 제외됨'
+}
+
+function storedUnlockCue(key: string) {
+  try { return localStorage.getItem(key) } catch { return null }
+}
+
+function rememberUnlockCue(key: string, value: string) {
+  try { localStorage.setItem(key, value) } catch { /* 안내는 현재 세션에서도 한 번만 표시한다. */ }
+}
+
+let lessonShown = storedUnlockCue(unlockLessonKey) === '1'
+let presenceRun = storedUnlockCue(presenceKey)
+
+function renderDiceUnlockCues(battle: YachtBattle, unlocks: readonly Hand[]) {
+  const planning = !ui.planning.hidden && battle.phase === 'assign' && battle.itemsSeven === true
+  ui.planning.toggleAttribute('data-unlock-cues', planning)
+  const signals = planning ? diceUnlockSignals(battle) : undefined
+  const anchors = { triple: ui.lockedDie, straight: ui.extraReroll }
+  for (const hand of unlockHands) {
+    const state = unlocks.includes(hand) ? undefined : signals?.[hand]
+    const anchor = anchors[hand]
+    anchor.querySelector('.unlock-chip')?.remove()
+    if (state?.progress) {
+      const ready = state.progress === 3
+      const needed = state.needed.join('·')
+      anchor.insertAdjacentHTML('beforeend', `<span class="unlock-chip" data-hand="${hand}" data-progress="${state.progress}">
+        ${ready ? icon('unlock') : unlockPattern(hand, 2)}
+        ${ready ? '' : `<span class="unlock-needed" aria-label="필요한 눈 ${needed}">${needed}</span>`}
+        ${icon(unlockInfo[hand].icon)}</span>`)
+      anchor.setAttribute('aria-label', `${anchor.getAttribute('aria-label')}, ${ready ? '조건 완성' : `두 눈 맞음, 필요한 눈 ${needed}`}`)
+    }
+    diceButtons.forEach((button, index) => button.toggleAttribute(`data-unlock-${hand}`, state?.matching.has(index) ?? false))
+    for (const slot of combatSlots) {
+      ui.assign[slot].closest('.slot')?.toggleAttribute(`data-unlock-${hand}`,
+        Boolean(state && [...state.complete].some(index => battle.slots[index] === slot)))
+    }
+  }
+  if (!planning) {
+    egoPresence.hidden = true
+    delete ui.encounter.dataset.egoPresence
+    unlockDiscovery.hidden = true
+    return
+  }
+  const runKey = String(ascent?.seed)
+  const closeHand = unlockHands.find(hand => !unlocks.includes(hand) && signals?.[hand].progress === 2)
+  if (closeHand && presenceRun !== runKey) {
+    presenceRun = runKey
+    rememberUnlockCue(presenceKey, runKey)
+    ui.encounter.dataset.egoPresence = closeHand
+    showCompanionLine(egoPresence, '…그 눈이면.')
+    window.clearTimeout(presenceTimer)
+    presenceTimer = window.setTimeout(() => {
+      egoPresence.hidden = true
+      delete ui.encounter.dataset.egoPresence
+    }, 1450)
+  }
+  if (closeHand && ascent?.fight === 1 && !lessonShown) {
+    lessonShown = true
+    rememberUnlockCue(unlockLessonKey, '1')
+    unlockDiscovery.innerHTML = `<span class="discovery-diagram" data-hand="triple">${unlockPattern('triple')}
+      ${icon('next')}${icon(unlockInfo.triple.icon)}</span>
+      <strong>같은 눈 셋으로 에고 주사위가 깨어납니다.</strong>`
+    unlockDiscovery.hidden = false
+    window.clearTimeout(discoveryTimer)
+    discoveryTimer = window.setTimeout(() => { unlockDiscovery.hidden = true }, 4200)
+  }
 }
 
 function renderSlotTotal(total: HTMLElement, bonus: HTMLElement, value: number, added: number, itemsSeven?: boolean) {
@@ -615,7 +707,7 @@ function refreshDice(battle: YachtBattle, { attack, guard }: SlotTotals, unlocks
     const row = ui.dice[zone]
     const used = row.querySelectorAll('.die:not([hidden])').length
     row.querySelectorAll<HTMLElement>('.die-seat').forEach((seat, index) => {
-      seat.hidden = used + index >= battle.dice.length
+      seat.hidden = used + index >= battle.dice.length + Number(hasAutomaticEgo(battle))
     })
   }
 
@@ -645,7 +737,7 @@ function refreshDice(battle: YachtBattle, { attack, guard }: SlotTotals, unlocks
   const guardHint = renderSlotTotal(ui.guardTotal, ui.guardBonus, guard, guard - withoutPerk.guard, battle.itemsSeven)
   let exact = false
   if (planning && guard > 0) {
-    if (canResolveYachtTurn(battle)) exact = resolveYachtTurn(battle).battle.phase === 'counter'
+    if (!hasAutomaticEgo(battle) && canResolveYachtTurn(battle)) exact = resolveYachtTurn(battle).battle.phase === 'counter'
     else {
       const plan = forecastYacht(battle)
       exact = plan.counter && plan.damage < battle.playerHp && plan.dealt < battle.enemyHp
@@ -691,6 +783,8 @@ function refreshDice(battle: YachtBattle, { attack, guard }: SlotTotals, unlocks
   ui.extraReroll.setAttribute('aria-label', rerollLabel)
   ui.extraReroll.title = rerollLabel
   ui.resolve.disabled = !planning || !canResolveYachtTurn(battle)
+  egoHover.hidden = ui.planning.hidden || !planning || !hasAutomaticEgo(battle)
+  renderDiceUnlockCues(battle, unlocks)
 }
 
 function hitNumbers(hits: readonly number[]) {
@@ -972,6 +1066,7 @@ function wait(milliseconds: number): Promise<void> {
 }
 
 async function showExchange(before: YachtBattle, after: YachtBattle, exchange: Exchange) {
+  if (exchange.ego) before = withEgoDie(before, exchange.ego)
   const { dealt, hitsTaken, awakenedDice, escortDealt } = exchange
   const retreat = exchange.gimmick === 'retreat'
   const reflected = exchange.gimmick === 'reflect'
@@ -1023,6 +1118,9 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   const critical = intent.id === 'critical'
   const weak = before.weakenedStrikeTurn === before.turn
   const golemSingle = exact && incoming === 1 && ascent?.enemy.id === 'thorns'
+  if (golemSingle && before.itemsSeven) {
+    ui.encounter.style.blockSize = `${ui.encounter.getBoundingClientRect().height}px`
+  }
   let golemParry = golemSingle && !dealt && arena.beginGolemParry(start)
   let parryOffset = 0
   type HitCue = { delay?: number; incoming?: boolean; final?: boolean; guarded?: boolean; ordered?: boolean; parry?: boolean }
@@ -1909,7 +2007,7 @@ function renderFirstRun(run: Ascent) {
     firstRun.discover([
       ...(gimmick && condition ? [{ id: `gimmick-${gimmick.kind}`, symbol: gimmick.slot === 'guard' ? 'shield' : 'sword',
         text: condition, spoken: `${gimmick.slot === 'guard' ? '방어' : '공격'} 칸${condition}`, anchor: ui.encounter, beside: ui.inventory }] : []),
-      ...(hand && !unlocks.includes(hand) ? [{ id: `unlock-${hand}`, symbol: 'lock', anchor: hand === 'triple' ? ui.lockedDie : ui.extraReroll,
+      ...(!battle.itemsSeven && hand && !unlocks.includes(hand) ? [{ id: `unlock-${hand}`, symbol: 'lock', anchor: hand === 'triple' ? ui.lockedDie : ui.extraReroll,
         text: '잠긴 자리를 눌러 조건을 보세요.' }] : []),
     ])
   } else firstRun.clear()
@@ -1922,6 +2020,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   holdHelp.hidden = true
   const { battle, fight, enemy, maxHp, unlocks, newUnlock, route } = ascent
   const { phase, turn, playerHp, enemyHp } = battle
+  if (presentation === 'normal' && phase !== 'counter') ui.encounter.style.removeProperty('block-size')
   const atMap = presentation === 'normal' && route?.screen === 'map'
   const atRest = presentation === 'normal' && route?.screen === 'rest'
   const atTreasureRoom = route && route.map.rules >= 2 && (atRest || route.screen === 'event' || route.screen === 'shop')
@@ -2182,6 +2281,8 @@ function showPerks() {
   const begin = (event: MouseEvent, perk: StartPerk, parity?: Parity) => {
     if (event.isTrusted) sound.activate()
     ascent = beginMapAscent(seed, perk, parity, CURRENT_MAP_RULES, snapshot)
+    presenceRun = null
+    rememberUnlockCue(presenceKey, '')
     firstRun.start(seed)
     saveCurrent()
     render()
@@ -2422,6 +2523,57 @@ function lockExchange(locked: boolean) {
   ui.returnLobby.disabled = true
 }
 
+async function showEgoPlacement(ego: NonNullable<Exchange['ego']>) {
+  const { slot, face } = ego
+  const center = (element: HTMLElement) => {
+    const { x, y, width, height } = element.getBoundingClientRect()
+    return { x: x + width / 2, y: y + height / 2 }
+  }
+  const origin = center(egoHover)
+  const target = slot === 'rest' ? origin : center(ui.dice[slot].querySelector<HTMLElement>('.die-seat:not([hidden])') ?? ui.assign[slot])
+  const label = { attack: '공격으로', guard: '방어로', rest: '쉼' }[slot]
+  const motion = !reducedMotion()
+  const { x, y } = motion ? origin : target
+  egoHover.hidden = true
+  egoPlacement.dataset.slot = slot
+  egoPlacement.style.left = `${x}px`
+  egoPlacement.style.top = `${y}px`
+  egoPlacement.innerHTML = `<strong>${face}</strong><small>${label}</small>`
+  egoPlacement.hidden = false
+  sound.play('hum', 1, .065)
+  if (motion) {
+    const dx = target.x - origin.x
+    const dy = target.y - origin.y
+    egoPlacement.animate([
+      { transform: 'translate(0, 0) rotate(-15deg)' },
+      { transform: `translate(${dx * .46}px, ${dy * .46 - 26}px) rotate(13deg)`, offset: .46 },
+      { transform: `translate(${dx}px, ${dy}px) rotate(0)` },
+    ], { duration: effectDuration(400), easing: 'cubic-bezier(.22,.61,.36,1)', fill: 'forwards' })
+  }
+  await wait(motion ? 400 : 130)
+  egoPlacement.hidden = true
+}
+
+async function showUnlockAwakening(hand: Hand) {
+  window.clearTimeout(presenceTimer)
+  unlockDiscovery.hidden = true
+  showCompanionLine(egoPresence, hand === 'triple' ? COMPANION_LINES.awaken : '…그 눈이면.')
+  ui.encounter.dataset.egoPresence = hand
+  if (hand === 'triple') {
+    egoHover.hidden = false
+    egoHover.dataset.awakening = ''
+    if (!reducedMotion()) {
+      egoHover.animate([{ transform: 'translateY(-42px) rotate(-14deg)', opacity: .2 },
+        { transform: 'translateY(2px) rotate(4deg)', offset: .76 },
+        { transform: 'none', opacity: 1 }], { duration: effectDuration(420), easing: 'ease-out' })
+    }
+  }
+  await wait(reducedMotion() ? 275 : 530)
+  delete egoHover.dataset.awakening
+  delete ui.encounter.dataset.egoPresence
+  egoPresence.hidden = true
+}
+
 ui.resolve.addEventListener('click', async () => {
   if (ui.guide.open || exchangeBusy || !ascent) return
   const previous = ascent
@@ -2430,7 +2582,7 @@ ui.resolve.addEventListener('click', async () => {
   if (resolved === ascent) return
   itemControl = undefined
   dockItem = undefined
-  const next = firstRun.opening(noteMetaVictory(resolved), before.turn)
+  let next = resolved
   turnSignals.abort()
   turnSignals = new AbortController()
   feel.clear()
@@ -2445,11 +2597,12 @@ ui.resolve.addEventListener('click', async () => {
   }
   selected.clear()
   clearExchange()
-  ascent = next
-  saveCurrent()
-
-  const { phase, lastExchange } = next.battle
+  const { phase, lastExchange } = resolved.battle
   try {
+    if (lastExchange?.ego) await showEgoPlacement(lastExchange.ego)
+    next = firstRun.opening(noteMetaVictory(resolved), before.turn)
+    ascent = next
+    saveCurrent()
     if (lastExchange) await showExchange(before, next.battle, lastExchange)
     if (phase !== 'lost' && (next.battle.turn !== before.turn || next.newUnlock)) {
       await arena.finishExchange()
@@ -2463,7 +2616,9 @@ ui.resolve.addEventListener('click', async () => {
         feel.animate(ui.lockedDie, [{ boxShadow: 'inset 0 -2px #c4b48b' }, { boxShadow: 'inset 0 -8px #ffe7ab, 0 4px 9px #a49579' }], 220)
         sound.play('rise')
       }
-      if (next.newUnlock === 'triple' && !reducedMotion()) {
+      if (before.itemsSeven) {
+        await showUnlockAwakening(next.newUnlock)
+      } else if (next.newUnlock === 'triple' && !reducedMotion()) {
         ui.unlockImpact.hidden = false
         arena.freeze(unlockImpactDuration)
         await wait(unlockImpactDuration)
@@ -2485,6 +2640,7 @@ ui.resolve.addEventListener('click', async () => {
       await wait(reducedMotion() ? 320 : damageDuration)
     }
   } finally {
+    egoPlacement.hidden = true
     ui.intent.classList.remove('parry-in-progress')
     lockExchange(false)
     render('normal', next.battle.turn !== before.turn)
@@ -2804,7 +2960,7 @@ window.addEventListener('storage', (event) => {
   if (event.key === META_SAVE_KEY || event.key === null) {
     metaProgress = loadMetaProgress()
     refreshMetaCount()
-    if (ui.guide.open && !metaGuide.hidden) showGuideTab(true)
+    if (ui.guide.open && !metaGuide.hidden) showGuideTab('meta')
   }
   if ((event.key === ASCENT_SAVE_KEY || event.key === null) && !ui.lobby.hidden) refreshLobbyActions()
 })

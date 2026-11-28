@@ -6,7 +6,7 @@ import { artifactReady, ARTIFACT_SLOTS, isArtifact } from '../../src/treasure.ts
 import { isMetaArtifact, META_VALUES } from '../../src/meta-unlocks.ts'
 import { bloodHealing, draftMetaDie, transferMetaPip } from '../../src/meta-combat.ts'
 import { availableCounterChoices, counterDamage, mirrorCounterDamage, toggleArtifact } from '../../src/treasure-combat.ts'
-import { displayedCounterRewards, forecastYacht, nextYachtReroll, previewYachtHand, rerollYachtDice, spendExtraReroll } from '../../src/yacht-combat.ts'
+import { chooseEgoOutcome, displayedCounterRewards, egoFaces, forecastYacht, hasAutomaticEgo, nextYachtReroll, previewYachtHand, rerollYachtDice, spendExtraReroll } from '../../src/yacht-combat.ts'
 import { chooseAllocation, chooseReroll } from '../../src/yacht-policy.ts'
 import { planAscentTurn } from '../level.mjs'
 
@@ -44,16 +44,40 @@ export function pickSevenTreasure(run, considerUnlocked = true) {
   return consumableOrder.find((id) => offers.includes(id)) ?? 'skip'
 }
 
-function score(battle) {
-  const { dealt, damage, counter, escortDealt, chargeBroken } = forecastYacht(battle)
+function score(battle, egoOutcome) {
+  const { dealt, damage, counter, escortDealt, chargeBroken } = egoOutcome?.forecast ?? forecastYacht(battle)
   if (damage >= battle.playerHp && (battle.bossRelic?.id !== 'revived-heart' || battle.bossRelic.heartUsed)) return dealt - 1000
   const healing = Math.min(22 - battle.playerHp + damage, bloodHealing(battle, battle.dice))
   if (dealt >= battle.enemyHp) return 130 + battle.playerHp - damage + healing
   const roulette = counter ? displayedCounterRewards(battle).reduce((sum, card) => sum + card.damage, 0) / 6 : 0
-  const hand = previewYachtHand(battle)?.hand
+  const hand = (egoOutcome ? egoOutcome.hand : previewYachtHand(battle))?.hand
   const unlock = hand === 'triple' && !battle.fourthDieUnlocked ? 14
     : hand === 'straight' && !battle.extraRerollAvailable && !battle.extraRerollSpent ? 5 : 0
   return dealt + escortDealt * .8 + roulette + unlock + Number(chargeBroken) * 4 - damage * 4 + (battle.playerHp + healing) * 1.2
+}
+
+function planForUnrolledEgo(plan, unlocks) {
+  if (!hasAutomaticEgo(plan)) return plan
+  const faces = egoFaces(plan)
+  const layouts = [plan.slots, chooseAllocation(plan, 'adaptive'), plan.dice.map(() => 'attack')]
+  const seen = new Set()
+  let best = plan
+  let bestScore = -Infinity
+  for (const slots of layouts) {
+    const key = slots.join(',')
+    if (seen.has(key)) continue
+    seen.add(key)
+    const candidate = { ...plan, slots }
+    const value = faces.reduce((sum, face) => {
+      const outcome = chooseEgoOutcome(candidate, face, unlocks)
+      return sum + score(outcome.battle, outcome)
+    }, 0)
+    if (value > bestScore) {
+      best = candidate
+      bestScore = value
+    }
+  }
+  return best
 }
 
 function bestLayout(battle) {
@@ -92,8 +116,8 @@ function planChargeRoll(battle) {
   return batch.length > 1 ? rerollYachtDice(battle, batch) : battle
 }
 
-export function planSevenTurn(opening, aware, recordUse) {
-  if (!aware) return planAscentTurn(opening, 'guardFirst')
+export function planSevenTurn(opening, aware, recordUse, unlocks) {
+  if (!aware) return planForUnrolledEgo(planAscentTurn(opening, 'guardFirst'), unlocks)
   let start = opening.loot.consumables['reserve-gauge'] && opening.dice.filter((face) => face < 4).length >= 2
     ? toggleConsumable(opening, 'reserve-gauge') : opening
   if (start.perk?.kind === 'early-reroll' && start.extraRerollAvailable) {
@@ -172,7 +196,7 @@ export function planSevenTurn(opening, aware, recordUse) {
     const best = indices.reduce((index, other) => index === undefined || plan.dice[other] > plan.dice[index] ? other : index, undefined)
     if (best !== undefined && plan.dice[best] >= 5) plan = selectLatchDie(plan, best)
   }
-  return plan
+  return planForUnrolledEgo(plan, unlocks)
 }
 
 export function pickSevenCounter(battle, aware) {

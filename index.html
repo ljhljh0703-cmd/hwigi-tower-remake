@@ -251,6 +251,13 @@
           <p id="intent" role="img" tabindex="0" data-hold-help></p>
           <div id="charge-stop" role="img" hidden></div>
           <span id="first-run-anchor" aria-hidden="true"></span>
+          <div id="ego-hover" class="companion-tile" role="img" aria-label="에고 주사위, 턴 끝에 자동으로 굴림" hidden>
+            <svg class="icon" aria-hidden="true"><use href="#icon-companion-awake"/></svg>
+          </div>
+          <div id="ego-notices">
+            <div id="unlock-discovery" role="status" hidden></div>
+            <p id="ego-presence" role="status" hidden></p>
+          </div>
           <div id="companion-flight" class="companion-tile" aria-hidden="true" hidden>
             <svg class="icon"><use href="#icon-companion-awake"/></svg>
           </div>
@@ -419,6 +426,7 @@
     </div>
     <p id="first-run-status" class="sr-only" role="status"></p>
     <p id="hold-help" role="tooltip" hidden></p>
+    <div id="ego-placement" class="companion-tile" role="status" hidden></div>
     <dialog id="unlock-conditions" aria-label="주사위 해금 조건">
       <form method="dialog"><button class="icon-button" aria-label="닫기" autofocus>×</button></form>
       <div class="unlock-diagram">
@@ -453,9 +461,11 @@
       </header>
       <div class="guide-tabs" role="tablist" aria-label="등반 도감">
         <button id="guide-run-tab" type="button" role="tab" aria-selected="true" aria-controls="guide-entries">이번 등반</button>
+        <button id="guide-dice-tab" type="button" role="tab" aria-selected="false" aria-controls="guide-dice">주사위</button>
         <button id="guide-meta-tab" type="button" role="tab" aria-selected="false" aria-controls="guide-meta">다음 등반</button>
       </div>
       <div id="guide-entries" tabindex="0" role="region" aria-label="아이콘 목록"></div>
+      <div id="guide-dice" tabindex="0" role="region" aria-label="주사위 해금" hidden></div>
       <div id="guide-meta" tabindex="0" role="region" aria-label="다음 등반 해금" hidden></div>
     </dialog>
     <dialog id="settings" aria-labelledby="settings-title">

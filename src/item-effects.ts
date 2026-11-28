@@ -1,4 +1,4 @@
-import { dieFaceForSlot, enemyIntentAt, splitEnemyDamage } from './combat.ts'
+import { DIE_COUNT, dieFaceForSlot, enemyIntentAt, splitEnemyDamage } from './combat.ts'
 import type { forecast, SlotTotals } from './combat.ts'
 import { SEVEN_EMPEROR_SHIELD_CAP } from './boss-relic.ts'
 import { SEVEN_ITEM_VALUES } from './item-values.ts'
@@ -25,7 +25,7 @@ export function spendSevenArtifact(loot: TreasureState, id: Artifact): TreasureS
 
 export function canSelectItemDie(battle: YachtBattle, index: number) {
   return battle.itemsSeven === true && battle.phase === 'assign' && !battle.loot?.reserveRoll && Number.isInteger(index) && index >= 0 &&
-    index < battle.dice.length - Number(Boolean(battle.fourthDieUnlocked)) && index !== battle.fixedDie?.index
+    index < Math.min(battle.dice.length, DIE_COUNT - Number(Boolean(battle.stolenDie))) && index !== battle.fixedDie?.index
 }
 
 export function toggleConsumable(battle: YachtBattle, id: ArmedConsumable): YachtBattle {

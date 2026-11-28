@@ -259,23 +259,32 @@ test('로비부터 1층 평타의 타점과 소리를 확인한다', async ({ pa
   await expect(page.locator('#turn')).toHaveAttribute('aria-label', '2턴')
 })
 
-test('가시 골렘 정확 방어 자세가 룰렛 동안 정지하고 자동 반격한다', async ({ page }, info) => {
+for (const automatic of [false, true]) test(automatic
+  ? '자동 에고가 완성한 가시 골렘 정확 방어 자세가 룰렛 동안 정지한다'
+  : '가시 골렘 정확 방어 자세가 룰렛 동안 정지하고 자동 반격한다', async ({ page }, info) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
-  const run = withBattle(encounter('thorns', 1), { dice: [1, 3, 5], slots: [null, null, null] })
+  const opening = encounter('thorns', 1, automatic ? 7 : 6)
+  const run = withBattle(automatic ? { ...opening, unlocks: ['triple'] } : opening, {
+    dice: automatic ? [2, 2, 2] : [1, 3, 5], slots: [null, null, null],
+    ...(automatic && { fourthDieUnlocked: true }),
+  })
   const expected = spinAscentCounter(resolveAscentTurn(withBattle(run, { slots: ['guard', 'guard', 'guard'] }))).battle
   const loaded = page.waitForResponse((r) => r.url().endsWith('/art/golem-parry.png') && (r.ok() || r.status() === 304))
   await resume(page, run)
   await loaded
   await placeAll(page, 'guard')
   const exact = page.locator('#guard-exact')
-  await expect(exact).toBeInViewport({ ratio: 1 })
-  await page.locator('#guard-dice button').first().tap()
-  await expect(exact).toBeHidden()
-  await page.locator('#pool-dice button').tap()
-  const guardSlot = await page.locator('#guard-dice').boundingBox()
-  await page.touchscreen.tap(guardSlot.x + guardSlot.width / 2, guardSlot.y + guardSlot.height - 3)
-  await expect(page.locator('#guard-dice button')).toHaveCount(3)
-  await expect(exact).toBeVisible()
+  if (automatic) await expect(exact).toBeHidden()
+  else {
+    await expect(exact).toBeInViewport({ ratio: 1 })
+    await page.locator('#guard-dice button').first().tap()
+    await expect(exact).toBeHidden()
+    await page.locator('#pool-dice button').tap()
+    const guardSlot = await page.locator('#guard-dice').boundingBox()
+    await page.touchscreen.tap(guardSlot.x + guardSlot.width / 2, guardSlot.y + guardSlot.height - 3)
+    await expect(page.locator('#guard-dice button')).toHaveCount(3)
+    await expect(exact).toBeVisible()
+  }
 
   const panel = page.locator('#counter-panel')
   const canvas = page.locator('#arena canvas')
@@ -285,9 +294,14 @@ test('가시 골렘 정확 방어 자세가 룰렛 동안 정지하고 자동 �
     const canvas = document.querySelector('#arena canvas')
     const enemyHp = document.querySelector('#enemy-hp')
     const enemyDamage = document.querySelector('#enemy-damage')
+    const cue = document.querySelector('#parry-cue')
     window.roulettePoses = {}
     window.rouletteHp = {}
     window.counterImpact = null
+    window.parryPose = null
+    new MutationObserver(() => {
+      if (!cue.hidden && cue.dataset.guard === 'exact') window.parryPose = canvas.toDataURL()
+    }).observe(cue, { attributeFilter: ['hidden'] })
     new MutationObserver(() => {
       if (el.hidden || !el.dataset.rollState) return
       window.roulettePoses[el.dataset.rollState] = canvas.toDataURL()
@@ -301,26 +315,37 @@ test('가시 골렘 정확 방어 자세가 룰렛 동안 정지하고 자동 �
     }).observe(enemyDamage, { childList: true })
   })
   await page.locator('#resolve').tap()
-  await expect(page.locator('#parry-cue')).toHaveAttribute('data-guard', 'exact')
-  await expect(page.locator('#parry-cue')).toBeVisible()
-  const parryPose = await pose()
+  if (automatic) {
+    const flight = page.locator('#ego-placement')
+    await expect(flight).toBeVisible()
+    await expect(flight).toHaveText('3방어로')
+  }
+  let parryPose
+  if (automatic) {
+    await expect.poll(() => page.evaluate(() => Boolean(window.parryPose))).toBe(true)
+    parryPose = await page.evaluate(() => window.parryPose)
+  } else {
+    await expect(page.locator('#parry-cue')).toHaveAttribute('data-guard', 'exact')
+    await expect(page.locator('#parry-cue')).toBeVisible()
+    parryPose = await pose()
+  }
   expect(parryPose).not.toBe(planningPose)
-  await photograph(page, info, 'golem-parry')
+  if (!automatic) await photograph(page, info, 'golem-parry')
   await expect(panel).toHaveAttribute('data-roll-state', 'spinning')
   const wheel = page.locator('.roulette-stage')
   await expect(wheel).toBeInViewport({ ratio: 1 })
   expect(await wheel.evaluate((el) => el.offsetWidth)).toBe(page.viewportSize().width === 320 ? 200 : 258)
   await page.locator('#counter-medallion').waitFor({ state: 'visible' })
-  await photograph(page, info, 'roulette')
+  if (!automatic) await photograph(page, info, 'roulette')
   const { spinning, locked } = await page.evaluate(() => window.roulettePoses)
   expect(spinning).toBeTruthy()
-  expect(spinning).not.toBe(parryPose)
+  if (!automatic) expect(spinning).not.toBe(parryPose)
   expect(locked).toBe(spinning)
   expect(await page.evaluate(() => window.rouletteHp)).toEqual({ spinning: run.battle.enemyHp, locked: run.battle.enemyHp })
   await expect(page.locator('#counter-damage')).toHaveText(String(expected.lastExchange.counter.damage))
   await expect.poll(() => page.evaluate(() => window.counterImpact)).toMatchObject({ hp: expected.enemyHp, visible: true })
   expect(await page.evaluate(() => window.counterImpact.pose)).not.toBe(spinning)
-  if (await page.locator('#enemy-damage .damage-number').isVisible()) await photograph(page, info, 'counter')
+  if (!automatic && await page.locator('#enemy-damage .damage-number').isVisible()) await photograph(page, info, 'counter')
   await expect(page.getByRole('meter', { name: '적 체력' })).toHaveJSProperty('value', expected.enemyHp)
   await expect(page.getByRole('meter', { name: '내 체력' })).toHaveJSProperty('value', expected.playerHp)
   await expect(page.locator('#turn')).toHaveAttribute('aria-label', '2턴')
