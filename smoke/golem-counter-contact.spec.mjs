@@ -67,7 +67,17 @@ for (const hp of [20, 1]) {
       }).observe(damage, { childList: true })
     })
     await page.locator('#resolve').tap()
-    await page.getByRole('button', { name: '멈추기' }).tap()
+    if (reference) {
+      await page.getByRole('button', { name: '룰렛 돌리기' }).tap()
+      await page.getByRole('button', { name: '룰렛 멈추기' }).tap()
+    } else {
+      await expect(page.locator('#counter-panel')).toHaveAttribute('data-roll-state', 'free')
+      const wheel = page.locator('#counter-wheel')
+      const start = await wheel.evaluate(element => getComputedStyle(element).transform)
+      await expect.poll(() => wheel.evaluate(element => getComputedStyle(element).transform)).not.toBe(start)
+      await expect(page.locator('#enemy-hp')).toHaveJSProperty('value', hp)
+      await page.getByRole('button', { name: '멈추기' }).tap()
+    }
     if (hp === 1) await expect(page.getByRole('heading', { name: '전투 보상' })).toBeVisible()
     else await expect(page.locator('#turn')).toHaveAttribute('aria-label', '2턴')
     const trace = await page.evaluate(() => window.counterTrace)

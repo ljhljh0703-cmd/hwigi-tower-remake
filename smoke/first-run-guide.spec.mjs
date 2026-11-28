@@ -120,7 +120,7 @@ test('첫 등반에서 첫 공격을 하고 정확 방어 뒤 룰렛, 보상, �
   await expect(enemyHp).toHaveJSProperty('value', initialHp - 3)
   const measure = { msFromLobby: Math.round(performance.now() - started), msFromOpen: Math.round(performance.now() - opened), actions }
   expect(measure.msFromOpen).toBeLessThan(30000)
-  expect(actions).toBe(10)
+  expect(actions).toBe(9)
   console.log(`${info.project.name} 첫 공격 ${JSON.stringify(measure)}`)
 
   await expect(page.locator('#counter-panel')).toHaveAttribute('data-roll-state', 'free')
@@ -128,7 +128,7 @@ test('첫 등반에서 첫 공격을 하고 정확 방어 뒤 룰렛, 보상, �
   await tap(page.getByRole('button', { name: '멈추기' }))
 
   const reward = page.getByRole('heading', { name: '전투 보상' })
-  const guidedAction = page.locator('#counter[data-first-run-target], #resolve[data-first-run-target], .slot-target[data-first-run-target]')
+  const guidedAction = page.locator('#counter[data-first-run-target], #resolve[data-first-run-target], .slot-target[data-first-run-target], #new-unlock[open] #confirm-unlock')
   for (let step = 0; step < 10; step++) {
     await expect(reward.or(guidedAction)).toBeVisible()
     if (await reward.isVisible()) break
@@ -493,4 +493,27 @@ test('주사위판의 해금 신호로 같은 눈 셋을 깨운 뒤 에고를 �
   await expect.poll(async () => (await save(page)).ascent.battle.lastExchange?.ego).toEqual({ slot, face })
   expect((await save(page)).ascent.battle.lastExchange.turn).toBe(before.turn)
   await expect(field).toBeInViewport({ ratio: 1 })
+})
+
+test('3층 영구 카드의 확인이 남으면 이어하기에서 다시 기다린다', async ({ page }) => {
+  await page.goto(process.env.HWIGI_SMOKE_URL)
+  await resume(page, mapBefore(12, 3, 7))
+  await page.locator('#fork-options button').first().tap()
+  const dialog = page.locator('#new-unlock')
+  await expect(dialog).toBeVisible()
+  await expect(dialog.locator('.unlock-meta-card')).toHaveCount(2)
+  await expect(dialog.locator('.unlock-meta-card p').first()).not.toBeEmpty()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeVisible()
+  await page.reload()
+  await page.locator('#continue-ascent').tap()
+  await expect(dialog).toBeVisible()
+  expect((await save(page)).unlockNotices).toEqual([3])
+  await page.locator('#confirm-unlock').tap()
+  await expect(dialog).toBeHidden()
+  await expect.poll(async () => (await save(page)).unlockNotices).toBeUndefined()
+  await page.reload()
+  await page.locator('#continue-ascent').tap()
+  await expect(page.locator('#room-transition')).toBeHidden()
+  await expect(dialog).toBeHidden()
 })

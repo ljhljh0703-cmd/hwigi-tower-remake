@@ -2179,7 +2179,7 @@ function teachOpening({ battle }: Ascent) {
   if (misplaced >= 0) {
     const from = diceButtons[misplaced]
     const slot = battle.slots[misplaced] === 'guard' ? '방어' : '공격'
-    firstRun.teach({ id: 'correct', text: `${slot}에서 표시한 주사위를 빼요.`, symbol: 'return', anchor: from,
+    firstRun.teach({ id: 'correct', text: `${slot}에서 표시한 주사위를 빼요.`, symbol: 'return', anchor: ui.planning,
       marks: [from, ui.assign.pool], from, to: ui.dice.pool })
     return
   }
@@ -2188,17 +2188,17 @@ function teachOpening({ battle }: Ascent) {
   const guard = slots.flatMap((slot, index) => slot === 'guard' && battle.slots[index] === null ? [diceButtons[index]] : [])
   const guardFirst = battle.turn > 1 && guard.length > 0
   if (attack.length && !guardFirst) {
-    firstRun.teach({ id: 'attack', text: '표시한 주사위를 공격에 두세요.', symbol: 'sword', anchor: ui.assign.attack,
+    firstRun.teach({ id: 'attack', text: '표시한 주사위를 공격에 두세요.', symbol: 'sword', anchor: ui.planning,
       marks: [ui.assign.attack, ...attack], from: attack[0], to: ui.assign.attack })
   } else if (guard.length) {
     const damage = outcome.incoming.totalDamage
     const text = outcome.counter ? `방어 ${damage} = 적 공격 ${damage} → 정확 방어` : '표시한 주사위를 방어에 두세요.'
-    firstRun.teach({ id: 'defend', text, symbol: 'shield', anchor: ui.assign.guard,
+    firstRun.teach({ id: 'defend', text, symbol: 'shield', anchor: ui.planning,
       marks: [ui.intent, ui.assign.guard, ...guard], arrows: guard, to: ui.dice.guard, guardGoal: damage,
       headings: [ui.assign.attack.closest<HTMLElement>('.attack-heading')!, ui.assign.guard] })
   } else {
     const text = outcome.counter ? '턴을 끝내 반격 룰렛을 여세요.' : '턴 끝내기 누르세요.'
-    firstRun.teach({ id: 'end-turn', text, symbol: 'turn', anchor: ui.resolve, marks: [ui.resolve],
+    firstRun.teach({ id: 'end-turn', text, symbol: 'turn', anchor: ui.planning, marks: [ui.resolve],
       guardGoal: outcome.counter ? outcome.incoming.totalDamage : undefined })
   }
 }
@@ -2260,7 +2260,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   const defeated = finished && phase === 'lost' && presentation === 'normal'
   const atEvent = presentation === 'normal' && !defeated && !atRewards && (between || finished)
   const atUnlock = presentation === 'unlock' && newUnlock !== null
-  const inCombat = !atMap && !atEvent && !atUnlock && !atRewards && !defeated
+  const inCombat = !atMap && !atEvent && !atRewards && !defeated
   const showActions = presentation === 'normal' && inCombat
   const companionAwake = unlocks.includes('triple')
   ui.main.dataset.screen = defeated ? 'defeat' : atMap ? 'fork' : atRewards ? 'reward' : atEvent ? 'event' : atUnlock ? 'unlock' : 'battle'
@@ -2821,6 +2821,12 @@ async function showEgoPlacement(before: YachtBattle, next: YachtBattle, ego: Non
     animation.cancel()
     egoPlacement.dataset.egoPhase = 'landed'
     caption.innerHTML = `${icon(resultIcon)} <b>${landed}</b>`
+    if (slot === 'guard') {
+      ui.guardTotal.textContent = String(totals.guard)
+      ui.guardGoal.textContent = `/${outcome.incoming.totalDamage}`
+    } else if (slot === 'attack') {
+      ui.attackTotal.textContent = String(totals.attack)
+    }
     row?.closest('.slot')?.setAttribute('data-ego-landed', '')
     sound.contact('seat', 1, .09)
     animation = caption.animate([{ opacity: 1 }, { opacity: 1 }], { duration: effectDuration(motion ? 470 : 145) })

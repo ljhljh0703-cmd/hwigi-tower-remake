@@ -305,6 +305,7 @@ test('호위병이 먼저 맞고 보스 충전과 봉인 자세가 실제 판정
   await photograph(page, info, 'boss-charge')
   await put(page, 'attack', [0, 1, 2, 3])
   await page.locator('#resolve').tap()
+  await page.locator('#confirm-unlock').tap()
   await expect(page.locator('#turn')).toHaveAttribute('aria-label', '3턴')
   await put(page, 'guard', [0, 1, 2, 3])
   await resolveToFrame(page, 177)

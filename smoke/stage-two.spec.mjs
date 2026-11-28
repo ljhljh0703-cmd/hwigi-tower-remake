@@ -163,6 +163,7 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   const close = { ...floor12, battle: { ...floor12.battle, enemyHp: 1, playerHp: 12 } }
   await resume(page, withDice(close, [6, 5, 3], allAttack))
   await nextTurn(page).tap()
+  await page.locator('#confirm-unlock').tap()
   await expect(page.locator('#result')).toHaveText('하층 완주')
   await expect(page.locator('#finish-lower')).toBeVisible()
   await inFrame(page, ['#next', '#finish-lower'])

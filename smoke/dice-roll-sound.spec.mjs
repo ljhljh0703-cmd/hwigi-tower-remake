@@ -113,7 +113,7 @@ test.describe('Dice audio', () => {
       expect(result.battle.dice).toEqual([5, 1, 2])
       expect(result.battle.extraRerollAvailable).toBe(true)
       expect((await visibleDice(page).allTextContents()).map(Number)).toEqual(result.battle.dice)
-      expect(await visibleDice(page).first().evaluate(el => document.activeElement === el)).toBe(true)
+      await expect(visibleDice(page).first()).toBeFocused()
       const log = await page.evaluate(() => window.diceProbe)
       const count = name => log.sounds.filter(s => s.name === name).length
       const audible = !['muted', 'late', 'unavailable'].includes(mode)
@@ -239,7 +239,10 @@ test.describe('Dice audio', () => {
       await resume(page, run)
       await page.locator('#resolve').tap()
       await expect.poll(async () => (await save(page)).battle.lastExchange?.turn).toBe(run.battle.turn)
-      if (kind === 'triple') await expect.poll(async () => (await names(page)).includes('unlock.mp3')).toBe(true)
+      if (kind === 'triple') {
+        await expect.poll(async () => (await names(page)).includes('unlock.mp3')).toBe(true)
+        await page.locator('#confirm-unlock').tap()
+      }
       await expect(page.locator('#planning')).not.toHaveAttribute('inert', '')
       expect(await names(page)).not.toContain('die-note.wav')
     })

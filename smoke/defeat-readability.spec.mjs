@@ -75,7 +75,11 @@ test('시드 12 실제 두 턴의 격파에서 숫자·돌 면·벽·착지가 �
   expect(sounds.map(e => e.name)).toEqual(['slam.wav', 'grit.wav', 'seat.wav'])
   expect(sounds[2].at - sounds[0].at).toBeCloseTo(348, 0)
   await page.clock.resume()
-  await expect(page.getByRole('heading', { name: '전투 보상' })).toBeVisible()
+  const reward = page.getByRole('heading', { name: '전투 보상' })
+  const unlock = page.locator('#confirm-unlock')
+  await expect(reward.or(unlock).first()).toBeVisible()
+  if (await unlock.isVisible()) await unlock.tap()
+  await expect(reward).toBeVisible()
   checkComposition(frames)
   expect(frames[0].area).toBe(0)
   const early = frames.slice(1, 4)
@@ -104,6 +108,7 @@ test.describe('고밀도 전투 HUD', () => {
     expect(frames.find(f => f.offset === 160).area).toBeGreaterThan(100)
     checkComposition(frames)
     await page.clock.resume()
+    await page.locator('#confirm-unlock').tap()
     await expect(page.getByRole('heading', { name: '전투 보상' })).toBeVisible()
   })
   test('빠른 호위 대타는 세 체력 카드를 분리하고 주인 피해도 보인다', async ({ page }, info) => {
@@ -185,6 +190,7 @@ for (const [rules, waitMs] of [[6, 250], [7, 275]]) {
     await expect(page.locator('main')).toHaveAttribute('data-screen', 'unlock')
     await expect(page.locator('.damage-number')).toHaveCount(0)
     await page.clock.resume()
+    await page.locator('#confirm-unlock').tap()
     await expect(page.getByRole('heading', { name: '전투 보상' })).toBeVisible()
   })
 }
@@ -219,7 +225,11 @@ test('정확 방어 뒤 룰렛이 멈춘 전장에서 골렘 반격 격파까지
   expect(last.effects.filter(e => /perfect-block|roulette-latch|slam|grit|seat/.test(e.name)).map(e => e.name))
     .toEqual(['perfect-block.mp3', 'roulette-latch.wav', 'slam.wav', 'grit.wav', 'seat.wav'])
   await page.clock.resume()
-  await expect(page.getByRole('heading', { name: '전투 보상' })).toBeVisible()
+  const reward = page.getByRole('heading', { name: '전투 보상' })
+  const unlock = page.locator('#confirm-unlock')
+  await expect(reward.or(unlock).first()).toBeVisible()
+  if (await unlock.isVisible()) await unlock.tap()
+  await expect(reward).toBeVisible()
 })
 
 for (const [scene, enemy, settings] of [

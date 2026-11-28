@@ -134,6 +134,8 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
   }
 
   async function readRewardScreen() {
+    await expect(rewardHeading.or(page.locator('#confirm-unlock')).first()).toBeVisible()
+    if (await page.locator('#confirm-unlock').isVisible()) await page.locator('#confirm-unlock').tap()
     await expect(rewardHeading).toBeVisible()
     await expect(battleFloor).toHaveText(/^1\s*\//)
     await expect(rewardCards).toHaveCount(3)
@@ -201,6 +203,8 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
       await expect(resolve).toBeEnabled()
       await resolve.tap()
     }
+    await expect(rewardHeading.or(page.locator('#confirm-unlock')).first()).toBeVisible()
+    if (await page.locator('#confirm-unlock').isVisible()) await page.locator('#confirm-unlock').tap()
     await expect(rewardHeading).toBeVisible()
   })
 

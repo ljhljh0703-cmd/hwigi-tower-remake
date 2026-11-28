@@ -198,7 +198,14 @@ test('규칙판 7 보상을 받아 쓰고 강적·보스·상점을 거쳐 문�
 
   await resume(page, nearVictory(encounter('boss', 12, 7)))
   await finish(page).tap()
-  await expect(page.locator('#completion-seal')).toBeVisible()
+  const seal = page.locator('#completion-seal')
+  const unlock = page.locator('#confirm-unlock')
+  for (let i = 0; i < 2; i++) {
+    await expect(seal.or(unlock).first()).toBeVisible()
+    if (await seal.isVisible()) break
+    await unlock.tap()
+  }
+  await expect(seal).toBeVisible()
   expect(errors).toEqual([])
 })
 
@@ -208,8 +215,8 @@ test('강적 승리 뒤 장착 유물 세 개를 유지하고 보너스 동전�
   await resume(page, nearVictory(fight))
   await finish(page).tap()
   await expect(page.getByRole('heading', { name: '강적 유물 선택' })).toBeVisible()
-  const rack = page.getByRole('group', { name: '장착 중인 유물 세 개' })
-  const held = rack.locator(':scope > span')
+  const rack = page.getByRole('group', { name: '장착 중인 유물' })
+  const held = rack.locator(':scope > button')
   await expect(held).toHaveCount(3)
   await expect(page.locator('#elite-capacity')).toHaveText('유물 3/3')
   const positions = await held.evaluateAll((cards) => cards.map((card) => {
@@ -449,4 +456,48 @@ test('유물 네 칸과 소모품이 함께 있어도 엄지 띠에서 조율을
   await expect(choice).toBeInViewport({ ratio: 1 })
   await choice.tap()
   expect((await saved(page)).battle.loot.consumables.tuning).toBeUndefined()
+})
+
+test('강적 보상과 상점에서 보유 효과를 읽고 교체 전후를 들여다본다', async ({ page }) => {
+  const elite = eliteWithThreeArtifacts()
+  await resume(page, nearVictory(elite))
+  await finish(page).tap()
+  const held = page.locator('[data-equipped-reward]')
+  const preview = page.locator('#reward-preview')
+  const comparison = preview.locator('.replacement-comparison')
+  await expect(held).toHaveCount(3)
+  const old = await held.first().locator('strong').textContent()
+  await expect(held.first().locator('small svg')).toBeVisible()
+  await held.first().tap()
+  await expect(preview).toContainText(old)
+  await expect(preview.locator('span')).not.toBeEmpty()
+  const incoming = page.locator('#reward-cards .artifact-card').first()
+  const name = await incoming.locator('strong').textContent()
+  await incoming.tap()
+  await held.first().tap()
+  await expect(comparison).toContainText('뺄 것 · ' + old)
+  await expect(comparison).toContainText('넣을 것 · ' + name)
+  await reloadRun(page)
+  await expect(comparison).toContainText('뺄 것 · ' + old)
+  await page.locator('[data-option="replace"]').last().tap()
+  await expect(comparison).toContainText('뺄 것 · ' + await held.last().locator('strong').textContent())
+  expect(await page.evaluate(() => document.scrollingElement.scrollWidth)).toBe(page.viewportSize().width)
+
+  const shopSeed = selectShop()
+  const shopNode = shopSeed.route.map.byId[shopSeed.route.node]
+  const beforeShop = mapBefore(shopSeed.seed, shopNode.floor, 7, 'emperor-shield')
+  const equipped = ['horn', 'overflow', 'mirror']
+  const loot = { ...beforeShop.battle.loot, equipped, acquired: equipped }
+  const shop = enterMapNode({ ...beforeShop, battle: { ...beforeShop.battle, loot } }, shopNode.id)
+  await resume(page, shop)
+  const stock = page.locator('#reward-cards .artifact-card').first()
+  await expect(stock).toBeVisible()
+  await expect(held).toHaveCount(3)
+  const owned = await held.first().locator('strong').textContent()
+  await held.first().tap()
+  await expect(preview).toContainText(owned)
+  await stock.tap()
+  await held.first().tap()
+  await expect(comparison).toContainText('뺄 것 · ' + owned)
+  await expect(comparison).toContainText('넣을 것 · ' + await stock.locator('strong').textContent())
 })

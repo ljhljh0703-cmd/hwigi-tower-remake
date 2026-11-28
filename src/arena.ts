@@ -116,11 +116,11 @@ type UpperMotion = {
   from?: Formation
 }
 
-function layoutSprites(sprites: readonly Sprite[], width: number, density: number, headroom: number, forecastHeight: number) {
+function layoutSprites(sprites: readonly Sprite[], width: number, density: number, headroom: number, forecastHeight: number, zoom: number) {
   const edge = 8 * density
   const scales = sprites.map((sprite, index) => {
     const height = headroom - (index === sprites.length - 1 ? forecastHeight : 0)
-    const preferred = Math.round(Math.round(sprite.scale * actorDisplayScale) * density)
+    const preferred = Math.round(Math.round(sprite.scale * actorDisplayScale) * density * zoom)
     if (sprite === hero) return preferred
     if (sprite === boss && headroom >= 50 * preferred) return preferred
     return Math.max(1, Math.min(preferred, Math.floor(height / (sprite.footY - sprite.head))))
@@ -319,7 +319,8 @@ export class Arena {
 
   private positionActors() {
     if (!this.canvas.width || !this.canvas.height) return
-    const footer = parseFloat(getComputedStyle(this.encounter).getPropertyValue('--arena-footer')) || footerHeight
+    const styles = getComputedStyle(this.encounter)
+    const footer = parseFloat(styles.getPropertyValue('--arena-footer')) || footerHeight
     this.floor = Math.max(1, this.canvas.height - Math.round(footer * this.density))
     const enemy = ENEMY_SPRITES[this.enemyId]
     const actors = this.enemyId === 'escort' ? [hero, ESCORT_SPRITE, enemy] : [hero, enemy]
@@ -327,9 +328,10 @@ export class Arena {
     const stage = this.frame.getBoundingClientRect()
     const rail = this.inventory.getBoundingClientRect()
     const gap = 6
-    const top = rail.height ? Math.max(gap, rail.bottom - stage.top + gap) : gap
+    const zoom = Number(styles.getPropertyValue('--arena-actor-zoom')) || 1
+    const top = rail.height && stage.left < rail.right && rail.left < stage.right ? Math.max(gap, rail.bottom - stage.top + gap) : gap
     const { placements, shake } = layoutSprites(actors, this.canvas.width, this.density,
-      this.floor - (enemy === boss ? gap : top) * this.density, (intentHeight + gap) * this.density)
+      this.floor - (enemy === boss ? gap : top) * this.density, (intentHeight + gap) * this.density, zoom)
     this.placements = placements
     this.shake = shake
 

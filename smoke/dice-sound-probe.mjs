@@ -104,6 +104,7 @@ export async function rollStraight(page) {
   })
   await page.locator('#resolve').tap()
   await page.waitForFunction(() => window.straightShown)
+  await page.locator('#unlock-reveal .unlock-pattern i:last-of-type[data-filled=true]').waitFor()
   await page.locator('#confirm-unlock').tap()
   await page.locator('#new-unlock').waitFor({ state: 'hidden' })
   await page.locator('.die-arriving').first().waitFor({ state: 'detached' })

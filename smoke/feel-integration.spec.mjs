@@ -301,7 +301,7 @@ for (const automatic of [false, true]) test(automatic
     await page.clock.runFor(16)
     await page.clock.resume()
   }
-  await expect(panel).toHaveAttribute('data-roll-state', 'spinning')
+  await expect.poll(() => page.evaluate(() => Boolean(window.roulettePoses.spinning))).toBe(true)
   const wheel = page.locator('.roulette-stage')
   await expect(wheel).toBeInViewport({ ratio: 1 })
   expect(await wheel.evaluate((el) => el.offsetWidth)).toBe(page.viewportSize().width === 320 ? 200 : 258)
@@ -467,6 +467,7 @@ test('시드 0에서 선제 처치하면 가시 피해 없이 살아남고 적�
   await expect(page.locator('#hit-order')).toBeHidden()
   await photograph(page, info, 'thorns-finish')
   await page.clock.resume()
+  await page.locator('#confirm-unlock').tap()
   await expect(page.getByRole('heading', { name: '전투 보상' })).toBeVisible()
   await expect(page.locator('#map-health')).toHaveAccessibleName('체력 13/22')
 
