@@ -24,10 +24,12 @@ const upper = {
   'upper-dash': { reference: 'seal-sentinel', size: 48, pivot: [24, 43], height: 24, rearHeight: 25, rearWidth: 36, tip: [.58, .97] },
   'upper-shield': { reference: 'shield-soldier', size: 48, pivot: [24, 43], height: 25, tip: [.38, .88] },
   'upper-support': { reference: 'escort', size: 48, pivot: [24, 43], height: 26, rearHeight: 25, tip: [.30, .64] },
-  'upper-boss': { reference: 'boss', size: 80, pivot: [40, 71], height: 33, rearHeight: 26, tip: [.36, .80] },
-  'upper-boss-special': { reference: 'boss', size: 80, pivot: [40, 71], height: 30, tip: [.48, .77] },
+  'upper-boss': { reference: 'boss', size: 80, pivot: [40, 71], height: 42, rearHeight: 26, tip: [.34, .80] },
+  'upper-boss-special': { reference: 'boss', size: 80, pivot: [40, 71], height: 41, tip: [.62, .77] },
 }
 const upperAccents = ['232221', '484644', '746d63', 'aa9e8c', 'c8bdad', '644235', '80503d', 'a66c50']
+const upperBossPalette = ['17181d', '2b303a', '424957', '676f7d', 'a7a099', 'd1c6b9', 'f4e8d7',
+  '623c39', 'a25646', 'bd6c57', 'b98b62', 'f2b873']
 const bossFrames = ['ready', 'charge-set', 'charge-peak', 'charge-contact', 'interrupted', 'knee-down',
   'knockdown', 'get-up', 'seal-set', 'seal-contact', 'seal-recover', 'defeated']
 const effectFrames = ['chip-start', 'chip-burst', 'chip-spread', 'chip-end',
@@ -148,7 +150,9 @@ async function paletteFor(id) {
   }
   const entries = [...colors].sort((a, b) => b[1] - a[1]).slice(0, 24)
   const keys = entries.map(([key]) => key)
-  return { height: bottom - top, colors: [...new Set(upper[id] ? [...keys, ...upperAccents] : keys)]
+  const palette = id === 'upper-boss' || id === 'upper-boss-special' ? upperBossPalette
+    : upper[id] ? [...new Set([...keys, ...upperAccents])] : keys
+  return { height: bottom - top, colors: palette
     .map(key => [...Buffer.from(key, 'hex')]) }
 }
 

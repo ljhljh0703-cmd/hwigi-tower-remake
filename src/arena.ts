@@ -770,7 +770,8 @@ export class Arena {
       return { x: Math.round(fromX + (getX(index) - fromX) * shiftProgress),
         y: Math.round(getY(old) + (getY(index) - getY(old)) * shiftProgress), old }
     }
-    const selectScale = (index: number) => (4 + Number(wide) - Number(index > 0)) * px
+    // The boss has denser front art and its own compact rear cells.
+    const selectScale = (id: UpperRole, index: number) => (4 + Number(wide) - Number(index > 0 || id === 'gatekeeper')) * px
     const centerOffset = (cell: ReturnType<typeof atlasCell>['cell'], pivot: number[], scale: number) =>
       Math.round((cell.bounds[0] + cell.bounds[2] / 2 - pivot[0]) * scale)
     if (foes.length) {
@@ -788,7 +789,7 @@ export class Arena {
     for (const fall of this.upperFallen) {
       const name = upperSprites[fall.id]
       const age = this.reducedMotion ? fracture.settled : (now - fall.at) * this.animationSpeed
-      const scale = selectScale(fall.lane)
+      const scale = selectScale(fall.id, fall.lane)
       const pose = this.reducedMotion ? frame(name, 'down') : hurtFrame(name, 8, true, age)
       const { cell, atlas, art } = atlasCell(age < fracture.release || this.reducedMotion ? pose : frame(name, 'heavy-hit'))
       const x = getX(fall.lane, fall.count) - centerOffset(cell, atlas.pivot, scale)
@@ -808,7 +809,7 @@ export class Arena {
       const { old, ...position } = point(enemy.id, index)
       let { x, y } = position
       const displayLane = shiftProgress < .65 ? old : index
-      const scale = selectScale(displayLane)
+      const scale = selectScale(enemy.id, displayLane)
       const isSource = motion?.id === enemy.id
       const stance = enemy.action.pose
       let pose = frame(name, displayLane ? 'rear-ready' : 'ready')
@@ -869,7 +870,7 @@ export class Arena {
       const { cell } = atlasCell(frame(name, lane ? 'rear-ready' : 'ready'))
       const held = this.reducedMotion ? 1 : Math.min(1, (145 - elapsed) / 92)
       heroPose = held === 1 ? 'attack' : 'attack-follow'
-      bladeOffset(getX(lane, previous?.length) - cell.bounds[2] * selectScale(lane) / 2, getY(lane) - 18 * px, held)
+      bladeOffset(getX(lane, previous?.length) - cell.bounds[2] * selectScale(motion.id, lane) / 2, getY(lane) - 18 * px, held)
     }
     this.placements.set(hero, { foot: heroX, scale: 2 * px, travel: 0 })
     this.drawHero(heroPose, bladeX, bladeY)
@@ -879,7 +880,7 @@ export class Arena {
       if (material && lane >= 0) {
         const { cell } = atlasCell(frame(upperSprites[motion.id], lane ? 'rear-ready' : 'ready'))
         const ground = getY(lane)
-        const x = getX(lane, previous?.length) - cell.bounds[2] * selectScale(lane) / 2
+        const x = getX(lane, previous?.length) - cell.bounds[2] * selectScale(motion.id, lane) / 2
         drawMaterialChips(context, material, elapsed, x, ground - 18 * px, ground, px, motion.amount! >= 5)
       }
     }

@@ -18,7 +18,7 @@ const sounds = page => page.evaluate(() => window.diceProbe.sounds.map(sound => 
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    window.upperPoseHistory = new Set()
+    window.upperPoseHistory = new Map()
     window.upperPlayerContacts = []
     new MutationObserver(records => {
       for (const record of records) if (record.target.id === 'player-damage') {
@@ -36,7 +36,13 @@ test.beforeEach(async ({ page }) => {
       if (this.canvas.parentElement?.id === 'arena' && source.src?.includes('/art/motion/') && args.length === 8) {
         const sheet = source.src.split('/').at(-1).replace('.png', '')
         window.upperSpriteDraws?.push({ sheet, args })
-        window.upperPoseHistory.add(`${sheet}:${args.slice(0, 2).join(',')}`)
+        const transform = this.getTransform()
+        window.upperPoseHistory.set(`${sheet}:${args.slice(0, 2).join(',')}`, {
+          args, smoothing: this.imageSmoothingEnabled,
+          transform: [transform.a, transform.b, transform.c, transform.d, transform.e, transform.f],
+          canvas: [this.canvas.width, this.canvas.height], css: [this.canvas.clientWidth, this.canvas.clientHeight],
+          rendering: getComputedStyle(this.canvas).imageRendering, density: devicePixelRatio,
+        })
       }
       return draw.call(this, source, ...args)
     }
@@ -47,6 +53,21 @@ async function poseWasDrawn(page, sheet, pose) {
   const { rect } = atlas.find(entry => entry.id === sheet).frames.find(frame => frame.id === pose)
   const key = `${sheet}:${rect.slice(0, 2).join(',')}`
   await expect.poll(() => page.evaluate(key => window.upperPoseHistory.has(key), key)).toBe(true)
+  return page.evaluate(key => window.upperPoseHistory.get(key), key)
+}
+
+async function verifyBossPixels(page, sheet, pose) {
+  const metrics = await poseWasDrawn(page, sheet, pose)
+  const [, , sw, sh, x, y, dw, dh] = metrics.args
+  const expected = (page.viewportSize().width === 320 ? 3 : 4) * Math.round(metrics.density)
+  expect([dw / sw, dh / sh]).toEqual([expected, expected])
+  expect([x, y, ...metrics.transform.slice(4)].every(Number.isInteger)).toBe(true)
+  expect(metrics.transform.slice(0, 4)).toEqual([1, 0, 0, 1])
+  expect(metrics.smoothing).toBe(false)
+  expect(metrics.rendering).toBe('pixelated')
+  for (const [index, dimension] of metrics.canvas.entries()) {
+    expect(Math.abs(dimension - metrics.css[index] * metrics.density)).toBeLessThanOrEqual(1)
+  }
 }
 
 async function verifyFormationArt(page, sheets) {
@@ -186,18 +207,18 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   expect(errors).toEqual([])
 })
 
-test('19층 보스의 준비와 두 강타가 전용 시트의 실제 자세로 재생된다', async ({ page }) => {
+test('19층 보스의 대기·준비·강타·약화·무릎·회복을 정수 배율로 그린다', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   const run = withFormation(atFloor(19), [0, 64])
   const before = run.battle.formation
   const ready = openFormation({ ...before, bossStep: 'advance' }, 4)
   await resume(page, { ...run, battle: { ...run.battle, formation: ready, turn: 4 } })
-  await poseWasDrawn(page, 'upper-boss', 'ready')
+  await verifyBossPixels(page, 'upper-boss', 'ready')
   await photo(page, '19-boss-front')
 
   const prepare = openFormation(ready, 5)
   await resume(page, { ...run, battle: { ...run.battle, formation: prepare, turn: 5 } })
-  await poseWasDrawn(page, 'upper-boss-special', page.viewportSize().width === 320 ? 'charge-set' : 'charge-peak')
+  await verifyBossPixels(page, 'upper-boss-special', page.viewportSize().width === 320 ? 'charge-set' : 'charge-peak')
   await photo(page, '19-boss-charge')
 
   for (const weakened of [false, true]) {
@@ -210,10 +231,35 @@ test('19층 보스의 준비와 두 강타가 전용 시트의 실제 자세로 
     await resume(page, input)
     await expect(goal(page)).toContainText(weakened ? '11' : '21')
     await nextTurn(page).tap()
-    await poseWasDrawn(page, 'upper-boss-special', weakened ? 'weak-contact' : 'charge-contact')
+    await verifyBossPixels(page, 'upper-boss-special', weakened ? 'weak-contact' : 'charge-contact')
     await expect.poll(() => page.evaluate(() => window.upperPlayerContacts)).toEqual([`나−${expected[0]}`])
+    await verifyBossPixels(page, 'upper-boss-special', 'recover-end')
+    if (!weakened) await photo(page, '19-boss-recover')
   }
+
+  const toppled = openFormation({ ...ready, enemies: ready.enemies.map(enemy => enemy.id === 'gatekeeper'
+    ? { ...enemy, toppled: true } : enemy) }, 5)
+  await resume(page, { ...run, battle: { ...run.battle, formation: toppled, turn: 5 } })
+  await verifyBossPixels(page, 'upper-boss', 'fall')
+  await photo(page, '19-boss-knee')
+
+  const cancelled = openFormation({ ...prepare, heavy: 'cancelled' }, 6)
+  await resume(page, { ...run, battle: { ...run.battle, formation: cancelled, turn: 6 } })
+  await verifyBossPixels(page, 'upper-boss-special', 'interrupted-knee')
+  await photo(page, '19-boss-interrupted')
 })
+
+for (const deviceScaleFactor of [1.25, 2]) {
+  test.describe(`보스 픽셀 DPR ${deviceScaleFactor}`, () => {
+    test.use({ deviceScaleFactor })
+    test('기기 픽셀 격자에서 원화 셀을 정수 배율로 확대한다', async ({ page }) => {
+      const run = withFormation(atFloor(19), [0, 64])
+      const formation = openFormation({ ...run.battle.formation, bossStep: 'advance' }, 4)
+      await resume(page, { ...run, battle: { ...run.battle, formation, turn: 4 } })
+      await verifyBossPixels(page, 'upper-boss', 'ready')
+    })
+  })
+}
 
 test('17층 세 마리와 지원, 14층 교대·취소, 19층 강타·약화 및 결산을 검증한다', async ({ page }) => {
   const errors = []
