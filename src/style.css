@@ -52,7 +52,7 @@ main {
 h1, h2, p { margin: 0; }
 
 h1, h2,
-#intent strong, .slot-total > strong, .die-face, .die-net, .unlock-value strong,
+#intent strong, .slot-total > strong, .die-face, .unlock-value strong,
 #counter-damage, #event-floor > strong, #turn,
 :is(#player-total, #enemy-total, #escort-guard-total), .damage-number {
   font-family: var(--display-font);
@@ -1083,10 +1083,9 @@ main[data-screen='battle'] {
   display: grid;
   place-items: center;
   aspect-ratio: 1;
-  border: 2px solid var(--companion-edge);
-  border-block-end-color: #6685ad;
-  border-radius: 5px;
-  background: var(--companion-face);
+  border: 0;
+  background: url('/art/ui/combat-controls/ego.png') center top / 100% 200% no-repeat;
+  image-rendering: pixelated;
   color: #edf5ff;
 }
 
@@ -1664,7 +1663,7 @@ meter[data-empty] + .hp-trail { display: none; }
 #guard-exact { color: #efdb9c; font-size: .75rem; font-weight: 700; white-space: nowrap; }
 #guard-goal { color: #f0d4a2; font-size: .83rem; }
 #assign-guard:has(#guard-goal:not([hidden])) .slot-total { gap: 2px; }
-#planning[inert] #resolve { background: #292724; border-color: #74634f; color: #a6a095; opacity: .65; }
+#planning[inert] #resolve { background-position: center bottom; color: #d4cabd; opacity: .75; }
 #assign-guard:has(#guard-exact:not([hidden])) { box-shadow: inset 0 -2px #ba9a59; }
 .slot-target .slot-total { color: inherit; }
 .slot-target #attack-multiplier { color: #f2ac98; }
@@ -1705,7 +1704,8 @@ meter[data-empty] + .hp-trail { display: none; }
   order: 1;
   flex: 0 0 44px;
   block-size: 44px;
-  border: 1px dashed #84796c;
+  background: url('/art/ui/combat-controls/socket.png') center / 38px 38px no-repeat;
+  opacity: .74;
 }
 .die {
   position: relative;
@@ -1728,24 +1728,19 @@ button.die:disabled { background: transparent; }
   place-items: center;
   inline-size: 44px;
   block-size: 44px;
-  border: 1px solid #fdf6e4;
-  background: #d5cec0;
+  background: url('/art/ui/combat-controls/bone.png') center top / 100% 200% no-repeat;
   color: #282720;
-  box-shadow: inset 0 -4px #989485;
+  image-rendering: pixelated;
   font-size: 1.28rem;
   font-weight: 800;
   line-height: 1;
 }
 
 .die-face.ego-face {
-  border-color: #9da7ae;
-  background: #3e4956;
+  background-image: url('/art/ui/combat-controls/ego.png');
   color: #f4ebd8;
-  box-shadow: inset 0 -4px #29323a;
-  clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px),
-    calc(100% - 5px) calc(100% - 5px), calc(100% - 5px) 100%,
-    0 100%, 0 5px, 5px 5px);
 }
+.die:is(:active, [aria-pressed='true']) .die-face { background-position: center bottom; }
 
 .die-indicators {
   position: absolute;
@@ -1764,6 +1759,21 @@ button.die:disabled { background: transparent; }
 
 .slot .dice-row { row-gap: 12px; }
 .die-arriving { visibility: hidden; }
+/* The preview occupies the landing strip. Keep its reserved space until
+   the rolled faces reach their buttons and can actually form a hand. */
+#planning:has(.die-arriving) .unlock-chip { visibility: hidden; }
+.die[data-reroll-from] .die-face { font-size: 0; }
+.die[data-reroll-from]::after {
+  content: attr(data-reroll-from);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #282720;
+  font: 800 1.28rem/1 var(--display-font);
+  pointer-events: none;
+}
+.die.companion-die[data-reroll-from]::after { color: #f4ebd8; }
 .die-placing :is(.die-face, .die-indicators) { opacity: 0; }
 #planning:focus { outline: none; }
 
@@ -1782,9 +1792,6 @@ button.die:disabled { background: transparent; }
   will-change: transform;
 }
 
-.dice-echo .die-face { border: 0; box-shadow: none; background: #d8c39a; }
-.dice-echo .ego-face { background: #8396a9; }
-
 .dice-roll-shadow {
   position: absolute;
   inline-size: 36px;
@@ -1799,9 +1806,12 @@ button.die:disabled { background: transparent; }
   inline-size: 3px;
   block-size: 3px;
   background: #ddac66;
-  box-shadow: 8px -2px #cca265, -8px 2px #b58e54, 14px 3px #8b7042, -13px -4px #9e7c4c;
+  translate: -50% -100%;
+  transform-origin: bottom center;
+  box-shadow: 8px -2px #cca265, -8px -1px #b58e54, 14px -1px #8b7042, -13px -4px #9e7c4c;
   opacity: 0;
 }
+.dice-roll-dust.small { inline-size: 2px; block-size: 2px; box-shadow: -5px -2px #b58e54, 5px -1px #cca265; }
 
 #locked-die { display: grid; place-content: center; justify-items: center; order: 1; cursor: help; }
 #locked-die .companion-closed { inline-size: 20px; block-size: 20px; }
@@ -2014,13 +2024,6 @@ button.die:disabled { background: transparent; }
   pointer-events: none;
 }
 
-.dice-drag-preview.companion-die {
-  background: var(--companion-face);
-  border-color: var(--companion-edge);
-  border-block-end-color: #6685ad;
-  color: #edf5ff;
-}
-
 .stolen-die {
   display: grid;
   place-items: center;
@@ -2041,15 +2044,11 @@ button.die:disabled { background: transparent; }
 .dice-drag-preview {
   position: fixed;
   z-index: 2;
-  min-inline-size: 36px;
-  padding: 6px;
-  border: 1px solid #d5d5d5;
-  background: var(--stone-bed);
-  text-align: center;
-  font-weight: 700;
-  white-space: pre;
+  display: flex;
+  gap: 2px;
   pointer-events: none;
 }
+.dice-drag-preview .die-face { width: 36px; height: 36px; font-size: 1rem; }
 
 .controls {
   display: grid;
@@ -2064,8 +2063,18 @@ button.die:disabled { background: transparent; }
 #extra-reroll { position: relative; grid-column: 2; }
 #extra-reroll .icon { width: 1.45em; height: 1.45em; }
 #extra-reroll.unlock-hint > .icon:nth-child(2) { inline-size: .95em; }
-#resolve { grid-column: 3; justify-self: end; width: min(100%, 215px); }
-#resolve:not(:disabled) { background: #b04d3e; color: #fff7f4; }
+#planning #resolve {
+  grid-column: 3; justify-self: end; width: min(100%, 215px);
+}
+#planning #resolve, #counter-panel #counter {
+  border-image: none;
+  border-color: transparent;
+  background: transparent url('/art/ui/combat-controls/turn-button.png') center top / 100% 300% no-repeat;
+  color: #fff3df;
+  image-rendering: auto;
+}
+#planning #resolve:enabled:active, #counter-panel #counter:enabled:active { background-position: center center; scale: none; }
+#planning #resolve:disabled, #planning[inert] #resolve, #counter-panel #counter:disabled { background-position: center bottom; }
 #reroll-count, #reroll-count > span { display: inline-flex; align-items: center; gap: 4px; }
 #reroll-count > span + span { margin-inline-start: 4px; }
 #reroll-count small { font-size: .73em; color: var(--muted); }
@@ -2102,10 +2111,10 @@ button.die:disabled { background: transparent; }
 .counter-over-field .roulette-stage { width: 100%; }
 .counter-over-field .roulette-stage::before {
   position: absolute;
+  z-index: 1;
+  pointer-events: none;
   inset: -6px;
-  background: repeating-conic-gradient(from -1deg, #8c7d60 0deg 2deg, #373128 2deg 10deg);
-  border-radius: 50%;
-  mask: radial-gradient(circle closest-side, transparent calc(100% - 9px), #000 calc(100% - 8px));
+  background: url('/art/ui/combat-controls/rim.png') center / contain no-repeat;
   content: '';
 }
 .counter-over-field #counter-wheel {
@@ -2114,8 +2123,8 @@ button.die:disabled { background: transparent; }
 }
 .counter-over-field #counter-wheel::after {
   inset: 38%;
-  border: 2px solid #80725a;
-  background: #27251f;
+  border: 0;
+  background: url('/art/ui/combat-controls/hub.png') center / contain no-repeat;
 }
 .counter-over-field .roulette-label span {
   font-size: clamp(1.05rem, 4vw, 1.32rem);
@@ -2124,12 +2133,11 @@ button.die:disabled { background: transparent; }
 .counter-over-field .roulette-label .icon { width: 15px; height: 15px; }
 .counter-over-field .roulette-pointer {
   z-index: 2;
-  top: -10px;
-  width: 27px;
-  height: 29px;
+  top: -15px;
+  width: 22px;
+  height: 35px;
   border: 0;
-  clip-path: polygon(0 0,100% 0,100% 30%,50% 100%,0 30%);
-  background: linear-gradient(90deg, #a58a63 0 23%, #f8e8c8 23% 76%, #ae926a 76%);
+  background: url('/art/ui/combat-controls/pointer.png') center / contain no-repeat;
 }
 #counter-medallion { display: none; }
 .counter-over-field[data-roll-state='locked'] #counter-medallion {
@@ -2138,9 +2146,7 @@ button.die:disabled { background: transparent; }
   inset: 32%;
   display: grid;
   place-items: center;
-  border: 2px solid #dbb17e;
-  border-radius: 50%;
-  background: #302319;
+  background: url('/art/ui/combat-controls/hub.png') center / contain no-repeat;
   color: #fff0d3;
   font-size: clamp(2.5rem, 12vw, 3.65rem);
   line-height: 1;
@@ -2328,31 +2334,8 @@ button.die:disabled { background: transparent; }
   55% { scale: 1.04; }
 }
 
-.die-net {
-  display: grid;
-  --face-size: clamp(35px, 7.5vw, 55px);
-  grid-template: repeat(3, var(--face-size)) / repeat(4, var(--face-size));
-  grid-template-areas: '. north . .' 'west center east far' '. south . .';
-  gap: 2px;
-}
-
-.die-net span {
-  display: grid;
-  place-items: center;
-  border: 1px solid #ddd9d2;
-  border-block-end: 2px solid #97938e;
-  background: #c4c0ba;
-  color: #252423;
-  font-size: clamp(1.2rem, 3vw, 1.6rem);
-  font-weight: 750;
-}
-
-.die-net span:nth-child(1) { grid-area: north; }
-.die-net span:nth-child(2) { grid-area: west; }
-.die-net span:nth-child(3) { grid-area: center; }
-.die-net span:nth-child(4) { grid-area: east; }
-.die-net span:nth-child(5) { grid-area: far; }
-.die-net span:nth-child(6) { grid-area: south; }
+#unlock-reveal .unlock-pattern { gap: 5px; font-size: clamp(24px, 7vw, 38px); }
+#unlock-reveal .unlock-pattern i[data-filled='true'] { background: url('/art/ui/combat-controls/bone.png') center top / 100% 200% no-repeat; }
 .unlock-value { display: flex; align-items: center; gap: 4px; font-size: clamp(1.55rem, 5vw, 2.8rem); }
 
 .companion-reveal .companion-tile {
@@ -2363,7 +2346,7 @@ button.die:disabled { background: transparent; }
 }
 
 @keyframes companion-awaken {
-  from { background: var(--stone-bed); color: var(--muted); box-shadow: none; }
+  from { color: var(--muted); box-shadow: none; }
   44% { box-shadow: 0 0 0 10px #d6e9ff40, 0 0 38px #d6e9ffc0; }
 }
 

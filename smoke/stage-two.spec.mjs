@@ -6,6 +6,7 @@ import { chooseUpperAscent, resolveAscentTurn, spinAscentCounter } from '../src/
 import { ASCENT_SAVE_KEY, loadAscentSave } from '../src/ascent-save.ts'
 import { openFormation } from '../src/upper-combat.ts'
 import { atFloor, checkpointFor, withDice, withFormation } from './stage-two-fixture.mjs'
+import { observeDice } from './dice-sound-probe.mjs'
 
 const allAttack = ['attack', 'attack', 'attack']
 const nextTurn = page => page.locator('#resolve')
@@ -13,6 +14,7 @@ const card = (page, id) => page.locator(`.upper-card[data-role="${id}"]`)
 const save = page => page.evaluate(key => JSON.parse(localStorage.getItem(key)), ASCENT_SAVE_KEY)
 const goal = page => page.locator('.upper-goal')
 const atlas = JSON.parse(readFileSync(new URL('../art-source/enemy-motion/manifest.json', import.meta.url))).sheets
+const sounds = page => page.evaluate(() => window.diceProbe.sounds.map(sound => sound.name))
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -113,6 +115,8 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.addInitScript(observeDice)
+  await page.addInitScript(() => localStorage.setItem('hwigi-tower.settings', JSON.stringify({ music: false, effects: true })))
   const floor12 = atFloor(12)
   const close = { ...floor12, battle: { ...floor12.battle, enemyHp: 1, playerHp: 12 } }
   await resume(page, withDice(close, [6, 5, 3], allAttack))
@@ -131,6 +135,10 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   await expect.poll(async () => (await save(page)).ascent.battle.playerHp).toBe(18)
   await expect.poll(async () => (await save(page)).ascent.battle.loot.consumables.tuning).toBe(1)
   await page.locator('.dice-motion').waitFor({ state: 'detached' })
+  await expect(page.locator('#die-0 .die-face')).toHaveCSS('background-image', /bone\.png/)
+  expect((await sounds(page)).filter(name => name === 'die-corner.wav' || name === 'die-rebound.wav')).toEqual([
+    'die-corner.wav', 'die-corner.wav', 'die-corner.wav', 'die-rebound.wav',
+  ])
   await inFrame(page, ['.upper-goal', '.upper-card[data-role="dash"]', '.upper-card[data-role="support"]', '#resolve'])
   await verifyFormationArt(page, ['seal-sentinel', 'escort'])
   await photo(page, '13-turn1-formation')
@@ -147,6 +155,7 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   await expect(card(page, 'support')).toHaveAttribute('data-lane', '0')
   await photo(page, '13-turn1-rear-advanced')
   await expect(nextTurn(page)).toBeVisible()
+  expect((await sounds(page)).filter(name => /^(slam|grit|seat)\.wav$/.test(name))).toEqual(['slam.wav', 'grit.wav', 'seat.wav'])
   expect((await save(page)).ascent.battle.formation.enemies.map(enemy => enemy.hp)).toEqual([0, 10])
   await page.reload()
   await page.locator('#continue-ascent').tap()
@@ -240,6 +249,9 @@ test('상층 상인과 휴식 및 룰렛을 이어하기에서 확인한다', as
   await resume(page, run)
   await expect(card(page, 'dash')).toHaveAttribute('data-counter-target', '')
   await expect(page.locator('#counter-panel')).toBeVisible()
+  await expect(page.locator('#counter-panel')).toHaveAttribute('data-roll-state', 'locked')
+  expect(await page.locator('.roulette-stage').evaluate(el => getComputedStyle(el, '::before').backgroundImage)).toMatch(/rim\.png/)
+  await expect(page.locator('#counter-medallion')).toBeVisible()
   const target = await card(page, 'dash').boundingBox()
   const outcome = await page.locator('#counter-footer').boundingBox()
   expect(outcome.x >= target.x + target.width || outcome.y + outcome.height <= target.y).toBe(true)

@@ -1,11 +1,15 @@
 import type { AscentEnemyId } from './enemy-roster.ts'
 import type { ImpactTarget } from './arena.ts'
+import type { UpperRole } from './upper-combat.ts'
 
 export type Material = 'brass' | 'stone' | 'ice'
 const surfaces: Partial<Record<AscentEnemyId, Material>> = {
   lock: 'brass',
   thorns: 'stone',
   freeze: 'ice',
+}
+export const upperMaterials: Partial<Record<UpperRole, Material>> = {
+  dash: 'stone', shield: 'brass', guard: 'brass', gatekeeper: 'brass',
 }
 
 export function impactMaterial(enemy: AscentEnemyId, target: ImpactTarget): Material | undefined {

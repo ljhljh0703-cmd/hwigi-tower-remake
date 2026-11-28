@@ -7,7 +7,8 @@ import type { AscentEnemyId } from './enemy-roster.ts'
 import { yachtAllocationTotals } from './yacht-combat.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 import { drawGolemCounter, drawGolemParry, GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
-import { drawMaterialChips, impactMaterial } from './impact-material.ts'
+import { drawMaterialChips, impactMaterial, upperMaterials } from './impact-material.ts'
+import type { Material } from './impact-material.ts'
 import { fracture, scatterBody, splitSilhouette } from './body-fragments.ts'
 import { livingEnemies } from './upper-combat.ts'
 import type { Formation, UpperRole } from './upper-combat.ts'
@@ -250,9 +251,10 @@ export class Arena {
   private trauma = 0
   private kickAt = 0
   private direction = 1
+  private rebounds = false
   private lastFrame = 0
   private upperScene?: Formation
-  private upperMotion?: UpperMotion & { at: number }
+  private upperMotion?: UpperMotion & { at: number; hold: number }
   private upperFallen: { id: UpperRole; lane: number; at: number }[] = []
 
   constructor(frame: HTMLElement, encounter: HTMLElement, intent: HTMLElement, inventory: HTMLElement) {
@@ -485,6 +487,7 @@ export class Arena {
     if (age < 0 || age >= debrisDuration) return
     const dir = impact.target === 'player' ? -1 : 1
     const px = Math.max(1, Math.round(this.density))
+    const material = impactMaterial(this.enemyId, impact.target)
     if (impact.heavy && age < 122 && !this.reducedMotion) {
       // One asymmetric, pixel-aligned blade flare. At release the solid core
       // disappears and two narrow splinters carry the eye towards the recoil.
@@ -516,12 +519,13 @@ export class Arena {
           sign * (4 + Math.round(7 * t)), Math.max(1, Math.round(7 * (1 - t))), 2)
       }
       ctx.restore()
-    } else if (!impact.heavy && age < 78 && !this.reducedMotion) {
-      this.drawCell(frame('effects', age < 25 ? 'chip-start' : 'chip-burst'), impact.x, impact.y, px)
+    } else if (!impact.heavy && age < (material ? 55 : 78) && !this.reducedMotion) {
+      const cell = material === 'ice' ? age < 25 ? 'frost-start' : 'frost-contact'
+        : age < 25 || material === 'brass' ? 'chip-start' : 'chip-burst'
+      this.drawCell(frame('effects', cell), impact.x, impact.y, px)
     }
     if (this.reducedMotion || !impact.dust) return
     if (impact.defeated && impact.target !== 'player') return
-    const material = impactMaterial(this.enemyId, impact.target)
     if (material) {
       drawMaterialChips(this.context, material, age, impact.x, impact.y, this.floor, px, impact.heavy)
       return
@@ -536,13 +540,14 @@ export class Arena {
     }
   }
 
-  private drawBrokenBody(art: string, rect: readonly number[], pivot: readonly number[], foot: number, ground: number, scale: number, age: number) {
+  private drawBrokenBody(art: string, rect: readonly number[], pivot: readonly number[], foot: number, ground: number, scale: number, age: number,
+    material: Material | null | undefined = impactMaterial(this.enemyId, 'enemy')) {
     const sheet = this.pixelData.get(art)
     if (!sheet) return false
-    const key = art + '/' + rect.join(',')
+    const key = art + '/' + rect.join(',') + '/' + (material ?? '')
     let pieces = this.shards.get(key)
     if (!pieces) {
-      pieces = splitSilhouette(sheet, rect, impactMaterial(this.enemyId, 'enemy'))
+      pieces = splitSilhouette(sheet, rect, material ?? undefined)
       this.shards.set(key, pieces)
     }
     if (!pieces.length) return false
@@ -602,11 +607,7 @@ export class Arena {
     }
     this.drawBackground(this.floor, canvas.width, canvas.height)
     context.save()
-    if (!this.reducedMotion && this.trauma) {
-      const distance = Math.min(this.shake, 7 * this.density * this.trauma ** 2)
-      const elapsed = Math.max(0, (now - this.kickAt) * this.animationSpeed)
-      context.translate(this.direction * Math.round(Math.cos(Math.PI * Math.min(1, elapsed / 58)) * distance), 0)
-    }
+    this.drawCameraKick(now)
     const parryArt = this.images.get(GOLEM_PARRY.art)
     const counterArt = this.images.get(GOLEM_COUNTER.art)
     if (this.golemCounter && parryArt?.naturalWidth && counterArt?.naturalWidth) {
@@ -736,15 +737,25 @@ export class Arena {
     context.restore()
   }
 
+  private drawCameraKick(now: number) {
+    if (this.reducedMotion || !this.trauma) return
+    const distance = Math.min(this.shake, 7 * this.density * this.trauma ** 2)
+    const elapsed = Math.max(0, (now - this.kickAt) * this.animationSpeed)
+    const wave = this.rebounds ? Math.cos(Math.PI * Math.min(1, elapsed / 58)) : 1
+    this.context.translate(this.direction * Math.round(wave * distance), 0)
+  }
+
   private drawUpperBattle(formation: Formation, now: number) {
     const { canvas, context, density, floor } = this
     this.drawBackground(floor, canvas.width, canvas.height)
+    context.save()
+    this.drawCameraKick(now)
     const px = Math.max(1, Math.round(density))
     const tier = upperTier(canvas.width / density)
     const wide = tier === 60
     const upper = Math.round(tier * density)
     const motion = this.upperMotion
-    const elapsed = motion ? Math.max(0, (now - motion.at) * this.animationSpeed) : Infinity
+    const elapsed = motion ? Math.max(0, (now - motion.at) * this.animationSpeed - motion.hold) : Infinity
     const progress = this.reducedMotion ? 1 : Math.min(1, elapsed / 220)
     const shiftProgress = motion?.from ? motion.kind === 'advance' ? progress : 0 : 1
     const getX = (lane: number) => Math.round(upperLane[lane] * canvas.width)
@@ -779,7 +790,7 @@ export class Arena {
       if (age < fracture.release) this.drawCell(hurtFrame(name, 8, true, age), getX(fall.lane), getY(fall.lane), scale)
       else {
         const { cell, atlas, art } = atlasCell(frame(name, 'hit'))
-        this.drawBrokenBody(art, cell.rect, atlas.pivot, getX(fall.lane), getY(fall.lane), scale, age)
+        this.drawBrokenBody(art, cell.rect, atlas.pivot, getX(fall.lane), getY(fall.lane), scale, age, upperMaterials[fall.id] ?? null)
       }
     }
     let bladeX = 0, bladeY = 0
@@ -827,6 +838,9 @@ export class Arena {
           y += Math.round((floor - 15 * px - y - (tip[1] - atlas.pivot[1]) * scale) * distance)
         }
         heroPose = motion.kind === 'block' ? 'guard-brace' : motion.kind === 'recoil' ? 'hit' : 'guard'
+        if (motion.kind === 'recoil' && !this.reducedMotion) {
+          bladeX = -Math.round(Math.sin(Math.PI * Math.min(1, elapsed / 108)) * (motion.heavy ? 7 : 4) * px)
+        }
       }
       context.save()
       const color = enemy.id === 'support' ? 'sepia(.35) hue-rotate(87deg)'
@@ -855,17 +869,34 @@ export class Arena {
     }
     this.placements.set(hero, { foot: heroX, scale: 2 * px, travel: 0 })
     this.drawHero(heroPose, bladeX, bladeY)
+    if (motion?.kind === 'hit' && !motion.defeated && !this.reducedMotion) {
+      const material = upperMaterials[motion.id]
+      const lane = previous?.findIndex(enemy => enemy.id === motion.id) ?? -1
+      if (material && lane >= 0) {
+        const { cell } = atlasCell(frame(ENEMY_SPRITES[upperSprites[motion.id]].name, 'ready'))
+        const ground = getY(lane)
+        const x = getX(lane) - cell.bounds[2] * selectScale(motion.id, lane) / 2
+        drawMaterialChips(context, material, elapsed, x, ground - 18 * px, ground, px, motion.amount! >= 5)
+      }
+    }
     if (motion?.kind === 'block' && elapsed < 100) {
       context.fillStyle = '#ffe5a6'
       context.fillRect(heroX + 12 * px, floor - 16 * px, 8 * px, 2 * px)
       context.fillRect(heroX + 14 * px, floor - 20 * px, 2 * px, 8 * px)
     }
+    context.restore()
   }
 
   setUpperScene(formation?: Formation, motion?: UpperMotion) {
     const at = performance.now()
+    let hold = 0
+    if (!this.reducedMotion && (motion?.kind === 'hit' || motion?.kind === 'recoil')) {
+      const tier = battleImpactTier({ target: motion.kind === 'hit' ? 'enemy' : 'player', damage: motion.amount!, defeated: motion.defeated })
+      hold = Math.min(56, this.kickCamera(tier, motion.kind === 'hit' ? 1 : -1, at))
+      this.lastFrame = at
+    }
     this.upperScene = formation
-    this.upperMotion = motion && { ...motion, at }
+    this.upperMotion = motion && { ...motion, at, hold }
     if (!formation) this.upperFallen = []
     if (motion?.defeated && formation) {
       const lane = livingEnemies(motion.from ?? formation).findIndex(enemy => enemy.id === motion.id)
@@ -957,6 +988,15 @@ export class Arena {
     }
   }
 
+  private kickCamera(tier: keyof typeof impactMotion, direction: number, now: number) {
+    const motion = impactMotion[tier]
+    this.trauma = Math.max(this.trauma, motion.shake)
+    this.kickAt = now
+    this.direction = direction
+    this.rebounds = tier !== 'light'
+    return motion.stop
+  }
+
   contact(hits: BattleHit[], { parry, ordered, guarded, incoming, joint }: ContactOptions = {}) {
     const now = performance.now()
     this.recoverUntil = Math.max(this.recoverUntil, now + (parry ? 180 : 150) / this.animationSpeed)
@@ -989,11 +1029,7 @@ export class Arena {
     }
     let duration = parry ? 120 : guarded ? 30 : 0
     for (const hit of hits) {
-      const motion = impactMotion[battleImpactTier(hit)]
-      duration = Math.max(duration, motion.stop)
-      this.trauma = Math.max(this.trauma, motion.shake)
-      this.kickAt = now
-      this.direction = hit.target === 'player' ? -1 : 1
+      duration = Math.max(duration, this.kickCamera(battleImpactTier(hit), hit.target === 'player' ? -1 : 1, now))
     }
     this.lastFrame = now
     if (duration) this.freeze(duration, now)

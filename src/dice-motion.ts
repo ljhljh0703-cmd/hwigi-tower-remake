@@ -21,6 +21,18 @@ const suctionMs = 118
 const rollStep = 24
 const suctionDelays = [0, 8, 3, 11]
 const leans = [10, -7, 8, -11]
+// Screen-space coordinates of the lowest corner of the rotating 44px face.
+function groundContact(offset: number, dx: number, angle: number, sx: number, sy: number) {
+  const radians = angle * Math.PI / 180
+  const cos = Math.cos(radians)
+  const sin = Math.sin(radians)
+  const cx = 22 * sx * Math.sign(sin)
+  const cy = 22 * sy * Math.sign(cos)
+  return { offset, dx, angle, sx, sy, centerY: 22 - (cx * sin + cy * cos), cornerX: dx + cx * cos - cy * sin }
+}
+
+const land = groundContact(.45, -4, 322, 1.05, .92)
+const bounce = groundContact(.76, 0, 580, 1.03, .94)
 
 function transform(x: number, y: number, angle: number, sx = 1, sy = sx) {
   return 'translate(' + x + 'px,' + y + 'px) rotate(' + angle + 'deg) scale(' + sx + ',' + sy + ')'
@@ -31,14 +43,16 @@ function pose(offset: number, x: number, y: number, angle: number, sx = 1, sy = 
 }
 
 function rollPath(x: number, y: number, reach: number): Keyframe[] {
+  const contact = (c: typeof land, at = c.offset, easing = 'linear') =>
+    pose(at, x + c.dx, y + c.centerY, c.angle, c.sx, c.sy, easing)
   return [
     { ...pose(0, x - 12, y - reach, -103, .72, .72, 'ease-out'), opacity: 0 },
     { ...pose(.12, x - 10, y - reach + 1, 17, .79), opacity: 1 },
     pose(.28, x - 8, y - reach * .73, 164, .85, .85, 'ease-in'),
-    pose(.45, x - 4, y - 3, 322, 1.05, .92),
-    pose(.5, x - 4, y - 3, 322, 1.05, .92, 'ease-out'),
-    pose(.62, x - 2, y - 18, 452, .92, .92, 'ease-in'),
-    pose(.76, x, y - 4, 580, 1.03, .94, 'ease-out'),
+    contact(land),
+    contact(land, .5, 'ease-out'),
+    pose(.62, x - 2, y - 23, 452, .92, .92, 'ease-in'),
+    contact(bounce, bounce.offset, 'ease-out'),
     pose(.87, x, y - 8, 657, .97, .97, 'ease-in'),
     pose(.96, x, y, 703, .99, .99, 'ease-out'),
     pose(1, x, y, 720),
@@ -85,14 +99,13 @@ export function dieCenter(button: HTMLButtonElement, scene: DOMRect): Point {
   return { x: left - scene.left + width / 2, y: top - scene.top + height / 2 }
 }
 
-function createMotion(parent: HTMLElement, dice: readonly RollDie[], motionClass: string, done: () => void, speed = 1) {
-  const layer = effect('dice-motion')
-  layer.setAttribute('aria-hidden', 'true')
-  parent.append(layer)
-  const controller = new AbortController()
-  const { signal } = controller
+function timeline(speed: number, signal: AbortSignal, done: () => void) {
   const tracks: Animation[] = []
-  const clock = document.timeline.currentTime
+  const clock = performance.now()
+  const markers: { at: number; group?: string; action: (onTime: boolean) => void }[] = []
+  let previousFrame = clock
+  let frameRequest = 0
+  let closed = false
 
   function run(target: HTMLElement, frames: Keyframe[], duration: number, delay: number, fill: FillMode) {
     const animation = target.animate(frames, { duration: duration / speed, delay: delay / speed, fill })
@@ -102,56 +115,82 @@ function createMotion(parent: HTMLElement, dice: readonly RollDie[], motionClass
   }
 
   function cleanUp() {
-    if (signal.aborted) return
-    controller.abort()
+    if (closed) return
+    closed = true
+    cancelAnimationFrame(frameRequest)
+    markers.length = 0
+    signal.removeEventListener('abort', cleanUp)
     for (const animation of tracks) animation.cancel()
-    layer.remove()
-    for (const { button } of dice) button.classList.remove(motionClass)
     done()
   }
 
-  window.addEventListener('resize', cleanUp, { signal })
-  window.visualViewport?.addEventListener('resize', cleanUp, { signal })
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) cleanUp()
-  }, { signal })
-  // Zero-paint timeline markers share the same document clock as the visible
-  // keyframes. A cancelled track rejects before its contact can be heard.
-  function cue(time: number, callback: () => void) {
-    void run(layer, [{}], 1, Math.max(0, time - 1), 'none').finished.then(() => {
-      if (!signal.aborted && !document.hidden) callback()
-    }, () => {})
+  signal.addEventListener('abort', cleanUp, { once: true })
+  // rAF uses the same document timeline as the keyframes above. Catch the
+  // picture up in order, but after a long frame only sound a current contact.
+  function tick(frame: number) {
+    frameRequest = 0
+    if (closed || signal.aborted || document.hidden) return
+    const now = performance.now()
+    const longFrame = now - previousFrame > 50
+    previousFrame = frame
+    while (markers.length && markers[0].at <= frame) {
+      const marker = markers.shift()!
+      // Several dice may have landed while this thread was blocked. Only the
+      // latest still-visible contact of that kind can speak on the return frame.
+      const superseded = longFrame && marker.group && markers.some(m => m.group === marker.group && m.at <= frame)
+      marker.action(!superseded && now - marker.at <= 64 / speed)
+    }
+    if (markers.length) frameRequest = requestAnimationFrame(tick)
   }
-  return { layer, run, cue, cleanUp }
+  function cue(time: number, action: (onTime: boolean) => void, group?: string) {
+    markers.push({ at: clock + time / speed, action, group })
+    markers.sort((a, b) => a.at - b.at)
+    if (!frameRequest) frameRequest = requestAnimationFrame(tick)
+  }
+  function finish() {
+    // A seat and the end of suction can fall in the same display frame.
+    cancelAnimationFrame(frameRequest)
+    tick(Number(document.timeline.currentTime))
+    cleanUp()
+  }
+  return { run, cue, finish, cleanUp }
 }
 
-export function playPlacementMotion(planning: HTMLElement, dice: readonly PlacedDie[], done: () => void, onSeat: () => void, speed: number) {
+function createMotion(parent: HTMLElement, dice: readonly RollDie[], motionClass: string, done: () => void, speed: number, signal: AbortSignal) {
+  const layer = effect('dice-motion')
+  layer.setAttribute('aria-hidden', 'true')
+  parent.append(layer)
+  return { layer, ...timeline(speed, signal, () => {
+    layer.remove()
+    for (const { button } of dice) button.classList.remove(motionClass)
+    done()
+  }) }
+}
+
+export function playPlacementMotion(planning: HTMLElement, dice: readonly PlacedDie[], done: () => void, onSeat: () => void, speed: number, signal: AbortSignal) {
   const scene = planning.getBoundingClientRect()
-  const { layer, run, cue, cleanUp } = createMotion(planning, dice, 'die-placing', done, speed)
-  cue(suctionMs * .87, onSeat)
+  const destinations = dice.map(({ button }) => dieCenter(button, scene))
+  const { layer, run, cue, finish, cleanUp } = createMotion(planning, dice, 'die-placing', done, speed, signal)
+  cue(suctionMs * .87, onTime => { if (onTime) onSeat() })
   const finished = dice.map(({ button, face: value, ego, from }, index) => {
     const { wrapper, face } = movingDie('dice-tumble', ego)
     face.textContent = String(value)
     layer.append(wrapper)
     button.classList.add('die-placing')
-    const path = suctionPath(from, dieCenter(button, scene), leans[index])
+    const path = suctionPath(from, destinations[index], leans[index])
     return playSuction(wrapper, ego, path, suctionDelays[index], run, 'both')
   })
-  void Promise.all(finished).then(cleanUp, cleanUp)
+  void Promise.all(finished).then(finish, cleanUp)
   return cleanUp
 }
 
 export function playDiceMotion(encounter: HTMLElement, dice: readonly RollDie[], done: () => void,
-  onContact: (type: 'land' | 'bounce' | 'seat', index: number, ego: boolean) => void, speed = 1) {
+  onContact: (type: 'land' | 'bounce' | 'seat', index: number, ego: boolean) => void, speed: number, signal: AbortSignal) {
   const scene = encounter.getBoundingClientRect()
   const destinations = dice.map(({ button }) => button.getBoundingClientRect())
   if (!dice.length || !scene.height || destinations.some(({ width }) => !width)) return
 
-  const timers: number[] = []
-  const { layer, run, cue, cleanUp } = createMotion(encounter, dice, 'die-arriving', () => {
-    for (const timer of timers) window.clearTimeout(timer)
-    done()
-  }, speed)
+  const { layer, run, cue, finish, cleanUp } = createMotion(encounter, dice, 'die-arriving', done, speed, signal)
   const arrivals = rollMs + (dice.length - 1) * rollStep + resultMs
   // The result row sits below the health cards, across the bottom edge of the arena.
   const y = scene.height
@@ -173,37 +212,73 @@ export function playDiceMotion(encounter: HTMLElement, dice: readonly RollDie[],
     face.textContent = String((value + index) % 6 + 1)
     for (const [step, time] of [92, 177, 276, 386, 489, 610].entries()) {
       const shown = step === 5 ? value : (value + index + step + 2) % 6 + 1
-      timers.push(window.setTimeout(() => { face.textContent = String(shown) }, (delay + time) / speed))
+      cue(delay + time, () => { face.textContent = String(shown) })
     }
     run(wrapper, rollPath(x, y, reach), rollMs, delay, 'both')
     run(shadow, [
-      { offset: 0, opacity: .12, transform: 'scaleX(.56)' },
-      { offset: .45, opacity: .82, transform: 'scaleX(1.1)' },
-      { offset: .62, opacity: .42, transform: 'scaleX(.72)' },
-      { offset: .76, opacity: .78, transform: 'scaleX(1)' },
+      { offset: 0, opacity: .12, transform: 'translateX(-12px) scaleX(.56)' },
+      { offset: land.offset, opacity: .82, transform: 'translateX(-4px) scaleX(1.1)' },
+      { offset: .62, opacity: .42, transform: 'translateX(-2px) scaleX(.72)' },
+      { offset: bounce.offset, opacity: .78, transform: 'scaleX(1)' },
       { offset: .87, opacity: .62, transform: 'scaleX(.86)' },
       { offset: 1, opacity: .78, transform: 'scaleX(1)' },
     ], rollMs, delay, 'both')
     run(shadow, [{ opacity: .78 }, { opacity: 0 }], 48, arrive, 'forwards')
-    for (const [contact, dx, dy, strength, duration] of [[.45, -5, 22, .84, 156], [.76, 4, 23, .47, 129]]) {
-      const dust = effect('dice-roll-dust')
-      dust.style.left = (x + dx) + 'px'
-      dust.style.top = (y + dy) + 'px'
+    for (const contact of [land, bounce]) {
+      const first = contact === land
+      const dust = effect(first ? 'dice-roll-dust' : 'dice-roll-dust small')
+      dust.style.left = (x + contact.cornerX) + 'px'
+      dust.style.top = (y + 22) + 'px'
       layer.append(dust)
       run(dust, [
-        { opacity: strength, transform: 'translateY(0) scale(.72)' },
+        { opacity: first ? .84 : .47, transform: 'scale(.72)' },
         { opacity: 0, transform: 'translateY(-8px) scale(1.35)' },
-      ], duration, Math.round(rollMs * contact) + delay, 'none')
+      ], first ? 156 : 129, rollMs * contact.offset + delay, 'none')
     }
 
-    for (const [time, type] of [[delay + rollMs * .45, 'land'], [delay + rollMs * .76, 'bounce'], [arrive + suctionMs * .87, 'seat']] as const) {
-      cue(time, () => onContact(type, index, ego))
+    for (const [time, type] of [[delay + rollMs * land.offset, 'land'], [delay + rollMs * bounce.offset, 'bounce'], [arrive + suctionMs * .87, 'seat']] as const) {
+      cue(time, onTime => { if (onTime) onContact(type, index, ego) }, type === 'land' ? type : undefined)
     }
     const path = suctionPath({ x, y }, { x, y: dy }, leans[index])
     // The delayed track takes over the held roll pose only when suction starts.
     return playSuction(wrapper, ego, path, arrive, run)
   })
-  void Promise.all(finished).then(cleanUp, cleanUp)
+  void Promise.all(finished).then(finish, cleanUp)
 
   return cleanUp
+}
+
+export function playRerollMotion(dice: readonly { button: HTMLButtonElement; from: number }[],
+  speed: number, signal: AbortSignal, onContact: () => void, done: () => void) {
+  const { run, cleanUp } = timeline(speed, signal, () => {
+    for (const { button } of dice) delete button.dataset.rerollFrom
+    done()
+  })
+  const tracks = dice.map(({ button, from }) => {
+    button.dataset.rerollFrom = String(from)
+    return run(button, [pose(0, 0, 0, 0), pose(.42, 0, -7, -20),
+      pose(.75, 0, -3, 12), pose(1, 0, 0, 0)], 125, 0, 'none').finished
+  })
+  void Promise.all(tracks).then(() => {
+    cleanUp()
+    if (!signal.aborted && !document.hidden) onContact()
+  }, cleanUp)
+  return cleanUp
+}
+
+export function playStraightPhrase(chip: HTMLElement, speed: number, signal: AbortSignal, note: (pitch: number) => void) {
+  const cells = Array.from(chip.querySelectorAll<HTMLElement>('i'))
+  for (const cell of cells) cell.dataset.filled = 'false'
+  const { cue, cleanUp } = timeline(speed, signal, () => {
+    for (const cell of cells) cell.dataset.filled = 'true'
+  })
+  for (const [index, pitch] of [.79, 1, 1.27].entries()) {
+    const beat = (onTime: boolean) => {
+      cells[index].dataset.filled = 'true'
+      if (onTime) note(pitch)
+      if (index === 2) cleanUp()
+    }
+    if (index === 0) beat(true)
+    else cue(index * 100, beat, 'note')
+  }
 }

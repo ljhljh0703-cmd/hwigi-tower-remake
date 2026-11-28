@@ -1,13 +1,14 @@
 const materials = ['swish', 'grit', 'block', 'tap', 'charge', 'slam', 'release', 'rebound', 'seat', 'hum', 'latch', 'coin', 'pay', 'mend', 'frost', 'stamp', 'rise', 'step', 'pulley', 'ember', 'engrave'] as const
 const wheelEffects = ['roulette-engage', 'roulette-ratchet', 'roulette-latch'] as const
+const diceEffects = ['die-corner', 'die-rebound', 'die-note'] as const
 const effects = [
-  'dice-roll', 'dice-place', 'stone-hit', 'perfect-block', 'roulette-tick',
+  ...diceEffects, 'dice-place', 'stone-hit', 'perfect-block', 'roulette-tick',
   'roulette-stop', 'unlock', 'victory', 'defeat', ...wheelEffects, ...materials,
 ] as const
 
 type Effect = (typeof effects)[number]
 type Track = Effect | 'chamber-loop'
-const waveFiles = new Set<Track>([...wheelEffects, ...materials])
+const waveFiles = new Set<Track>([...diceEffects, ...wheelEffects, ...materials])
 
 export class BattleAudio {
   private context?: AudioContext
@@ -65,7 +66,7 @@ export class BattleAudio {
   suspend() {
     if (!this.context) return
     this.needsResume = true
-    this.revision++
+    this.clearEffects()
     void this.context.suspend().catch(() => {})
   }
 
@@ -76,6 +77,14 @@ export class BattleAudio {
   private updateGains() {
     if (this.musicGain) this.musicGain.gain.value = Number(this.music)
     if (this.effectsGain) this.effectsGain.gain.value = Number(this.effects)
+  }
+
+  // A contact has one audible frame. Preloading continues if its buffer is late.
+  contact(effect: Effect, pitch = 1, volume = .19) {
+    const buffer = this.decoded.get(effect)
+    if (buffer && this.effects && this.context?.state === 'running' && !this.needsResume && !document.hidden) {
+      this.start(buffer, volume, false, pitch)
+    }
   }
 
   play(effect: Effect, pitch = 1, volume = effect === 'roulette-tick' ? .12 : .19, seconds?: number) {

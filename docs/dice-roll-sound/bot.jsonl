@@ -1,0 +1,6 @@
+{"policy":"allAttack","seeds":512,"wins":28,"losses":484,"incomplete":0,"awakened":55,"winsWithAwakening":19,"rouletteSpins":0,"meanTurns":2,"turnsWithSeveralTradeoffs":1012,"turnsObserved":1024}
+{"policy":"allGuard","seeds":512,"wins":2,"losses":510,"incomplete":0,"awakened":136,"winsWithAwakening":1,"rouletteSpins":651,"meanTurns":11.55,"turnsWithSeveralTradeoffs":4688,"turnsObserved":5915}
+{"policy":"balanced","seeds":512,"wins":25,"losses":487,"incomplete":0,"awakened":61,"winsWithAwakening":11,"rouletteSpins":55,"meanTurns":4.95,"turnsWithSeveralTradeoffs":1960,"turnsObserved":2533}
+{"policy":"neverReroll","seeds":512,"wins":214,"losses":298,"incomplete":0,"awakened":70,"winsWithAwakening":35,"rouletteSpins":399,"meanTurns":5.19,"turnsWithSeveralTradeoffs":1849,"turnsObserved":2659}
+{"policy":"alwaysReroll","seeds":512,"wins":214,"losses":298,"incomplete":0,"awakened":83,"winsWithAwakening":38,"rouletteSpins":382,"meanTurns":5.13,"turnsWithSeveralTradeoffs":1842,"turnsObserved":2629}
+{"policy":"adaptAndReroll","seeds":512,"wins":482,"losses":30,"incomplete":0,"awakened":26,"winsWithAwakening":24,"rouletteSpins":421,"meanTurns":4.31,"turnsWithSeveralTradeoffs":1614,"turnsObserved":2206}

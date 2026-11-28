@@ -12,7 +12,8 @@ export class UpperView {
   private readonly readout = document.createElement('div')
 
   constructor(private readonly arena: Arena, private readonly field: HTMLElement, private readonly sound: BattleAudio,
-    private readonly wait: (ms: number) => Promise<void>, private readonly reduced: () => boolean) {
+    private readonly wait: (ms: number) => Promise<void>, private readonly reduced: () => boolean,
+    private readonly weaponContact: (hit: FormationDamage, heavy: boolean, pitch: number) => void) {
     this.readout.className = 'upper-readout'
     this.field.append(this.readout)
   }
@@ -89,7 +90,7 @@ export class UpperView {
         formation = { ...formation, enemies: formation.enemies.map(enemy => enemy.id === contact.id ? { ...enemy, hp: contact.hp } : enemy) }
         this.arena.setUpperScene(formation, { id: contact.id, kind: 'hit', amount: contact.amount, defeated: contact.hp === 0, from, blade: swing && index === 0 })
         this.show(before, formation, false, contact, from)
-        this.sound.play('stone-hit', contact.amount >= 5 ? .82 : 1.15, .25)
+        this.weaponContact(contact, contact.amount >= 8, contact.amount >= 5 ? .82 : 1.15)
         await pause(contact.hp === 0 ? 147 : 176)
         if (contact.advance) {
           this.readout.dataset.advance = contact.advance
@@ -133,8 +134,8 @@ export class UpperView {
       const motion = { id, heavy, weakened, repeat: attacker === id }
       this.arena.setUpperScene(formation, { ...motion, kind: 'attack' })
       await pause(120)
-      this.arena.setUpperScene(formation, { ...motion, kind: damage ? 'recoil' : 'block' })
       hp = Math.max(0, hp - damage)
+      this.arena.setUpperScene(formation, { ...motion, kind: damage ? 'recoil' : 'block', amount: damage })
       playerContact(damage, hp)
       this.sound.play(damage ? heavy ? 'slam' : 'stone-hit' : 'block', boosted ? 1.17 : 1, .24)
       attacker = id
