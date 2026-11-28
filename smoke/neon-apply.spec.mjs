@@ -59,22 +59,10 @@ test('특전·적 이름·방어 목표가 보이고 첫 기믹 안내는 탭할
   await expect(page.locator('#guide-entries [data-guide-name="쇠쐐기"]')).toHaveCount(1)
 })
 
-test('12층 미리보기에 위치와 상인·강적·휴식·보스가 보인다', async ({ page }, info) => {
+test('갈림길에서 층 지도 대신 입장할 문을 표시한다', async ({ page }) => {
   await resume(page, mapBefore(0, 8, 7))
-  const details = page.locator('#tower-preview')
-  await expect(details).not.toHaveAttribute('open')
-  await details.locator('summary').tap()
-  await expect(details.locator('summary')).toHaveCSS('background-color', 'rgb(53, 46, 36)')
-  await expect(details.locator('.tower-floor')).toHaveCount(12)
-  await expect(details.locator('[data-state="current"]')).toHaveAccessibleName(/7층.*현재 위치/)
-  for (const kind of ['shop', 'elite', 'rest', 'boss']) await expect(details.locator(`[data-kind="${kind}"]`).first()).toBeVisible()
-  await expect(details.locator('.tower-legend')).toContainText('전투')
-  await expect(details.locator('.tower-legend')).toContainText('이벤트')
-  await expect(details.locator('[data-state="passed"]').first()).toHaveCSS('opacity', '0.36')
-  await expect(details).toBeInViewport({ ratio: 1 })
-  await photo(page, info, 'tower-map')
-  await details.locator('summary').tap()
-  await expect(details).not.toHaveAttribute('open')
+  await expect(page.locator('#tower-preview')).toHaveCount(0)
+  await expect(page.locator('#fork-options button').first()).toBeVisible()
 })
 
 test('상점에서 효과를 확인하고 한 방문에 두 품목을 산 뒤 떠난다', async ({ page }, info) => {

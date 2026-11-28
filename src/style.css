@@ -1947,25 +1947,6 @@ button.die:disabled { background: transparent; }
 .dice-guide-state { font-size: .78rem; }
 .dice-guide-entry .unlock-pattern { grid-column: 1 / -1; font-size: 22px; }
 .dice-guide-entry p { grid-column: 1 / -1; font-size: .83rem; word-break: keep-all; }
-#tower-preview { width: min(100%, 460px); margin-inline: auto; border: 1px solid var(--stone-edge); background: #292722; }
-#tower-preview summary { padding: 7px 12px; border: 1px solid #987b50; background: #352e24; color: #f5d8aa; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-#tower-preview summary:focus-visible { outline: 2px solid #eac48a; outline-offset: -2px; }
-#tower-map { display: grid; grid-template-columns: auto 140px auto; justify-content: center; align-items: center; gap: 8px; padding: 4px; }
-.tower-position { color: #f4d3a0; font-size: .76rem; }
-.tower-grid { position: relative; inline-size: 140px; background: #211f1a; }
-.tower-floor { position: relative; block-size: 18px; font-size: .64rem; line-height: 18px; }
-.tower-floor > span:first-child { margin-inline-start: 2px; color: #c7b89e; }
-.tower-paths { position: absolute; inset: 0; width: 100%; height: 100%; stroke: #786951; stroke-width: 1; }
-.tower-node { position: absolute; inset: 0 auto auto calc(30px + var(--lane) * 40px); translate: -50%; display: grid; place-items: center; inline-size: 18px; block-size: 18px; border: 1px solid #656052; border-radius: 3px; background: #302c23; }
-.tower-node[data-kind='shop'] { color: #eabd71; }
-.tower-node[data-kind='elite'], .tower-node[data-kind='boss'] { color: #f1a48d; }
-.tower-node[data-kind='rest'] { color: #a6d7b2; }
-.tower-node[data-state='visited'] { background: #514739; }
-.tower-node[data-state='passed'] { opacity: .36; }
-.tower-node[data-state='next'] { border-color: #d7b48c; }
-.tower-node[data-state='current'] { border-color: #fff1c1; box-shadow: 0 0 5px #ffcf77; background: #624b30; }
-.tower-legend { display: grid; gap: 4px; font-size: .72rem; }
-.tower-legend span { display: inline-flex; gap: 4px; align-items: center; }
 #counter-comparison { color: #f8d3a4; font-size: .8rem; text-align: center; }
 #counter-panel:has(#counter:not([hidden]):enabled) .roulette-stage { cursor: pointer; }
 .unlock-hint, .unlock-hint:disabled {
