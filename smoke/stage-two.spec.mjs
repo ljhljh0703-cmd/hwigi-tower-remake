@@ -73,6 +73,7 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   await expect(goal(page)).toContainText('4')
   await expect.poll(async () => (await save(page)).ascent.battle.playerHp).toBe(18)
   await expect.poll(async () => (await save(page)).ascent.battle.loot.consumables.tuning).toBe(1)
+  await page.locator('.dice-motion').waitFor({ state: 'detached' })
   await inFrame(page, ['.upper-goal', '.upper-card[data-role="dash"]', '.upper-card[data-role="support"]', '#resolve'])
   await photo(page, '13-turn1-formation')
 
@@ -140,6 +141,11 @@ test('17층 세 마리와 지원, 14층 교대·취소, 19층 강타·약화 및
   await page.reload()
   await expect(page.locator('#continue-ascent')).toBeHidden()
   await expect(page.locator('#lobby-upper-seal')).toBeVisible()
+  await resume(page, atFloor(11))
+  await expect(page.locator('#reward-context')).toContainText('상층 인장을 새겼습니다')
+  await page.reload()
+  await page.locator('#continue-ascent').tap()
+  await expect(page.locator('#reward-context')).not.toContainText('상층 인장을 새겼습니다')
   expect(errors).toEqual([])
 })
 
@@ -160,6 +166,10 @@ test('상층 상인과 휴식 및 룰렛을 이어하기에서 확인한다', as
   const floor12 = atFloor(12)
   const choice = resolveAscentTurn(withDice({ ...floor12, battle: { ...floor12.battle, enemyHp: 1 } }, [6, 5, 3], allAttack))
   expect(chooseUpperAscent(choice, false).route.screen).toBe('finished')
+  await resume(page, choice)
+  await page.locator('#finish-lower').tap()
+  await expect(page.locator('#result')).toHaveText('하층 완주 · 상층 미진입')
+  expect(await save(page)).toBeNull()
   let run = withDice(withFormation(atFloor(13), [5, 9]), [1, 1, 2], ['guard', 'guard', 'guard'])
   run = { ...run, battle: { ...run.battle, turn: 2, formation: openFormation(run.battle.formation, 2),
     loot: { ...run.battle.loot, consumables: { coin: 1 } } } }
@@ -167,5 +177,8 @@ test('상층 상인과 휴식 및 룰렛을 이어하기에서 확인한다', as
   await resume(page, run)
   await expect(card(page, 'dash')).toHaveAttribute('data-counter-target', '')
   await expect(page.locator('#counter-panel')).toBeVisible()
+  const target = await card(page, 'dash').boundingBox()
+  const outcome = await page.locator('#counter-footer').boundingBox()
+  expect(outcome.x >= target.x + target.width || outcome.y + outcome.height <= target.y).toBe(true)
   await photo(page, '13-turn2-counter-target')
 })

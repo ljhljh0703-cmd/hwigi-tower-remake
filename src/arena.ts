@@ -745,7 +745,9 @@ export class Arena {
       return { x: Math.round(getX(old) + (getX(index) - getX(old)) * shiftProgress),
         y: Math.round(getY(old) + (getY(index) - getY(old)) * shiftProgress), old }
     }
-    const selectScale = (id: UpperRole, index: number) => id === 'gatekeeper' ? (index ? px : 2 * px) : (index ? 2 * px : 3 * px)
+    const selectScale = (id: UpperRole, index: number) => index
+      ? (id === 'gatekeeper' || id === 'support' ? px : 2 * px)
+      : (id === 'gatekeeper' ? 2 * px : 3 * px)
     if (foes.length) {
       context.fillStyle = '#bfa985'
       context.fillRect(getX(0) - 21 * px, floor + px, 42 * px, px)

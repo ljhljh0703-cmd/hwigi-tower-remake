@@ -2725,6 +2725,11 @@ main[data-screen='defeat'] {
   width: clamp(132px, 23dvh, 186px);
   margin-inline: 0;
 }
+#battle:has(> #treasure-controls[data-item-counter]:not([hidden])) .upper-field .counter-over-field #counter-footer {
+  position: absolute;
+  inset: 26px auto auto calc(100% + 16px);
+  inline-size: max-content;
+}
 
 @media (min-width: 361px) {
   .upper-card { inline-size: 61px; }
@@ -2736,7 +2741,8 @@ main[data-screen='defeat'] {
     --arena-footer: 58px;
     --vital-offset: 5px;
   }
-  .upper-card { padding-block: 1px; }
+  .upper-card { inline-size: 56px; padding-block: 1px; }
+  .upper-hp, .upper-intent { gap: 2px; }
   .upper-hp { margin-block: 1px; }
   .upper-preview { min-block-size: 12px; }
 }
