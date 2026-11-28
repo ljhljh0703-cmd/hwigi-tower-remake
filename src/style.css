@@ -310,8 +310,7 @@ button:disabled {
   image-rendering: pixelated;
 }
 
-:is(.reward-card, #reward-strip button, #artifact-strip button)[aria-pressed='true'],
-.slot:has(.slot-target:focus-visible) {
+:is(.reward-card, #reward-strip button, #artifact-strip button)[aria-pressed='true'] {
   --stone-frame: var(--stone-selected);
 }
 
@@ -1618,10 +1617,13 @@ meter[data-empty] + .hp-trail { display: none; }
   grid-template-rows: auto auto;
   min-inline-size: 0;
   background: var(--stone-bed);
+  border-image: var(--slot-art, url('/art/ui/combat-controls/slot-frame.png')) 24 fill / 10px stretch;
   -webkit-tap-highlight-color: transparent;
 }
+.slot:has(.dice-row > .die:not([hidden]), .slot-target:focus-visible) {
+  --slot-art: url('/art/ui/combat-controls/slot-filled.png');
+}
 .slot:has(.dice-row > .die:not([hidden])) {
-  --stone-frame: var(--stone-selected);
   background: #3b4842;
   box-shadow: inset 0 0 0 2px #90a79a;
 }
@@ -1984,9 +1986,10 @@ button.die:disabled { background: transparent; }
 .stolen-die {
   display: grid;
   place-items: center;
-  border: 1px dashed #aaa7a2;
-  background: transparent;
-  color: var(--muted);
+  border: 0;
+  background: url('/art/ui/combat-controls/stolen-socket.png') center / contain no-repeat;
+  color: #f4e3c8;
+  image-rendering: pixelated;
   font-size: 1rem;
   cursor: default;
 }
@@ -2018,6 +2021,14 @@ button.die:disabled { background: transparent; }
 .controls button:disabled { opacity: .7; }
 #reroll { grid-column: 1; min-width: 70px; }
 #extra-reroll { position: relative; grid-column: 2; }
+#planning :is(#reroll, #extra-reroll) {
+  border: 0;
+  border-image: var(--reroll-art, url('/art/ui/combat-controls/reroll.png')) 20 29 fill / 9px 12px stretch;
+  background: transparent;
+  image-rendering: pixelated;
+}
+#planning :is(#reroll, #extra-reroll):active:enabled { --reroll-art: url('/art/ui/combat-controls/reroll-pressed.png'); }
+#planning :is(#reroll, #extra-reroll):disabled { --reroll-art: url('/art/ui/combat-controls/reroll-disabled.png'); }
 #extra-reroll .icon { width: 1.45em; height: 1.45em; }
 #extra-reroll.unlock-hint > .icon:nth-child(2) { inline-size: .95em; }
 #planning #resolve {
@@ -2808,7 +2819,7 @@ main[data-screen='defeat'] {
   }
   [data-screen='battle'] #planning :is(#pool-help, #assign-pool) { inline-size: var(--pool-action-width); }
   [data-screen='battle'] #planning .slots { grid-row: 3; gap: var(--desk-row-gap); }
-  [data-screen='battle'] #planning .slot { grid-template-rows: auto 1fr; padding: 4px; }
+  [data-screen='battle'] #planning .slot { grid-template-rows: auto 1fr; padding: 4px; border-image-width: 16px; }
   [data-screen='battle'] #planning .slot-target { min-block-size: clamp(46px, 6dvh, 64px); }
   [data-screen='battle'] #planning .slot-target span { font-size: clamp(1rem, 1.15vw, 1.25rem); }
   [data-screen='battle'] #planning .slot strong { font-size: clamp(2rem, 2.7vw, 3rem); }
