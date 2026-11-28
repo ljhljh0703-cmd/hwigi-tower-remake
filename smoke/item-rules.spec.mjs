@@ -201,7 +201,7 @@ test('규칙판 7 보상을 받아 쓰고 강적·보스·상점을 거쳐 문�
   const seal = page.locator('#completion-seal')
   const unlock = page.locator('#confirm-unlock')
   for (let i = 0; i < 2; i++) {
-    await expect(seal.or(unlock).first()).toBeVisible()
+    await expect(seal.filter({ visible: true }).or(unlock.filter({ visible: true })).first()).toBeVisible()
     if (await seal.isVisible()) break
     await unlock.tap()
   }
