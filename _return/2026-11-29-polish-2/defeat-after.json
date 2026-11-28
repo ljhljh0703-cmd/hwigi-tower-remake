@@ -1,0 +1,419 @@
+{
+  "320x568": {
+    "contact": {
+      "text": "−13",
+      "elapsed": 224
+    },
+    "frames": [
+      {
+        "label": "swing-96ms",
+        "hero": {
+          "pose": "step",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            38,
+            141
+          ],
+          "camera": [
+            0,
+            0
+          ]
+        },
+        "ground": 141
+      },
+      {
+        "label": "defeat-112ms",
+        "hero": {
+          "pose": "attack",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            110,
+            141
+          ],
+          "camera": [
+            -1,
+            0
+          ]
+        },
+        "ground": 141
+      },
+      {
+        "label": "defeat-136ms",
+        "hero": {
+          "pose": "attack-follow",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            85,
+            141
+          ],
+          "camera": [
+            0,
+            0
+          ]
+        },
+        "ground": 141
+      },
+      {
+        "label": "defeat-160ms",
+        "hero": {
+          "pose": "attack-follow",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            70,
+            141
+          ],
+          "camera": [
+            0,
+            0
+          ]
+        },
+        "ground": 141
+      },
+      {
+        "label": "defeat-211ms",
+        "hero": {
+          "pose": "attack-follow",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            60,
+            141
+          ],
+          "camera": [
+            0,
+            0
+          ]
+        },
+        "ground": 141
+      },
+      {
+        "label": "defeat-340ms",
+        "hero": {
+          "pose": "idle",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            25,
+            141
+          ],
+          "camera": [
+            0,
+            0
+          ],
+          "opaque": [
+            4,
+            51,
+            88,
+            141
+          ]
+        },
+        "ground": 141
+      },
+      {
+        "label": "defeat-560ms",
+        "hero": {
+          "pose": "idle",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            25,
+            141
+          ],
+          "camera": [
+            0,
+            0
+          ],
+          "opaque": [
+            4,
+            51,
+            88,
+            141
+          ]
+        },
+        "ground": 141
+      }
+    ]
+  },
+  "390x844": {
+    "contact": {
+      "text": "−13",
+      "elapsed": 224
+    },
+    "frames": [
+      {
+        "label": "swing-96ms",
+        "hero": {
+          "pose": "step",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            43,
+            355
+          ],
+          "camera": [
+            0,
+            0
+          ]
+        },
+        "ground": 355
+      },
+      {
+        "label": "defeat-112ms",
+        "hero": {
+          "pose": "attack",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            143,
+            355
+          ],
+          "camera": [
+            -1,
+            0
+          ]
+        },
+        "ground": 355
+      },
+      {
+        "label": "defeat-136ms",
+        "hero": {
+          "pose": "attack-follow",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            108,
+            355
+          ],
+          "camera": [
+            0,
+            0
+          ]
+        },
+        "ground": 355
+      },
+      {
+        "label": "defeat-160ms",
+        "hero": {
+          "pose": "attack-follow",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            88,
+            355
+          ],
+          "camera": [
+            0,
+            0
+          ]
+        },
+        "ground": 355
+      },
+      {
+        "label": "defeat-211ms",
+        "hero": {
+          "pose": "attack-follow",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            60,
+            355
+          ],
+          "camera": [
+            0,
+            0
+          ]
+        },
+        "ground": 355
+      },
+      {
+        "label": "defeat-340ms",
+        "hero": {
+          "pose": "idle",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            25,
+            355
+          ],
+          "camera": [
+            0,
+            0
+          ],
+          "opaque": [
+            4,
+            265,
+            88,
+            355
+          ]
+        },
+        "ground": 355
+      },
+      {
+        "label": "defeat-560ms",
+        "hero": {
+          "pose": "idle",
+          "scale": 3,
+          "scaleY": 3,
+          "foot": [
+            25,
+            355
+          ],
+          "camera": [
+            0,
+            0
+          ],
+          "opaque": [
+            4,
+            265,
+            88,
+            355
+          ]
+        },
+        "ground": 355
+      }
+    ]
+  },
+  "1440x900": {
+    "contact": {
+      "text": "−13",
+      "elapsed": 224
+    },
+    "frames": [
+      {
+        "label": "swing-96ms",
+        "hero": {
+          "pose": "step",
+          "scale": 6,
+          "scaleY": 6,
+          "foot": [
+            187,
+            696
+          ],
+          "camera": [
+            0,
+            0
+          ]
+        },
+        "ground": 696
+      },
+      {
+        "label": "defeat-112ms",
+        "hero": {
+          "pose": "attack",
+          "scale": 6,
+          "scaleY": 6,
+          "foot": [
+            395,
+            696
+          ],
+          "camera": [
+            -1,
+            0
+          ]
+        },
+        "ground": 696
+      },
+      {
+        "label": "defeat-136ms",
+        "hero": {
+          "pose": "attack-follow",
+          "scale": 6,
+          "scaleY": 6,
+          "foot": [
+            323,
+            696
+          ],
+          "camera": [
+            0,
+            0
+          ]
+        },
+        "ground": 696
+      },
+      {
+        "label": "defeat-160ms",
+        "hero": {
+          "pose": "attack-follow",
+          "scale": 6,
+          "scaleY": 6,
+          "foot": [
+            280,
+            696
+          ],
+          "camera": [
+            0,
+            0
+          ]
+        },
+        "ground": 696
+      },
+      {
+        "label": "defeat-211ms",
+        "hero": {
+          "pose": "attack-follow",
+          "scale": 6,
+          "scaleY": 6,
+          "foot": [
+            152,
+            696
+          ],
+          "camera": [
+            0,
+            0
+          ]
+        },
+        "ground": 696
+      },
+      {
+        "label": "defeat-340ms",
+        "hero": {
+          "pose": "idle",
+          "scale": 6,
+          "scaleY": 6,
+          "foot": [
+            149,
+            696
+          ],
+          "camera": [
+            0,
+            0
+          ],
+          "opaque": [
+            107,
+            516,
+            275,
+            696
+          ]
+        },
+        "ground": 696
+      },
+      {
+        "label": "defeat-560ms",
+        "hero": {
+          "pose": "idle",
+          "scale": 6,
+          "scaleY": 6,
+          "foot": [
+            149,
+            696
+          ],
+          "camera": [
+            0,
+            0
+          ],
+          "opaque": [
+            107,
+            516,
+            275,
+            696
+          ]
+        },
+        "ground": 696
+      }
+    ]
+  }
+}

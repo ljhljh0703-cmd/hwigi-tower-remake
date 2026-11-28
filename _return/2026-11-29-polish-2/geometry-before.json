@@ -1,0 +1,692 @@
+{
+  "320x568": {
+    "12": {
+      "foes": [],
+      "hero": {
+        "pose": "idle",
+        "scale": 3,
+        "scaleY": 3,
+        "foot": [
+          95,
+          79
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          74,
+          -11,
+          158,
+          79
+        ]
+      },
+      "ground": 79,
+      "size": [
+        288,
+        143
+      ]
+    },
+    "13": {
+      "foes": [
+        {
+          "sheet": "upper-dash",
+          "pose": "ready",
+          "scale": 4,
+          "bounds": [
+            68,
+            45,
+            220,
+            141
+          ]
+        },
+        {
+          "sheet": "upper-support",
+          "pose": "rear-ready",
+          "scale": 3,
+          "bounds": [
+            222,
+            31,
+            264,
+            106
+          ]
+        }
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 2,
+        "scaleY": 2,
+        "foot": [
+          27,
+          141
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          13,
+          81,
+          69,
+          141
+        ]
+      },
+      "ground": 141,
+      "size": [
+        288,
+        199
+      ]
+    },
+    "17": {
+      "foes": [
+        {
+          "sheet": "upper-shield",
+          "pose": "ready",
+          "scale": 4,
+          "bounds": [
+            66,
+            41,
+            134,
+            141
+          ]
+        },
+        {
+          "sheet": "upper-dash",
+          "pose": "rear-ready",
+          "scale": 3,
+          "bounds": [
+            135,
+            31,
+            243,
+            106
+          ]
+        },
+        {
+          "sheet": "upper-support",
+          "pose": "rear-ready",
+          "scale": 3,
+          "bounds": [
+            244,
+            31,
+            286,
+            106
+          ]
+        }
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 2,
+        "scaleY": 2,
+        "foot": [
+          24,
+          141
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          10,
+          81,
+          66,
+          141
+        ]
+      },
+      "ground": 141,
+      "size": [
+        288,
+        199
+      ]
+    },
+    "19": {
+      "foes": [
+        {
+          "sheet": "upper-shield",
+          "pose": "ready",
+          "scale": 4,
+          "bounds": [
+            110,
+            41,
+            178,
+            141
+          ]
+        },
+        {
+          "sheet": "upper-boss",
+          "pose": "rear-ready",
+          "scale": 3,
+          "bounds": [
+            208,
+            28,
+            277,
+            106
+          ]
+        }
+      ],
+      "ground": 141,
+      "size": [
+        288,
+        199
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 2,
+        "scaleY": 2,
+        "foot": [
+          27,
+          141
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          13,
+          81,
+          69,
+          141
+        ]
+      }
+    },
+    "planning": {
+      "attack": {
+        "art": "url(\"http://127.0.0.1:65391/art/ui/combat-controls/slot-filled.png\")",
+        "rect": [
+          16,
+          385,
+          140,
+          88
+        ]
+      },
+      "guard": {
+        "art": "url(\"http://127.0.0.1:65391/art/ui/combat-controls/slot-frame.png\")",
+        "rect": [
+          164,
+          385,
+          140,
+          88
+        ]
+      }
+    },
+    "filled": {
+      "attack": {
+        "art": "url(\"http://127.0.0.1:65391/art/ui/combat-controls/slot-filled.png\")",
+        "rect": [
+          16,
+          385,
+          140,
+          88
+        ]
+      },
+      "guard": {
+        "art": "url(\"http://127.0.0.1:65391/art/ui/combat-controls/slot-filled.png\")",
+        "rect": [
+          164,
+          385,
+          140,
+          88
+        ]
+      }
+    }
+  },
+  "390x844": {
+    "12": {
+      "foes": [],
+      "hero": {
+        "pose": "idle",
+        "scale": 3,
+        "scaleY": 3,
+        "foot": [
+          104,
+          325
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          83,
+          235,
+          167,
+          325
+        ]
+      },
+      "ground": 325,
+      "size": [
+        358,
+        423
+      ]
+    },
+    "13": {
+      "foes": [
+        {
+          "sheet": "upper-dash",
+          "pose": "ready",
+          "scale": 5,
+          "bounds": [
+            84,
+            235,
+            274,
+            355
+          ]
+        },
+        {
+          "sheet": "upper-support",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            275,
+            195,
+            331,
+            295
+          ]
+        }
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 2,
+        "scaleY": 2,
+        "foot": [
+          34,
+          355
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          20,
+          295,
+          76,
+          355
+        ]
+      },
+      "ground": 355,
+      "size": [
+        358,
+        423
+      ]
+    },
+    "17": {
+      "foes": [
+        {
+          "sheet": "upper-shield",
+          "pose": "ready",
+          "scale": 5,
+          "bounds": [
+            68,
+            230,
+            153,
+            355
+          ]
+        },
+        {
+          "sheet": "upper-dash",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            154,
+            195,
+            298,
+            295
+          ]
+        },
+        {
+          "sheet": "upper-support",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            299,
+            195,
+            355,
+            295
+          ]
+        }
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 2,
+        "scaleY": 2,
+        "foot": [
+          30,
+          355
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          16,
+          295,
+          72,
+          355
+        ]
+      },
+      "ground": 355,
+      "size": [
+        358,
+        423
+      ]
+    },
+    "19": {
+      "foes": [
+        {
+          "sheet": "upper-shield",
+          "pose": "ready",
+          "scale": 5,
+          "bounds": [
+            136,
+            230,
+            221,
+            355
+          ]
+        },
+        {
+          "sheet": "upper-boss",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            257,
+            191,
+            349,
+            295
+          ]
+        }
+      ],
+      "ground": 355,
+      "size": [
+        358,
+        423
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 2,
+        "scaleY": 2,
+        "foot": [
+          34,
+          355
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          20,
+          295,
+          76,
+          355
+        ]
+      }
+    },
+    "planning": {
+      "attack": {
+        "art": "url(\"http://127.0.0.1:65391/art/ui/combat-controls/slot-filled.png\")",
+        "rect": [
+          16,
+          613,
+          175,
+          144
+        ]
+      },
+      "guard": {
+        "art": "url(\"http://127.0.0.1:65391/art/ui/combat-controls/slot-frame.png\")",
+        "rect": [
+          199,
+          613,
+          175,
+          144
+        ]
+      }
+    },
+    "filled": {
+      "attack": {
+        "art": "url(\"http://127.0.0.1:65391/art/ui/combat-controls/slot-filled.png\")",
+        "rect": [
+          16,
+          613,
+          175,
+          144
+        ]
+      },
+      "guard": {
+        "art": "url(\"http://127.0.0.1:65391/art/ui/combat-controls/slot-filled.png\")",
+        "rect": [
+          199,
+          613,
+          175,
+          144
+        ]
+      }
+    }
+  },
+  "1440x900": {
+    "12": {
+      "foes": [],
+      "hero": {
+        "pose": "idle",
+        "scale": 6,
+        "scaleY": 6,
+        "foot": [
+          280,
+          696
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          238,
+          516,
+          406,
+          696
+        ]
+      },
+      "ground": 696,
+      "size": [
+        830,
+        794
+      ]
+    },
+    "13": {
+      "foes": [
+        {
+          "sheet": "upper-dash",
+          "pose": "ready",
+          "scale": 5,
+          "bounds": [
+            320,
+            576,
+            510,
+            696
+          ]
+        },
+        {
+          "sheet": "upper-support",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            673,
+            536,
+            729,
+            636
+          ]
+        }
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 2,
+        "scaleY": 2,
+        "foot": [
+          79,
+          696
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          65,
+          636,
+          121,
+          696
+        ]
+      },
+      "ground": 696,
+      "size": [
+        830,
+        794
+      ]
+    },
+    "17": {
+      "foes": [
+        {
+          "sheet": "upper-shield",
+          "pose": "ready",
+          "scale": 5,
+          "bounds": [
+            214,
+            571,
+            299,
+            696
+          ]
+        },
+        {
+          "sheet": "upper-dash",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            452,
+            536,
+            596,
+            636
+          ]
+        },
+        {
+          "sheet": "upper-support",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            731,
+            536,
+            787,
+            636
+          ]
+        }
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 2,
+        "scaleY": 2,
+        "foot": [
+          69,
+          696
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          55,
+          636,
+          111,
+          696
+        ]
+      },
+      "ground": 696,
+      "size": [
+        830,
+        794
+      ]
+    },
+    "19": {
+      "foes": [
+        {
+          "sheet": "upper-shield",
+          "pose": "ready",
+          "scale": 5,
+          "bounds": [
+            372,
+            571,
+            457,
+            696
+          ]
+        },
+        {
+          "sheet": "upper-boss",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            655,
+            532,
+            747,
+            636
+          ]
+        }
+      ],
+      "ground": 696,
+      "size": [
+        830,
+        794
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 2,
+        "scaleY": 2,
+        "foot": [
+          79,
+          696
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          65,
+          636,
+          121,
+          696
+        ]
+      }
+    },
+    "planning": {
+      "attack": {
+        "art": "url(\"http://127.0.0.1:65391/art/ui/combat-controls/slot-filled.png\")",
+        "rect": [
+          918.40625,
+          391.8125,
+          222.640625,
+          267.890625
+        ]
+      },
+      "guard": {
+        "art": "url(\"http://127.0.0.1:65391/art/ui/combat-controls/slot-frame.png\")",
+        "rect": [
+          1156.546875,
+          391.8125,
+          222.65625,
+          267.890625
+        ]
+      }
+    },
+    "filled": {
+      "attack": {
+        "art": "url(\"http://127.0.0.1:65391/art/ui/combat-controls/slot-filled.png\")",
+        "rect": [
+          918.40625,
+          391.8125,
+          222.640625,
+          267.890625
+        ]
+      },
+      "guard": {
+        "art": "url(\"http://127.0.0.1:65391/art/ui/combat-controls/slot-filled.png\")",
+        "rect": [
+          1156.546875,
+          391.8125,
+          222.65625,
+          267.890625
+        ]
+      }
+    }
+  }
+}
