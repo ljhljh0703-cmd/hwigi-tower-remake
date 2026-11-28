@@ -1166,6 +1166,9 @@ function weaponContact(hit: BattleHit, heavy = false, pitch = 1) {
       feel.after(effectDuration(reducedMotion() ? 100 : fracture.firstLanding), () => sound.play('seat', .75, .24, .15))
     } else sound.play('stone-hit', 1.16, .22, .095)
   } else sound.play('stone-hit', pitch)
+  if (!hit.defeated && surface && !reducedMotion()) {
+    feel.after(effectDuration((heavy ? heavyStrike.hold : 0) + 105), () => sound.play(crack, 1, .085))
+  }
 }
 
 async function showExchange(before: YachtBattle, after: YachtBattle, exchange: Exchange) {

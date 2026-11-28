@@ -228,6 +228,7 @@ export class Arena {
   private trauma = 0
   private kickAt = 0
   private direction = 1
+  private rebounds = false
   private lastFrame = 0
 
   constructor(frame: HTMLElement, encounter: HTMLElement, intent: HTMLElement, inventory: HTMLElement) {
@@ -458,6 +459,7 @@ export class Arena {
     if (age < 0 || age >= debrisDuration) return
     const dir = impact.target === 'player' ? -1 : 1
     const px = Math.max(1, Math.round(this.density))
+    const material = impactMaterial(this.enemyId, impact.target)
     if (impact.heavy && age < 122 && !this.reducedMotion) {
       // One asymmetric, pixel-aligned blade flare. At release the solid core
       // disappears and two narrow splinters carry the eye towards the recoil.
@@ -489,12 +491,13 @@ export class Arena {
           sign * (4 + Math.round(7 * t)), Math.max(1, Math.round(7 * (1 - t))), 2)
       }
       ctx.restore()
-    } else if (!impact.heavy && age < 78 && !this.reducedMotion) {
-      this.drawCell(frame('effects', age < 25 ? 'chip-start' : 'chip-burst'), impact.x, impact.y, px)
+    } else if (!impact.heavy && age < (material ? 55 : 78) && !this.reducedMotion) {
+      const cell = material === 'ice' ? age < 25 ? 'frost-start' : 'frost-contact'
+        : age < 25 || material === 'brass' ? 'chip-start' : 'chip-burst'
+      this.drawCell(frame('effects', cell), impact.x, impact.y, px)
     }
     if (this.reducedMotion || !impact.dust) return
     if (impact.defeated && impact.target !== 'player') return
-    const material = impactMaterial(this.enemyId, impact.target)
     if (material) {
       drawMaterialChips(this.context, material, age, impact.x, impact.y, this.floor, px, impact.heavy)
       return
@@ -574,7 +577,8 @@ export class Arena {
     if (!this.reducedMotion && this.trauma) {
       const distance = Math.min(this.shake, 7 * this.density * this.trauma ** 2)
       const elapsed = Math.max(0, (now - this.kickAt) * this.animationSpeed)
-      context.translate(this.direction * Math.round(Math.cos(Math.PI * Math.min(1, elapsed / 58)) * distance), 0)
+      const wave = this.rebounds ? Math.cos(Math.PI * Math.min(1, elapsed / 58)) : 1
+      context.translate(this.direction * Math.round(wave * distance), 0)
     }
     const parryArt = this.images.get(GOLEM_PARRY.art)
     const counterArt = this.images.get(GOLEM_COUNTER.art)
@@ -818,11 +822,13 @@ export class Arena {
     }
     let duration = parry ? 120 : guarded ? 30 : 0
     for (const hit of hits) {
-      const motion = impactMotion[battleImpactTier(hit)]
+      const tier = battleImpactTier(hit)
+      const motion = impactMotion[tier]
       duration = Math.max(duration, motion.stop)
       this.trauma = Math.max(this.trauma, motion.shake)
       this.kickAt = now
       this.direction = hit.target === 'player' ? -1 : 1
+      this.rebounds = tier !== 'light'
     }
     this.lastFrame = now
     if (duration) this.freeze(duration, now)
