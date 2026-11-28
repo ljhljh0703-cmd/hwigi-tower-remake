@@ -430,7 +430,13 @@ test('해금 신호와 첫 설명을 보고 나뉜 같은 눈 셋으로 깨운 �
   await expect(tripleChip).toBeInViewport({ ratio: 1 })
   await expect(straightChip).toBeInViewport({ ratio: 1 })
   await expect(page.locator('#resolve')).toBeInViewport({ ratio: 1 })
-  await expect(tripleChip.locator('.unlock-needed')).toHaveText('4')
+  await expect(tripleChip).toContainText('같은 눈 하나 더')
+  await expect(straightChip).toContainText('이어지는 눈 하나 더')
+  await expect(tripleChip.getByRole('img', { name: '필요한 눈 4' })).toBeVisible()
+  await expect(straightChip.getByRole('img', { name: '필요한 눈 3 또는 6' })).toBeVisible()
+  for (const face of await page.locator('.unlock-chip .gimmick-die').all()) {
+    expect((await face.boundingBox()).width).toBeGreaterThanOrEqual(18)
+  }
   await expect(die(page, 0)).toHaveAttribute('data-unlock-triple', '')
   await expect(die(page, 2)).toHaveAttribute('data-unlock-straight', '')
   await expect(discovery).toBeVisible()

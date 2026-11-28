@@ -180,8 +180,8 @@ const fixedSeed = seedParam !== null && /^\d{1,10}$/.test(seedParam) && Number(s
   : null
 
 const unlockInfo = {
-  triple: { icon: 'companion-awake', value: '+1', label: '에고 주사위' },
-  straight: { icon: 'reroll-die', value: '1', label: '전투당 재굴림 주사위 1회' },
+  triple: { icon: 'companion-awake', value: '+1', label: '에고 주사위', chip: '에고', condition: '같은 눈' },
+  straight: { icon: 'reroll-die', value: '1', label: '전투당 재굴림 주사위 1회', chip: '재굴림', condition: '이어지는 눈' },
 } as const
 
 const parityLabels = { odd: '홀', even: '짝' } as const
@@ -619,11 +619,11 @@ function renderDiceUnlockCues(battle: YachtBattle, unlocks: readonly Hand[]) {
     anchor.querySelector('.unlock-chip')?.remove()
     if (state?.progress) {
       const ready = state.progress === 3
-      const needed = state.needed.join('·')
+      const needed = state.needed.join(' 또는 ')
+      const { condition, chip, icon: reward } = unlockInfo[hand]
       anchor.insertAdjacentHTML('beforeend', `<span class="unlock-chip" data-hand="${hand}" data-progress="${state.progress}">
-        ${ready ? icon('unlock') : unlockPattern(hand, 2)}
-        ${ready ? '' : `<span class="unlock-needed" aria-label="필요한 눈 ${needed}">${needed}</span>`}
-        ${icon(unlockInfo[hand].icon)}</span>`)
+        ${ready ? '조건 완성' : `${condition} 하나 더 <span class="unlock-needed" role="img" aria-label="필요한 눈 ${needed}">${state.needed.map(pips).join('')}</span>`}
+        <span aria-hidden="true">→</span><span class="unlock-reward-die" aria-hidden="true">${icon(reward)}</span>${chip}</span>`)
       anchor.setAttribute('aria-label', `${anchor.getAttribute('aria-label')}, ${ready ? '조건 완성' : `두 눈 맞음, 필요한 눈 ${needed}`}`)
     }
     diceButtons.forEach((button, index) => button.toggleAttribute(`data-unlock-${hand}`, state?.matching.has(index) ?? false))
