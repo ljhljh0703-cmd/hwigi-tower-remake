@@ -197,7 +197,7 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
       await expect(attackSlot).toHaveCSS('outline-style', 'dashed')
       await attack.tap()
       await expect(attackDice).toHaveCount(3)
-      await expect(attackSlot).toHaveCSS('border-image-source', /stone-selected\.png/)
+      await expect(attackSlot).toHaveCSS('border-image-source', /combat-controls\/slot-filled\.png/)
       await expect(poolDice).toHaveCount(0)
       await checkScreen('battle', [...await attackDice.all(), resolve])
       await expect(resolve).toBeEnabled()

@@ -304,7 +304,7 @@ button:disabled {
 :is(.lobby-start, .lobby-scene, .perk-choice, .fork-room, .event-panel,
     #battle-guide, #settings, #lobby-confirm, #inventory-detail,
     .reward-card, .reward-actions button, .settings-list button,
-    .slot, .pool, .controls button:not(.unlock-hint), .vital, #climb-again,
+    .pool, .controls button:not(.unlock-hint), .vital, #climb-again,
     #reward-strip button, #artifact-strip button, #boss-relic-slot button) {
   border-image: var(--stone-frame, var(--stone-base)) 10 / 5px stretch;
   image-rendering: pixelated;
@@ -1618,6 +1618,7 @@ meter[data-empty] + .hp-trail { display: none; }
   min-inline-size: 0;
   background: var(--stone-bed);
   border-image: var(--slot-art, url('/art/ui/combat-controls/slot-frame.png')) 24 fill / 10px stretch;
+  image-rendering: pixelated;
   -webkit-tap-highlight-color: transparent;
 }
 .slot:has(.dice-row > .die:not([hidden]), .slot-target:focus-visible) {
