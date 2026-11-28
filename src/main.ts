@@ -21,10 +21,10 @@ import { enemyForFight } from './enemy-roster.ts'
 import { firstBattlePlan, FirstRunGuide } from './first-run-guide.ts'
 import { loadGameSettings, saveGameSettings, toggleMute } from './game-settings.ts'
 import type { GameSettings } from './game-settings.ts'
-import { MAP_NODE_ICONS, ForkView } from './map-view.ts'
-import { currentTreasureRoom, grantTreasure, healingForRun, shopPrice, treasureCost, treasureEnabled } from './map-treasure.ts'
+import { enemyPortrait, MAP_NODE_ICONS, ForkView } from './map-view.ts'
+import { currentTreasureRoom, grantTreasure, healingFor, healingForRun, shopPrice, treasureCost, treasureEnabled } from './map-treasure.ts'
 import { ARTIFACT_SLOTS, COMMON_CONSUMABLES, RARE_CONSUMABLES, ITEMS, PREPARATIONS, SHARDS, artifactReady, isArmedConsumable, isArtifact, isConsumable, itemUses, treasureRarity } from './treasure.ts'
-import type { Artifact, ArtifactOptions, CounterChoice } from './treasure.ts'
+import type { Artifact, ArtifactOptions, CounterChoice, Treasure } from './treasure.ts'
 import { availableCounterChoices, cancelSeal, chooseHourglass, counterDamage, draftSeal, hornCounterDamage, mirrorCounterDamage, startHourglass, toggleArtifact, toggleShard } from './treasure-combat.ts'
 import { adjustItemDie, canSelectItemDie, chooseReserveRoll, consumableReady, selectLatchDie, toggleConsumable } from './item-effects.ts'
 import { ELITE_KEEP_COINS, relicReady, REWARD_CARDS, WEDGE_BONUS } from './rewards.ts'
@@ -213,8 +213,9 @@ function showGuideTab(tab: GuideTab) {
         <h3>${name} <small>${first}–${last}층</small></h3>
         <p>${mood}</p>
         <dl>${Object.entries(ENEMY_CODEX).filter(([, foe]) => foe.region === region).map(([id, foe]) => `
-          <div class="guide-entry" data-enemy="${id}"><dt>${icon(foe.icon)}<strong>${foe.name}</strong></dt>
-          <dd><small>${foe.lineage}${foe.title ? ` · ${foe.title}` : ''}</small>${foe.lore}</dd></div>`).join('')}</dl>
+          <div class="guide-entry" data-enemy="${id}"><dt>${enemyPortrait(id, 'codex-portrait')}<strong>${foe.name}</strong></dt>
+          <dd><small>${foe.lineage}${foe.title ? ` · ${foe.title}` : ''}</small>${foe.lore}
+          ${foe.mechanic ? `<span class="codex-mechanic">${icon(foe.icon)}${foe.mechanic}</span>` : ''}</dd></div>`).join('')}</dl>
       </section>`).join('')
     enemyGuide.scrollTop = 0
   } else if (tab === 'dice') {
@@ -225,8 +226,8 @@ function showGuideTab(tab: GuideTab) {
         <h3>${icon(unlockInfo[hand].icon)}${unlockNames[hand]}</h3>
         <span class="dice-guide-state">${icon(open ? 'unlock' : 'lock')}${open ? '열림' : '잠김'}</span>
         ${unlockPattern(hand)}
-        <p>${unlockCondition(hand, seven)}</p><p>${hand === 'triple'
-          ? seven ? '회귀자 옆에서 기다리다 턴 끝에 굴러 스스로 자리를 고릅니다.' : '이번 등반 동안 주사위 하나를 더 굴립니다.'
+        <p>${seven && hand === 'triple' ? '이번 턴에 같은 눈 셋을 놓습니다. 칸은 나뉘어도 됩니다.' : unlockCondition(hand, seven)}</p><p>${hand === 'triple'
+          ? seven ? '턴 끝에 에고가 스스로 굴립니다. 처치, 정확 방어, 새 해금을 차례로 살핀 뒤 남은 체력에 따라 자리를 고릅니다.' : '이번 등반 동안 주사위 하나를 더 굴립니다.'
           : '기본 재굴림을 쓴 뒤, 전투당 한 번 더 굴립니다.'}</p>
       </section>`
     }).join('')
@@ -463,12 +464,18 @@ function stopHolding() {
 function showHelp(target: HTMLElement) {
   helpTarget = target
   holdHelp.textContent = target.dataset.helpText ?? target.getAttribute('aria-label')
+  const perk = target === ui.activePerk
+  holdHelp.toggleAttribute('data-perk-help', perk)
+  holdHelp.style.removeProperty('max-inline-size')
   holdHelp.hidden = false
   const bounds = target.getBoundingClientRect()
+  const foe = ui.encounterName.getBoundingClientRect()
+  const onRight = foe.left > innerWidth / 2
+  if (perk && foe.width) holdHelp.style.maxInlineSize = `${onRight ? foe.left - 24 : innerWidth - foe.right - 24}px`
   const width = holdHelp.offsetWidth
   const height = holdHelp.offsetHeight
-  const left = bounds.left + (bounds.width - width) / 2
-  const top = bounds.top > height + 16 ? bounds.top - height - 8 : bounds.bottom + 8
+  const left = perk && foe.width ? onRight ? foe.left - width - 8 : foe.right + 8 : bounds.left + (bounds.width - width) / 2
+  const top = perk ? ui.masthead.getBoundingClientRect().bottom + 4 : bounds.top > height + 16 ? bounds.top - height - 8 : bounds.bottom + 8
   holdHelp.style.left = `${Math.min(innerWidth - width - 16, Math.max(16, left))}px`
   holdHelp.style.top = `${Math.min(innerHeight - height - 16, top)}px`
 }
@@ -560,6 +567,8 @@ const unlockRule = element('unlock-rule')
 const unlockHands = ['triple', 'straight'] as const
 const unlockNames = { triple: '에고 주사위', straight: '재굴림 주사위' } as const
 const egoHover = element('ego-hover')
+egoHover.addEventListener('click', () => { if (!exchangeBusy) showHelp(egoHover) })
+const egoAwakeningNote = element('ego-awakening-note')
 const egoPresence = element('ego-presence')
 const egoPlacement = element('ego-placement')
 const unlockDiscovery = element('unlock-discovery')
@@ -637,7 +646,7 @@ function renderDiceUnlockCues(battle: YachtBattle, unlocks: readonly Hand[]) {
       const needed = state.needed.join(' 또는 ')
       const { condition, chip, icon: reward } = unlockInfo[hand]
       anchor.insertAdjacentHTML('beforeend', `<span class="unlock-chip" data-hand="${hand}" data-progress="${state.progress}">
-        ${ready ? '조건 완성' : `${condition} 하나 더 <span class="unlock-needed" role="img" aria-label="필요한 눈 ${needed}">${state.needed.map(pips).join('')}</span>`}
+        ${ready ? '조건 완성' : `${condition} 하나 더 <strong class="unlock-needed">${needed}</strong>`}
         <span aria-hidden="true">→</span><span class="unlock-reward-die" aria-hidden="true">${icon(reward)}</span>${chip}</span>`)
       anchor.setAttribute('aria-label', `${anchor.getAttribute('aria-label')}, ${ready ? '조건 완성' : `두 눈 맞음, 필요한 눈 ${needed}`}`)
     }
@@ -1358,6 +1367,13 @@ function renderActivePerk(battle: YachtBattle) {
 function showCompanionLine(output: HTMLElement, line: string) {
   output.textContent = line
   output.hidden = !line.trim()
+  if (line && output === egoPresence) output.insertAdjacentHTML('afterbegin', icon('companion-awake'))
+}
+
+function rewardHealingLabel(run: Ascent, choice: Treasure) {
+  const amount = healingForRun(run, choice)
+  const original = healingFor(choice, currentTreasureRoom(run), run.route?.map.rules)
+  return amount === original ? String(amount) : `${original}→${amount}`
 }
 
 function renderRewardPreview(run: Ascent) {
@@ -1383,7 +1399,7 @@ function renderRewardPreview(run: Ascent) {
   }
   const heal = healingForRun(run, chosenReward, room)
   const cost = treasureCost(room, chosenReward)
-  const effect = heal ? `고르면 체력을 ${heal} 회복합니다.` : rewardText(chosenReward, run.battle.itemsSeven)
+  const effect = heal ? `고르면 체력을 ${rewardHealingLabel(run, chosenReward)} 회복합니다.` : rewardText(chosenReward, run.battle.itemsSeven)
   const gain = heal ? `${icon('heart')}+${heal}` : `${itemIcon(card.icon)}+1`
   const exchange = room?.kind === 'event' ? `<span class="reward-exchange"><span aria-label="얻음">얻음 ${gain}</span>${cost ? `<span aria-label="잃음">잃음 ${icon('heart')}−${cost}</span>` : ''}</span>` : ''
   ui.rewardPreview.innerHTML = `<strong>${name}</strong><span>${effect}</span>${exchange}`
@@ -1429,8 +1445,8 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   ui.rewardPanel.classList.toggle('multi-shop', Boolean(atShop && seven))
   const eventName = room?.event === 'medicine' ? '무너진 약상자' : room?.event === 'pulley' ? '녹슨 도르래' : '빈 깃대'
   ui.rewardHeading.innerHTML = bossReward ? '보스 유물 선택' : atRoom ? `${icon(MAP_NODE_ICONS[room.kind])} ${room.kind === 'event' ? eventName : room.kind === 'rest' ? '11층 휴식' : atShop ? '상인' : '장터 경유'}` : eliteReward && seven ? '강적 유물 선택' : '전투 보상'
-  ui.eliteCapacity.hidden = !eliteReward
-  if (eliteReward) ui.eliteCapacity.innerHTML = `${icon('map-reward')}유물 ${equipped.length}/${ARTIFACT_SLOTS}`
+  ui.eliteCapacity.hidden = !eliteReward && !(atShop && seven)
+  if (!ui.eliteCapacity.hidden) ui.eliteCapacity.innerHTML = `${icon('map-reward')}유물 ${equipped.length}/${ARTIFACT_SLOTS}`
   if (room?.kind === 'rest') ui.rewardHeading.insertAdjacentHTML('beforeend', '<span class="rest-ember" aria-hidden="true"></span>')
   ui.skipReward.textContent = atRoom ? '떠나기' : '건너뛰기'
   ui.skipReward.hidden = bossReward || Boolean(eliteReward && offers.length && !canKeep)
@@ -1484,7 +1500,7 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
       card.setAttribute('aria-description', `${type} · ${grade}`)
       card.innerHTML = `<span class="reward-type">${type}<span>${grade}</span></span>${pictogram}<strong>${name}</strong><small class="reward-effect">${sevenItemEffect(reward, value)}</small>`
     } else card.innerHTML = pictogram
-    const description = (reward === 'kit' || reward === 'bandage' || reward === 'medicine') ? `체력 ${healingForRun(run, reward)} 회복`
+    const description = (reward === 'kit' || reward === 'bandage' || reward === 'medicine') ? `체력 ${rewardHealingLabel(run, reward)} 회복`
       : (seven && sevenCardEffect(reward)) || inventoryDescription(reward, seven)
     const effectLine = document.createElement('small')
     effectLine.className = 'reward-effect-line'
@@ -1600,7 +1616,7 @@ function inventoryChip(id: Reward, uses: number, capacity: number, disabled: boo
     button.addEventListener('click', () => showInventoryInfo(id, effect))
   }
   const dots = !seven && Array.from({ length: capacity }, (_, i) => `<i class="${i < uses ? 'filled' : ''}"></i>`).join('')
-  const count = seven && capacity ? `<span class="item-count" aria-hidden="true">${uses}</span>` : ''
+  const count = seven && capacity ? `<span class="item-count" aria-hidden="true">×${uses}</span>` : ''
   button.innerHTML = `${itemIcon(card.icon)}${count}${dots ? `<span class="use-dots" aria-hidden="true">${dots}</span>` : ''}`
   return button
 }
@@ -1702,7 +1718,7 @@ function renderTreasureStrips(battle: YachtBattle, disabled: boolean) {
   const loot = battle.loot!
   const ready = battle.phase === 'assign' && !loot.hourglass && !loot.reserveRoll && !disabled
   const itemButtons = battle.itemsSeven ? [...COMMON_CONSUMABLES, ...RARE_CONSUMABLES]
-    .filter((id) => loot.consumables?.[id] || loot.triggered?.includes(id)).map((id) => {
+    .filter((id) => (loot.consumables?.[id] ?? 0) > 0).map((id) => {
       const uses = loot.consumables?.[id] ?? 0
       const armed = loot.consumableArmed === id
       const selectable = ready && consumableReady(loot, id)
@@ -1765,6 +1781,11 @@ function renderTreasureStrips(battle: YachtBattle, disabled: boolean) {
     const thumb = element('thumb-items')
     const active = relicButtons.filter(button => itemActions.has(button.dataset.reward as Reward) ||
       ['banner', 'hourglass', 'die-latch', 'pip-ring', 'blood-grip', 'linked-cup'].includes(button.dataset.reward!))
+    for (const button of [...itemButtons, ...active]) {
+      const id = button.dataset.reward as Treasure
+      button.dataset.itemKind = isArtifact(id) ? 'artifact' : 'consumable'
+      button.insertAdjacentHTML('beforeend', `<small class="thumb-effect" aria-hidden="true">${sevenItemEffect(id, undefined, false)}</small>`)
+    }
     thumb.hidden = battle.phase !== 'assign' || !itemButtons.length && !active.length
     thumb.replaceChildren(...itemButtons, ...active)
     ui.artifactStrip.replaceChildren(...relicButtons.filter(button => !active.includes(button)))
@@ -1855,7 +1876,7 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
     dockLine.className = 'item-dock-line'
     const summary = battle.itemsSeven && !isBossRelic(id) ? `<span class="dock-summary">${sevenItemEffect(id)}</span>` : ''
     const description = inventoryDescription(id, battle.itemsSeven)
-    const effect = description.match(/^.*?[.!?](?=\s|$)/u)?.[0] ?? description
+    const effect = battle.itemsSeven ? description : description.match(/^.*?[.!?](?=\s|$)/u)?.[0] ?? description
     const info = control(`${name} 설명`, `${itemIcon(card.icon)}<span class="dock-description"><strong>${name}</strong>${summary}<span class="dock-effect"></span></span>`, () => showInventoryInfo(id))
     info.querySelector('.dock-effect')!.textContent = effect
     info.setAttribute('aria-description', effect)
@@ -1900,7 +1921,8 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
   } else if (loot?.counter) {
     const choices = availableCounterChoices(battle)
     const damage = counterDamage(battle, loot.counter.damage)
-    ui.treasureControls.append(control('지금 룰렛 피해 주기', `${icon('wheel')}${damage}`, () => void playCounter('now')))
+    const apply = battle.itemsSeven ? `피해 ${damage} 주기` : '지금 룰렛 피해 주기'
+    ui.treasureControls.append(control(apply, `${icon('wheel')}${battle.itemsSeven ? apply : damage}`, () => void playCounter('now')))
     if (choices.includes('coin')) ui.treasureControls.append(control(`${rewardDisplayName('coin', battle.itemsSeven)}${battle.itemsSeven ? '로' : '으로'} 룰렛 한 번 더 돌리기`, `${icon('treasure-coin')}↻1`, () => void playCounter('coin')))
     if (choices.includes('mirror') || !battle.itemsSeven && loot.equipped.includes('mirror')) ui.treasureControls.append(control(`${rewardDisplayName('mirror', battle.itemsSeven)}로 미루기`, `${icon('treasure-mirror')}→${mirrorCounterDamage(battle, damage)}`, () => void playCounter('mirror'), !choices.includes('mirror')))
     if (choices.includes('horn') || !battle.itemsSeven && loot.equipped.includes('horn')) ui.treasureControls.append(control(`${rewardDisplayName('horn', battle.itemsSeven)}로 합공`, `${icon('treasure-horn')}${counterDamage(battle, hornCounterDamage(battle))}`, () => void playCounter('horn'), !choices.includes('horn')))
@@ -1928,9 +1950,13 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
     if (id) {
       const targets = [...selected].filter((index) => id === 'blood-grip' ? battle.slots[index] === 'attack' : canSelectItemDie(battle, index))
       const targetCount = id === 'twin-mold' || id === 'pip-ring' || id === 'linked-cup' ? 2 : 1
-      dockLine?.querySelector('.item-dock-info')?.insertAdjacentHTML('beforeend', `<span class="item-effect">${targets.length}/${targetCount}</span>`)
+      const selection = `주사위 ${targets.length}/${targetCount} 선택`
+      const info = dockLine?.querySelector('.item-dock-info')
+      info?.querySelector('.dock-description')?.insertAdjacentHTML('beforeend', `<span class="item-selection">${selection}</span>`)
+      if (info) info.setAttribute('aria-description', `${info.getAttribute('aria-description')} ${selection}`)
       const options = document.createElement('div')
       options.className = 'item-dock-options'
+      options.dataset.item = id
       ui.treasureControls.append(options)
       if (targets.length !== targetCount) options.textContent = targetCount === 2 ? '주사위 두 개를 고르세요.' : '주사위를 고르세요.'
       const add = (label: string, display: string, next: YachtBattle) => {
@@ -2082,10 +2108,10 @@ function renderFirstRun(run: Ascent) {
   } else if (!ui.battle.hidden && !ui.planning.hidden) {
     const gimmick = yachtGimmick(battle)
     const hand = classifyYachtHand(battle, battle.dice)
-    const condition = gimmick && `에 ${gimmick.face ?? '같은 눈 둘'} → ${gimmickEffects[gimmick.kind].intro}`
+    const condition = gimmick && `${gimmick.slot === 'guard' ? '방어' : '공격'} ${gimmick.face ?? '같은 눈 둘'} → ${gimmickEffects[gimmick.kind].intro}`
     firstRun.discover([
       ...(gimmick && condition ? [{ id: `gimmick-${gimmick.kind}`, symbol: gimmick.slot === 'guard' ? 'shield' : 'sword',
-        text: condition, spoken: `${gimmick.slot === 'guard' ? '방어' : '공격'} 칸${condition}`, anchor: ui.encounter, beside: ui.inventory, linger: true }] : []),
+        text: condition, anchor: ui.encounter, beside: ui.inventory, linger: true }] : []),
       ...(!battle.itemsSeven && hand && !unlocks.includes(hand) ? [{ id: `unlock-${hand}`, symbol: 'lock', anchor: hand === 'triple' ? ui.lockedDie : ui.extraReroll,
         text: '잠긴 자리를 눌러 조건을 보세요.' }] : []),
     ])
@@ -2617,14 +2643,14 @@ async function showEgoPlacement(ego: NonNullable<Exchange['ego']>) {
   }
   const origin = center(egoHover)
   const target = slot === 'rest' ? origin : center(ui.dice[slot].querySelector<HTMLElement>('.die-seat:not([hidden])') ?? ui.assign[slot])
-  const label = { attack: '공격으로', guard: '방어로', rest: '쉼' }[slot]
+  const label = { attack: '공격', guard: '방어', rest: '쉼' }[slot]
   const motion = !reducedMotion()
   const { x, y } = motion ? origin : target
   egoHover.hidden = true
   egoPlacement.dataset.slot = slot
   egoPlacement.style.left = `${x}px`
   egoPlacement.style.top = `${y}px`
-  egoPlacement.innerHTML = `<strong>${face}</strong><small>${label}</small>`
+  egoPlacement.innerHTML = `<strong>${face}</strong><small>에고 → ${label}</small>`
   egoPlacement.hidden = false
   sound.play('hum', 1, .065)
   if (motion) {
@@ -2647,6 +2673,7 @@ async function showUnlockAwakening(hand: Hand) {
   ui.encounter.dataset.egoPresence = hand
   if (hand === 'triple') {
     egoHover.hidden = false
+    egoAwakeningNote.hidden = false
     egoHover.dataset.awakening = ''
     if (!reducedMotion()) {
       egoHover.animate([{ transform: 'translateY(-42px) rotate(-14deg)', opacity: .2 },
@@ -2654,7 +2681,8 @@ async function showUnlockAwakening(hand: Hand) {
         { transform: 'none', opacity: 1 }], { duration: effectDuration(420), easing: 'ease-out' })
     }
   }
-  await wait(reducedMotion() ? 275 : 530)
+  await wait(hand === 'triple' ? 1000 : reducedMotion() ? 275 : 530)
+  egoAwakeningNote.hidden = true
   delete egoHover.dataset.awakening
   delete ui.encounter.dataset.egoPresence
   egoPresence.hidden = true

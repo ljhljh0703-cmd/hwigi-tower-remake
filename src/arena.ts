@@ -306,6 +306,7 @@ export class Arena {
     }
     this.encounter.style.setProperty('--intent-center', `${center}px`)
     this.encounter.style.setProperty('--intent-top', `${Math.max(top, headY - intentHeight - gap)}px`)
+    this.encounter.style.setProperty('--inventory-clearance', `${top}px`)
     this.encounter.style.setProperty('--ground', `${ground}px`)
     this.encounter.style.setProperty('--player-x', `${x(hero)}px`)
     this.encounter.style.setProperty('--enemy-x', `${x(enemy)}px`)

@@ -124,9 +124,9 @@ test('첫 등반에서 첫 공격을 하고 정확 방어 뒤 룰렛, 보상, �
   console.log(`${info.project.name} 첫 공격 ${JSON.stringify(measure)}`)
 
   await checkNote(page, 'defend', '정확히 막았습니다! 룰렛을 두 번 누르세요.', '06-counter', info)
-  await expect(page.locator('#counter-lock-note')).toHaveText('에고 잠김 · 단독 6 · 8')
+  await expect(page.locator('#counter-lock-note')).toHaveText('· 에고 깨어나면 6·8 합공')
   await expect(page.locator('#counter-lock-note')).toBeInViewport({ ratio: 1 })
-  await expect(page.locator('#counter-range')).toHaveText('1–8')
+  await expect(page.locator('#counter-range')).toHaveText('피해 1–8')
   await expect(page.locator('#player-hp')).toHaveJSProperty('value', 22)
   await tap(page.locator('#counter'))
   await expect(page.locator('#counter-action')).toHaveText('룰렛 멈추기')
@@ -172,7 +172,7 @@ test('첫 등반에서 첫 공격을 하고 정확 방어 뒤 룰렛, 보상, �
   await expect(received.locator('use').nth(0)).toHaveAttribute('href', '#icon-shield')
   await expect(received.locator('use').nth(1)).toHaveAttribute('href', '#icon-heart')
   await expect(received).toBeInViewport({ ratio: 1 })
-  await checkNote(page, 'gimmick-trip', '에 1 → 적 다음 공격 건너뜀', '04-gimmick', info)
+  await checkNote(page, 'gimmick-trip', '공격 1 → 적 다음 공격 건너뜀', '04-gimmick', info)
   expect(await note(page).evaluate((element) => {
     const canvas = document.querySelector('#arena').getBoundingClientRect()
     return Math.max(0, element.getBoundingClientRect().bottom + 7 - canvas.top)
@@ -432,11 +432,9 @@ test('해금 신호와 첫 설명을 보고 나뉜 같은 눈 셋으로 깨운 �
   await expect(page.locator('#resolve')).toBeInViewport({ ratio: 1 })
   await expect(tripleChip).toContainText('같은 눈 하나 더')
   await expect(straightChip).toContainText('이어지는 눈 하나 더')
-  await expect(tripleChip.getByRole('img', { name: '필요한 눈 4' })).toBeVisible()
-  await expect(straightChip.getByRole('img', { name: '필요한 눈 3 또는 6' })).toBeVisible()
-  for (const face of await page.locator('.unlock-chip .gimmick-die').all()) {
-    expect((await face.boundingBox()).width).toBeGreaterThanOrEqual(18)
-  }
+  await expect(tripleChip.locator('.unlock-needed')).toHaveText('4')
+  await expect(straightChip.locator('.unlock-needed')).toHaveText('3 또는 6')
+  await expect(die(page, 0).locator('.die-face')).toHaveCSS('background-image', 'none')
   await expect(die(page, 0)).toHaveAttribute('data-unlock-triple', '')
   await expect(die(page, 2)).toHaveAttribute('data-unlock-straight', '')
   await expect(discovery).toBeVisible()
@@ -462,10 +460,16 @@ test('해금 신호와 첫 설명을 보고 나뉜 같은 눈 셋으로 깨운 �
   await page.locator('#resolve').tap()
   await expect(ego).toHaveAttribute('data-awakening', '')
   await expect(presence).toHaveText('다시, 여기.')
+  await expect(presence.locator('use')).toHaveAttribute('href', '#icon-companion-awake')
+  await expect(page.locator('#ego-awakening-note')).toBeInViewport({ ratio: 1 })
   await photo('awakening')
   await expect(page.locator('#new-unlock')).toBeVisible()
   await expect(page.locator('#new-unlock')).toBeHidden()
   await expect(ego).toBeVisible()
+  await expect(page.locator('#pool-dice .die-arriving')).toHaveCount(0)
+  await ego.tap()
+  await expect(page.getByRole('tooltip')).toHaveText('턴 끝에 굴러 스스로 놓습니다.')
+  await photo('waiting-ego')
   await expect(page.locator('#pool-dice button')).toHaveCount(3)
   await expect(page.locator('.companion-die')).toHaveCount(0)
 
@@ -480,14 +484,14 @@ test('해금 신호와 첫 설명을 보고 나뉜 같은 눈 셋으로 깨운 �
 
   for (const die of await page.locator('#pool-dice button').all()) await die.tap()
   await page.locator('#assign-guard').tap()
-  await expect(ego).toHaveAccessibleName('에고 주사위, 턴 끝에 자동으로 굴림')
+  await expect(ego).toHaveAccessibleName('에고 주사위')
   await expect(flight).toBeHidden()
   const before = (await save(page)).ascent.battle
   await page.locator('#resolve').tap()
   await expect(flight).toBeVisible()
   await expect(flight.locator('strong')).toHaveText(/^[1-6]$/)
-  await expect(flight.locator('small')).toHaveText(/^(공격으로|방어로|쉼)$/)
-  const labels = { attack: '공격으로', guard: '방어로', rest: '쉼' }
+  await expect(flight.locator('small')).toHaveText(/^에고 → (공격|방어|쉼)$/)
+  const labels = { attack: '에고 → 공격', guard: '에고 → 방어', rest: '에고 → 쉼' }
   const slot = await flight.getAttribute('data-slot')
   const face = Number(await flight.locator('strong').textContent())
   expect(await flight.locator('small').textContent()).toBe(labels[slot])

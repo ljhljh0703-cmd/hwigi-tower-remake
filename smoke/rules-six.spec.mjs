@@ -30,11 +30,11 @@ async function photograph(page, name, info, root = process.env.HWIGI_RETURN_SHOT
 }
 
 const examples = [
-  ['trip', 'freeze', 2, 2, [1, 3, 3, 6], 'attack', 'stun', '', /다음 공격/, '에 1 → 적 다음 공격 건너뜀'],
-  ['armor', 'reaction', undefined, 2, [2, 2, 4, 6], 'attack', 'armor-break', '×1.5', /1\.5배/, '에 같은 눈 둘 → 갑옷 파괴 ×1.5'],
-  ['reflect', 'chain-warden', 6, 2, [5, 4, 3, 6], 'guard', 'reflect', '', /철추 피해/, '에 5 → 큰 한 방 반사'],
-  ['topple', 'seal-sentinel', 9, 2, [3, 4, 5, 6], 'attack', 'knockdown', '×2', /2배/, '에 3 → 넘어짐(쉼·×2)'],
-  ['retreat', 'escort', undefined, 4, [2, 4, 5, 6], 'attack', 'escort-exit', '', /호위가 물러나고/, '에 2 → 호위 퇴장'],
+  ['trip', 'freeze', 2, 2, [1, 3, 3, 6], 'attack', 'stun', '', /다음 공격/, '공격 1 → 적 다음 공격 건너뜀'],
+  ['armor', 'reaction', undefined, 2, [2, 2, 4, 6], 'attack', 'armor-break', '×1.5', /1\.5배/, '공격 같은 눈 둘 → 갑옷 파괴 ×1.5'],
+  ['reflect', 'chain-warden', 6, 2, [5, 4, 3, 6], 'guard', 'reflect', '', /철추 피해/, '방어 5 → 큰 한 방 반사'],
+  ['topple', 'seal-sentinel', 9, 2, [3, 4, 5, 6], 'attack', 'knockdown', '×2', /2배/, '공격 3 → 넘어짐(쉼·×2)'],
+  ['retreat', 'escort', undefined, 4, [2, 4, 5, 6], 'attack', 'escort-exit', '', /호위가 물러나고/, '공격 2 → 호위 퇴장'],
 ]
 
 test('다섯 예고는 조건과 효과를 표시하며 눈을 넣고 빼면 함께 밝아지고 어두워진다', async ({ page }, info) => {
@@ -55,7 +55,7 @@ test('다섯 예고는 조건과 효과를 표시하며 눈을 넣고 빼면 함
     await expect(firstLook).toHaveAttribute('data-guide', `gimmick-${kind}`)
     await expect(firstLook.locator('#first-run-line')).toHaveText(caption)
     await expect(firstLook.locator('use')).toHaveAttribute('href', `#icon-${slot === 'guard' ? 'shield' : 'sword'}`)
-    await expect(page.locator('#first-run-status')).toHaveText(`${slot === 'guard' ? '방어' : '공격'} 칸${caption}`)
+    await expect(page.locator('#first-run-status')).toHaveText(caption)
     const bounds = await firstLook.evaluate((element) => {
       const text = document.createRange()
       text.selectNodeContents(element.querySelector('#first-run-line > span'))

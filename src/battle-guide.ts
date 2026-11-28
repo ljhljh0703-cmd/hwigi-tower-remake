@@ -3,6 +3,8 @@ import type { MapRules } from './ascent-map.ts'
 import { bossRelicText, isBossRelic } from './boss-relic.ts'
 import { perkDisplayName, rewardDisplayName } from './display-names.ts'
 import { enemyBadge, ENEMY_CODEX } from './enemy-codex.ts'
+import { SHOP_HEAL } from './map-treasure.ts'
+import { REST_HEAL } from './treasure.ts'
 import type { Reward } from './rewards.ts'
 import { oathDescription, perkText, PERK_TEXT, rewardText } from './reward-copy.ts'
 import { START_PERK_CARDS, START_PERKS } from './perks.ts'
@@ -176,6 +178,7 @@ export function battleGuideFor(rules: MapRules = CURRENT_MAP_RULES): readonly Gu
         if (seven) {
           const displayName = rewardDisplayName(id, true)
           if (isBossRelic(id)) return [[symbol, displayName, bossRelicText(id, true)]]
+          if (id === 'kit') return [[symbol, displayName, `상점에서 체력 ${SHOP_HEAL}, 휴식에서 체력 ${REST_HEAL}를 회복합니다.`]]
           return isSevenTreasure(id) ? [[symbol, displayName, rewardText(id, true)]] : []
         }
         if (isNewTreasureId(id)) return []

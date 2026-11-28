@@ -298,14 +298,14 @@ test('엄지 띠에서 즉시 대상 선택을 열고 전장 크기를 유지한
   const bossRelic = page.locator('#boss-relic-slot')
   if (await bossRelic.isVisible()) {
     const chips = await bossRelic.boundingBox()
-    expect(chips.y + chips.height).toBeLessThan(bossName.y)
+    const gap = Math.max(chips.y - bossName.y - bossName.height, bossName.y - chips.y - chips.height)
+    expect(gap).toBeGreaterThanOrEqual(6)
   }
   await expect(dock.locator('.dock-summary')).toHaveText('−21~6')
   await expect(dock.locator('.dock-summary use').first()).toHaveAttribute('href', '#icon-heart')
   const effect = dock.locator('.dock-effect')
   await expect(effect).toHaveText('전투당 1회, 체력 2를 소모해 일반 주사위 하나를 원하는 눈으로 맞춥니다.')
-  await expect(effect).toHaveCSS('white-space', 'nowrap')
-  await expect(effect).toHaveCSS('text-overflow', 'ellipsis')
+  await expect(effect).toHaveCSS('white-space', 'normal')
   await expect(effect).toBeInViewport({ ratio: 1 })
   await shot(page, info, 'lower-item-use', [chip('hourglass'), dock, finish(page)])
 
@@ -313,7 +313,14 @@ test('엄지 띠에서 즉시 대상 선택을 열고 전장 크기를 유지한
   await die(1).tap()
   const face = original.battle.dice[0] === 6 ? 5 : 6
   const pick = dock.getByRole('button', { name: `눈 ${face}로 바꾸기, 체력 2 소모` })
+  await expect(dock.locator('.item-selection')).toHaveText('주사위 1/1 선택')
   await expect(pick).toBeInViewport({ ratio: 1 })
+  expect(await dock.evaluate(element => element.scrollHeight <= element.clientHeight + 1)).toBe(true)
+  for (const vital of await page.locator('.encounter .vital:visible').all()) {
+    const box = await vital.boundingBox()
+    const picker = await dock.boundingBox()
+    expect(picker.y + picker.height).toBeLessThanOrEqual(box.y)
+  }
   await shot(page, info, 'lower-item-target', [dock, pick, chip('hourglass')])
   const arenaWithPicker = await page.locator('#arena').boundingBox()
   const planningWithPicker = await page.locator('#planning').boundingBox()
@@ -379,7 +386,7 @@ test('예비 눈금의 선택과 새긴 동전의 두 번째 칸을 새로고침
   expect((await saved(page)).battle.loot.counter).toEqual(second)
   await expect(coin).toHaveCount(0)
   await expect(page.locator('#counter-damage')).toHaveText(String(second.damage))
-  await page.getByRole('button', { name: '지금 룰렛 피해 주기' }).tap()
+  await page.getByRole('button', { name: `피해 ${second.damage} 주기` }).tap()
   await expect.poll(async () => (await saved(page)).battle.lastExchange.counter?.slot).toBe(second.slot)
   expect((await saved(page)).battle.loot.consumables).toEqual({})
 })

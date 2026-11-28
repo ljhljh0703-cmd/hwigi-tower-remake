@@ -56,22 +56,22 @@ export class CounterRoulette {
 
       const text = document.createElement('span')
       text.textContent = String(reward.damage)
-      if (reward.joint) {
-        label.classList.toggle('locked', !this.companionAwake)
-        text.insertAdjacentHTML('beforeend', this.companionAwake ? '<svg class="icon" aria-hidden="true"><use href="#icon-joint"/></svg>'
-          : '<small aria-hidden="true">단독</small>')
-      }
+      if (reward.joint && this.companionAwake) text.insertAdjacentHTML('beforeend', '<svg class="icon" aria-hidden="true"><use href="#icon-joint"/></svg>')
+      label.classList.toggle('joint-asleep', reward.joint && !this.companionAwake)
       label.append(text)
       return label
     })
     this.wheel.replaceChildren(...this.labels)
     this.paintSegments()
     const values = rewards.map(({ damage }) => damage)
-    this.range.textContent = `${Math.min(...values)}–${Math.max(...values)}`
-    this.result.setAttribute('aria-label', `가능한 반격 피해 ${this.range.textContent}`)
-    this.lockNote.hidden = this.companionAwake || !rewards.some(({ joint }) => joint)
+    const range = `${Math.min(...values)}–${Math.max(...values)}`
+    const jointValues = rewards.filter(reward => reward.joint).map(reward => reward.damage).join('·')
+    this.range.textContent = `피해 ${range}`
+    this.result.setAttribute('aria-label', `가능한 반격 피해 ${range}`)
+    this.lockNote.textContent = `· 에고 깨어나면 ${jointValues} 합공`
+    this.lockNote.hidden = this.companionAwake || !jointValues
     const labels = rewards.map(({ damage, joint }) => joint
-      ? `피해 ${damage}${this.companionAwake ? ' 합공' : ' 단독'}` : String(damage))
+      ? `피해 ${damage}${this.companionAwake ? ' 합공' : ''}` : String(damage))
     this.stage.setAttribute('aria-label', `반격 피해 ${labels.join(', ')}`)
   }
 
@@ -79,9 +79,8 @@ export class CounterRoulette {
     const segments = this.labels.map((label, index) => {
       const start = index * this.degreesPerSlot
       const end = start + this.degreesPerSlot
-      const shade = label.classList.contains('locked')
-        ? index === winner ? 'var(--wheel-locked-winner, #493127)' : 'var(--wheel-locked, #161512)'
-        : index === winner ? 'var(--wheel-winner, var(--rust))'
+      const shade = index === winner ? 'var(--wheel-winner, var(--rust))'
+        : label.classList.contains('joint-asleep') ? 'var(--wheel-joint-asleep, #24221e)'
         : index % 2 === 0 ? 'var(--wheel-face, var(--stone-bed))' : 'var(--wheel-inset, var(--stone-bed))'
       return `var(--wheel-divider, var(--stone-edge)) ${start - 0.45}deg ${start + 0.45}deg, ${shade} ${start + 0.45}deg ${end - 0.45}deg`
     })
@@ -178,6 +177,7 @@ export class CounterRoulette {
     this.paintSegments(reward.slot)
     this.button.hidden = true
     this.range.hidden = true
+    this.lockNote.hidden = true
     this.damage.hidden = false
     if (animate) this.panel.querySelector('.roulette-pointer')?.animate(
       [{ rotate: '-9deg' }, { rotate: '4deg' }, { rotate: '0deg' }], { duration: 95 / speed })

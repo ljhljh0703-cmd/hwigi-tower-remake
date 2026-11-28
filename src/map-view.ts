@@ -1,4 +1,4 @@
-import { ENEMY_SPRITES } from './arena.ts'
+import { ENEMY_SPRITES, ESCORT_SPRITE } from './arena.ts'
 import { availableMapNodes, enterMapNode } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import { attackFor, enemyIntentAt } from './combat.ts'
@@ -14,8 +14,10 @@ export const MAP_NODE_ICONS: Record<MapNodeKind, string> = {
 const names: Record<MapNodeKind, string> = {
   fight: '전투', elite: '강적', rest: '휴식', boss: '보스', event: '이벤트', shop: '상인',
 }
-function portraitFor(enemy: AscentEnemyId, className: string) {
-  const url = new URL(`art/${ENEMY_SPRITES[enemy].name}-idle.png`, document.baseURI)
+export function enemyPortrait(enemy: string, className: string) {
+  const sprite = enemy === 'escort-guard' ? ESCORT_SPRITE : ENEMY_SPRITES[enemy as AscentEnemyId]
+  if (!sprite) return ''
+  const url = new URL(`art/${sprite.name}-idle.png`, document.baseURI)
   return `<img class="${className}" alt="" src="${url.href}">`
 }
 
@@ -80,7 +82,7 @@ export class ForkView {
     if (room.route?.screen === 'battle') {
       const { battle, enemy } = room
       const name = enemyBadge(enemy.id, ascent.route!.map.rules).label
-      this.previewContent.innerHTML = `${portraitFor(enemy.id, 'fork-preview-portrait')}
+      this.previewContent.innerHTML = `${enemyPortrait(enemy.id, 'fork-preview-portrait')}
         <div><strong>${name}</strong><div class="fork-preview-stats">
           <span aria-label="적 체력 ${battle.enemyHp}">${icon('heart')}${battle.enemyHp}</span>
           ${firstAttack(room)}
@@ -97,6 +99,7 @@ export class ForkView {
     const nodes = availableMapNodes(ascent)
     const route = ascent.route!
     const last = route.completed.at(-1)
+    const currentFloor = last === undefined ? 0 : route.map.byId[last].floor
     const floors = Array.from({ length: 12 }, (_, index) => 12 - index)
     const x = (node: MapNode) => 30 + node.lane * 40
     const y = (node: MapNode) => 9 + (12 - node.floor) * 18
@@ -108,10 +111,10 @@ export class ForkView {
       <div class="tower-grid"><svg class="tower-paths" viewBox="0 0 140 216" preserveAspectRatio="none" aria-hidden="true">${paths}</svg>
       ${floors.map(floor => `<div class="tower-floor" aria-label="${floor}층"><span>${floor}</span>${route.map.nodes.filter(node => node.floor === floor).map(node => {
         const special = node.enemyId === 'chain-warden' || node.kind === 'boss' ? 'boss' : node.kind
-        const state = node.id === last ? 'current' : route.completed.includes(node.id) ? 'visited' : nodes.includes(node) ? 'next' : ''
+        const state = node.id === last ? 'current' : route.completed.includes(node.id) ? 'visited' : nodes.includes(node) ? 'next' : node.floor <= currentFloor ? 'passed' : ''
         return `<span class="tower-node" style="--lane:${node.lane}" data-kind="${special}" data-state="${state}" role="img"
           aria-label="${floor}층 ${names[special]}${state === 'current' ? ', 현재 위치' : state === 'next' ? ', 진입 가능' : ''}">${icon(MAP_NODE_ICONS[special])}</span>`
-      }).join('')}</div>`).join('')}</div><div class="tower-legend">${(['shop', 'elite', 'rest', 'boss'] as const)
+      }).join('')}</div>`).join('')}</div><div class="tower-legend">${(['fight', 'event', 'shop', 'elite', 'rest', 'boss'] as const)
         .map(kind => `<span>${icon(MAP_NODE_ICONS[kind])}${names[kind]}</span>`).join('')}</div>`
     this.heading.textContent = nodes.length === 2 ? '두 갈래 길' : '다음 층'
     this.options.replaceChildren(...nodes.map((node) => {
@@ -133,7 +136,7 @@ export class ForkView {
         : node.kind === 'shop' && ascent.route!.map.rules >= 3
           ? `<span class="fork-hint" aria-label="가격 ${SHOP_PRICES.kit}에서 ${rules === 7 ? SHOP_PRICES.rare : SHOP_PRICES.artifact}동전">${icon('ascent-coin')}${SHOP_PRICES.kit}–${rules === 7 ? SHOP_PRICES.rare : SHOP_PRICES.artifact}</span>` : ''
       const portrait = enemy
-        ? portraitFor(enemy.id, 'fork-portrait')
+        ? enemyPortrait(enemy.id, 'fork-portrait')
         : `<span class="fork-symbol">${pixelIcon(MAP_NODE_ICONS[node.kind])}</span>`
       button.innerHTML = `
         <span class="fork-visual" aria-hidden="true"><span class="fork-art">${portrait}</span></span>

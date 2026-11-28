@@ -2,6 +2,7 @@ import { START_PERKS } from './perks.ts'
 import type { Parity, StartPerk } from './perks.ts'
 import { BANDAGE_HEAL, BUCKLE_MAX_SHORTFALL, BUCKLE_REDUCTION, REWARD_CARDS, WEIGHT_BONUS, WEDGE_BONUS } from './rewards.ts'
 import type { Reward } from './rewards.ts'
+import { SEVEN_CROWN_DAMAGE_BONUS, SEVEN_EMPEROR_SHIELD_CAP, SEVEN_SCEPTER_HEAL, SEVEN_SCEPTER_REROLL_COST } from './boss-relic.ts'
 import type { BossRelic } from './boss-relic.ts'
 import { REST_HEAL, TREASURE_CARDS } from './treasure.ts'
 import type { Treasure } from './treasure.ts'
@@ -63,9 +64,8 @@ const EFFECT_TARGET: Partial<Record<Treasure, string>> = {
   bandage: 'healing', medicine: 'healing', kit: 'healing',
 }
 
-const effectMark = (symbol: string, value: string) => `<span>${icon(symbol)}${value}</span>`
-
-export function sevenItemEffect(id: Treasure, value = SEVEN_REWARD_VALUES[id] ?? REWARD_CARDS[id].value) {
+export function sevenItemEffect(id: Treasure, value = SEVEN_REWARD_VALUES[id] ?? REWARD_CARDS[id].value, showIcon = true) {
+  const effectMark = (symbol: string, text: string) => `<span>${showIcon ? icon(symbol) : ''}${text}</span>`
   switch (id) {
     case 'hourglass': {
       const [cost, faces] = value.split(' · ')
@@ -109,15 +109,16 @@ export function rewardText(id: Treasure, seven?: boolean) {
 
 const CARD_EFFECT: Partial<Record<Reward, string>> = {
   weight: '공격 최고 눈 추가', buckle: '받는 피해 감소', wedge: '공격 합 +3', coin: '두 피해 중 큰 쪽',
-  tuning: '눈을 1 올리거나 내림', 'twin-mold': '두 주사위 눈 맞춤', spacer: '초과 방어 1 깎기',
-  'advance-knot': '방어 비우면 공격 +6', 'reserve-gauge': '재굴림 전후 눈 선택', 'clash-seal': '같은 눈 둘이면 공격 ×2',
+  tuning: '눈 +1/−1', 'twin-mold': '두 주사위 눈 맞춤', spacer: '초과 방어 1 깎기',
+  'advance-knot': '방어 비우면 +6', 'reserve-gauge': '원래·새 눈 선택', 'clash-seal': '같은 눈 둘이면 공격 ×2',
   whetstone: '첫 턴 공격 강화', lining: '첫 피격 피해 감소', 'die-latch': '다음 턴 같은 눈 사용',
   mirror: '반격 미뤄 피해 2배', overflow: '남은 방어를 공격에', incomplete: '같은 눈 둘로 해금',
   'heart-die': '에고 눈 홀짝 고정', hourglass: '체력 2로 눈 바꾸기', banner: '공격 눈을 방어에', horn: '합공 피해로 변경',
   scabbard: '남은 피해 저장', 'adjacent-needle': '다음 룰렛 칸으로', 'pip-ring': '두 눈 사이 1 옮김',
   'blood-grip': '공격 눈으로 회복', 'linked-cup': '두 눈을 연속으로',
-  'revived-heart': '치명상에서 1회 부활', 'emperor-shield': '첫 턴 피해 감소',
-  'brake-crown': '첫 반격으로 적 넘어뜨림', 'healing-scepter': '승리 시 체력 회복',
+  'revived-heart': '1회 부활 · 회복 절반', 'emperor-shield': `첫 턴 피해 −${SEVEN_EMPEROR_SHIELD_CAP} · 룰렛 피해 절반`,
+  'brake-crown': `첫 룰렛 피해 포기 · 적 넘어뜨리고 피해 +${SEVEN_CROWN_DAMAGE_BONUS}`,
+  'healing-scepter': `획득·승리 시 체력 +${SEVEN_SCEPTER_HEAL} · 첫 턴 재굴림 체력 −${SEVEN_SCEPTER_REROLL_COST}`,
 }
 
 export function sevenCardEffect(id: Reward) { return CARD_EFFECT[id] }

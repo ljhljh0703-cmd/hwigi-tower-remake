@@ -144,7 +144,7 @@ for (const [kind, dice, time, glyph] of [
       await expect(page.locator('#counter-auto')).toBeVisible()
       await expect(page.locator('#counter-range')).toHaveText(/\d+–\d+/)
       const wheel = page.locator('#counter-wheel')
-      await expect(wheel).toHaveCSS('background-image', /wheel-locked|rgb\(22, 21, 18\)/)
+      await expect(wheel).toHaveCSS('background-image', /rgb\(36, 34, 30\)/)
       const frames = await wheel.evaluate((element) => {
         const spin = window.rouletteSpinFrame
         const snapshotTime = spin.currentTime
@@ -170,7 +170,7 @@ for (const [kind, dice, time, glyph] of [
         expect(frame.labels).toHaveLength(6)
         for (const angle of frame.labels) expect(angle).toBeCloseTo(0, 3)
       }
-      await expect(wheel.locator('.roulette-label.locked small')).toHaveText(['단독', '단독'])
+      await expect(wheel.locator('.roulette-label.joint-asleep')).toHaveText(['6', '8'])
       await photograph(page, info, 'roulette-spinning')
       await page.evaluate(() => window.rouletteSpinFrame.finish())
     }
@@ -322,17 +322,14 @@ for (const automatic of [false, true]) test(automatic
   if (automatic) {
     const flight = page.locator('#ego-placement')
     await expect(flight).toBeVisible()
-    await expect(flight).toHaveText('3방어로')
+    await expect(flight).toHaveText('3에고 → 방어')
   }
-  let parryPose
-  if (automatic) {
-    await expect.poll(() => page.evaluate(() => Boolean(window.parryPose))).toBe(true)
-    parryPose = await page.evaluate(() => window.parryPose)
-  } else {
+  if (!automatic) {
     await expect(page.locator('#parry-cue')).toHaveAttribute('data-guard', 'exact')
     await expect(page.locator('#parry-cue')).toBeVisible()
-    parryPose = await pose()
   }
+  await expect.poll(() => page.evaluate(() => Boolean(window.parryPose))).toBe(true)
+  const parryPose = await page.evaluate(() => window.parryPose)
   expect(parryPose).not.toBe(planningPose)
   if (!automatic) await photograph(page, info, 'golem-parry')
   await expect(panel).toHaveAttribute('data-roll-state', 'spinning')
