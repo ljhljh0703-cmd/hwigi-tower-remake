@@ -105,8 +105,10 @@ export const upperCardLanes = (count: number) => count === 3 ? [.39, .631, .91] 
 const upperActorLanes = (count: number, wide: boolean) => count === 3
   ? wide ? [.31, .631, .914] : [.347, .656, .920]
   : upperCardLanes(count)
-const upperTier = (width: number) => width >= 344 ? 60 : 35
-function upperEnemyScale(id: UpperRole, lane: number, wide: boolean, density: number) {
+const upperTier = (width: number, ground: number, desktop: boolean) =>
+  desktop ? Math.max(270, Math.round(ground * .37)) : width >= 344 ? 60 : 35
+function upperEnemyScale(id: UpperRole, lane: number, wide: boolean, density: number, desktop: boolean) {
+  if (desktop) return Math.max(1, Math.round((lane ? 6 : id === 'gatekeeper' ? 7 : 8) * density))
   const scale = 4 + Number(wide) - Number(lane > 0 || id === 'gatekeeper')
   // Rounding the density up before scaling can consume the adjacent actor's lane.
   return Math.max(1, Math.floor(scale * Math.min(density, Math.round(density))))
@@ -116,25 +118,32 @@ const upperHeroOverhang: Record<string, number> = {
   'attack-prepare': 14, step: 4, attack: 20, 'attack-follow': 19, hit: 9,
 }
 
-function layoutUpperEnemies(roles: readonly UpperRole[], width: number, wide: boolean, density: number, playerRight: number) {
+function layoutUpperEnemies(roles: readonly UpperRole[], width: number, wide: boolean, density: number, playerRight: number, desktop: boolean) {
   const px = Math.max(1, Math.round(density))
-  const lanes = upperActorLanes(roles.length, wide)
+  const lanes = desktop ? upperCardLanes(roles.length) : upperActorLanes(roles.length, wide)
   const widths = roles.map((id, lane) => {
     const { cell } = atlasCell(frame(upperSprites[id], lane ? 'rear-ready' : 'ready'))
-    return cell.bounds[2] * upperEnemyScale(id, lane, wide, density)
+    return cell.bounds[2] * upperEnemyScale(id, lane, wide, density, desktop)
   })
   const rightEdge = width - 4 * px
-  let remaining = widths.reduce((total, item) => total + item, 0)
-  const gap = Math.max(0, Math.min(12 * px, Math.floor((rightEdge - playerRight - remaining) / Math.max(1, roles.length))))
-  let left = playerRight
-  return widths.map((bodyWidth, lane) => {
-    const half = Math.ceil(bodyWidth / 2)
-    const latest = rightEdge - remaining + half - (roles.length - lane - 1) * gap
-    const center = Math.min(latest, Math.max(left + gap + half, Math.round(lanes[lane] * width)))
-    left = center - half + bodyWidth
-    remaining -= bodyWidth
-    return center
-  })
+  const totalWidth = (items: number[]) => items.reduce((total, item) => total + item, 0)
+  const fit = (items: number[], preferred: number[], left: number) => {
+    let remaining = totalWidth(items)
+    const gap = Math.max(0, Math.min(12 * px, Math.floor((rightEdge - left - remaining) / Math.max(1, items.length))))
+    return items.map((bodyWidth, lane) => {
+      const half = Math.ceil(bodyWidth / 2)
+      const latest = rightEdge - remaining + half - (items.length - lane - 1) * gap
+      const center = Math.min(latest, Math.max(left + gap + half, Math.round(preferred[lane] * width)))
+      left = center - half + bodyWidth
+      remaining -= bodyWidth
+      return center
+    })
+  }
+  // The taller desktop tiers can share horizontal space when the arena is narrow.
+  if (desktop && widths.length > 1 && playerRight + totalWidth(widths) > rightEdge) {
+    return [...fit(widths.slice(0, 1), lanes, playerRight), ...fit(widths.slice(1), lanes.slice(1), 4 * px)]
+  }
+  return fit(widths, lanes, playerRight)
 }
 const upperBossArt = 'upper-boss-special'
 const upperAttackStages = ['anticipate', 'approach', 'contact', 'follow'] as const
@@ -282,6 +291,7 @@ export class Arena {
   private direction = 1
   private rebounds = false
   private lastFrame = 0
+  private upperDesktop = false
   private upperScene?: Formation
   private upperMotion?: UpperMotion & { at: number; hold: number }
   private upperFallen: { id: UpperRole; lane: number; roles: UpperRole[]; at: number }[] = []
@@ -391,15 +401,16 @@ export class Arena {
     }
     this.encounter.style.setProperty('--ground', `${ground}px`)
     const upper = this.battle?.formation
-    const tier = upperTier(stage.width)
+    this.upperDesktop = zoom > 1
     let enemyX = x(enemy)
     if (upper) {
+      const tier = upperTier(stage.width, this.floor / this.density, this.upperDesktop)
       const px = Math.max(1, Math.round(this.density))
       const player = placements.get(hero)!
       const edge = 4 * px + hero.restReach![0] * player.scale
-      player.foot = zoom > 1 ? Math.max(edge, Math.round(this.canvas.width * .18)) : edge
+      player.foot = this.upperDesktop ? Math.max(edge, Math.round(this.canvas.width * .18)) : edge
       const foes = livingEnemies(upper).map(enemy => enemy.id)
-      const [front] = layoutUpperEnemies(foes, this.canvas.width, tier === 60, this.density, player.foot + hero.restReach![1] * player.scale)
+      const [front] = layoutUpperEnemies(foes, this.canvas.width, stage.width >= 344, this.density, player.foot + hero.restReach![1] * player.scale, this.upperDesktop)
       if (front !== undefined) enemyX = canvasLeft + front / this.density
       this.encounter.style.setProperty('--upper-tier', `${tier}px`)
     }
@@ -793,8 +804,9 @@ export class Arena {
     context.save()
     this.drawCameraKick(now)
     const px = Math.max(1, Math.round(density))
-    const tier = upperTier(canvas.width / density)
-    const wide = tier === 60
+    const desktop = this.upperDesktop
+    const wide = canvas.width / density >= 344
+    const tier = upperTier(canvas.width / density, floor / density, desktop)
     const upper = Math.round(tier * density)
     const motion = this.upperMotion
     const elapsed = motion ? Math.max(0, (now - motion.at) * this.animationSpeed - motion.hold) : Infinity
@@ -804,9 +816,18 @@ export class Arena {
     const previous = motion?.from && livingEnemies(motion.from)
     const { foot: heroX, scale: heroScale } = this.placements.get(hero)!
     const layout = (roles: readonly UpperRole[]) =>
-      layoutUpperEnemies(roles, canvas.width, wide, density, heroX + hero.restReach![1] * heroScale)
+      layoutUpperEnemies(roles, canvas.width, wide, density, heroX + hero.restReach![1] * heroScale, desktop)
     const settled = layout(foes.map(enemy => enemy.id))
     const starting = previous ? layout(previous.map(enemy => enemy.id)) : settled
+    if (desktop) {
+      const canvasLeft = parseFloat(canvas.style.left)
+      const style = this.encounter.style
+      for (const [index, enemy] of (previous ?? foes).entries()) {
+        const key = `--upper-foe-${enemy.id}-x`
+        const value = `${canvasLeft + starting[index] / density}px`
+        if (style.getPropertyValue(key) !== value) style.setProperty(key, value)
+      }
+    }
     const getY = (lane: number) => floor - (lane ? upper : 0)
     const point = (id: UpperRole, index: number) => {
       const before = previous?.findIndex(enemy => enemy.id === id) ?? index
@@ -816,7 +837,7 @@ export class Arena {
         y: Math.round(getY(old) + (getY(index) - getY(old)) * shiftProgress), old }
     }
     // The boss has denser front art and its own compact rear cells.
-    const selectScale = (id: UpperRole, index: number) => upperEnemyScale(id, index, wide, density)
+    const selectScale = (id: UpperRole, index: number) => upperEnemyScale(id, index, wide, density, desktop)
     const centerOffset = (cell: ReturnType<typeof atlasCell>['cell'], pivot: number[], scale: number) =>
       Math.round((cell.bounds[0] + cell.bounds[2] / 2 - pivot[0]) * scale)
     if (foes.length) {
@@ -825,11 +846,15 @@ export class Arena {
     }
     for (const [index, enemy] of foes.entries()) {
       const { x, y } = point(enemy.id, index)
-      const ledge = (index ? 21 : 24) * px
+      const ledge = desktop && index ? Math.min(66 * px, x - 3 * px, canvas.width - x - 3 * px) : (index ? 21 : 24) * px
       context.fillStyle = index ? '#8a8171' : '#a69678'
       context.fillRect(x - ledge, y + px, ledge * 2, px)
       context.fillStyle = '#1a1715b8'
-      context.fillRect(x - ledge - 2 * px, y + 2 * px, (ledge + 2 * px) * 2, 2 * px)
+      context.fillRect(x - ledge - 2 * px, y + 2 * px, (ledge + 2 * px) * 2, (desktop && index ? 7 : 2) * px)
+      if (desktop && index) {
+        context.fillStyle = '#575047'
+        context.fillRect(x - ledge, y + 2 * px, ledge * 2, 4 * px)
+      }
     }
     for (const fall of this.upperFallen) {
       const name = upperSprites[fall.id]
@@ -900,6 +925,14 @@ export class Arena {
       const { cell, atlas } = atlasCell(pose)
       if (!isSource || !['attack', 'block', 'recoil'].includes(motion.kind)) {
         x -= centerOffset(cell, atlas.pivot, scale)
+      }
+      if (desktop) {
+        const [left, top, width] = cell.bounds
+        const edge = 3 * px
+        const minX = edge - (left - atlas.pivot[0]) * scale
+        const maxX = canvas.width - edge - (left + width - atlas.pivot[0]) * scale
+        x = Math.min(maxX, Math.max(minX, x))
+        y = Math.max(y, edge + (atlas.pivot[1] - top) * scale)
       }
       this.drawCell(pose, x, y, scale)
       context.restore()

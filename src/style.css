@@ -2814,6 +2814,7 @@ main[data-screen='defeat'] {
     box-shadow: 0 8px 22px #24211b6e;
   }
   main:is([data-screen='battle'], [data-screen='unlock']) #battle .upper-field { --arena-footer: clamp(128px, 16dvh, 178px); }
+  .upper-card { inset-inline-start: clamp(var(--upper-card-edge), var(--desktop-lane-x, var(--lane-x)), calc(100% - var(--upper-card-edge))); }
 
   [data-screen='battle'] #battle #planning {
     grid-area: 1 / 2;

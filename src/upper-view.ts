@@ -50,7 +50,7 @@ export class UpperView {
         const stance = enemy.toppled ? '넘어짐 ×2' : enemy.action.pose === 'prepare' ? `준비 ${upperHeavyDamage(formation, Boolean(weakened))}`
           : enemy.action.pose === 'cancelled' ? '중단' : enemy.action.pose === 'rest' ? '자세 회복' : '대기'
         const opponent = aiding && alive.findIndex(entry => entry.id === aiding.to)
-        return `<div class="upper-card" data-role="${id}" data-lane="${lane}" style="--lane-x:${lanes[lane] * 100}%" ${target === id ? 'data-counter-target' : ''} ${defeated ? 'data-defeated' : ''}>
+        return `<div class="upper-card" data-role="${id}" data-lane="${lane}" style="--lane-x:${lanes[lane] * 100}%;--desktop-lane-x:var(--upper-foe-${id}-x)" ${target === id ? 'data-counter-target' : ''} ${defeated ? 'data-defeated' : ''}>
           <strong class="upper-name">${name}</strong>
           <span class="upper-hp" aria-label="체력 ${enemy.hp}/${enemy.maxHp}">${icon('heart')}${enemy.hp}<small>/${enemy.maxHp}</small></span>
           <span class="upper-intent"><span class="upper-position" role="img" aria-label="${position}">${icon(lane ? 'formation-rear' : 'formation-front')}</span><span class="upper-action" ${missed.has(id) ? 'data-cancelled' : ''}>${hits.length ? hits.map(action =>

@@ -156,6 +156,32 @@ test.describe('upper arena with fractional pixel density', () => {
   })
 })
 
+test.describe('desktop upper arena', () => {
+  test.use({ isMobile: false })
+  test('the front matches the hero height and the smaller rear occupies the higher tier', async ({ page }, info) => {
+    const small = info.project.use.viewport.width === 320
+    await page.setViewportSize(small ? { width: 1440, height: 900 } : { width: 1920, height: 1080 })
+    const fixtures = [
+      [atFloor(13), ['upper-dash', 'upper-support']],
+      [atFloor(17, 'elite'), ['upper-shield', 'upper-dash', 'upper-support']],
+      [atFloor(19), ['upper-shield', 'upper-boss']],
+    ]
+    for (const [run, sheets] of fixtures) {
+      await resume(page, run)
+      const [front, ...rear] = await readFormationArt(page, sheets)
+      const hero = await verifyHeroOnFloor(page, 6)
+      expect(front.height).toBeGreaterThanOrEqual(30 * hero.scale)
+      expect(front.left).toBeGreaterThan(hero.right)
+      expect(front.bottom).toBe(hero.foot)
+      for (const actor of rear) {
+        expect(actor.scale).toBeLessThan(front.scale)
+        expect(actor.height).toBeLessThan(front.height)
+        expect(front.bottom - actor.bottom).toBeGreaterThanOrEqual(240)
+      }
+    }
+  })
+})
+
 async function photo(page, label) {
   const output = process.env.HWIGI_STAGE_TWO_SHOTS
   if (!output) return
