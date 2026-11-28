@@ -1,0 +1,314 @@
+{
+  "320x568": {
+    "planning": {
+      "main": {
+        "x": 16,
+        "y": 0,
+        "width": 288,
+        "height": 556
+      },
+      "field": {
+        "x": 16,
+        "y": 52,
+        "width": 288,
+        "height": 143
+      },
+      "controls": {
+        "x": 16,
+        "y": 203,
+        "width": 288,
+        "height": 345
+      },
+      "die": {
+        "x": 40,
+        "y": 373,
+        "width": 44,
+        "height": 44
+      },
+      "resolve": {
+        "x": 168.375,
+        "y": 504,
+        "width": 135.625,
+        "height": 44
+      },
+      "slot": {
+        "x": 16,
+        "y": 329,
+        "width": 140,
+        "height": 144
+      }
+    },
+    "counter": {
+      "field": {
+        "x": 16,
+        "y": 52,
+        "width": 288,
+        "height": 143
+      },
+      "wheel": {
+        "x": 60,
+        "y": 69.03125,
+        "width": 200,
+        "height": 200
+      },
+      "stop": {
+        "x": 16,
+        "y": 512,
+        "width": 288,
+        "height": 44
+      }
+    },
+    "unlock": {
+      "x": 19,
+      "y": 150.5,
+      "width": 282,
+      "height": 267
+    },
+    "elite": {
+      "x": 16,
+      "y": 88,
+      "width": 288,
+      "height": 461.578125
+    },
+    "reward": {
+      "x": 16,
+      "y": 44,
+      "width": 288,
+      "height": 367.96875
+    }
+  },
+  "390x844": {
+    "planning": {
+      "main": {
+        "x": 16,
+        "y": 0,
+        "width": 358,
+        "height": 832
+      },
+      "field": {
+        "x": 16,
+        "y": 52,
+        "width": 358,
+        "height": 423
+      },
+      "controls": {
+        "x": 16,
+        "y": 487,
+        "width": 358,
+        "height": 345
+      },
+      "die": {
+        "x": 57.5,
+        "y": 657,
+        "width": 44,
+        "height": 44
+      },
+      "resolve": {
+        "x": 168.375,
+        "y": 788,
+        "width": 205.625,
+        "height": 44
+      },
+      "slot": {
+        "x": 16,
+        "y": 613,
+        "width": 175,
+        "height": 144
+      }
+    },
+    "counter": {
+      "field": {
+        "x": 16,
+        "y": 52,
+        "width": 358,
+        "height": 423
+      },
+      "wheel": {
+        "x": 66,
+        "y": 77,
+        "width": 258,
+        "height": 258
+      },
+      "stop": {
+        "x": 50,
+        "y": 788,
+        "width": 290,
+        "height": 44
+      }
+    },
+    "unlock": {
+      "x": 19,
+      "y": 288.5,
+      "width": 352,
+      "height": 267
+    },
+    "elite": {
+      "x": 16,
+      "y": 143.375,
+      "width": 358,
+      "height": 629.265625
+    },
+    "reward": {
+      "x": 16,
+      "y": 258.5,
+      "width": 358,
+      "height": 355.015625
+    }
+  },
+  "1440x900": {
+    "planning": {
+      "main": {
+        "x": 32,
+        "y": 0,
+        "width": 1376,
+        "height": 884
+      },
+      "field": {
+        "x": 32,
+        "y": 92,
+        "width": 915.203125,
+        "height": 657
+      },
+      "controls": {
+        "x": 976,
+        "y": 166,
+        "width": 432,
+        "height": 365
+      },
+      "die": {
+        "x": 1014.5,
+        "y": 385,
+        "width": 44,
+        "height": 44
+      },
+      "resolve": {
+        "x": 1176,
+        "y": 470,
+        "width": 215,
+        "height": 44
+      },
+      "slot": {
+        "x": 993,
+        "y": 341,
+        "width": 191,
+        "height": 88
+      }
+    },
+    "counter": {
+      "field": {
+        "x": 32,
+        "y": 92,
+        "width": 915.203125,
+        "height": 657
+      },
+      "wheel": {
+        "x": 360.59375,
+        "y": 165,
+        "width": 258,
+        "height": 258
+      },
+      "stop": {
+        "x": 360.59375,
+        "y": 431,
+        "width": 258,
+        "height": 44
+      }
+    },
+    "unlock": {
+      "x": 525,
+      "y": 328.5,
+      "width": 390,
+      "height": 243
+    },
+    "elite": {
+      "x": 470,
+      "y": 134.53125,
+      "width": 500,
+      "height": 606.953125
+    },
+    "reward": {
+      "x": 470,
+      "y": 177.4375,
+      "width": 500,
+      "height": 357.140625
+    }
+  },
+  "1920x1080": {
+    "planning": {
+      "main": {
+        "x": 168,
+        "y": 0,
+        "width": 1584,
+        "height": 1064
+      },
+      "field": {
+        "x": 168,
+        "y": 92,
+        "width": 1077,
+        "height": 780
+      },
+      "controls": {
+        "x": 1277,
+        "y": 166,
+        "width": 475,
+        "height": 365
+      },
+      "die": {
+        "x": 1326.25,
+        "y": 385,
+        "width": 44,
+        "height": 44
+      },
+      "resolve": {
+        "x": 1520,
+        "y": 470,
+        "width": 215,
+        "height": 44
+      },
+      "slot": {
+        "x": 1294,
+        "y": 341,
+        "width": 212.5,
+        "height": 88
+      }
+    },
+    "counter": {
+      "field": {
+        "x": 168,
+        "y": 92,
+        "width": 1077,
+        "height": 780
+      },
+      "wheel": {
+        "x": 577.5,
+        "y": 165,
+        "width": 258,
+        "height": 258
+      },
+      "stop": {
+        "x": 577.5,
+        "y": 431,
+        "width": 258,
+        "height": 44
+      }
+    },
+    "unlock": {
+      "x": 765,
+      "y": 418.5,
+      "width": 390,
+      "height": 243
+    },
+    "elite": {
+      "x": 710,
+      "y": 224.53125,
+      "width": 500,
+      "height": 606.953125
+    },
+    "reward": {
+      "x": 710,
+      "y": 249.4375,
+      "width": 500,
+      "height": 357.140625
+    }
+  }
+}
