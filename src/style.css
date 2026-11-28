@@ -2710,74 +2710,267 @@ main[data-screen='defeat'] {
 .slot[data-ego-landed] { outline: 2px solid #e0ba76; box-shadow: inset 0 0 18px #e0ba764d; }
 
 @media (min-width: 1050px) and (min-height: 680px) {
-  main[data-screen='battle']:has(.encounter:not([hidden])) {
-    --desk-side: clamp(360px, 30vw, 475px);
-    --desk-gap: clamp(16px, 2vw, 32px);
-    --battle-header: 72px;
-    width: min(100% - 32px, 1584px);
-    grid-template-columns: minmax(0, 1fr) var(--desk-side);
+  body {
+    --desk-width: min(calc(100vw - 64px), 1728px);
+    --desk-side: clamp(432px, 36vw, 640px);
+    --desk-gap: clamp(16px, 1.8vw, 32px);
+    --desk-header: clamp(54px, 8dvh, 72px);
+    --desk-top-gap: 16px;
+    --desk-height: calc(100dvh - var(--desk-header) - var(--desk-top-gap) - var(--page-end));
+    --desk-die: clamp(72px, min(5.3vw, 10dvh), 96px);
+    --desk-padding: clamp(14px, 2vw, 30px);
+    --desk-row-gap: clamp(8px, calc(3.5dvh - 16px), 20px);
+    --desk-primary-height: clamp(58px, 8.5dvh, 84px);
+  }
+
+  main:is([data-screen='battle'], [data-screen='unlock'], [data-screen='reward'], [data-screen='event']) {
+    width: var(--desk-width);
+  }
+  main:is([data-screen='battle'], [data-screen='unlock']):has(.encounter:not([hidden])) {
+    --desk-rail: 0px;
+    --desk-counter-items: 0px;
+    display: grid;
+    grid-template: var(--desk-header) minmax(0, 1fr) / minmax(0, 1fr) var(--desk-side);
     column-gap: var(--desk-gap);
   }
-  [data-screen='battle']:has(.encounter:not([hidden])) .masthead {
+  main:is([data-screen='battle'], [data-screen='unlock']):has(.inventory-strip > :not([hidden])) {
+    --desk-rail: clamp(55px, 8dvh, 86px);
+  }
+  main[data-screen='battle']:has(#treasure-controls[data-item-counter]:not([hidden])) {
+    --desk-counter-items: clamp(64px, 15dvh, 160px);
+  }
+  main:is([data-screen='battle'], [data-screen='unlock'], [data-screen='reward'], [data-screen='event']) .masthead {
     grid-column: 1 / -1;
+    min-block-size: var(--desk-header);
     border-bottom: 1px solid #786b58;
   }
-  [data-screen='battle']:has(.encounter:not([hidden])) .masthead-title {
+  main:is([data-screen='battle'], [data-screen='unlock'], [data-screen='reward'], [data-screen='event']) .masthead-title {
     display: block;
     font-size: 1.15rem;
   }
-  [data-screen='battle'] #battle:has(> .encounter:not([hidden])) {
-    grid-column: 1 / -1;
+  main:is([data-screen='battle'], [data-screen='unlock']) #battle:has(> .encounter:not([hidden])) {
+    grid-area: 2 / 1 / 3 / -1;
     grid-template-columns: minmax(0, 1fr) var(--desk-side);
-    grid-template-rows: auto auto 1fr;
-    gap: 12px var(--desk-gap);
-    margin-block-start: 20px;
+    grid-template-rows: minmax(0, 1fr) auto;
+    gap: 0 var(--desk-gap);
+    align-self: start;
+    block-size: var(--desk-height);
+    margin: var(--desk-top-gap) 0 0;
+    padding: 0;
   }
-  [data-screen='battle'] .encounter {
-    --arena-height: min(73dvh, 780px);
+  main:is([data-screen='battle'], [data-screen='unlock']) #battle:has(> .encounter:not([hidden]))::before {
+    content: '';
+    grid-area: 1 / 2 / -1 / 3;
+    border: 1px solid #80705b;
+    background: linear-gradient(165deg, #34312b, #292622 88%);
+    box-shadow: 0 8px 22px #24211b6e;
+    pointer-events: none;
+  }
+  main:is([data-screen='battle'], [data-screen='unlock']) #battle .encounter {
+    --arena-height: var(--desk-height);
     --arena-actor-zoom: 2;
-    --arena-footer: 106px;
-    grid-area: 1 / 1 / 4 / 2;
-    border: 1px solid #80705b;
-    box-shadow: 0 12px 30px #24211b6e;
-  }
-  [data-screen='battle'] .encounter.gimmick-intro {
+    --arena-footer: clamp(106px, 15dvh, 170px);
+    grid-area: 1 / 1 / -1 / 2;
+    min-block-size: var(--desk-height);
+    max-block-size: var(--desk-height);
     margin-block-start: 0;
-    block-size: var(--arena-height);
-  }
-  [data-screen='battle'] #planning {
-    grid-area: 1 / 2;
-    padding: 16px;
-    margin-block-start: 74px;
     border: 1px solid #80705b;
-    box-shadow: 0 8px 16px #24211b6e;
-    gap: 16px;
+    box-shadow: 0 8px 22px #24211b6e;
   }
-  [data-screen='battle'] #planning[data-unlock-cues]:has(#locked-die:not([hidden]):not([data-awakening])) {
-    padding-block-start: 28px;
+  main:is([data-screen='battle'], [data-screen='unlock']) #battle .upper-field { --arena-footer: clamp(128px, 16dvh, 178px); }
+
+  [data-screen='battle'] #battle #planning {
+    grid-area: 1 / 2;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    gap: var(--desk-row-gap);
+    width: 100%;
+    min-block-size: 0;
+    padding: calc(var(--desk-rail) + var(--desk-row-gap)) var(--desk-padding) var(--desk-padding);
+    background: transparent;
   }
-  [data-screen='battle'] #planning .controls { row-gap: 7px; }
-  [data-screen='battle'] #treasure-controls:not([data-item-overlay]) { grid-area: 2 / 2; }
-  main[data-screen='battle']:has(.encounter:not([hidden])) .inventory-strip {
+  [data-screen='battle'] #battle #planning[data-unlock-cues] {
+    padding-block-start: calc(var(--desk-rail) + var(--desk-row-gap));
+  }
+  [data-screen='battle'] #planning #thumb-items { grid-row: 1; }
+  [data-screen='battle'] #planning #thumb-items button { min-block-size: 48px; min-inline-size: 60px; }
+  [data-screen='battle'] #battle #planning .pool {
+    --pool-action-width: clamp(26px, 2.3vw, 42px);
+    grid-row: 2;
+    grid-template-columns: var(--pool-action-width) minmax(0, 1fr) var(--pool-action-width);
+    gap: 6px;
+    min-block-size: calc(var(--desk-die) + 36px);
+    margin-block-start: 0;
+  }
+  [data-screen='battle'] #planning :is(#pool-help, #assign-pool) { inline-size: var(--pool-action-width); }
+  [data-screen='battle'] #planning .slots { grid-row: 3; gap: var(--desk-row-gap); }
+  [data-screen='battle'] #planning .slot { grid-template-rows: auto 1fr; padding: 4px; }
+  [data-screen='battle'] #planning .slot-target { min-block-size: clamp(46px, 6dvh, 64px); }
+  [data-screen='battle'] #planning .slot-target span { font-size: clamp(1rem, 1.15vw, 1.25rem); }
+  [data-screen='battle'] #planning .slot strong { font-size: clamp(2rem, 2.7vw, 3rem); }
+  [data-screen='battle'] #planning .dice-row { gap: clamp(7px, .75vw, 12px); }
+  [data-screen='battle'] #planning .slot .dice-row {
+    display: grid;
+    grid-template-columns: repeat(2, var(--desk-die));
+    grid-auto-rows: var(--desk-die);
+    place-content: center;
+  }
+  [data-screen='battle'] #planning :is(.die, .die-face, .die-seat) {
+    flex-basis: var(--desk-die);
+    inline-size: var(--desk-die);
+    min-inline-size: var(--desk-die);
+    block-size: var(--desk-die);
+    min-block-size: var(--desk-die);
+  }
+  [data-screen='battle'] #planning .die-face,
+  [data-screen='battle'] #planning #locked-die { font-size: clamp(1.9rem, 2.5vw, 2.7rem); }
+  [data-screen='battle'] #planning .die-seat { background-size: 86%; }
+  [data-screen='battle'] #planning .controls {
+    grid-row: 4;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--desk-row-gap);
+  }
+  [data-screen='battle'] #planning .controls button {
+    min-block-size: clamp(44px, 7dvh, 64px);
+    font-size: clamp(1rem, 1.3vw, 1.25rem);
+  }
+  [data-screen='battle'] #battle #planning #resolve {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-block-size: var(--desk-primary-height);
+    font-size: clamp(1.3rem, 1.9vw, 1.8rem);
+  }
+
+  [data-screen='battle'] #treasure-controls:not([data-item-overlay]) {
+    grid-area: 2 / 2;
+    z-index: 1;
+    margin: 0 var(--desk-padding) var(--desk-row-gap);
+    max-block-size: max(54px, calc(var(--desk-counter-items) - var(--desk-row-gap)));
+    overflow: auto;
+  }
+  main:is([data-screen='battle'], [data-screen='unlock']):has(.encounter:not([hidden])) .inventory-strip {
     grid-area: 2 / 2;
     justify-self: stretch;
     justify-content: start;
     inline-size: auto;
     max-inline-size: none;
-    margin: 20px 0 0;
-    padding: 6px;
+    margin: calc(var(--desk-top-gap) + 1px) 1px 0;
+    padding: var(--desk-row-gap) var(--desk-padding) 9px;
     border-bottom: 1px solid #80705b;
   }
-  [data-screen='battle'] .counter-over-field #counter,
-  [data-screen='battle'] .counter-over-field #counter-footer {
+
+  [data-screen='battle'] #battle .encounter #counter-panel.counter-over-field {
+    inset: -1px auto calc(var(--desk-counter-items) - 1px) calc(100% + var(--desk-gap) + 1px);
+    width: var(--desk-side);
+    grid-template-rows: minmax(0, 1fr) var(--desk-primary-height);
+    gap: var(--desk-row-gap);
+    padding: calc(var(--desk-rail) + var(--desk-row-gap)) var(--desk-padding) var(--desk-padding);
+    margin: 0;
+    pointer-events: none;
+  }
+  [data-screen='battle'] #counter-panel.counter-over-field .roulette-stage {
+    width: min(calc(100% - 22px), clamp(284px, 28vw, 480px), calc(var(--desk-height) - var(--desk-counter-items) - var(--desk-rail) - 150px));
+  }
+  [data-screen='battle'] .counter-over-field .roulette-label span { font-size: clamp(1.3rem, 1.85vw, 1.8rem); }
+  [data-screen='battle'] #counter-panel.counter-over-field #counter,
+  [data-screen='battle'] #battle .encounter .counter-over-field #counter-footer {
     position: static;
+    grid-area: 2 / 1;
     width: 100%;
+    min-block-size: var(--desk-primary-height);
+    font-size: clamp(1.3rem, 1.9vw, 1.8rem);
   }
-  [data-screen='battle'] #counter-panel.counter-over-field {
-    --counter-top: clamp(32px, 8dvh, 72px);
-    inset-block-start: var(--counter-top);
+  [data-screen='battle'] #battle:has(> #treasure-controls[data-item-counter]:not([hidden])) .upper-field #counter-panel.counter-over-field #counter-footer {
+    position: static;
+    inline-size: 100%;
   }
-  [data-screen='battle'] .upper-field { --arena-footer: 130px; }
+  [data-screen='battle'] .counter-over-field #counter-damage { font-size: clamp(2rem, 3.2vw, 3.5rem); }
+  [data-screen='battle'] .counter-over-field #counter { pointer-events: auto; }
+
+  [data-screen='reward'] #battle { padding-block: 24px; }
+  [data-screen='reward'] #battle:has(.battle-reward)::after { content: none; }
+  [data-screen='reward'] #battle #reward-panel {
+    width: 100%;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: clamp(14px, 2dvh, 22px) var(--desk-gap);
+    padding: clamp(24px, 3vw, 46px);
+    margin: auto;
+    border: 1px solid #80705b;
+    background: linear-gradient(155deg, #36322c, #292622 88%);
+    box-shadow: 0 8px 22px #24211b6e;
+  }
+  [data-screen='reward'] :is(.reward-header, #reward-cards, .reward-actions) { grid-column: 1 / -1; }
+  [data-screen='reward'] .reward-header { gap: 10px; }
+  [data-screen='reward'] .reward-header h2 { font-size: clamp(1.55rem, 2.3vw, 2.2rem); }
+  [data-screen='reward'] .elite-equipped { gap: var(--desk-gap); }
+  [data-screen='reward'] .elite-equipped > button {
+    min-block-size: 70px;
+    grid-template-columns: auto auto;
+    justify-content: center;
+    gap: 4px 8px;
+    font-size: 1rem;
+  }
+  [data-screen='reward'] .elite-equipped > button small { grid-column: 2; }
+  [data-screen='reward'] .elite-equipped > button .pixel-icon {
+    grid-row: span 2;
+    width: 32px;
+    height: 32px;
+  }
+  [data-screen='reward'] #reward-cards { gap: var(--desk-gap); }
+  [data-screen='reward'] :is(.boss-reward, .multi-shop) #reward-cards {
+    grid-template-columns: repeat(auto-fit, minmax(174px, 1fr));
+  }
+  [data-screen='reward'] #reward-panel #reward-cards .reward-card {
+    flex: 1 1 0;
+    min-inline-size: 0;
+    width: 100%;
+    min-block-size: clamp(122px, 23dvh, 225px);
+    padding: 12px;
+    aspect-ratio: auto;
+    font-size: clamp(1rem, 1.3vw, 1.2rem);
+  }
+  [data-screen='reward'] #reward-cards .reward-card .pixel-icon {
+    width: clamp(48px, 5.1vw, 80px);
+    height: clamp(48px, 5.1vw, 80px);
+  }
+  [data-screen='reward'] #reward-cards .reward-card :is(.reward-type, .reward-effect, .reward-effect-line) { font-size: .9rem; }
+  [data-screen='reward'] #reward-preview {
+    grid-column: 1 / -1;
+    padding: 16px;
+    border: 1px solid #746149;
+    background: #302a24;
+    font-size: clamp(1rem, 1.25vw, 1.15rem);
+  }
+  [data-screen='reward'] #reward-panel:has(#artifact-options:not([hidden])) #reward-preview { grid-column: 1; }
+  [data-screen='reward'] #artifact-options { grid-column: 2; align-self: start; padding: 12px; }
+  [data-screen='reward'] .replacement-comparison { gap: 14px; }
+  [data-screen='reward'] .reward-actions { justify-self: end; width: min(100%, 600px); }
+  [data-screen='reward'] .reward-actions button { min-block-size: clamp(54px, 8dvh, 76px); font-size: 1.1rem; }
+
+  #new-unlock[open] {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: 'art heading' 'art benefit' 'art confirm';
+    align-content: center;
+    align-items: center;
+    justify-items: center;
+    gap: clamp(18px, 2.6dvh, 30px) var(--desk-gap);
+    width: var(--desk-width);
+    min-block-size: clamp(330px, 54dvh, 570px);
+    padding: clamp(24px, 4vw, 64px);
+    background: linear-gradient(155deg, #3a3229, #29241f 86%);
+  }
+  #new-unlock #unlock-heading { grid-area: heading; font-size: clamp(1.65rem, 2.7vw, 2.6rem); }
+  #new-unlock #unlock-reveal { grid-area: art; width: 100%; }
+  #new-unlock #unlock-benefit { grid-area: benefit; margin: 0; max-inline-size: 32ch; font-size: clamp(1.05rem, 1.6vw, 1.35rem); }
+  #new-unlock form { grid-area: confirm; width: min(100%, 360px); }
+  #new-unlock #confirm-unlock { width: 100%; min-block-size: var(--desk-primary-height); font-size: 1.35rem; }
+  #new-unlock .companion-reveal .companion-tile { inline-size: clamp(140px, 24dvh, 240px); font-size: clamp(4rem, 8dvh, 6rem); }
+  #new-unlock #unlock-reveal .unlock-pattern { font-size: clamp(38px, 6vw, 68px); }
+  #new-unlock[open]:has(.meta-unlock-cards) { grid-template-areas: 'heading heading' 'art art' 'confirm confirm'; }
+  #new-unlock #unlock-reveal.meta-unlock-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--desk-gap); }
+  #new-unlock .unlock-meta-card { grid-template-columns: 64px minmax(0, 1fr); gap: 8px 20px; padding: 20px; font-size: 1.25rem; }
+  #new-unlock .unlock-meta-card .pixel-icon { width: 60px; height: 60px; }
+  #new-unlock .unlock-meta-card p { font-size: 1rem; }
 }
 
 .artifact-option button[data-option='replace'] {
