@@ -1,0 +1,100 @@
+[
+  {
+    "width": 320,
+    "height": 568,
+    "reducedMotion": "no-preference",
+    "trace": [
+      {
+        "phase": "rolling",
+        "label": "3에고",
+        "time": 0
+      },
+      {
+        "phase": "settled",
+        "label": "3에고 → 방어",
+        "time": 493
+      },
+      {
+        "phase": "landed",
+        "label": "3 9/9",
+        "time": 1007
+      },
+      {
+        "phase": "done",
+        "label": "3 9/9",
+        "time": 1490
+      }
+    ]
+  },
+  {
+    "width": 320,
+    "height": 568,
+    "reducedMotion": "reduce",
+    "trace": [
+      {
+        "phase": "settled",
+        "label": "3에고 → 방어",
+        "time": 0
+      },
+      {
+        "phase": "landed",
+        "label": "3 9/9",
+        "time": 106
+      },
+      {
+        "phase": "done",
+        "label": "3 9/9",
+        "time": 256
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "reducedMotion": "no-preference",
+    "trace": [
+      {
+        "phase": "rolling",
+        "label": "3에고",
+        "time": 0
+      },
+      {
+        "phase": "settled",
+        "label": "3에고 → 방어",
+        "time": 493
+      },
+      {
+        "phase": "landed",
+        "label": "3 9/9",
+        "time": 1009
+      },
+      {
+        "phase": "done",
+        "label": "3 9/9",
+        "time": 1492
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "reducedMotion": "reduce",
+    "trace": [
+      {
+        "phase": "settled",
+        "label": "3에고 → 방어",
+        "time": 0
+      },
+      {
+        "phase": "landed",
+        "label": "3 9/9",
+        "time": 108
+      },
+      {
+        "phase": "done",
+        "label": "3 9/9",
+        "time": 258
+      }
+    ]
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "parkedRequests": 1,
+  "contacts": [
+    {
+      "sheet": "golem-counter.png",
+      "cell": 4,
+      "held": false,
+      "hp": 12,
+      "damage": "−8"
+    }
+  ],
+  "maxFragments": 0
+}
