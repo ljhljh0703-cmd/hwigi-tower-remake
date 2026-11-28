@@ -1,0 +1,77 @@
+{
+  "variant": "ui",
+  "results": {
+    "320x568": {
+      "planning": {
+        "corners": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "art": {
+          "attack": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/slot-filled.png\")",
+          "guard": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/slot-frame.png\")",
+          "reroll": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/reroll-disabled.png\")"
+        },
+        "rerollStates": {
+          "ready": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/reroll.png\")",
+          "pressed": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/reroll-pressed.png\")",
+          "disabled": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/reroll-disabled.png\")"
+        }
+      },
+      "stolen": {
+        "label": "빼앗긴 주사위, 적에게 피해 5을 주면 되찾음",
+        "art": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/stolen-socket.png\")"
+      }
+    },
+    "390x844": {
+      "planning": {
+        "corners": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "art": {
+          "attack": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/slot-filled.png\")",
+          "guard": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/slot-frame.png\")",
+          "reroll": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/reroll-disabled.png\")"
+        },
+        "rerollStates": {
+          "ready": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/reroll.png\")",
+          "pressed": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/reroll-pressed.png\")",
+          "disabled": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/reroll-disabled.png\")"
+        }
+      },
+      "stolen": {
+        "label": "빼앗긴 주사위, 적에게 피해 5을 주면 되찾음",
+        "art": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/stolen-socket.png\")"
+      }
+    },
+    "1440x900": {
+      "planning": {
+        "corners": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "art": {
+          "attack": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/slot-filled.png\")",
+          "guard": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/slot-frame.png\")",
+          "reroll": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/reroll-disabled.png\")"
+        },
+        "rerollStates": {
+          "ready": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/reroll.png\")",
+          "pressed": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/reroll-pressed.png\")",
+          "disabled": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/reroll-disabled.png\")"
+        }
+      },
+      "stolen": {
+        "label": "빼앗긴 주사위, 적에게 피해 5을 주면 되찾음",
+        "art": "url(\"http://127.0.0.1:60903/hwigi-tower-remake/art/ui/combat-controls/stolen-socket.png\")"
+      }
+    }
+  }
+}

@@ -1,0 +1,74 @@
+[
+  {
+    "viewport": "320x568",
+    "scene": "front13",
+    "glyphPixelsAt340ms": 260,
+    "fragmentOverlap": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "viewport": "320x568",
+    "scene": "boss19",
+    "glyphPixelsAt340ms": 220,
+    "fragmentOverlap": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "viewport": "390x844",
+    "scene": "front13",
+    "glyphPixelsAt340ms": 260,
+    "fragmentOverlap": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "viewport": "390x844",
+    "scene": "boss19",
+    "glyphPixelsAt340ms": 226,
+    "fragmentOverlap": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "viewport": "1440x900",
+    "scene": "front13",
+    "glyphPixelsAt340ms": 259,
+    "fragmentOverlap": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "viewport": "1440x900",
+    "scene": "boss19",
+    "glyphPixelsAt340ms": 220,
+    "fragmentOverlap": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  }
+]

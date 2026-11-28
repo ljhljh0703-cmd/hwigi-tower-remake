@@ -1,0 +1,47 @@
+{
+  "variant": "before",
+  "results": {
+    "320x568": {
+      "planning": {
+        "corners": [
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      "stolen": {
+        "label": "빼앗긴 주사위, 적에게 피해 5을 주면 되찾음",
+        "art": "none"
+      }
+    },
+    "390x844": {
+      "planning": {
+        "corners": [
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      "stolen": {
+        "label": "빼앗긴 주사위, 적에게 피해 5을 주면 되찾음",
+        "art": "none"
+      }
+    },
+    "1440x900": {
+      "planning": {
+        "corners": [
+          false,
+          false,
+          false,
+          false
+        ]
+      },
+      "stolen": {
+        "label": "빼앗긴 주사위, 적에게 피해 5을 주면 되찾음",
+        "art": "none"
+      }
+    }
+  }
+}

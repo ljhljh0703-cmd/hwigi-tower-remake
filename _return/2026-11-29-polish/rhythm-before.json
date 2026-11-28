@@ -1,0 +1,601 @@
+{
+  "variant": "fragments",
+  "results": {
+    "320x568": {
+      "sameTurn": {
+        "start": 504,
+        "traces": [
+          {
+            "label": "나−8",
+            "target": "player-damage",
+            "at": 911
+          },
+          {
+            "label": "나−8",
+            "target": "player-damage",
+            "at": 1199
+          }
+        ],
+        "sounds": [
+          {
+            "name": "swish.wav",
+            "rate": 0.949999988079071,
+            "at": 504
+          },
+          {
+            "name": "stone-hit.mp3",
+            "rate": 0.8199999928474426,
+            "at": 615
+          },
+          {
+            "name": "rebound.wav",
+            "rate": 1,
+            "at": 720
+          },
+          {
+            "name": "stone-hit.mp3",
+            "rate": 1,
+            "at": 911
+          },
+          {
+            "name": "stone-hit.mp3",
+            "rate": 1,
+            "at": 1199
+          }
+        ]
+      },
+      "consecutive": {
+        "expected": [
+          17,
+          14
+        ],
+        "phases": [
+          {
+            "start": 1205.1000000238419,
+            "hit": {
+              "label": "−17",
+              "target": "enemy-damage",
+              "at": 3005.100000023842
+            },
+            "sounds": [
+              {
+                "name": "die-rebound.wav",
+                "rate": 1.1799999475479126,
+                "at": 1748.3000000715256
+              },
+              {
+                "name": "seat.wav",
+                "rate": 1,
+                "at": 2264
+              },
+              {
+                "name": "swish.wav",
+                "rate": 1,
+                "at": 2916.100000023842
+              },
+              {
+                "name": "slam.wav",
+                "rate": 0.8199999928474426,
+                "at": 2980.4000000953674
+              },
+              {
+                "name": "stone-hit.mp3",
+                "rate": 1.159999966621399,
+                "at": 2980.600000023842
+              }
+            ]
+          },
+          {
+            "start": 5286.400000095367,
+            "hit": {
+              "label": "−14",
+              "target": "enemy-damage",
+              "at": 7081.100000023842
+            },
+            "sounds": [
+              {
+                "name": "die-rebound.wav",
+                "rate": 1.1799999475479126,
+                "at": 1748.3000000715256
+              },
+              {
+                "name": "seat.wav",
+                "rate": 1,
+                "at": 2264
+              },
+              {
+                "name": "swish.wav",
+                "rate": 1,
+                "at": 2916.100000023842
+              },
+              {
+                "name": "slam.wav",
+                "rate": 0.8199999928474426,
+                "at": 2980.4000000953674
+              },
+              {
+                "name": "stone-hit.mp3",
+                "rate": 1.159999966621399,
+                "at": 2980.600000023842
+              },
+              {
+                "name": "tap.wav",
+                "rate": 1,
+                "at": 3276.4000000953674
+              },
+              {
+                "name": "stone-hit.mp3",
+                "rate": 0.8500000238418579,
+                "at": 3514.4000000953674
+              },
+              {
+                "name": "charge.wav",
+                "rate": 1,
+                "at": 3677.9000000953674
+              },
+              {
+                "name": "die-corner.wav",
+                "rate": 1,
+                "at": 3980.9000000953674
+              },
+              {
+                "name": "die-corner.wav",
+                "rate": 1.034999966621399,
+                "at": 4013.8000000715256
+              },
+              {
+                "name": "die-corner.wav",
+                "rate": 1.0700000524520874,
+                "at": 4030.8000000715256
+              },
+              {
+                "name": "die-rebound.wav",
+                "rate": 1,
+                "at": 4197.300000071526
+              },
+              {
+                "name": "seat.wav",
+                "rate": 1,
+                "at": 4797.100000023842
+              },
+              {
+                "name": "dice-place.mp3",
+                "rate": 1,
+                "at": 5182.100000023842
+              },
+              {
+                "name": "dice-place.mp3",
+                "rate": 1,
+                "at": 5364
+              },
+              {
+                "name": "die-rebound.wav",
+                "rate": 1.1799999475479126,
+                "at": 5847.600000023842
+              },
+              {
+                "name": "seat.wav",
+                "rate": 1,
+                "at": 6364.5
+              },
+              {
+                "name": "swish.wav",
+                "rate": 1,
+                "at": 7013
+              },
+              {
+                "name": "slam.wav",
+                "rate": 0.8199999928474426,
+                "at": 7074.5
+              },
+              {
+                "name": "stone-hit.mp3",
+                "rate": 1.159999966621399,
+                "at": 7074.600000023842
+              },
+              {
+                "name": "release.wav",
+                "rate": 0.8500000238418579,
+                "at": 7080.700000047684
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "390x844": {
+      "sameTurn": {
+        "start": 504,
+        "traces": [
+          {
+            "label": "나−8",
+            "target": "player-damage",
+            "at": 911
+          },
+          {
+            "label": "나−8",
+            "target": "player-damage",
+            "at": 1199
+          }
+        ],
+        "sounds": [
+          {
+            "name": "swish.wav",
+            "rate": 0.949999988079071,
+            "at": 504
+          },
+          {
+            "name": "stone-hit.mp3",
+            "rate": 0.8199999928474426,
+            "at": 615
+          },
+          {
+            "name": "rebound.wav",
+            "rate": 1,
+            "at": 720
+          },
+          {
+            "name": "stone-hit.mp3",
+            "rate": 1,
+            "at": 911
+          },
+          {
+            "name": "stone-hit.mp3",
+            "rate": 1,
+            "at": 1199
+          }
+        ]
+      },
+      "consecutive": {
+        "expected": [
+          17,
+          14
+        ],
+        "phases": [
+          {
+            "start": 1478.8999999761581,
+            "hit": {
+              "label": "−17",
+              "target": "enemy-damage",
+              "at": 3292
+            },
+            "sounds": [
+              {
+                "name": "die-rebound.wav",
+                "rate": 1.1799999475479126,
+                "at": 2021.3999999761581
+              },
+              {
+                "name": "seat.wav",
+                "rate": 1,
+                "at": 2538.7999999523163
+              },
+              {
+                "name": "swish.wav",
+                "rate": 1,
+                "at": 3191.2999999523163
+              },
+              {
+                "name": "slam.wav",
+                "rate": 0.8199999928474426,
+                "at": 3258.1999999284744
+              },
+              {
+                "name": "stone-hit.mp3",
+                "rate": 1.159999966621399,
+                "at": 3258.1999999284744
+              }
+            ]
+          },
+          {
+            "start": 5443.899999976158,
+            "hit": {
+              "label": "−14",
+              "target": "enemy-damage",
+              "at": 7241.599999904633
+            },
+            "sounds": [
+              {
+                "name": "die-rebound.wav",
+                "rate": 1.1799999475479126,
+                "at": 2021.3999999761581
+              },
+              {
+                "name": "seat.wav",
+                "rate": 1,
+                "at": 2538.7999999523163
+              },
+              {
+                "name": "swish.wav",
+                "rate": 1,
+                "at": 3191.2999999523163
+              },
+              {
+                "name": "slam.wav",
+                "rate": 0.8199999928474426,
+                "at": 3258.1999999284744
+              },
+              {
+                "name": "stone-hit.mp3",
+                "rate": 1.159999966621399,
+                "at": 3258.1999999284744
+              },
+              {
+                "name": "tap.wav",
+                "rate": 1,
+                "at": 3550.899999976158
+              },
+              {
+                "name": "stone-hit.mp3",
+                "rate": 0.8500000238418579,
+                "at": 3796.0999999046326
+              },
+              {
+                "name": "charge.wav",
+                "rate": 1,
+                "at": 3977.0999999046326
+              },
+              {
+                "name": "die-corner.wav",
+                "rate": 1,
+                "at": 4271.5
+              },
+              {
+                "name": "die-corner.wav",
+                "rate": 1.034999966621399,
+                "at": 4305.699999928474
+              },
+              {
+                "name": "die-corner.wav",
+                "rate": 1.0700000524520874,
+                "at": 4321.699999928474
+              },
+              {
+                "name": "die-rebound.wav",
+                "rate": 1,
+                "at": 4488.5
+              },
+              {
+                "name": "seat.wav",
+                "rate": 1,
+                "at": 5088
+              },
+              {
+                "name": "dice-place.mp3",
+                "rate": 1,
+                "at": 5537.899999976158
+              },
+              {
+                "name": "die-rebound.wav",
+                "rate": 1.1799999475479126,
+                "at": 5988.099999904633
+              },
+              {
+                "name": "seat.wav",
+                "rate": 1,
+                "at": 6522
+              },
+              {
+                "name": "swish.wav",
+                "rate": 1,
+                "at": 7174
+              },
+              {
+                "name": "slam.wav",
+                "rate": 0.8199999928474426,
+                "at": 7237.799999952316
+              },
+              {
+                "name": "stone-hit.mp3",
+                "rate": 1.159999966621399,
+                "at": 7237.899999976158
+              },
+              {
+                "name": "release.wav",
+                "rate": 0.8500000238418579,
+                "at": 7241.5
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "1440x900": {
+      "sameTurn": {
+        "start": 503,
+        "traces": [
+          {
+            "label": "나−8",
+            "target": "player-damage",
+            "at": 910
+          },
+          {
+            "label": "나−8",
+            "target": "player-damage",
+            "at": 1198
+          }
+        ],
+        "sounds": [
+          {
+            "name": "swish.wav",
+            "rate": 0.949999988079071,
+            "at": 503
+          },
+          {
+            "name": "stone-hit.mp3",
+            "rate": 0.8199999928474426,
+            "at": 614
+          },
+          {
+            "name": "rebound.wav",
+            "rate": 1,
+            "at": 719
+          },
+          {
+            "name": "stone-hit.mp3",
+            "rate": 1,
+            "at": 910
+          },
+          {
+            "name": "stone-hit.mp3",
+            "rate": 1,
+            "at": 1198
+          }
+        ]
+      },
+      "consecutive": {
+        "expected": [
+          17,
+          14
+        ],
+        "phases": [
+          {
+            "start": 1133.3999999761581,
+            "hit": {
+              "label": "−17",
+              "target": "enemy-damage",
+              "at": 2966.2999999523163
+            },
+            "sounds": [
+              {
+                "name": "die-rebound.wav",
+                "rate": 1.1799999475479126,
+                "at": 1687
+              },
+              {
+                "name": "seat.wav",
+                "rate": 1,
+                "at": 2220.1999999284744
+              },
+              {
+                "name": "swish.wav",
+                "rate": 1,
+                "at": 2872.2999999523163
+              },
+              {
+                "name": "slam.wav",
+                "rate": 0.8199999928474426,
+                "at": 2932.899999976158
+              },
+              {
+                "name": "stone-hit.mp3",
+                "rate": 1.159999966621399,
+                "at": 2933
+              }
+            ]
+          },
+          {
+            "start": 5082.5,
+            "hit": {
+              "label": "−14",
+              "target": "enemy-damage",
+              "at": 6885
+            },
+            "sounds": [
+              {
+                "name": "die-rebound.wav",
+                "rate": 1.1799999475479126,
+                "at": 1687
+              },
+              {
+                "name": "seat.wav",
+                "rate": 1,
+                "at": 2220.1999999284744
+              },
+              {
+                "name": "swish.wav",
+                "rate": 1,
+                "at": 2872.2999999523163
+              },
+              {
+                "name": "slam.wav",
+                "rate": 0.8199999928474426,
+                "at": 2932.899999976158
+              },
+              {
+                "name": "stone-hit.mp3",
+                "rate": 1.159999966621399,
+                "at": 2933
+              },
+              {
+                "name": "tap.wav",
+                "rate": 1,
+                "at": 3222.399999976158
+              },
+              {
+                "name": "stone-hit.mp3",
+                "rate": 0.8500000238418579,
+                "at": 3473.399999976158
+              },
+              {
+                "name": "charge.wav",
+                "rate": 1,
+                "at": 3646.399999976158
+              },
+              {
+                "name": "die-corner.wav",
+                "rate": 1,
+                "at": 3955
+              },
+              {
+                "name": "die-corner.wav",
+                "rate": 1.034999966621399,
+                "at": 3970.399999976158
+              },
+              {
+                "name": "die-corner.wav",
+                "rate": 1.0700000524520874,
+                "at": 4003.899999976158
+              },
+              {
+                "name": "die-rebound.wav",
+                "rate": 1,
+                "at": 4153.299999952316
+              },
+              {
+                "name": "seat.wav",
+                "rate": 1,
+                "at": 4770
+              },
+              {
+                "name": "dice-place.mp3",
+                "rate": 1,
+                "at": 5186.600000023842
+              },
+              {
+                "name": "die-rebound.wav",
+                "rate": 1.1799999475479126,
+                "at": 5637
+              },
+              {
+                "name": "seat.wav",
+                "rate": 1,
+                "at": 6170.5
+              },
+              {
+                "name": "swish.wav",
+                "rate": 1,
+                "at": 6824.199999928474
+              },
+              {
+                "name": "slam.wav",
+                "rate": 0.8199999928474426,
+                "at": 6881.199999928474
+              },
+              {
+                "name": "stone-hit.mp3",
+                "rate": 1.159999966621399,
+                "at": 6881.299999952316
+              },
+              {
+                "name": "release.wav",
+                "rate": 0.8500000238418579,
+                "at": 6884.899999976158
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

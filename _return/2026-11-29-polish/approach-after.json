@@ -1,0 +1,131 @@
+{
+  "variant": "approach",
+  "results": {
+    "320x568": {
+      "approach": {
+        "ms": 224,
+        "hit": {
+          "label": "−8",
+          "target": "dash",
+          "hp": "체력 2/10",
+          "at": 731
+        },
+        "poses": [
+          {
+            "name": "hero-attack-prepare.png",
+            "at": 507
+          },
+          {
+            "name": "hero-step.png",
+            "at": 592
+          },
+          {
+            "name": "hero-attack.png",
+            "at": 704
+          }
+        ],
+        "sounds": [
+          {
+            "name": "swish.wav",
+            "rate": 0.949999988079071,
+            "at": 669
+          },
+          {
+            "name": "slam.wav",
+            "rate": 0.8199999928474426,
+            "at": 731
+          },
+          {
+            "name": "stone-hit.mp3",
+            "rate": 1.159999966621399,
+            "at": 731
+          }
+        ]
+      }
+    },
+    "390x844": {
+      "approach": {
+        "ms": 224,
+        "hit": {
+          "label": "−8",
+          "target": "dash",
+          "hp": "체력 2/10",
+          "at": 726
+        },
+        "poses": [
+          {
+            "name": "hero-attack-prepare.png",
+            "at": 502
+          },
+          {
+            "name": "hero-step.png",
+            "at": 592
+          },
+          {
+            "name": "hero-attack.png",
+            "at": 688
+          }
+        ],
+        "sounds": [
+          {
+            "name": "swish.wav",
+            "rate": 0.949999988079071,
+            "at": 664
+          },
+          {
+            "name": "slam.wav",
+            "rate": 0.8199999928474426,
+            "at": 726
+          },
+          {
+            "name": "stone-hit.mp3",
+            "rate": 1.159999966621399,
+            "at": 726
+          }
+        ]
+      }
+    },
+    "1440x900": {
+      "approach": {
+        "ms": 224,
+        "hit": {
+          "label": "−8",
+          "target": "dash",
+          "hp": "체력 2/10",
+          "at": 729
+        },
+        "poses": [
+          {
+            "name": "hero-attack-prepare.png",
+            "at": 505
+          },
+          {
+            "name": "hero-step.png",
+            "at": 592
+          },
+          {
+            "name": "hero-attack.png",
+            "at": 704
+          }
+        ],
+        "sounds": [
+          {
+            "name": "swish.wav",
+            "rate": 0.949999988079071,
+            "at": 667
+          },
+          {
+            "name": "slam.wav",
+            "rate": 0.8199999928474426,
+            "at": 729
+          },
+          {
+            "name": "stone-hit.mp3",
+            "rate": 1.159999966621399,
+            "at": 729
+          }
+        ]
+      }
+    }
+  }
+}
