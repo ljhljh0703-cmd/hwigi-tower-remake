@@ -175,6 +175,7 @@ const ui = {
   resolve: element<HTMLButtonElement>('resolve'),
   counter: element<HTMLButtonElement>('counter'),
   counterPanel: element('counter-panel'),
+  counterFooter: element('counter-footer'),
   next: element<HTMLButtonElement>('next'),
   retry: element<HTMLButtonElement>('retry'),
 }
@@ -552,8 +553,11 @@ const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
       const indices = selected.has(index) ? [...selected].sort((a, b) => a - b) : [index]
       const battle = ascent?.battle
       const mechanic = battle && enemyIntentAt(battle).mechanic
-      const faces = battle ? indices.map((die) => mechanic?.kind === 'seal' && battle.dice[die] === mechanic.value ? '봉인' : battle.dice[die]) : []
-      return { indices, faces: faces.join('  '), companion: !!battle && indices.length === 1 && indices[0] === companionDieIndex(battle) }
+      const faces = battle ? indices.map((die) => ({
+        label: mechanic?.kind === 'seal' && battle.dice[die] === mechanic.value ? '봉인' : String(battle.dice[die]),
+        companion: die === companionDieIndex(battle),
+      })) : []
+      return { indices, faces }
     },
     drop: (indices, zone) => place(indices, zone),
   })
@@ -2120,7 +2124,7 @@ function teachOpening({ battle }: Ascent) {
       return
     }
     firstRun.teach({ id: 'defend', text: '정확히 막았습니다! 룰렛을 두 번 누르세요.', symbol: 'wheel',
-      anchor: ui.counter, marks: [ui.counter] })
+      anchor: ui.counterFooter, marks: [ui.counter] })
     return
   }
 
