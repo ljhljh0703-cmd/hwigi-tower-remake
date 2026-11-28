@@ -838,7 +838,7 @@ main[data-screen='battle'] {
 .item-effect[data-applies='true'] { color: #ffe1ad; }
 .item-effect[data-applies='true'] .item-effect-state { border-color: #e5b66f; background: #5b4128; color: #fff0c7; box-shadow: 0 0 8px #eeb87577; }
 .elite-equipped { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
-.elite-equipped > span {
+.elite-equipped > button {
   display: grid;
   align-content: center;
   justify-items: center;
@@ -851,6 +851,8 @@ main[data-screen='battle'] {
   line-height: 1.15;
 }
 .elite-equipped :is(.icon, .pixel-icon) { inline-size: 24px; block-size: 24px; color: #e0bfea; }
+.elite-equipped button small, .artifact-option [data-option='replace'] small { display: flex; align-items: center; justify-content: center; gap: 2px; }
+.elite-equipped button small .icon, .artifact-option [data-option='replace'] small .icon { inline-size: 1em; block-size: 1em; }
 #skip-reward:has(small) { flex-direction: column; justify-content: center; gap: 1px; font-size: .86rem; padding-inline: 4px; }
 #skip-reward small { color: #f6dfbf; display: inline-flex; align-items: center; gap: 4px; }
 .reward-actions:has(#skip-reward[hidden]) { grid-template-columns: 1fr; }
@@ -865,6 +867,8 @@ main[data-screen='battle'] {
   text-align: center;
 }
 #reward-preview strong { color: #f6c795; }
+.replacement-comparison { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; }
+.replacement-comparison > div { display: grid; align-content: start; gap: 4px; }
 
 .reward-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .reward-actions button { min-block-size: clamp(44px, 8dvh, 64px); border: 0; }

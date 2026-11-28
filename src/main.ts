@@ -1483,6 +1483,29 @@ function rewardHealingLabel(run: Ascent, choice: Treasure) {
   return amount === original ? String(amount) : `${original}→${amount}`
 }
 
+function equippedRewardLabel(id: Artifact, seven: boolean) {
+  return `${itemIcon(REWARD_CARDS[id].icon)}<strong>${rewardDisplayName(id, seven)}</strong><small>${seven ? sevenItemEffect(id) : REWARD_CARDS[id].value}</small>`
+}
+
+function previewEquippedArtifact(id: Artifact) {
+  if (!ascent) return
+  const equipped = ascent.battle.loot?.equipped ?? []
+  if (!equipped.includes(id)) return
+  if (isArtifact(chosenReward) && equipped.length === ARTIFACT_SLOTS) {
+    artifactOptions = { ...artifactOptions, replace: id }
+    renderRewardPreview(ascent)
+    saveCurrent()
+  } else {
+    ui.rewardPreview.hidden = false
+    ui.rewardPreview.innerHTML = `<strong>${rewardDisplayName(id, ascent.battle.itemsSeven)}</strong><span>${rewardText(id, ascent.battle.itemsSeven)}</span>`
+  }
+}
+
+ui.rewardContext.addEventListener('click', (event) => {
+  const id = (event.target as Element).closest<HTMLButtonElement>('[data-equipped-reward]')?.dataset.equippedReward
+  if (isArtifact(id)) previewEquippedArtifact(id)
+})
+
 function renderRewardPreview(run: Ascent) {
   ui.rewardCards.querySelectorAll('button').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.reward === chosenReward))
@@ -1507,6 +1530,16 @@ function renderRewardPreview(run: Ascent) {
   const heal = healingForRun(run, chosenReward, room)
   const cost = treasureCost(room, chosenReward)
   const effect = heal ? `고르면 체력을 ${rewardHealingLabel(run, chosenReward)} 회복합니다.` : rewardText(chosenReward, run.battle.itemsSeven)
+  const replaced = isArtifact(chosenReward) && artifactOptions.replace
+  if (replaced && run.battle.loot?.equipped.includes(replaced)) {
+    const seven = run.battle.itemsSeven
+    ui.rewardPreview.innerHTML = `<div class="replacement-comparison">
+      <div><strong>뺄 것 · ${rewardDisplayName(replaced, seven)}</strong><span>${rewardText(replaced, seven)}</span></div>
+      <span aria-hidden="true">→</span>
+      <div><strong>넣을 것 · ${name}</strong><span>${effect}</span></div>
+    </div>`
+    return
+  }
   const gain = heal ? `${icon('heart')}+${heal}` : `${itemIcon(card.icon)}+1`
   const exchange = room?.kind === 'event' ? `<span class="reward-exchange"><span aria-label="얻음">얻음 ${gain}</span>${cost ? `<span aria-label="잃음">잃음 ${icon('heart')}−${cost}</span>` : ''}</span>` : ''
   ui.rewardPreview.innerHTML = `<strong>${name}</strong><span>${effect}</span>${exchange}`
@@ -1518,7 +1551,7 @@ function renderArtifactOptions(run: Ascent, artifact: Artifact) {
       `<button type="button" data-option="${option}" data-value="${value}" aria-pressed="${artifactOptions[option] === value}">${label}</button>`).join('')}</div></div>`
   const equipped = run.battle.loot?.equipped ?? []
   ui.artifactOptions.innerHTML = [
-    equipped.length === ARTIFACT_SLOTS ? field('replace', '교체할 유물', equipped.map((id) => [id, `${itemIcon(REWARD_CARDS[id].icon)}${rewardDisplayName(id, run.battle.itemsSeven)}`])) : '',
+    equipped.length === ARTIFACT_SLOTS ? field('replace', '교체할 유물', equipped.map((id) => [id, equippedRewardLabel(id, Boolean(run.battle.itemsSeven))])) : '',
     artifact === 'heart-die' ? field('parity', '에고 주사위 눈', [['odd', '홀수'], ['even', '짝수']]) : '',
     artifact === 'incomplete' && !run.battle.itemsSeven ? field('hand', '맞출 주사위 눈', (['triple', 'straight'] as const).filter((id) => !run.unlocks.includes(id)).map((id) => [id, id === 'triple' ? '같은 눈 셋' : '이어지는 눈 셋'])) : '',
   ].join('')
@@ -1577,12 +1610,10 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
     }
   }
   if (room?.event) ui.rewardContext.textContent = eventContext[room.event]
-  if (canKeep) {
+  if (equipped.length && offers.some(isArtifact)) {
     ui.artifactStrip.hidden = true
-    ui.rewardContext.innerHTML = `<span class="elite-equipped" role="group" aria-label="장착 중인 유물 세 개">${equipped.map((id) => {
-      const { icon: symbol } = REWARD_CARDS[id]
-      return `<span>${itemIcon(symbol)}<strong>${rewardDisplayName(id, seven)}</strong></span>`
-    }).join('')}</span>`
+    ui.rewardContext.insertAdjacentHTML('beforeend', `<span class="elite-equipped" role="group" aria-label="장착 중인 유물">${equipped.map((id) =>
+      `<button type="button" data-equipped-reward="${id}" aria-label="${rewardDisplayName(id, seven)} 효과">${equippedRewardLabel(id, seven)}</button>`).join('')}</span>`)
   }
   if (!run.route) {
     const next = enemyForFight(seed, fight + 1)
