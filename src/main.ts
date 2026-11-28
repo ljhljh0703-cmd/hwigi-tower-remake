@@ -1152,8 +1152,15 @@ function wait(milliseconds: number): Promise<void> {
   return new Promise((finish) => window.setTimeout(finish, effectDuration(milliseconds)))
 }
 
+// The thirteenth floor reuses the rage id for its formation, which keeps stone and cloth materials.
+const slimePoolBattle = () => ascent?.enemy.id === 'rage' && !ascent.battle.formation
+
 function weaponContact(hit: BattleHit, heavy = false, pitch = 1,
   surface: Material | null | undefined = ascent && impactMaterial(ascent.enemy.id, hit.target)) {
+  // The pool's wet slap and drain sit on top of the shared contact and break sounds.
+  if (slimePoolBattle() && hit.target === 'enemy') {
+    sound.play(hit.defeated ? 'pool-drain' : 'pool-slap', heavy ? .82 : pitch, hit.defeated ? .32 : .23)
+  }
   const crack = surface === 'ice' ? 'frost' : surface === 'brass' ? 'rebound' : 'grit'
   if (hit.defeated || heavy) {
     if (settings.vibration && !document.hidden) {
@@ -1338,6 +1345,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
       const extra = final ? totals.guard - outcome.incoming.totalDamage : 0
       showGuardCue('ordinary', damage === 0, extra)
     }
+    if (slimePoolBattle()) sound.play('pool-slap', index ? 1.16 : .96, .16)
     emit(heroHit(damage, final && !exchange.defeatedByThorns), { delay: reducedMotion() ? index * 40 : 0, incoming: true, ordered, final,
       guarded: damage === 0 && !(exact && final), parry: exact && final })
     // Only present intermediate contacts here. The final contact (including

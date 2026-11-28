@@ -45,7 +45,8 @@ test('다섯 예고는 조건과 효과를 표시하며 눈을 넣고 빼면 함
   for (const [kind, enemy, floor, turn, dice, slot, symbol, value, help, caption] of examples) {
     const run = encounter(enemy, floor)
     const battle = { ...run.battle, turn, dice, slots: dice.map(() => null), ...(kind === 'retreat' && { escort: { hp: 5, bonus: 3 } }) }
-    const asset = enemy === 'chain-warden' ? 'chain-warden-charge.png' : `motion/${ENEMY_SPRITES[enemy].name}.png`
+    // Every enemy, including the chain warden, now draws from its own motion atlas.
+    const asset = `motion/${ENEMY_SPRITES[enemy].name}.png`
     const sprite = page.waitForResponse((response) => response.url().endsWith(`/art/${asset}`) && response.ok())
     await resume(page, { ...run, battle })
     await sprite

@@ -2,6 +2,327 @@
   "version": 1,
   "sheets": [
     {
+      "id": "slime-pool",
+      "pivot": [
+        49,
+        41
+      ],
+      "frames": [
+        {
+          "id": "ready",
+          "rect": [
+            0,
+            0,
+            80,
+            48
+          ],
+          "bounds": [
+            16,
+            6,
+            60,
+            38
+          ]
+        },
+        {
+          "id": "idle-rise",
+          "rect": [
+            80,
+            0,
+            80,
+            48
+          ],
+          "bounds": [
+            16,
+            4,
+            60,
+            40
+          ]
+        },
+        {
+          "id": "idle-crest",
+          "rect": [
+            160,
+            0,
+            80,
+            48
+          ],
+          "bounds": [
+            17,
+            3,
+            58,
+            41
+          ]
+        },
+        {
+          "id": "idle-sink",
+          "rect": [
+            240,
+            0,
+            80,
+            48
+          ],
+          "bounds": [
+            16,
+            9,
+            60,
+            35
+          ]
+        },
+        {
+          "id": "anticipate",
+          "rect": [
+            320,
+            0,
+            80,
+            48
+          ],
+          "bounds": [
+            15,
+            15,
+            62,
+            29
+          ]
+        },
+        {
+          "id": "coil",
+          "rect": [
+            0,
+            48,
+            80,
+            48
+          ],
+          "bounds": [
+            15,
+            14,
+            62,
+            30
+          ]
+        },
+        {
+          "id": "approach",
+          "rect": [
+            80,
+            48,
+            80,
+            48
+          ],
+          "bounds": [
+            16,
+            12,
+            60,
+            32
+          ]
+        },
+        {
+          "id": "contact",
+          "rect": [
+            160,
+            48,
+            80,
+            48
+          ],
+          "bounds": [
+            6,
+            15,
+            70,
+            29
+          ],
+          "candidateContact": [
+            6,
+            20
+          ]
+        },
+        {
+          "id": "follow",
+          "rect": [
+            240,
+            48,
+            80,
+            48
+          ],
+          "bounds": [
+            11,
+            22,
+            65,
+            22
+          ]
+        },
+        {
+          "id": "recover",
+          "rect": [
+            320,
+            48,
+            80,
+            48
+          ],
+          "bounds": [
+            16,
+            16,
+            60,
+            28
+          ]
+        },
+        {
+          "id": "hit",
+          "rect": [
+            0,
+            96,
+            80,
+            48
+          ],
+          "bounds": [
+            15,
+            12,
+            62,
+            32
+          ]
+        },
+        {
+          "id": "heavy-hit",
+          "rect": [
+            80,
+            96,
+            80,
+            48
+          ],
+          "bounds": [
+            15,
+            8,
+            62,
+            36
+          ]
+        },
+        {
+          "id": "rupture",
+          "rect": [
+            160,
+            96,
+            80,
+            48
+          ],
+          "bounds": [
+            14,
+            10,
+            64,
+            34
+          ]
+        },
+        {
+          "id": "fall",
+          "rect": [
+            240,
+            96,
+            80,
+            48
+          ],
+          "bounds": [
+            13,
+            18,
+            66,
+            26
+          ]
+        },
+        {
+          "id": "settle",
+          "rect": [
+            320,
+            96,
+            80,
+            48
+          ],
+          "bounds": [
+            13,
+            26,
+            66,
+            17
+          ]
+        },
+        {
+          "id": "down",
+          "rect": [
+            0,
+            144,
+            80,
+            48
+          ],
+          "bounds": [
+            13,
+            28,
+            66,
+            15
+          ]
+        },
+        {
+          "id": "residue",
+          "rect": [
+            80,
+            144,
+            80,
+            48
+          ],
+          "bounds": [
+            13,
+            28,
+            66,
+            15
+          ]
+        },
+        {
+          "id": "reload",
+          "rect": [
+            0,
+            48,
+            80,
+            48
+          ],
+          "bounds": [
+            15,
+            14,
+            62,
+            30
+          ]
+        },
+        {
+          "id": "repeat-contact",
+          "rect": [
+            160,
+            48,
+            80,
+            48
+          ],
+          "bounds": [
+            6,
+            15,
+            70,
+            29
+          ],
+          "candidateContact": [
+            6,
+            20
+          ]
+        },
+        {
+          "id": "special-contact",
+          "rect": [
+            160,
+            48,
+            80,
+            48
+          ],
+          "bounds": [
+            6,
+            15,
+            70,
+            29
+          ],
+          "candidateContact": [
+            6,
+            20
+          ]
+        }
+      ]
+    },
+    {
       "id": "golem",
       "label": "가시 골렘",
       "source": "art-source/enemy-motion/raw/golem.png",
@@ -26,12 +347,12 @@
           ],
           "bounds": [
             15,
-            7,
-            31,
-            22
+            5,
+            34,
+            24
           ],
-          "alphaPixels": 485,
-          "drawing": "f48614b1bee6"
+          "alphaPixels": 578,
+          "drawing": "22e093c00896"
         },
         {
           "id": "anticipate",
@@ -43,13 +364,13 @@
             33
           ],
           "bounds": [
-            10,
-            9,
-            36,
-            20
+            18,
+            8,
+            32,
+            21
           ],
-          "alphaPixels": 472,
-          "drawing": "93f4bd326eda"
+          "alphaPixels": 492,
+          "drawing": "65ac21380721"
         },
         {
           "id": "approach",
@@ -61,13 +382,13 @@
             33
           ],
           "bounds": [
-            8,
-            8,
-            37,
-            21
+            14,
+            6,
+            35,
+            23
           ],
-          "alphaPixels": 477,
-          "drawing": "9e5ef1797774"
+          "alphaPixels": 536,
+          "drawing": "fbd6730cc4ee"
         },
         {
           "id": "contact",
@@ -79,15 +400,15 @@
             33
           ],
           "bounds": [
-            4,
-            9,
-            41,
-            20
+            6,
+            6,
+            43,
+            23
           ],
-          "alphaPixels": 457,
-          "drawing": "5c975a97fa9a",
+          "alphaPixels": 588,
+          "drawing": "410c0f97b5b7",
           "candidateContact": [
-            4,
+            6,
             19
           ]
         },
@@ -101,13 +422,13 @@
             33
           ],
           "bounds": [
-            4,
-            9,
-            40,
-            20
+            11,
+            7,
+            38,
+            22
           ],
-          "alphaPixels": 476,
-          "drawing": "0e666ac04552"
+          "alphaPixels": 575,
+          "drawing": "0f734dbff659"
         },
         {
           "id": "reload",
@@ -119,13 +440,13 @@
             33
           ],
           "bounds": [
-            13,
-            8,
-            33,
-            21
+            17,
+            6,
+            32,
+            23
           ],
-          "alphaPixels": 466,
-          "drawing": "44a3935ef3ea"
+          "alphaPixels": 535,
+          "drawing": "08b18c1fd30d"
         },
         {
           "id": "repeat-contact",
@@ -137,15 +458,15 @@
             33
           ],
           "bounds": [
-            7,
-            8,
-            37,
-            21
+            9,
+            6,
+            40,
+            23
           ],
-          "alphaPixels": 447,
-          "drawing": "7d405c85df53",
+          "alphaPixels": 566,
+          "drawing": "e0dc6bb9e883",
           "candidateContact": [
-            7,
+            9,
             19
           ]
         },
@@ -159,16 +480,16 @@
             33
           ],
           "bounds": [
-            10,
+            9,
             6,
-            37,
+            40,
             23
           ],
-          "alphaPixels": 526,
-          "drawing": "9a16fe2ce00c",
+          "alphaPixels": 566,
+          "drawing": "97b255e64775",
           "candidateContact": [
-            12,
-            22
+            9,
+            19
           ]
         },
         {
@@ -181,13 +502,13 @@
             33
           ],
           "bounds": [
-            15,
-            5,
-            30,
-            24
+            17,
+            4,
+            32,
+            25
           ],
-          "alphaPixels": 481,
-          "drawing": "9a7c91dd4d95"
+          "alphaPixels": 561,
+          "drawing": "fdf03d79bfa7"
         },
         {
           "id": "heavy-hit",
@@ -199,13 +520,13 @@
             33
           ],
           "bounds": [
-            14,
+            19,
             3,
-            33,
+            32,
             26
           ],
-          "alphaPixels": 486,
-          "drawing": "77369c5c8768"
+          "alphaPixels": 567,
+          "drawing": "3acc26306edb"
         },
         {
           "id": "fall",
@@ -217,13 +538,13 @@
             33
           ],
           "bounds": [
-            17,
-            9,
-            37,
-            20
+            18,
+            6,
+            33,
+            23
           ],
-          "alphaPixels": 464,
-          "drawing": "9dec83efff5b"
+          "alphaPixels": 532,
+          "drawing": "c2f774d9c30e"
         },
         {
           "id": "down",
@@ -235,13 +556,13 @@
             33
           ],
           "bounds": [
-            8,
-            14,
-            40,
-            15
+            19,
+            13,
+            33,
+            16
           ],
-          "alphaPixels": 378,
-          "drawing": "46284e219798"
+          "alphaPixels": 357,
+          "drawing": "08642120acb7"
         }
       ]
     },
@@ -269,13 +590,13 @@
             33
           ],
           "bounds": [
-            21,
-            7,
-            23,
-            22
+            14,
+            6,
+            33,
+            23
           ],
-          "alphaPixels": 342,
-          "drawing": "df226311a481"
+          "alphaPixels": 392,
+          "drawing": "889ca6d45c0c"
         },
         {
           "id": "anticipate",
@@ -287,13 +608,13 @@
             33
           ],
           "bounds": [
-            22,
-            10,
-            24,
-            19
+            18,
+            8,
+            29,
+            21
           ],
-          "alphaPixels": 315,
-          "drawing": "36565fe8d1ad"
+          "alphaPixels": 361,
+          "drawing": "c7131ad158b9"
         },
         {
           "id": "approach",
@@ -305,13 +626,13 @@
             33
           ],
           "bounds": [
-            16,
+            11,
             7,
-            27,
+            36,
             22
           ],
-          "alphaPixels": 367,
-          "drawing": "641a0a5aea45"
+          "alphaPixels": 404,
+          "drawing": "6aebcf61f842"
         },
         {
           "id": "contact",
@@ -323,16 +644,16 @@
             33
           ],
           "bounds": [
-            4,
-            8,
-            39,
-            21
+            1,
+            7,
+            46,
+            22
           ],
-          "alphaPixels": 423,
-          "drawing": "2c66e4495251",
+          "alphaPixels": 421,
+          "drawing": "954c0105e146",
           "candidateContact": [
-            4,
-            18
+            1,
+            20
           ]
         },
         {
@@ -345,13 +666,13 @@
             33
           ],
           "bounds": [
-            11,
+            6,
             8,
-            32,
+            41,
             21
           ],
-          "alphaPixels": 377,
-          "drawing": "25bf763a6c1e"
+          "alphaPixels": 398,
+          "drawing": "82de8926f97b"
         },
         {
           "id": "reload",
@@ -363,13 +684,13 @@
             33
           ],
           "bounds": [
-            17,
+            16,
             6,
-            26,
+            31,
             23
           ],
-          "alphaPixels": 366,
-          "drawing": "37fae9045ab6"
+          "alphaPixels": 388,
+          "drawing": "e11921edac5b"
         },
         {
           "id": "repeat-contact",
@@ -381,16 +702,16 @@
             33
           ],
           "bounds": [
-            8,
-            9,
-            35,
-            20
+            4,
+            7,
+            43,
+            22
           ],
-          "alphaPixels": 372,
-          "drawing": "63c007c30f83",
+          "alphaPixels": 414,
+          "drawing": "e7bdc4aa11fb",
           "candidateContact": [
-            8,
-            19
+            4,
+            20
           ]
         },
         {
@@ -403,15 +724,15 @@
             33
           ],
           "bounds": [
-            12,
-            10,
-            40,
-            19
+            4,
+            7,
+            43,
+            22
           ],
-          "alphaPixels": 440,
-          "drawing": "3eeee4fbe22b",
+          "alphaPixels": 415,
+          "drawing": "3409446d7d0f",
           "candidateContact": [
-            12,
+            4,
             20
           ]
         },
@@ -426,12 +747,12 @@
           ],
           "bounds": [
             20,
-            6,
-            24,
-            23
+            5,
+            27,
+            24
           ],
-          "alphaPixels": 354,
-          "drawing": "d9fd81d9bc46"
+          "alphaPixels": 362,
+          "drawing": "8c84bed48bc0"
         },
         {
           "id": "heavy-hit",
@@ -443,13 +764,13 @@
             33
           ],
           "bounds": [
-            23,
-            3,
+            22,
+            4,
             25,
-            26
+            25
           ],
-          "alphaPixels": 388,
-          "drawing": "0b6db51906aa"
+          "alphaPixels": 369,
+          "drawing": "6ad192232fe0"
         },
         {
           "id": "fall",
@@ -461,13 +782,13 @@
             33
           ],
           "bounds": [
-            21,
-            6,
-            30,
-            23
+            19,
+            5,
+            29,
+            24
           ],
-          "alphaPixels": 407,
-          "drawing": "e1ef1b587fe2"
+          "alphaPixels": 349,
+          "drawing": "cb82148aa63e"
         },
         {
           "id": "down",
@@ -479,13 +800,13 @@
             33
           ],
           "bounds": [
-            10,
+            17,
             15,
-            38,
+            32,
             14
           ],
-          "alphaPixels": 318,
-          "drawing": "a80e602d5271"
+          "alphaPixels": 225,
+          "drawing": "dea96849dbb9"
         }
       ]
     },
@@ -513,13 +834,13 @@
             33
           ],
           "bounds": [
-            18,
-            7,
-            20,
-            22
+            12,
+            3,
+            32,
+            26
           ],
-          "alphaPixels": 307,
-          "drawing": "c04bd8a42eeb"
+          "alphaPixels": 415,
+          "drawing": "3c99687273ed"
         },
         {
           "id": "anticipate",
@@ -531,13 +852,13 @@
             33
           ],
           "bounds": [
-            17,
+            12,
             10,
-            21,
+            32,
             19
           ],
-          "alphaPixels": 285,
-          "drawing": "45a19b41fe1b"
+          "alphaPixels": 326,
+          "drawing": "9f43c2ea2572"
         },
         {
           "id": "approach",
@@ -549,13 +870,13 @@
             33
           ],
           "bounds": [
-            15,
-            8,
-            23,
-            21
+            11,
+            4,
+            32,
+            25
           ],
-          "alphaPixels": 319,
-          "drawing": "9d9da3f1e126"
+          "alphaPixels": 398,
+          "drawing": "266d7a416e37"
         },
         {
           "id": "contact",
@@ -567,16 +888,16 @@
             33
           ],
           "bounds": [
+            6,
             4,
-            8,
-            34,
-            21
+            36,
+            25
           ],
-          "alphaPixels": 344,
-          "drawing": "011902fe89a4",
+          "alphaPixels": 424,
+          "drawing": "fb15887ae512",
           "candidateContact": [
-            4,
-            19
+            6,
+            22
           ]
         },
         {
@@ -590,12 +911,12 @@
           ],
           "bounds": [
             9,
-            7,
-            29,
-            22
+            5,
+            33,
+            24
           ],
-          "alphaPixels": 353,
-          "drawing": "83c3b95793f2"
+          "alphaPixels": 406,
+          "drawing": "68fd9603bb29"
         },
         {
           "id": "reload",
@@ -607,13 +928,13 @@
             33
           ],
           "bounds": [
-            15,
-            6,
-            23,
-            23
+            11,
+            8,
+            32,
+            21
           ],
-          "alphaPixels": 341,
-          "drawing": "e9b83bc44b13"
+          "alphaPixels": 342,
+          "drawing": "97a1732da4db"
         },
         {
           "id": "repeat-contact",
@@ -625,16 +946,16 @@
             33
           ],
           "bounds": [
+            9,
             4,
-            8,
             33,
-            21
+            25
           ],
-          "alphaPixels": 349,
-          "drawing": "0c2588f8c8e9",
+          "alphaPixels": 416,
+          "drawing": "762deeb5c26d",
           "candidateContact": [
-            4,
-            19
+            9,
+            22
           ]
         },
         {
@@ -647,16 +968,16 @@
             33
           ],
           "bounds": [
+            7,
             4,
-            3,
-            34,
-            26
+            35,
+            25
           ],
-          "alphaPixels": 409,
-          "drawing": "b8706ce0c5e5",
+          "alphaPixels": 419,
+          "drawing": "6a4a2772ddd4",
           "candidateContact": [
-            4,
-            14
+            7,
+            20
           ]
         },
         {
@@ -669,13 +990,13 @@
             33
           ],
           "bounds": [
-            16,
-            4,
-            22,
-            25
+            14,
+            1,
+            32,
+            28
           ],
-          "alphaPixels": 341,
-          "drawing": "6db152d06612"
+          "alphaPixels": 411,
+          "drawing": "1436a026e964"
         },
         {
           "id": "heavy-hit",
@@ -687,13 +1008,13 @@
             33
           ],
           "bounds": [
-            20,
-            3,
-            24,
-            26
+            16,
+            0,
+            32,
+            29
           ],
-          "alphaPixels": 336,
-          "drawing": "978a685cfa5d"
+          "alphaPixels": 416,
+          "drawing": "512468f79848"
         },
         {
           "id": "fall",
@@ -705,13 +1026,13 @@
             33
           ],
           "bounds": [
-            14,
-            7,
-            30,
-            22
+            15,
+            0,
+            33,
+            29
           ],
-          "alphaPixels": 359,
-          "drawing": "a3ec1d39bb03"
+          "alphaPixels": 388,
+          "drawing": "69f234e6e878"
         },
         {
           "id": "down",
@@ -723,13 +1044,13 @@
             33
           ],
           "bounds": [
-            8,
-            14,
-            33,
-            15
+            16,
+            10,
+            32,
+            19
           ],
-          "alphaPixels": 298,
-          "drawing": "fd81a84491cd"
+          "alphaPixels": 267,
+          "drawing": "d1c0116d4c3b"
         }
       ]
     },
@@ -1001,13 +1322,13 @@
             37
           ],
           "bounds": [
-            19,
-            4,
             21,
+            4,
+            20,
             29
           ],
-          "alphaPixels": 464,
-          "drawing": "f624cae16fbe"
+          "alphaPixels": 386,
+          "drawing": "cdc3152f2d31"
         },
         {
           "id": "anticipate",
@@ -1019,13 +1340,13 @@
             37
           ],
           "bounds": [
-            17,
-            9,
-            23,
-            24
+            22,
+            6,
+            20,
+            27
           ],
-          "alphaPixels": 417,
-          "drawing": "45f74cd39296"
+          "alphaPixels": 355,
+          "drawing": "e0830d89c138"
         },
         {
           "id": "approach",
@@ -1037,13 +1358,13 @@
             37
           ],
           "bounds": [
-            14,
-            6,
-            25,
-            27
+            20,
+            5,
+            21,
+            28
           ],
-          "alphaPixels": 439,
-          "drawing": "37c469984c9c"
+          "alphaPixels": 375,
+          "drawing": "bcbfe98c0cb4"
         },
         {
           "id": "contact",
@@ -1055,16 +1376,16 @@
             37
           ],
           "bounds": [
-            5,
             6,
-            34,
-            27
-          ],
-          "alphaPixels": 429,
-          "drawing": "9c278104c723",
-          "candidateContact": [
             5,
-            14
+            35,
+            28
+          ],
+          "alphaPixels": 420,
+          "drawing": "f5675a6bc770",
+          "candidateContact": [
+            6,
+            19
           ]
         },
         {
@@ -1077,13 +1398,13 @@
             37
           ],
           "bounds": [
-            9,
-            5,
-            30,
-            28
+            18,
+            6,
+            23,
+            27
           ],
-          "alphaPixels": 434,
-          "drawing": "308e5c5920d2"
+          "alphaPixels": 374,
+          "drawing": "47ce52931ef7"
         },
         {
           "id": "reload",
@@ -1095,13 +1416,13 @@
             37
           ],
           "bounds": [
-            16,
-            5,
-            23,
-            28
+            21,
+            4,
+            20,
+            29
           ],
-          "alphaPixels": 418,
-          "drawing": "9707d4cfbccb"
+          "alphaPixels": 381,
+          "drawing": "c35baf6040a1"
         },
         {
           "id": "repeat-contact",
@@ -1114,15 +1435,15 @@
           ],
           "bounds": [
             9,
-            6,
-            30,
-            27
+            5,
+            32,
+            28
           ],
-          "alphaPixels": 394,
-          "drawing": "df84a77e94a7",
+          "alphaPixels": 408,
+          "drawing": "a287ef74df60",
           "candidateContact": [
             9,
-            15
+            19
           ]
         },
         {
@@ -1135,16 +1456,16 @@
             37
           ],
           "bounds": [
-            7,
-            8,
-            33,
-            25
+            9,
+            5,
+            32,
+            28
           ],
-          "alphaPixels": 436,
-          "drawing": "ba13d0a5bf5e",
+          "alphaPixels": 407,
+          "drawing": "7e1118c9323b",
           "candidateContact": [
-            7,
-            20
+            9,
+            18
           ]
         },
         {
@@ -1157,13 +1478,13 @@
             37
           ],
           "bounds": [
-            17,
-            4,
-            24,
-            29
+            21,
+            3,
+            21,
+            30
           ],
-          "alphaPixels": 423,
-          "drawing": "8bbe38b8eb83"
+          "alphaPixels": 368,
+          "drawing": "ced50e9dbd2a"
         },
         {
           "id": "heavy-hit",
@@ -1175,13 +1496,13 @@
             37
           ],
           "bounds": [
-            17,
-            3,
-            26,
-            30
+            23,
+            2,
+            21,
+            31
           ],
-          "alphaPixels": 461,
-          "drawing": "9c0b050bc9af"
+          "alphaPixels": 379,
+          "drawing": "4b6ff5e5e4e6"
         },
         {
           "id": "fall",
@@ -1193,13 +1514,13 @@
             37
           ],
           "bounds": [
-            6,
-            9,
-            35,
-            24
+            18,
+            10,
+            31,
+            23
           ],
-          "alphaPixels": 495,
-          "drawing": "0625baefad7b"
+          "alphaPixels": 354,
+          "drawing": "ac07d221182b"
         },
         {
           "id": "down",
@@ -1211,13 +1532,13 @@
             37
           ],
           "bounds": [
-            4,
-            17,
-            41,
-            16
+            18,
+            20,
+            31,
+            13
           ],
-          "alphaPixels": 387,
-          "drawing": "3e6da761f2e7"
+          "alphaPixels": 227,
+          "drawing": "cb4b673dad20"
         }
       ]
     },
@@ -1246,12 +1567,12 @@
           ],
           "bounds": [
             19,
-            8,
-            30,
-            25
+            9,
+            33,
+            24
           ],
-          "alphaPixels": 550,
-          "drawing": "602bd46804b6"
+          "alphaPixels": 554,
+          "drawing": "56cba4f02daf"
         },
         {
           "id": "anticipate",
@@ -1263,13 +1584,13 @@
             37
           ],
           "bounds": [
-            18,
+            23,
             11,
-            32,
+            29,
             22
           ],
-          "alphaPixels": 535,
-          "drawing": "9b2275268538"
+          "alphaPixels": 465,
+          "drawing": "d80bf93ce994"
         },
         {
           "id": "approach",
@@ -1281,13 +1602,13 @@
             37
           ],
           "bounds": [
-            15,
-            9,
-            34,
-            24
+            16,
+            10,
+            36,
+            23
           ],
-          "alphaPixels": 578,
-          "drawing": "434be3602a37"
+          "alphaPixels": 525,
+          "drawing": "b28ddd7efd85"
         },
         {
           "id": "contact",
@@ -1299,16 +1620,16 @@
             37
           ],
           "bounds": [
-            4,
-            11,
-            45,
-            22
+            6,
+            10,
+            46,
+            23
           ],
-          "alphaPixels": 560,
-          "drawing": "726c1d8da6aa",
+          "alphaPixels": 579,
+          "drawing": "9b5c12cf6b26",
           "candidateContact": [
-            8,
-            26
+            6,
+            24
           ]
         },
         {
@@ -1321,13 +1642,13 @@
             37
           ],
           "bounds": [
-            13,
             11,
-            36,
+            11,
+            41,
             22
           ],
-          "alphaPixels": 504,
-          "drawing": "8e46cb67b886"
+          "alphaPixels": 540,
+          "drawing": "64a1a48af9cb"
         },
         {
           "id": "reload",
@@ -1339,13 +1660,13 @@
             37
           ],
           "bounds": [
-            17,
-            10,
-            32,
-            23
+            21,
+            9,
+            31,
+            24
           ],
-          "alphaPixels": 521,
-          "drawing": "64c0397a3a19"
+          "alphaPixels": 502,
+          "drawing": "2fbee47c902f"
         },
         {
           "id": "repeat-contact",
@@ -1357,16 +1678,16 @@
             37
           ],
           "bounds": [
+            9,
             10,
-            11,
-            39,
-            22
+            43,
+            23
           ],
-          "alphaPixels": 522,
-          "drawing": "865ebd2c47ff",
+          "alphaPixels": 561,
+          "drawing": "0000f037bb78",
           "candidateContact": [
-            13,
-            26
+            9,
+            24
           ]
         },
         {
@@ -1380,15 +1701,15 @@
           ],
           "bounds": [
             9,
-            11,
-            41,
-            22
+            10,
+            43,
+            23
           ],
-          "alphaPixels": 583,
-          "drawing": "229fe6f04c7d",
+          "alphaPixels": 562,
+          "drawing": "c2d2a633d9c9",
           "candidateContact": [
-            12,
-            26
+            9,
+            24
           ]
         },
         {
@@ -1401,13 +1722,13 @@
             37
           ],
           "bounds": [
-            21,
-            6,
+            22,
+            8,
             30,
-            27
+            25
           ],
-          "alphaPixels": 504,
-          "drawing": "95cf769f7673"
+          "alphaPixels": 516,
+          "drawing": "33b159aed62e"
         },
         {
           "id": "heavy-hit",
@@ -1419,13 +1740,13 @@
             37
           ],
           "bounds": [
-            26,
-            3,
-            30,
-            30
+            25,
+            7,
+            29,
+            26
           ],
-          "alphaPixels": 545,
-          "drawing": "337ee2c2fb57"
+          "alphaPixels": 527,
+          "drawing": "a392e3153346"
         },
         {
           "id": "fall",
@@ -1437,13 +1758,13 @@
             37
           ],
           "bounds": [
-            26,
-            5,
-            36,
-            28
+            25,
+            6,
+            30,
+            27
           ],
-          "alphaPixels": 573,
-          "drawing": "08d7f00742de"
+          "alphaPixels": 490,
+          "drawing": "49c72c3b0c34"
         },
         {
           "id": "down",
@@ -1455,13 +1776,13 @@
             37
           ],
           "bounds": [
-            12,
-            16,
-            45,
-            17
+            24,
+            15,
+            32,
+            18
           ],
-          "alphaPixels": 466,
-          "drawing": "0364407b4a5e"
+          "alphaPixels": 321,
+          "drawing": "379992203162"
         }
       ]
     },
@@ -1489,13 +1810,13 @@
             40
           ],
           "bounds": [
-            25,
+            22,
             3,
-            16,
+            23,
             33
           ],
-          "alphaPixels": 377,
-          "drawing": "dbb41dfd93ff"
+          "alphaPixels": 389,
+          "drawing": "492aecea6b76"
         },
         {
           "id": "anticipate",
@@ -1507,13 +1828,13 @@
             40
           ],
           "bounds": [
-            21,
-            9,
+            27,
+            6,
             18,
-            27
+            30
           ],
-          "alphaPixels": 331,
-          "drawing": "cd35cfbd4f65"
+          "alphaPixels": 328,
+          "drawing": "08b61b15c082"
         },
         {
           "id": "approach",
@@ -1525,13 +1846,13 @@
             40
           ],
           "bounds": [
-            17,
-            6,
-            22,
-            30
+            18,
+            4,
+            27,
+            32
           ],
-          "alphaPixels": 386,
-          "drawing": "9ec4dd9b9e51"
+          "alphaPixels": 377,
+          "drawing": "900d97c8df75"
         },
         {
           "id": "contact",
@@ -1543,16 +1864,16 @@
             40
           ],
           "bounds": [
-            11,
+            9,
             5,
-            28,
+            35,
             31
           ],
-          "alphaPixels": 394,
-          "drawing": "1c71e57249bd",
+          "alphaPixels": 378,
+          "drawing": "8d422f9ce95a",
           "candidateContact": [
-            11,
-            14
+            9,
+            19
           ]
         },
         {
@@ -1567,11 +1888,11 @@
           "bounds": [
             16,
             6,
-            23,
+            29,
             30
           ],
-          "alphaPixels": 371,
-          "drawing": "7fc525a4576c"
+          "alphaPixels": 354,
+          "drawing": "ca26856d1a70"
         },
         {
           "id": "reload",
@@ -1583,13 +1904,13 @@
             40
           ],
           "bounds": [
-            21,
+            25,
             4,
-            18,
+            20,
             32
           ],
-          "alphaPixels": 367,
-          "drawing": "ef83cbc32d2c"
+          "alphaPixels": 377,
+          "drawing": "412f3bfc6c71"
         },
         {
           "id": "repeat-contact",
@@ -1601,16 +1922,16 @@
             40
           ],
           "bounds": [
-            12,
-            6,
-            28,
-            30
+            10,
+            4,
+            34,
+            32
           ],
-          "alphaPixels": 400,
-          "drawing": "b6748596af54",
+          "alphaPixels": 386,
+          "drawing": "69214b7ee099",
           "candidateContact": [
-            12,
-            15
+            10,
+            16
           ]
         },
         {
@@ -1623,15 +1944,15 @@
             40
           ],
           "bounds": [
-            13,
-            5,
-            27,
-            31
+            9,
+            6,
+            35,
+            30
           ],
-          "alphaPixels": 419,
-          "drawing": "52f1e42ea2e4",
+          "alphaPixels": 375,
+          "drawing": "365aefec78de",
           "candidateContact": [
-            15,
+            9,
             11
           ]
         },
@@ -1645,13 +1966,13 @@
             40
           ],
           "bounds": [
-            22,
-            4,
-            22,
-            32
+            27,
+            3,
+            18,
+            33
           ],
-          "alphaPixels": 381,
-          "drawing": "ff475a6c5b98"
+          "alphaPixels": 364,
+          "drawing": "bbf0c70cf504"
         },
         {
           "id": "heavy-hit",
@@ -1663,13 +1984,13 @@
             40
           ],
           "bounds": [
-            19,
-            4,
             28,
-            32
+            6,
+            18,
+            30
           ],
-          "alphaPixels": 444,
-          "drawing": "cb60ae2f64b4"
+          "alphaPixels": 332,
+          "drawing": "591cc66b345b"
         },
         {
           "id": "fall",
@@ -1681,13 +2002,13 @@
             40
           ],
           "bounds": [
-            12,
-            12,
-            34,
-            24
+            19,
+            9,
+            27,
+            27
           ],
-          "alphaPixels": 405,
-          "drawing": "fa15b71ad120"
+          "alphaPixels": 344,
+          "drawing": "f92cb6b82b8c"
         },
         {
           "id": "down",
@@ -1699,13 +2020,13 @@
             40
           ],
           "bounds": [
-            4,
-            15,
-            41,
-            21
+            12,
+            27,
+            34,
+            9
           ],
-          "alphaPixels": 335,
-          "drawing": "65532f908bc5"
+          "alphaPixels": 175,
+          "drawing": "8fac4e225b6d"
         }
       ]
     },
@@ -1734,12 +2055,12 @@
           ],
           "bounds": [
             16,
-            4,
-            14,
-            12
+            2,
+            18,
+            14
           ],
-          "alphaPixels": 111,
-          "drawing": "b2bc17e3bb44"
+          "alphaPixels": 164,
+          "drawing": "2dd078a06250"
         },
         {
           "id": "anticipate",
@@ -1751,13 +2072,13 @@
             20
           ],
           "bounds": [
+            18,
+            4,
             16,
-            5,
-            15,
-            11
+            12
           ],
-          "alphaPixels": 117,
-          "drawing": "a4962ec01795"
+          "alphaPixels": 129,
+          "drawing": "38fc843d01df"
         },
         {
           "id": "approach",
@@ -1770,12 +2091,12 @@
           ],
           "bounds": [
             14,
-            4,
-            15,
-            12
+            3,
+            19,
+            13
           ],
-          "alphaPixels": 117,
-          "drawing": "3d2dfeab7516"
+          "alphaPixels": 152,
+          "drawing": "93d7d52285b6"
         },
         {
           "id": "contact",
@@ -1788,14 +2109,14 @@
           ],
           "bounds": [
             7,
-            4,
-            22,
-            12
+            3,
+            25,
+            13
           ],
-          "alphaPixels": 133,
-          "drawing": "d7b8eaee6d3c",
+          "alphaPixels": 169,
+          "drawing": "bb8846c4bd21",
           "candidateContact": [
-            8,
+            7,
             9
           ]
         },
@@ -1809,13 +2130,13 @@
             20
           ],
           "bounds": [
-            11,
+            13,
             4,
-            18,
+            20,
             12
           ],
-          "alphaPixels": 118,
-          "drawing": "42a5df5a5aa9"
+          "alphaPixels": 145,
+          "drawing": "09bd302a566a"
         },
         {
           "id": "reload",
@@ -1827,13 +2148,13 @@
             20
           ],
           "bounds": [
-            15,
-            4,
-            15,
-            12
+            17,
+            3,
+            17,
+            13
           ],
-          "alphaPixels": 113,
-          "drawing": "6b5bec929262"
+          "alphaPixels": 151,
+          "drawing": "b3b4df8400e3"
         },
         {
           "id": "repeat-contact",
@@ -1845,16 +2166,16 @@
             20
           ],
           "bounds": [
-            10,
-            4,
-            19,
-            12
+            9,
+            3,
+            23,
+            13
           ],
-          "alphaPixels": 122,
-          "drawing": "ac6cb2bc7784",
+          "alphaPixels": 162,
+          "drawing": "07b51d2243a6",
           "candidateContact": [
-            11,
-            10
+            9,
+            7
           ]
         },
         {
@@ -1867,15 +2188,15 @@
             20
           ],
           "bounds": [
-            4,
             6,
+            4,
             25,
-            10
+            12
           ],
-          "alphaPixels": 126,
-          "drawing": "643362c0a8b6",
+          "alphaPixels": 166,
+          "drawing": "11bd965905bc",
           "candidateContact": [
-            5,
+            6,
             11
           ]
         },
@@ -1889,13 +2210,13 @@
             20
           ],
           "bounds": [
-            16,
-            4,
+            20,
+            2,
             14,
-            12
+            14
           ],
-          "alphaPixels": 102,
-          "drawing": "57525740cfef"
+          "alphaPixels": 135,
+          "drawing": "ff442f50a96e"
         },
         {
           "id": "heavy-hit",
@@ -1907,13 +2228,13 @@
             20
           ],
           "bounds": [
-            18,
-            3,
-            14,
-            13
+            22,
+            4,
+            13,
+            12
           ],
-          "alphaPixels": 127,
-          "drawing": "18d34124b36f"
+          "alphaPixels": 103,
+          "drawing": "ee89e8fd5bd3"
         },
         {
           "id": "fall",
@@ -1925,13 +2246,13 @@
             20
           ],
           "bounds": [
-            15,
-            5,
             17,
-            11
+            2,
+            16,
+            14
           ],
-          "alphaPixels": 130,
-          "drawing": "d6431e7a43f9"
+          "alphaPixels": 136,
+          "drawing": "27ba75f0a5c2"
         },
         {
           "id": "down",
@@ -1943,13 +2264,13 @@
             20
           ],
           "bounds": [
-            10,
-            9,
-            21,
-            7
+            17,
+            11,
+            14,
+            5
           ],
-          "alphaPixels": 91,
-          "drawing": "d38ebca48904"
+          "alphaPixels": 48,
+          "drawing": "8036e5e6d0e4"
         }
       ]
     },
@@ -1977,13 +2298,13 @@
             24
           ],
           "bounds": [
-            12,
-            3,
-            15,
-            17
+            11,
+            2,
+            18,
+            18
           ],
-          "alphaPixels": 186,
-          "drawing": "e8e0c8b4ec0b"
+          "alphaPixels": 220,
+          "drawing": "41533f5949a2"
         },
         {
           "id": "anticipate",
@@ -1995,13 +2316,13 @@
             24
           ],
           "bounds": [
-            12,
-            6,
-            16,
-            14
+            14,
+            4,
+            17,
+            16
           ],
-          "alphaPixels": 166,
-          "drawing": "453b831c34cb"
+          "alphaPixels": 189,
+          "drawing": "9a22e71757da"
         },
         {
           "id": "approach",
@@ -2013,13 +2334,13 @@
             24
           ],
           "bounds": [
-            10,
-            4,
-            17,
-            16
+            9,
+            3,
+            20,
+            17
           ],
-          "alphaPixels": 188,
-          "drawing": "8ff7cc624514"
+          "alphaPixels": 223,
+          "drawing": "deedafb0a314"
         },
         {
           "id": "contact",
@@ -2031,16 +2352,16 @@
             24
           ],
           "bounds": [
-            5,
-            4,
-            22,
-            16
+            1,
+            3,
+            28,
+            17
           ],
-          "alphaPixels": 217,
-          "drawing": "46f1c8c8bd86",
+          "alphaPixels": 259,
+          "drawing": "a82903d6d4a8",
           "candidateContact": [
-            5,
-            10
+            1,
+            12
           ]
         },
         {
@@ -2053,13 +2374,13 @@
             24
           ],
           "bounds": [
-            8,
+            5,
             4,
-            20,
+            24,
             16
           ],
-          "alphaPixels": 203,
-          "drawing": "288736f96faf"
+          "alphaPixels": 241,
+          "drawing": "7dd97bd74559"
         },
         {
           "id": "reload",
@@ -2071,13 +2392,13 @@
             24
           ],
           "bounds": [
-            10,
-            3,
+            12,
+            2,
             18,
-            17
+            18
           ],
-          "alphaPixels": 205,
-          "drawing": "9981567c2d04"
+          "alphaPixels": 218,
+          "drawing": "8a9f3b7279bd"
         },
         {
           "id": "repeat-contact",
@@ -2089,16 +2410,16 @@
             24
           ],
           "bounds": [
-            6,
-            5,
-            22,
-            15
+            3,
+            3,
+            26,
+            17
           ],
-          "alphaPixels": 204,
-          "drawing": "1b3dc5dcd6a9",
+          "alphaPixels": 254,
+          "drawing": "aaea4140d496",
           "candidateContact": [
-            6,
-            10
+            3,
+            12
           ]
         },
         {
@@ -2111,16 +2432,16 @@
             24
           ],
           "bounds": [
-            4,
-            6,
-            24,
-            14
+            3,
+            3,
+            26,
+            17
           ],
-          "alphaPixels": 224,
-          "drawing": "51fd5bf1b826",
+          "alphaPixels": 253,
+          "drawing": "a316ad6fcf59",
           "candidateContact": [
-            4,
-            13
+            3,
+            12
           ]
         },
         {
@@ -2133,13 +2454,13 @@
             24
           ],
           "bounds": [
-            14,
-            3,
-            16,
-            17
+            12,
+            1,
+            19,
+            19
           ],
-          "alphaPixels": 193,
-          "drawing": "29137439c8a6"
+          "alphaPixels": 230,
+          "drawing": "80a0166e0078"
         },
         {
           "id": "heavy-hit",
@@ -2151,13 +2472,13 @@
             24
           ],
           "bounds": [
-            16,
-            4,
-            19,
-            16
+            15,
+            0,
+            18,
+            20
           ],
-          "alphaPixels": 199,
-          "drawing": "1149c3729600"
+          "alphaPixels": 233,
+          "drawing": "b61eff2db015"
         },
         {
           "id": "fall",
@@ -2169,13 +2490,13 @@
             24
           ],
           "bounds": [
-            16,
-            6,
-            21,
-            14
+            13,
+            2,
+            18,
+            18
           ],
-          "alphaPixels": 199,
-          "drawing": "dfc065cdf34e"
+          "alphaPixels": 196,
+          "drawing": "08ee07ea4f76"
         },
         {
           "id": "down",
@@ -2187,13 +2508,13 @@
             24
           ],
           "bounds": [
-            7,
-            11,
-            23,
-            9
+            10,
+            8,
+            20,
+            12
           ],
-          "alphaPixels": 155,
-          "drawing": "5cbb2192546a"
+          "alphaPixels": 125,
+          "drawing": "f582c5d9a252"
         }
       ]
     },
@@ -2221,13 +2542,13 @@
             26
           ],
           "bounds": [
-            15,
-            3,
-            8,
-            19
+            12,
+            1,
+            17,
+            21
           ],
-          "alphaPixels": 103,
-          "drawing": "02c7e32a9cb5"
+          "alphaPixels": 260,
+          "drawing": "49a19b0adfca"
         },
         {
           "id": "anticipate",
@@ -2239,13 +2560,13 @@
             26
           ],
           "bounds": [
-            13,
-            7,
-            12,
-            15
+            14,
+            3,
+            16,
+            19
           ],
-          "alphaPixels": 101,
-          "drawing": "bcfd281c31ef"
+          "alphaPixels": 238,
+          "drawing": "dfb8173dd946"
         },
         {
           "id": "approach",
@@ -2257,13 +2578,13 @@
             26
           ],
           "bounds": [
-            11,
-            4,
-            12,
-            18
+            10,
+            2,
+            18,
+            20
           ],
-          "alphaPixels": 112,
-          "drawing": "0f563ee7aafa"
+          "alphaPixels": 247,
+          "drawing": "8933bfe8778b"
         },
         {
           "id": "contact",
@@ -2276,15 +2597,15 @@
           ],
           "bounds": [
             4,
-            6,
-            20,
-            16
+            2,
+            23,
+            20
           ],
-          "alphaPixels": 127,
-          "drawing": "4f6da512f4ca",
+          "alphaPixels": 279,
+          "drawing": "c86b40cfb0b9",
           "candidateContact": [
             4,
-            11
+            15
           ]
         },
         {
@@ -2297,13 +2618,13 @@
             26
           ],
           "bounds": [
-            9,
-            4,
-            14,
-            18
+            7,
+            3,
+            21,
+            19
           ],
-          "alphaPixels": 118,
-          "drawing": "f658f0f0bdee"
+          "alphaPixels": 268,
+          "drawing": "941ec4d4445a"
         },
         {
           "id": "reload",
@@ -2316,12 +2637,12 @@
           ],
           "bounds": [
             13,
-            3,
-            11,
-            19
+            2,
+            17,
+            20
           ],
-          "alphaPixels": 114,
-          "drawing": "5b44e2d07594"
+          "alphaPixels": 237,
+          "drawing": "1a5c3ae028e8"
         },
         {
           "id": "repeat-contact",
@@ -2333,16 +2654,16 @@
             26
           ],
           "bounds": [
-            8,
-            5,
-            16,
-            17
+            6,
+            2,
+            22,
+            20
           ],
-          "alphaPixels": 118,
-          "drawing": "e3e694a0d23b",
+          "alphaPixels": 265,
+          "drawing": "590053405411",
           "candidateContact": [
-            8,
-            11
+            6,
+            12
           ]
         },
         {
@@ -2356,15 +2677,15 @@
           ],
           "bounds": [
             4,
-            6,
-            20,
-            16
+            3,
+            23,
+            19
           ],
-          "alphaPixels": 128,
-          "drawing": "df6cefbf057c",
+          "alphaPixels": 276,
+          "drawing": "e83c5046c0df",
           "candidateContact": [
             4,
-            11
+            18
           ]
         },
         {
@@ -2377,13 +2698,13 @@
             26
           ],
           "bounds": [
-            13,
-            3,
-            12,
-            19
+            14,
+            1,
+            16,
+            21
           ],
-          "alphaPixels": 127,
-          "drawing": "40aed133f5ef"
+          "alphaPixels": 240,
+          "drawing": "ba2c255e172b"
         },
         {
           "id": "heavy-hit",
@@ -2395,13 +2716,13 @@
             26
           ],
           "bounds": [
-            10,
+            14,
             3,
             16,
             19
           ],
-          "alphaPixels": 144,
-          "drawing": "1dcfa9d56a8f"
+          "alphaPixels": 208,
+          "drawing": "57db9ac95568"
         },
         {
           "id": "fall",
@@ -2413,13 +2734,13 @@
             26
           ],
           "bounds": [
-            8,
-            8,
-            18,
-            14
+            5,
+            4,
+            24,
+            18
           ],
-          "alphaPixels": 131,
-          "drawing": "3b885bd3bf6f"
+          "alphaPixels": 250,
+          "drawing": "16d9c30806e4"
         },
         {
           "id": "down",
@@ -2431,13 +2752,13 @@
             26
           ],
           "bounds": [
-            5,
-            14,
+            8,
+            13,
             21,
-            8
+            9
           ],
-          "alphaPixels": 112,
-          "drawing": "92215ad9872c"
+          "alphaPixels": 116,
+          "drawing": "5b8028bfbe68"
         }
       ]
     },
@@ -2465,13 +2786,13 @@
             30
           ],
           "bounds": [
-            19,
-            6,
-            19,
-            20
+            18,
+            4,
+            25,
+            22
           ],
-          "alphaPixels": 247,
-          "drawing": "aa09d9b7e9de"
+          "alphaPixels": 331,
+          "drawing": "b71d9a9d9ce6"
         },
         {
           "id": "anticipate",
@@ -2483,13 +2804,13 @@
             30
           ],
           "bounds": [
-            19,
-            11,
-            19,
-            15
+            23,
+            4,
+            21,
+            22
           ],
-          "alphaPixels": 214,
-          "drawing": "2ef28a4284e0"
+          "alphaPixels": 292,
+          "drawing": "f8bd6f1d19ed"
         },
         {
           "id": "approach",
@@ -2501,13 +2822,13 @@
             30
           ],
           "bounds": [
-            16,
-            6,
-            22,
-            20
+            15,
+            5,
+            27,
+            21
           ],
-          "alphaPixels": 294,
-          "drawing": "e088275c8fa9"
+          "alphaPixels": 303,
+          "drawing": "71f2d6473f80"
         },
         {
           "id": "contact",
@@ -2519,16 +2840,16 @@
             30
           ],
           "bounds": [
-            5,
-            8,
-            33,
-            18
+            6,
+            6,
+            36,
+            20
           ],
-          "alphaPixels": 263,
-          "drawing": "339f375551a7",
+          "alphaPixels": 330,
+          "drawing": "99c2f81473b2",
           "candidateContact": [
-            5,
-            14
+            7,
+            15
           ]
         },
         {
@@ -2541,13 +2862,13 @@
             30
           ],
           "bounds": [
-            13,
-            7,
-            25,
-            19
+            12,
+            6,
+            30,
+            20
           ],
-          "alphaPixels": 253,
-          "drawing": "c84fd0cfbeda"
+          "alphaPixels": 314,
+          "drawing": "3c4894a98791"
         },
         {
           "id": "reload",
@@ -2559,13 +2880,13 @@
             30
           ],
           "bounds": [
-            16,
+            21,
             5,
             22,
             21
           ],
-          "alphaPixels": 271,
-          "drawing": "2fe73ed2c787"
+          "alphaPixels": 279,
+          "drawing": "39b8f40baed3"
         },
         {
           "id": "repeat-contact",
@@ -2578,15 +2899,15 @@
           ],
           "bounds": [
             8,
-            7,
-            30,
-            19
+            5,
+            34,
+            21
           ],
-          "alphaPixels": 269,
-          "drawing": "78b13acdc7c6",
+          "alphaPixels": 328,
+          "drawing": "d5c56feb5345",
           "candidateContact": [
-            8,
-            14
+            9,
+            13
           ]
         },
         {
@@ -2599,16 +2920,16 @@
             30
           ],
           "bounds": [
-            4,
-            10,
-            35,
-            16
+            5,
+            6,
+            37,
+            20
           ],
-          "alphaPixels": 301,
-          "drawing": "a548df74d319",
+          "alphaPixels": 345,
+          "drawing": "9d10f8bdf12f",
           "candidateContact": [
-            4,
-            18
+            6,
+            20
           ]
         },
         {
@@ -2621,13 +2942,13 @@
             30
           ],
           "bounds": [
-            17,
+            23,
             4,
             21,
             22
           ],
-          "alphaPixels": 277,
-          "drawing": "b33a1ca613a6"
+          "alphaPixels": 307,
+          "drawing": "1e1dac3b4e9c"
         },
         {
           "id": "heavy-hit",
@@ -2639,13 +2960,13 @@
             30
           ],
           "bounds": [
-            20,
-            3,
-            23,
-            23
+            24,
+            6,
+            21,
+            20
           ],
-          "alphaPixels": 302,
-          "drawing": "005fe438ce28"
+          "alphaPixels": 272,
+          "drawing": "7c682b941fd2"
         },
         {
           "id": "fall",
@@ -2657,13 +2978,13 @@
             30
           ],
           "bounds": [
-            11,
-            5,
-            28,
-            21
+            19,
+            3,
+            25,
+            23
           ],
-          "alphaPixels": 340,
-          "drawing": "46cc494936bc"
+          "alphaPixels": 305,
+          "drawing": "62dec4a423d8"
         },
         {
           "id": "down",
@@ -2675,13 +2996,13 @@
             30
           ],
           "bounds": [
-            12,
-            13,
-            30,
-            13
+            23,
+            14,
+            19,
+            12
           ],
-          "alphaPixels": 249,
-          "drawing": "a58672b3a53e"
+          "alphaPixels": 129,
+          "drawing": "3f747cf496ee"
         }
       ]
     },
@@ -2709,13 +3030,13 @@
             51
           ],
           "bounds": [
-            28,
+            18,
             3,
-            26,
+            45,
             44
           ],
-          "alphaPixels": 821,
-          "drawing": "193a8fd964a1"
+          "alphaPixels": 956,
+          "drawing": "843a3f2eae19"
         },
         {
           "id": "anticipate",
@@ -2727,13 +3048,13 @@
             51
           ],
           "bounds": [
-            24,
-            7,
             30,
-            40
+            6,
+            34,
+            41
           ],
-          "alphaPixels": 709,
-          "drawing": "9c21c9c85ea6"
+          "alphaPixels": 911,
+          "drawing": "173ecc6e5170"
         },
         {
           "id": "approach",
@@ -2745,13 +3066,13 @@
             51
           ],
           "bounds": [
-            17,
+            20,
             4,
-            36,
+            42,
             43
           ],
-          "alphaPixels": 761,
-          "drawing": "5c6cbce12c11"
+          "alphaPixels": 931,
+          "drawing": "34508c0e2fa0"
         },
         {
           "id": "contact",
@@ -2763,16 +3084,16 @@
             51
           ],
           "bounds": [
-            8,
-            7,
-            45,
-            40
+            9,
+            5,
+            53,
+            42
           ],
-          "alphaPixels": 796,
-          "drawing": "9ab96778e243",
+          "alphaPixels": 929,
+          "drawing": "02fb00dc9d88",
           "candidateContact": [
-            8,
-            23
+            9,
+            24
           ]
         },
         {
@@ -2785,13 +3106,13 @@
             51
           ],
           "bounds": [
-            15,
+            13,
             6,
-            37,
+            49,
             41
           ],
-          "alphaPixels": 765,
-          "drawing": "dcae9f165572"
+          "alphaPixels": 911,
+          "drawing": "3316dcc74d8c"
         },
         {
           "id": "reload",
@@ -2803,13 +3124,13 @@
             51
           ],
           "bounds": [
-            21,
-            3,
-            31,
-            44
+            28,
+            4,
+            36,
+            43
           ],
-          "alphaPixels": 769,
-          "drawing": "3dd79b442e58"
+          "alphaPixels": 942,
+          "drawing": "6623164e4854"
         },
         {
           "id": "repeat-contact",
@@ -2821,16 +3142,16 @@
             51
           ],
           "bounds": [
-            4,
             7,
-            48,
-            40
-          ],
-          "alphaPixels": 798,
-          "drawing": "f7096315423f",
-          "candidateContact": [
             4,
-            24
+            55,
+            43
+          ],
+          "alphaPixels": 947,
+          "drawing": "f58df12ba431",
+          "candidateContact": [
+            7,
+            22
           ]
         },
         {
@@ -2843,16 +3164,16 @@
             51
           ],
           "bounds": [
-            5,
-            10,
-            48,
-            37
+            8,
+            6,
+            56,
+            41
           ],
-          "alphaPixels": 813,
-          "drawing": "5f7c01493bc1",
+          "alphaPixels": 962,
+          "drawing": "b9f7529cf3a5",
           "candidateContact": [
-            5,
-            30
+            8,
+            37
           ]
         },
         {
@@ -2865,13 +3186,13 @@
             51
           ],
           "bounds": [
-            22,
-            7,
-            35,
-            40
+            28,
+            3,
+            37,
+            44
           ],
-          "alphaPixels": 724,
-          "drawing": "e5d172df7378"
+          "alphaPixels": 892,
+          "drawing": "f11ffc562b29"
         },
         {
           "id": "heavy-hit",
@@ -2883,13 +3204,13 @@
             51
           ],
           "bounds": [
-            30,
-            8,
-            40,
-            39
+            34,
+            6,
+            32,
+            41
           ],
-          "alphaPixels": 771,
-          "drawing": "aa492201e802"
+          "alphaPixels": 792,
+          "drawing": "a0062dc7221e"
         },
         {
           "id": "fall",
@@ -2901,13 +3222,13 @@
             51
           ],
           "bounds": [
-            12,
-            14,
-            45,
-            33
+            24,
+            4,
+            38,
+            43
           ],
-          "alphaPixels": 788,
-          "drawing": "5a743d53f273"
+          "alphaPixels": 841,
+          "drawing": "bfd607560f06"
         },
         {
           "id": "down",
@@ -2919,13 +3240,13 @@
             51
           ],
           "bounds": [
-            8,
-            24,
+            10,
+            33,
             51,
-            23
+            14
           ],
-          "alphaPixels": 582,
-          "drawing": "49f4de22381e"
+          "alphaPixels": 420,
+          "drawing": "cc5c981c1a1f"
         }
       ]
     },
@@ -2953,13 +3274,13 @@
             57
           ],
           "bounds": [
-            23,
+            17,
             9,
-            31,
+            45,
             44
           ],
-          "alphaPixels": 991,
-          "drawing": "a417c7f331b7"
+          "alphaPixels": 957,
+          "drawing": "1575060f1cd9"
         },
         {
           "id": "charge-set",
@@ -2971,13 +3292,13 @@
             57
           ],
           "bounds": [
-            11,
-            13,
-            42,
-            40
+            24,
+            12,
+            39,
+            41
           ],
-          "alphaPixels": 996,
-          "drawing": "94bfba283e6d"
+          "alphaPixels": 917,
+          "drawing": "8c8d9e3d2561"
         },
         {
           "id": "charge-peak",
@@ -2989,13 +3310,13 @@
             57
           ],
           "bounds": [
-            14,
-            3,
-            42,
-            50
+            28,
+            5,
+            35,
+            48
           ],
-          "alphaPixels": 940,
-          "drawing": "015afe783d06"
+          "alphaPixels": 985,
+          "drawing": "7f03a8ba4dd0"
         },
         {
           "id": "charge-contact",
@@ -3007,16 +3328,16 @@
             57
           ],
           "bounds": [
-            12,
-            17,
-            40,
-            36
+            9,
+            13,
+            53,
+            40
           ],
-          "alphaPixels": 881,
-          "drawing": "1730fa5516da",
+          "alphaPixels": 908,
+          "drawing": "1a7e4d27d76e",
           "candidateContact": [
-            12,
-            37
+            9,
+            47
           ]
         },
         {
@@ -3029,13 +3350,13 @@
             57
           ],
           "bounds": [
-            17,
-            15,
-            36,
-            38
+            29,
+            11,
+            34,
+            42
           ],
-          "alphaPixels": 951,
-          "drawing": "4f2b0762c998"
+          "alphaPixels": 841,
+          "drawing": "8cc5622731e5"
         },
         {
           "id": "knee-down",
@@ -3047,13 +3368,13 @@
             57
           ],
           "bounds": [
-            17,
-            20,
-            38,
-            33
+            30,
+            15,
+            31,
+            38
           ],
-          "alphaPixels": 899,
-          "drawing": "92daaad9d329"
+          "alphaPixels": 762,
+          "drawing": "29f0c6827c3c"
         },
         {
           "id": "knockdown",
@@ -3065,13 +3386,13 @@
             57
           ],
           "bounds": [
-            15,
-            27,
-            40,
-            26
+            21,
+            14,
+            41,
+            39
           ],
-          "alphaPixels": 777,
-          "drawing": "b392f98316b5"
+          "alphaPixels": 793,
+          "drawing": "326a0f892979"
         },
         {
           "id": "get-up",
@@ -3083,13 +3404,13 @@
             57
           ],
           "bounds": [
-            16,
-            16,
-            38,
-            37
+            26,
+            12,
+            35,
+            41
           ],
-          "alphaPixels": 941,
-          "drawing": "61411e18095b"
+          "alphaPixels": 847,
+          "drawing": "b1040a92024d"
         },
         {
           "id": "seal-set",
@@ -3101,13 +3422,13 @@
             57
           ],
           "bounds": [
-            15,
+            24,
             10,
-            44,
+            39,
             43
           ],
-          "alphaPixels": 1105,
-          "drawing": "3b0954c1057f"
+          "alphaPixels": 932,
+          "drawing": "c1ed46d54765"
         },
         {
           "id": "seal-contact",
@@ -3119,15 +3440,15 @@
             57
           ],
           "bounds": [
-            5,
-            9,
-            49,
-            44
+            8,
+            10,
+            53,
+            43
           ],
-          "alphaPixels": 1257,
-          "drawing": "fe044c1d3717",
+          "alphaPixels": 951,
+          "drawing": "6fe84a1a97f9",
           "candidateContact": [
-            5,
+            8,
             19
           ]
         },
@@ -3141,13 +3462,13 @@
             57
           ],
           "bounds": [
-            16,
-            10,
-            37,
-            43
+            21,
+            12,
+            40,
+            41
           ],
-          "alphaPixels": 1028,
-          "drawing": "8b3f16d06f38"
+          "alphaPixels": 853,
+          "drawing": "42e17a1156dc"
         },
         {
           "id": "defeated",
@@ -3159,13 +3480,13 @@
             57
           ],
           "bounds": [
-            4,
-            32,
-            55,
-            21
+            9,
+            40,
+            52,
+            13
           ],
-          "alphaPixels": 722,
-          "drawing": "5186d54e77ae"
+          "alphaPixels": 416,
+          "drawing": "559ee1218b4d"
         }
       ]
     },
@@ -3402,9 +3723,250 @@
       ]
     },
     {
+      "id": "chain-warden",
+      "label": "청동 간수",
+      "pivot": [
+        29,
+        42
+      ],
+      "width": 160,
+      "height": 132,
+      "frameCount": 12,
+      "frames": [
+        {
+          "id": "ready",
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            40,
+            44
+          ],
+          "bounds": [
+            13,
+            10,
+            25,
+            32
+          ],
+          "drawing": "e490870bb628",
+          "alphaPixels": 514
+        },
+        {
+          "id": "anticipate",
+          "index": 1,
+          "rect": [
+            40,
+            0,
+            40,
+            44
+          ],
+          "bounds": [
+            18,
+            3,
+            21,
+            39
+          ],
+          "drawing": "8aaf8faa80c6",
+          "alphaPixels": 487
+        },
+        {
+          "id": "approach",
+          "index": 2,
+          "rect": [
+            80,
+            0,
+            40,
+            44
+          ],
+          "bounds": [
+            4,
+            8,
+            33,
+            34
+          ],
+          "drawing": "4f3d246f4ed9",
+          "alphaPixels": 510
+        },
+        {
+          "id": "contact",
+          "index": 3,
+          "rect": [
+            120,
+            0,
+            40,
+            44
+          ],
+          "bounds": [
+            1,
+            11,
+            35,
+            31
+          ],
+          "drawing": "ed3ba421cdc8",
+          "alphaPixels": 509,
+          "candidateContact": [
+            1,
+            24
+          ]
+        },
+        {
+          "id": "follow",
+          "index": 4,
+          "rect": [
+            0,
+            44,
+            40,
+            44
+          ],
+          "bounds": [
+            3,
+            12,
+            34,
+            30
+          ],
+          "drawing": "1408e30ce761",
+          "alphaPixels": 511
+        },
+        {
+          "id": "reload",
+          "index": 5,
+          "rect": [
+            40,
+            44,
+            40,
+            44
+          ],
+          "bounds": [
+            18,
+            9,
+            20,
+            33
+          ],
+          "drawing": "f14eda398a7c",
+          "alphaPixels": 452
+        },
+        {
+          "id": "repeat-contact",
+          "index": 6,
+          "rect": [
+            80,
+            44,
+            40,
+            44
+          ],
+          "bounds": [
+            1,
+            11,
+            36,
+            31
+          ],
+          "drawing": "6027041d2c3a",
+          "alphaPixels": 514,
+          "candidateContact": [
+            1,
+            17
+          ]
+        },
+        {
+          "id": "special-contact",
+          "index": 7,
+          "rect": [
+            120,
+            44,
+            40,
+            44
+          ],
+          "bounds": [
+            1,
+            12,
+            35,
+            30
+          ],
+          "drawing": "5e655239b637",
+          "alphaPixels": 510,
+          "candidateContact": [
+            1,
+            34
+          ]
+        },
+        {
+          "id": "hit",
+          "index": 8,
+          "rect": [
+            0,
+            88,
+            40,
+            44
+          ],
+          "bounds": [
+            16,
+            10,
+            23,
+            32
+          ],
+          "drawing": "b1ab12c639db",
+          "alphaPixels": 486
+        },
+        {
+          "id": "heavy-hit",
+          "index": 9,
+          "rect": [
+            40,
+            88,
+            40,
+            44
+          ],
+          "bounds": [
+            18,
+            12,
+            22,
+            30
+          ],
+          "drawing": "9bcf23382207",
+          "alphaPixels": 444
+        },
+        {
+          "id": "fall",
+          "index": 10,
+          "rect": [
+            80,
+            88,
+            40,
+            44
+          ],
+          "bounds": [
+            7,
+            11,
+            32,
+            31
+          ],
+          "drawing": "14d86e77473c",
+          "alphaPixels": 490
+        },
+        {
+          "id": "down",
+          "index": 11,
+          "rect": [
+            120,
+            88,
+            40,
+            44
+          ],
+          "bounds": [
+            4,
+            32,
+            35,
+            10
+          ],
+          "drawing": "26f94e127554",
+          "alphaPixels": 247
+        }
+      ]
+    },
+    {
       "id": "upper-dash",
       "label": "upper-dash",
-      "source": "art-source/enemy-motion/raw/upper-dash.png",
+      "source": "art-source/enemy-motion/authored/upper-dash.aseprite",
       "sheet": "art-source/enemy-motion/atlases/upper-dash.png",
       "frameCount": 16,
       "width": 192,
@@ -3430,8 +3992,8 @@
             38,
             24
           ],
-          "alphaPixels": 570,
-          "drawing": "68ee3e86f1c8"
+          "alphaPixels": 556,
+          "drawing": "ea3b35789f0f"
         },
         {
           "id": "anticipate",
@@ -3448,8 +4010,8 @@
             38,
             23
           ],
-          "alphaPixels": 539,
-          "drawing": "685c439963e9"
+          "alphaPixels": 549,
+          "drawing": "f4e58a22152e"
         },
         {
           "id": "approach",
@@ -3466,8 +4028,8 @@
             42,
             22
           ],
-          "alphaPixels": 547,
-          "drawing": "b3087e4a7918"
+          "alphaPixels": 570,
+          "drawing": "fffd88afef59"
         },
         {
           "id": "contact",
@@ -3484,8 +4046,8 @@
             43,
             22
           ],
-          "alphaPixels": 568,
-          "drawing": "4d8ed3da601e",
+          "alphaPixels": 531,
+          "drawing": "ddb84a108c57",
           "candidateContact": [
             1,
             34
@@ -3506,8 +4068,8 @@
             41,
             23
           ],
-          "alphaPixels": 602,
-          "drawing": "4cf1bb2b0cca"
+          "alphaPixels": 606,
+          "drawing": "3ed5e6a91980"
         },
         {
           "id": "reload",
@@ -3524,8 +4086,8 @@
             39,
             23
           ],
-          "alphaPixels": 546,
-          "drawing": "e284c59c40ff"
+          "alphaPixels": 545,
+          "drawing": "c844cbab27ec"
         },
         {
           "id": "repeat-contact",
@@ -3542,8 +4104,8 @@
             40,
             23
           ],
-          "alphaPixels": 556,
-          "drawing": "56f5002c1c24",
+          "alphaPixels": 524,
+          "drawing": "26b44537bc55",
           "candidateContact": [
             2,
             33
@@ -3564,8 +4126,8 @@
             39,
             21
           ],
-          "alphaPixels": 544,
-          "drawing": "56f38d87f869",
+          "alphaPixels": 496,
+          "drawing": "9ad33e4d095f",
           "candidateContact": [
             3,
             34
@@ -3586,8 +4148,8 @@
             37,
             23
           ],
-          "alphaPixels": 551,
-          "drawing": "cc0a9bfc0969"
+          "alphaPixels": 448,
+          "drawing": "ff1231c2b2b0"
         },
         {
           "id": "heavy-hit",
@@ -3604,8 +4166,8 @@
             37,
             24
           ],
-          "alphaPixels": 569,
-          "drawing": "fb7c9e01f41d"
+          "alphaPixels": 442,
+          "drawing": "6b9ab848992c"
         },
         {
           "id": "fall",
@@ -3622,8 +4184,8 @@
             40,
             20
           ],
-          "alphaPixels": 550,
-          "drawing": "15ec8f7a9d2b"
+          "alphaPixels": 469,
+          "drawing": "7afb0901d8d7"
         },
         {
           "id": "down",
@@ -3640,8 +4202,8 @@
             43,
             14
           ],
-          "alphaPixels": 410,
-          "drawing": "7fc8f215f3ea"
+          "alphaPixels": 307,
+          "drawing": "427861774066"
         },
         {
           "id": "step-plant",
@@ -3658,8 +4220,8 @@
             40,
             23
           ],
-          "alphaPixels": 559,
-          "drawing": "b3ca6a60ffe0"
+          "alphaPixels": 551,
+          "drawing": "af796e502eb2"
         },
         {
           "id": "step-stride",
@@ -3676,8 +4238,8 @@
             39,
             23
           ],
-          "alphaPixels": 557,
-          "drawing": "7881f2ef4162"
+          "alphaPixels": 493,
+          "drawing": "a3bd5ac6cb13"
         },
         {
           "id": "rear-ready",
@@ -3694,8 +4256,8 @@
             36,
             25
           ],
-          "alphaPixels": 592,
-          "drawing": "f4f4dfe86503"
+          "alphaPixels": 511,
+          "drawing": "83995b98dd27"
         },
         {
           "id": "rear-anticipate",
@@ -3712,15 +4274,15 @@
             36,
             25
           ],
-          "alphaPixels": 616,
-          "drawing": "4958b0342ba3"
+          "alphaPixels": 543,
+          "drawing": "588362091ffa"
         }
       ]
     },
     {
       "id": "upper-shield",
       "label": "upper-shield",
-      "source": "art-source/enemy-motion/raw/upper-shield.png",
+      "source": "art-source/enemy-motion/authored/upper-shield.aseprite",
       "sheet": "art-source/enemy-motion/atlases/upper-shield.png",
       "frameCount": 16,
       "width": 192,
@@ -3747,7 +4309,7 @@
             25
           ],
           "alphaPixels": 312,
-          "drawing": "7bfb4a32fc98"
+          "drawing": "8dd185d61335"
         },
         {
           "id": "anticipate",
@@ -3764,8 +4326,8 @@
             16,
             25
           ],
-          "alphaPixels": 285,
-          "drawing": "83d465bb39ed"
+          "alphaPixels": 283,
+          "drawing": "bee6a10f652f"
         },
         {
           "id": "approach",
@@ -3782,8 +4344,8 @@
             21,
             24
           ],
-          "alphaPixels": 322,
-          "drawing": "c76cf44506cc"
+          "alphaPixels": 320,
+          "drawing": "64ba94662eae"
         },
         {
           "id": "contact",
@@ -3800,8 +4362,8 @@
             27,
             22
           ],
-          "alphaPixels": 323,
-          "drawing": "46610081658f",
+          "alphaPixels": 321,
+          "drawing": "e5cf992c720c",
           "candidateContact": [
             1,
             40
@@ -3822,8 +4384,8 @@
             26,
             22
           ],
-          "alphaPixels": 330,
-          "drawing": "0d20a7e94ffe"
+          "alphaPixels": 328,
+          "drawing": "cf9aaf5e8e05"
         },
         {
           "id": "reload",
@@ -3840,8 +4402,8 @@
             18,
             24
           ],
-          "alphaPixels": 308,
-          "drawing": "09da432bf0c9"
+          "alphaPixels": 306,
+          "drawing": "f78ddddd9b16"
         },
         {
           "id": "repeat-contact",
@@ -3858,8 +4420,8 @@
             25,
             23
           ],
-          "alphaPixels": 325,
-          "drawing": "3b223eec6f98",
+          "alphaPixels": 323,
+          "drawing": "c97be6fbebd8",
           "candidateContact": [
             2,
             38
@@ -3880,8 +4442,8 @@
             20,
             25
           ],
-          "alphaPixels": 314,
-          "drawing": "a8b507b9abc1",
+          "alphaPixels": 312,
+          "drawing": "b4533cd5be74",
           "candidateContact": [
             8,
             33
@@ -3902,8 +4464,8 @@
             17,
             24
           ],
-          "alphaPixels": 274,
-          "drawing": "c0c055eac471"
+          "alphaPixels": 272,
+          "drawing": "124f4d8c58d2"
         },
         {
           "id": "heavy-hit",
@@ -3920,8 +4482,8 @@
             20,
             24
           ],
-          "alphaPixels": 281,
-          "drawing": "e3298ecbc31b"
+          "alphaPixels": 279,
+          "drawing": "629a31114bc6"
         },
         {
           "id": "fall",
@@ -3939,7 +4501,7 @@
             20
           ],
           "alphaPixels": 294,
-          "drawing": "e21d8fb32c94"
+          "drawing": "1a3b92aa6294"
         },
         {
           "id": "down",
@@ -3956,8 +4518,8 @@
             25,
             13
           ],
-          "alphaPixels": 203,
-          "drawing": "bf95c47f988d"
+          "alphaPixels": 201,
+          "drawing": "9d4fc3e93f01"
         },
         {
           "id": "step-plant",
@@ -3975,7 +4537,7 @@
             24
           ],
           "alphaPixels": 281,
-          "drawing": "f14cc1adfe07"
+          "drawing": "adc8f289a69c"
         },
         {
           "id": "step-stride",
@@ -3992,8 +4554,8 @@
             15,
             24
           ],
-          "alphaPixels": 254,
-          "drawing": "0f60d82e6983"
+          "alphaPixels": 252,
+          "drawing": "f441fecfb6d1"
         },
         {
           "id": "rear-ready",
@@ -4010,8 +4572,8 @@
             15,
             24
           ],
-          "alphaPixels": 274,
-          "drawing": "7e7638232a7e"
+          "alphaPixels": 272,
+          "drawing": "6dd73b3a4ab6"
         },
         {
           "id": "rear-anticipate",
@@ -4028,15 +4590,15 @@
             16,
             24
           ],
-          "alphaPixels": 273,
-          "drawing": "dd56f7707351"
+          "alphaPixels": 271,
+          "drawing": "db9bd0eaa9ef"
         }
       ]
     },
     {
       "id": "upper-support",
       "label": "upper-support",
-      "source": "art-source/enemy-motion/raw/upper-support.png",
+      "source": "art-source/enemy-motion/authored/upper-support.aseprite",
       "sheet": "art-source/enemy-motion/atlases/upper-support.png",
       "frameCount": 16,
       "width": 192,
@@ -4062,8 +4624,8 @@
             15,
             26
           ],
-          "alphaPixels": 222,
-          "drawing": "836ef8cc58f5"
+          "alphaPixels": 213,
+          "drawing": "b227cb8d2aac"
         },
         {
           "id": "anticipate",
@@ -4080,8 +4642,8 @@
             19,
             22
           ],
-          "alphaPixels": 225,
-          "drawing": "6713d3435fc9"
+          "alphaPixels": 234,
+          "drawing": "dec31fb3d5fa"
         },
         {
           "id": "approach",
@@ -4098,8 +4660,8 @@
             21,
             25
           ],
-          "alphaPixels": 236,
-          "drawing": "e79a9b7b608d"
+          "alphaPixels": 245,
+          "drawing": "ca0e588b22ff"
         },
         {
           "id": "contact",
@@ -4116,8 +4678,8 @@
             29,
             24
           ],
-          "alphaPixels": 242,
-          "drawing": "e596cc756789",
+          "alphaPixels": 263,
+          "drawing": "4b59574a8c6b",
           "candidateContact": [
             1,
             28
@@ -4138,8 +4700,8 @@
             24,
             23
           ],
-          "alphaPixels": 235,
-          "drawing": "484953b1f969"
+          "alphaPixels": 247,
+          "drawing": "63a4a9d7b09a"
         },
         {
           "id": "reload",
@@ -4156,8 +4718,8 @@
             22,
             23
           ],
-          "alphaPixels": 244,
-          "drawing": "9911d3a5113f"
+          "alphaPixels": 266,
+          "drawing": "280186bc06e1"
         },
         {
           "id": "repeat-contact",
@@ -4174,8 +4736,8 @@
             26,
             23
           ],
-          "alphaPixels": 230,
-          "drawing": "dbb1f30df59f",
+          "alphaPixels": 232,
+          "drawing": "6d66fa7e8a31",
           "candidateContact": [
             1,
             30
@@ -4196,8 +4758,8 @@
             27,
             24
           ],
-          "alphaPixels": 246,
-          "drawing": "bfd59e64842f",
+          "alphaPixels": 255,
+          "drawing": "a15c99a5aa04",
           "candidateContact": [
             2,
             27
@@ -4218,8 +4780,8 @@
             18,
             24
           ],
-          "alphaPixels": 235,
-          "drawing": "0cfca29f1234"
+          "alphaPixels": 259,
+          "drawing": "55577608da86"
         },
         {
           "id": "heavy-hit",
@@ -4236,8 +4798,8 @@
             17,
             24
           ],
-          "alphaPixels": 235,
-          "drawing": "1df33a0915d0"
+          "alphaPixels": 228,
+          "drawing": "bd1a0e02baa3"
         },
         {
           "id": "fall",
@@ -4254,8 +4816,8 @@
             22,
             17
           ],
-          "alphaPixels": 209,
-          "drawing": "34ab06415e53"
+          "alphaPixels": 172,
+          "drawing": "cc72e9bda363"
         },
         {
           "id": "down",
@@ -4272,8 +4834,8 @@
             28,
             10
           ],
-          "alphaPixels": 184,
-          "drawing": "e24b4960e704"
+          "alphaPixels": 148,
+          "drawing": "3a96ba58b94b"
         },
         {
           "id": "step-plant",
@@ -4290,8 +4852,8 @@
             16,
             25
           ],
-          "alphaPixels": 209,
-          "drawing": "57ee6da51c81"
+          "alphaPixels": 202,
+          "drawing": "1a1654f81890"
         },
         {
           "id": "step-stride",
@@ -4308,8 +4870,8 @@
             17,
             25
           ],
-          "alphaPixels": 213,
-          "drawing": "392abd71dff2"
+          "alphaPixels": 218,
+          "drawing": "7ebae61c6945"
         },
         {
           "id": "rear-ready",
@@ -4326,8 +4888,8 @@
             14,
             25
           ],
-          "alphaPixels": 224,
-          "drawing": "2d901be33c68"
+          "alphaPixels": 207,
+          "drawing": "8c41c6bdeda4"
         },
         {
           "id": "rear-anticipate",
@@ -4344,15 +4906,15 @@
             18,
             25
           ],
-          "alphaPixels": 266,
-          "drawing": "ab1445755317"
+          "alphaPixels": 248,
+          "drawing": "3ea013a599e1"
         }
       ]
     },
     {
       "id": "upper-boss",
       "label": "upper-boss",
-      "source": "art-source/enemy-motion/raw/upper-boss.png",
+      "source": "art-source/enemy-motion/authored/upper-boss.aseprite",
       "sheet": "art-source/enemy-motion/atlases/upper-boss.png",
       "frameCount": 16,
       "width": 320,
@@ -4378,8 +4940,8 @@
             37,
             42
           ],
-          "alphaPixels": 838,
-          "drawing": "d6ae3840261a"
+          "alphaPixels": 837,
+          "drawing": "2ffc0ca4f766"
         },
         {
           "id": "anticipate",
@@ -4396,8 +4958,8 @@
             33,
             43
           ],
-          "alphaPixels": 855,
-          "drawing": "4d58316277f2"
+          "alphaPixels": 852,
+          "drawing": "79c03fe5a990"
         },
         {
           "id": "approach",
@@ -4414,8 +4976,8 @@
             37,
             41
           ],
-          "alphaPixels": 865,
-          "drawing": "091f405b4d86"
+          "alphaPixels": 862,
+          "drawing": "bb67c4e37548"
         },
         {
           "id": "contact",
@@ -4432,8 +4994,8 @@
             48,
             38
           ],
-          "alphaPixels": 910,
-          "drawing": "84c52b964fa9",
+          "alphaPixels": 907,
+          "drawing": "69a825ad541d",
           "candidateContact": [
             1,
             48
@@ -4454,8 +5016,8 @@
             44,
             38
           ],
-          "alphaPixels": 887,
-          "drawing": "964114def072"
+          "alphaPixels": 884,
+          "drawing": "639ec8eb075f"
         },
         {
           "id": "reload",
@@ -4472,8 +5034,8 @@
             37,
             40
           ],
-          "alphaPixels": 815,
-          "drawing": "0e41d1dc0ab7"
+          "alphaPixels": 814,
+          "drawing": "8ddedbfe90ad"
         },
         {
           "id": "repeat-contact",
@@ -4490,8 +5052,8 @@
             46,
             35
           ],
-          "alphaPixels": 853,
-          "drawing": "3606953491c1",
+          "alphaPixels": 852,
+          "drawing": "9747ec13e376",
           "candidateContact": [
             1,
             55
@@ -4512,8 +5074,8 @@
             38,
             40
           ],
-          "alphaPixels": 830,
-          "drawing": "f2fa8680929e",
+          "alphaPixels": 829,
+          "drawing": "a40216655c44",
           "candidateContact": [
             8,
             54
@@ -4534,8 +5096,8 @@
             35,
             39
           ],
-          "alphaPixels": 827,
-          "drawing": "2a8e90be71f2"
+          "alphaPixels": 824,
+          "drawing": "bf13e6cf9758"
         },
         {
           "id": "heavy-hit",
@@ -4552,8 +5114,8 @@
             37,
             40
           ],
-          "alphaPixels": 917,
-          "drawing": "e72a161d8dfc"
+          "alphaPixels": 914,
+          "drawing": "0f9589639b91"
         },
         {
           "id": "fall",
@@ -4570,8 +5132,8 @@
             41,
             33
           ],
-          "alphaPixels": 793,
-          "drawing": "82ee91ec768b"
+          "alphaPixels": 792,
+          "drawing": "b2966119c54d"
         },
         {
           "id": "down",
@@ -4588,8 +5150,8 @@
             47,
             22
           ],
-          "alphaPixels": 709,
-          "drawing": "00ba5bfc019e"
+          "alphaPixels": 708,
+          "drawing": "6e34720ec522"
         },
         {
           "id": "step-plant",
@@ -4606,8 +5168,8 @@
             38,
             42
           ],
-          "alphaPixels": 839,
-          "drawing": "5246c14a0f0a"
+          "alphaPixels": 836,
+          "drawing": "ca5ac4b9c5d4"
         },
         {
           "id": "step-stride",
@@ -4624,8 +5186,8 @@
             36,
             41
           ],
-          "alphaPixels": 779,
-          "drawing": "9619a1978305"
+          "alphaPixels": 776,
+          "drawing": "7df95717c9f7"
         },
         {
           "id": "rear-ready",
@@ -4642,8 +5204,8 @@
             23,
             26
           ],
-          "alphaPixels": 328,
-          "drawing": "70c5a81b7f79"
+          "alphaPixels": 327,
+          "drawing": "096a02f77124"
         },
         {
           "id": "rear-anticipate",
@@ -4660,15 +5222,15 @@
             26,
             26
           ],
-          "alphaPixels": 387,
-          "drawing": "a90033050106"
+          "alphaPixels": 386,
+          "drawing": "bcbe95df54a7"
         }
       ]
     },
     {
       "id": "upper-boss-special",
       "label": "upper-boss-special",
-      "source": "art-source/enemy-motion/raw/upper-boss-special.png",
+      "source": "art-source/enemy-motion/authored/upper-boss-special.aseprite",
       "sheet": "art-source/enemy-motion/atlases/upper-boss-special.png",
       "frameCount": 12,
       "width": 320,
@@ -4694,8 +5256,8 @@
             30,
             38
           ],
-          "alphaPixels": 711,
-          "drawing": "458bce751036"
+          "alphaPixels": 708,
+          "drawing": "bcbe02727579"
         },
         {
           "id": "charge-peak",
@@ -4712,8 +5274,8 @@
             22,
             45
           ],
-          "alphaPixels": 706,
-          "drawing": "29ca8abf6282"
+          "alphaPixels": 705,
+          "drawing": "20ac2acaa425"
         },
         {
           "id": "charge-approach",
@@ -4730,8 +5292,8 @@
             28,
             40
           ],
-          "alphaPixels": 686,
-          "drawing": "18d0ce8c848d"
+          "alphaPixels": 685,
+          "drawing": "078f3e9fd038"
         },
         {
           "id": "charge-contact",
@@ -4748,8 +5310,8 @@
             45,
             34
           ],
-          "alphaPixels": 769,
-          "drawing": "d1469736b897",
+          "alphaPixels": 768,
+          "drawing": "4333298c0265",
           "candidateContact": [
             1,
             58
@@ -4770,8 +5332,8 @@
             42,
             35
           ],
-          "alphaPixels": 802,
-          "drawing": "c10f13de6dcd"
+          "alphaPixels": 799,
+          "drawing": "a09b5098b85f"
         },
         {
           "id": "weak-set",
@@ -4788,8 +5350,8 @@
             36,
             37
           ],
-          "alphaPixels": 757,
-          "drawing": "1f642e0dcc01"
+          "alphaPixels": 754,
+          "drawing": "8cb43e7eb1a2"
         },
         {
           "id": "weak-contact",
@@ -4806,8 +5368,8 @@
             42,
             33
           ],
-          "alphaPixels": 789,
-          "drawing": "27affab4a471",
+          "alphaPixels": 788,
+          "drawing": "c5f7534307aa",
           "candidateContact": [
             4,
             61
@@ -4828,8 +5390,8 @@
             32,
             37
           ],
-          "alphaPixels": 744,
-          "drawing": "db1265f69e68"
+          "alphaPixels": 741,
+          "drawing": "5b37c7935f3c"
         },
         {
           "id": "interrupted-knee",
@@ -4846,8 +5408,8 @@
             41,
             34
           ],
-          "alphaPixels": 816,
-          "drawing": "7ed32f6b76f2"
+          "alphaPixels": 815,
+          "drawing": "616f58a6df37"
         },
         {
           "id": "recover-start",
@@ -4864,8 +5426,8 @@
             36,
             37
           ],
-          "alphaPixels": 867,
-          "drawing": "d1e44e6a24a6"
+          "alphaPixels": 864,
+          "drawing": "5fb6989901a0"
         },
         {
           "id": "recover-knee",
@@ -4882,8 +5444,8 @@
             34,
             37
           ],
-          "alphaPixels": 841,
-          "drawing": "442c90640eee"
+          "alphaPixels": 838,
+          "drawing": "13c62fb88935"
         },
         {
           "id": "recover-end",
@@ -4900,8 +5462,8 @@
             34,
             41
           ],
-          "alphaPixels": 838,
-          "drawing": "f2b827edac5e"
+          "alphaPixels": 835,
+          "drawing": "107e3b83faaf"
         }
       ]
     }

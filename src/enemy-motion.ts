@@ -7,29 +7,10 @@ const motionSheets = new Map<string, Sheet>(manifest.sheets.map(sheet => [sheet.
 export type MotionFrame = { sheet: string; pose: string }
 export const frame = (sheet: string, pose: string): MotionFrame => ({ sheet, pose })
 
-const chainWardenBounds = {
-  idle: [15, 16, 24, 27],
-  charge: [10, 16, 28, 27],
-  attack: [1, 0, 39, 44],
-  hit: [0, 0, 38, 43],
-}
-
-const chainWardenPoses: Readonly<Record<string, keyof typeof chainWardenBounds>> = {
-  ready: 'idle', follow: 'idle',
-  anticipate: 'charge', approach: 'charge', reload: 'charge',
-  contact: 'attack', 'repeat-contact': 'attack', 'special-contact': 'attack',
-  hit: 'hit', 'heavy-hit': 'hit', fall: 'hit', down: 'hit',
-}
-
 export function atlasCell({ sheet, pose }: MotionFrame) {
   if (sheet === 'freeze' && pose === 'ready') {
-    const cell: AtlasCell = { id: pose, rect: [0, 0, 48, 33], bounds: [14, 11, 28, 18] }
+    const cell: AtlasCell = { id: pose, rect: [0, 0, 48, 33], bounds: [12, 3, 32, 26] }
     return { atlas: { pivot: [34, 29] }, cell, art: 'freeze-ready' }
-  }
-  if (sheet === 'chain-warden') {
-    const id = chainWardenPoses[pose]
-    const cell: AtlasCell = { id, rect: [0, 0, 40, 44], bounds: chainWardenBounds[id] }
-    return { atlas: { pivot: [29, 42] }, cell, art: `chain-warden-${id}` }
   }
   const atlas = motionSheets.get(sheet)!
   const cell = atlas.frames.find(candidate => candidate.id === pose)
