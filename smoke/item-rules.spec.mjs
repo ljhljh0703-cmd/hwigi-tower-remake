@@ -221,7 +221,11 @@ test('강적 승리 뒤 장착 유물 세 개를 유지하고 보너스 동전�
   const keep = page.getByRole('button', { name: /^지금 유물 유지/ })
   await expect(keep).toContainText('+2')
   await expect(page.locator('#first-run-line')).toHaveText('유물을 바꾸거나 그대로 유지하세요.')
-  const note = await page.locator('#first-run-note').boundingBox()
+  const noteLocator = page.locator('#first-run-note')
+  await expect(noteLocator).toBeInViewport({ ratio: 1 })
+  const note = await noteLocator.boundingBox()
+  const heading = await page.locator('#reward-heading').boundingBox()
+  expect(note.y + note.height).toBeLessThanOrEqual(heading.y)
   const bossSlot = page.locator('#boss-relic-slot')
   if (await bossSlot.isVisible()) {
     const slot = await bossSlot.boundingBox()
@@ -229,6 +233,10 @@ test('강적 승리 뒤 장착 유물 세 개를 유지하고 보너스 동전�
   }
   const offers = page.locator('#reward-cards button')
   await shot(page, info, 'elite-keep-three', [rack, ...await offers.all(), keep])
+  const keepBeforeDismiss = await keep.boundingBox()
+  await page.keyboard.press('Escape')
+  await expect(noteLocator).toBeHidden()
+  expect(await keep.boundingBox()).toEqual(keepBeforeDismiss)
   await offers.first().tap()
   await expect(choose(page)).toBeDisabled()
   await reloadRun(page)

@@ -1895,12 +1895,12 @@ function renderFirstRun(run: Ascent) {
     const anchor = ui.rewardHeading
     if (room?.kind === 'shop') {
       const text = route && route.map.rules >= 3 ? '동전으로 물건을 사세요.' : '물건을 고르세요.'
-      firstRun.discover([{ id: 'shop', symbol: 'map-shop', text, anchor }])
+      firstRun.discover([{ id: 'shop', symbol: 'map-shop', text, anchor, inFlow: true }])
     } else if (room?.enemyId === 'chain-warden') {
-      firstRun.discover([{ id: 'boss-relic', symbol: 'crown', text: '보스 유물 1장을 고르세요.', anchor }])
+      firstRun.discover([{ id: 'boss-relic', symbol: 'crown', text: '보스 유물 1장을 고르세요.', anchor, inFlow: true }])
     } else if (route?.screen === 'reward' || (!route && battle.phase === 'won')) {
       const text = canKeepEliteArtifacts(run) ? '유물을 바꾸거나 그대로 유지하세요.' : '카드 1장을 골라 확인하세요.'
-      firstRun.discover([{ id: 'reward', symbol: 'map-reward', text, anchor }])
+      firstRun.discover([{ id: 'reward', symbol: 'map-reward', text, anchor, inFlow: true }])
     } else firstRun.clear()
   } else if (!ui.battle.hidden && !ui.planning.hidden) {
     const gimmick = yachtGimmick(battle)

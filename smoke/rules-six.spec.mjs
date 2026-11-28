@@ -105,8 +105,11 @@ test('다섯 예고는 조건과 효과를 표시하며 눈을 넣고 빼면 함
     expect(await tooltip.evaluate((element) => {
       const text = document.createRange()
       text.selectNodeContents(element)
-      return text.getClientRects().length
-    })).toBe(1)
+      const tooltipBox = element.getBoundingClientRect()
+      const lines = [...text.getClientRects()]
+      return lines.length > 0 && lines.every(({ left, top, right, bottom }) =>
+        left >= tooltipBox.left && top >= tooltipBox.top && right <= tooltipBox.right && bottom <= tooltipBox.bottom)
+    })).toBe(true)
     const pool = page.locator('#pool-dice button')
     await pool.nth(0).tap()
     if (kind === 'armor') await pool.nth(1).tap()

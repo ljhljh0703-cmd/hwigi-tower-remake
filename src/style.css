@@ -449,6 +449,8 @@ main[data-screen='battle'] {
 }
 
 #first-run-note[data-below='true']::after { top: -5px; bottom: auto; rotate: 225deg; }
+#first-run-note[data-in-flow] { position: relative; max-width: 100%; }
+#first-run-note[data-in-flow][hidden] { display: flex !important; visibility: hidden; }
 #first-run-note:has(#skip-first-run[hidden]) { padding: var(--discovery-padding, 7px) 10px; }
 #first-run-note[data-guide^='gimmick-'] { --discovery-padding: 4px; }
 #first-run-line { display: inline-flex; align-items: center; gap: 5px; }

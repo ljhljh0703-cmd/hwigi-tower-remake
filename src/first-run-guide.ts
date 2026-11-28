@@ -34,6 +34,7 @@ interface Note {
   spoken?: string
   anchor: HTMLElement
   beside?: HTMLElement
+  inFlow?: boolean
 }
 
 interface Lesson extends Note {
@@ -75,14 +76,14 @@ export class FirstRunGuide {
     this.skipButton.addEventListener('click', () => this.skip())
     document.addEventListener('pointerdown', (event) => {
       if (!this.active || !event.isPrimary || event.button !== 0) return
-      if (!this.lesson) this.clear()
+      if (!this.lesson) this.clear(true)
       else if (event.target instanceof Element &&
         !event.target.closest('button, dialog, [data-dice-zone], [data-hold-help]')) this.skip()
     }, { capture: true })
     document.addEventListener('keydown', (event) => {
       if (document.querySelector('dialog[open]')) return
       if (event.key === 'Escape' && this.lesson) this.skip()
-      else if (!this.lesson && this.active && ['Escape', 'Enter', ' '].includes(event.key)) this.clear()
+      else if (!this.lesson && this.active && ['Escape', 'Enter', ' '].includes(event.key)) this.clear(true)
     })
     window.addEventListener('resize', this.position)
     window.addEventListener('scroll', this.position, { passive: true })
@@ -130,7 +131,7 @@ export class FirstRunGuide {
     this.onSkip()
   }
 
-  clear() {
+  clear(keepSpace = false) {
     window.clearTimeout(this.timer)
     for (const mark of this.lesson?.marks ?? []) delete mark.dataset.firstRunTarget
     this.active?.beside?.classList.remove('below-first-run-note')
@@ -138,6 +139,10 @@ export class FirstRunGuide {
     this.active = undefined
     this.available = []
     this.note.hidden = true
+    if (!keepSpace && this.note.hasAttribute('data-in-flow')) {
+      this.pointer.before(this.note)
+      this.note.removeAttribute('data-in-flow')
+    }
     this.pointer.hidden = true
     this.guardGoal.hidden = true
     this.status.textContent = ''
@@ -164,7 +169,7 @@ export class FirstRunGuide {
       this.position()
       return
     }
-    if (this.active) this.clear()
+    if (this.active || !notes.some(note => note.inFlow)) this.clear()
     const next = notes.find(({ id }) => !this.progress.seen.includes(id))
     if (!next) return
     this.progress.seen.push(next.id)
@@ -173,7 +178,7 @@ export class FirstRunGuide {
     this.available = notes
     this.timer = window.setTimeout(() => {
       const available = this.available
-      this.clear()
+      this.clear(true)
       this.discover(available)
     }, noteDuration)
   }
@@ -182,6 +187,15 @@ export class FirstRunGuide {
     this.active = note
     this.skipButton.hidden = !this.lesson
     this.note.dataset.guide = note.id
+    if (note.inFlow) {
+      note.anchor.before(this.note)
+      this.note.style.removeProperty('left')
+      this.note.style.removeProperty('top')
+      this.note.dataset.below = 'false'
+    } else if (this.note.hasAttribute('data-in-flow')) {
+      this.pointer.before(this.note)
+    }
+    this.note.toggleAttribute('data-in-flow', Boolean(note.inFlow))
     this.line.innerHTML = `${this.icon(note.symbol)}<span>${note.text}</span>`
     const spoken = note.spoken ?? note.text
     if (this.status.textContent !== spoken) this.status.textContent = spoken
@@ -190,7 +204,7 @@ export class FirstRunGuide {
   }
 
   private position = () => {
-    if (!this.active) return
+    if (!this.active || this.active.inFlow) return
     const { anchor, beside } = this.active
     const box = anchor.getBoundingClientRect()
     const { offsetWidth: width, offsetHeight: height } = this.note
