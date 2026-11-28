@@ -460,7 +460,13 @@ test('주사위판의 해금 신호로 같은 눈 셋을 깨운 뒤 에고를 �
   await expect(unlock).toBeHidden()
   await expect(ego).toBeVisible()
   await expect(page.locator('#pool-dice .die-arriving')).toHaveCount(0)
-  await ego.tap()
+  const egoBox = await ego.boundingBox()
+  const egoCenter = { x: egoBox.x + egoBox.width / 2, y: egoBox.y + egoBox.height / 2 }
+  const egoCorners = await ego.evaluate((button, center) => [-22, 22].every(x =>
+    [-22, 22].every(y => button.contains(document.elementFromPoint(center.x + x, center.y + y)))
+  ), egoCenter)
+  expect(egoCorners, '작은 에고 그림 주위의 44px 터치 영역').toBe(true)
+  await page.touchscreen.tap(egoCenter.x + 21, egoCenter.y)
   await expect(page.getByRole('tooltip')).toHaveText('턴 끝에 굴러 스스로 놓습니다.')
   await photo('waiting-ego')
   await expect(page.locator('#pool-dice button')).toHaveCount(3)

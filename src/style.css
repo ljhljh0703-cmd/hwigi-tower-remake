@@ -1896,6 +1896,11 @@ button.die:disabled { background: transparent; }
   padding: 0;
 }
 #ego-hover > .icon { animation: ego-bob 1.4s ease-in-out infinite alternate; }
+#ego-hover::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+}
 #ego-hover[data-awakening] { box-shadow: 0 0 14px #a7d7ef; }
 #ego-hover[data-awakening] > .icon { animation: none; }
 @keyframes ego-bob { to { transform: translateY(-2px); } }
