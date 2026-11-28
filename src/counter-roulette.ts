@@ -12,7 +12,8 @@ export class CounterRoulette {
   private labels: HTMLElement[] = []
   private degreesPerSlot = 0
   private spin?: Animation
-  private stop?: () => void
+  private stop?: (angle: number) => void
+  private freeRoll?: { duration: number; animation?: Animation }
   private companionAwake = false
   private playing = false
 
@@ -85,48 +86,63 @@ export class CounterRoulette {
       delete this.panel.dataset.rollState
       this.button.hidden = false
       this.button.disabled = false
-      this.action.textContent = '룰렛 돌리기'
+      this.action.textContent = '멈추기'
     }
+    if (!rewards) this.requestStop()
     this.panel.hidden = !rewards
   }
 
   finishMotion() {
     this.spin?.finish()
+    this.freeRoll?.animation?.cancel()
   }
 
   requestStop() {
-    if (!this.stop) return false
-    this.stop()
-    this.stop = undefined
-    return true
-  }
-
-  async waitForStop(animate: boolean, speed: number) {
-    this.button.hidden = false
-    this.button.disabled = false
-    this.action.textContent = '룰렛 멈추기'
-    this.panel.dataset.rollState = 'free'
-    const duration = 660 / speed
-    const rotation = animate ? this.wheel.animate([{ '--counter-angle': '0deg' }, { '--counter-angle': '360deg' }],
-      { duration, iterations: Infinity }) : undefined
-    await new Promise<void>(resolve => { this.stop = resolve })
-    const angle = (Number(rotation?.currentTime ?? 0) % duration) / duration * 360
+    const roll = this.freeRoll
+    if (!roll) return undefined
+    this.freeRoll = undefined
+    const angle = (Number(roll.animation?.currentTime ?? 0) % roll.duration) / roll.duration * 360
     this.wheel.style.setProperty('--counter-angle', `${angle}deg`)
-    rotation?.cancel()
+    roll.animation?.cancel()
+    const stop = this.stop
+    this.stop = undefined
+    if (stop) {
+      stop(angle)
+      return undefined
+    }
     return angle
   }
 
-  async reveal(reward: CounterResult, animate: boolean, onTick: () => void, speed = 1, startAngle = 0) {
+  startRoll(animate: boolean, speed: number) {
+    if (this.freeRoll) return false
+    this.button.hidden = false
+    this.button.disabled = false
+    this.action.textContent = '멈추기'
+    this.panel.dataset.rollState = 'free'
+    const duration = 660 / speed
+    const animation = animate ? this.wheel.animate([{ '--counter-angle': '0deg' }, { '--counter-angle': '360deg' }],
+      { duration, iterations: Infinity }) : undefined
+    this.freeRoll = { duration, animation }
+    return true
+  }
+
+  waitForStop(animate: boolean, speed: number) {
+    this.startRoll(animate, speed)
+    return new Promise<number>(resolve => { this.stop = resolve })
+  }
+
+  async reveal(reward: CounterResult, animate: boolean, onTick: () => void, speed = 1, startAngle?: number) {
     this.button.disabled = true
     this.action.textContent = '회전 중'
     const onField = this.panel.classList.contains('counter-over-field')
-    const angle = (startAngle ? 360 : 1080) + (360 - reward.slot * this.degreesPerSlot) % 360
+    const manual = startAngle !== undefined
+    const angle = (manual ? 360 : 1080) + (360 - reward.slot * this.degreesPerSlot) % 360
     const rotation = `${angle}deg`
     if (animate) {
       this.panel.dataset.rollState = 'spinning'
       const spin = this.wheel.animate(
-        [{ '--counter-angle': `${startAngle}deg` }, { '--counter-angle': rotation }],
-        { duration: (startAngle ? 490 : 920) / speed, easing: 'cubic-bezier(.15,.65,.22,1)' },
+        [{ '--counter-angle': `${startAngle ?? 0}deg` }, { '--counter-angle': rotation }],
+        { duration: (manual ? 490 : 920) / speed, easing: 'cubic-bezier(.15,.65,.22,1)' },
       )
       this.spin = spin
       let frame = 0

@@ -1937,7 +1937,6 @@ button.die:disabled { background: transparent; }
 .dice-guide-state { font-size: .78rem; }
 .dice-guide-entry .unlock-pattern { grid-column: 1 / -1; font-size: 22px; }
 .dice-guide-entry p { grid-column: 1 / -1; font-size: .83rem; word-break: keep-all; }
-#counter-panel:has(#counter:not([hidden]):enabled) .roulette-stage { cursor: pointer; }
 .unlock-hint, .unlock-hint:disabled {
   border: 1px dashed var(--stone-edge);
   background: var(--stone-bed);

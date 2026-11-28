@@ -123,14 +123,9 @@ test('첫 등반에서 첫 공격을 하고 정확 방어 뒤 룰렛, 보상, �
   expect(actions).toBe(10)
   console.log(`${info.project.name} 첫 공격 ${JSON.stringify(measure)}`)
 
-  await checkNote(page, 'defend', '정확히 막았습니다! 룰렛을 두 번 누르세요.', '06-counter', info)
-  const hintBox = await note(page).boundingBox()
-  const footerBox = await page.locator('#counter-footer').boundingBox()
-  expect(hintBox.y + hintBox.height).toBeLessThanOrEqual(footerBox.y)
+  await expect(page.locator('#counter-panel')).toHaveAttribute('data-roll-state', 'free')
   await expect(page.locator('#player-hp')).toHaveJSProperty('value', 22)
-  await tap(page.locator('#counter'))
-  await expect(page.locator('#counter-action')).toHaveText('룰렛 멈추기')
-  await tap(page.locator('#counter'))
+  await tap(page.getByRole('button', { name: '멈추기' }))
 
   const reward = page.getByRole('heading', { name: '전투 보상' })
   const guidedAction = page.locator('#counter[data-first-run-target], #resolve[data-first-run-target], .slot-target[data-first-run-target]')
@@ -212,9 +207,7 @@ test('규칙판 7 추가 특전으로 새로 시작해 고정 굴림 안내를 �
     await expect(reward.or(guided)).toBeVisible()
     if (await reward.isVisible()) break
     for (const die of await page.locator('#pool-dice button[data-first-run-target]').all()) await die.tap()
-    const isCounter = await guided.getAttribute('id') === 'counter'
     await guided.tap()
-    if (isCounter) await page.getByRole('button', { name: '룰렛 멈추기' }).tap()
   }
   await expect(reward).toBeVisible()
   expect((await save(page)).ascent.battle.phase).toBe('won')
@@ -263,7 +256,7 @@ test('키보드로 배치하고 재개할 수 있고 건너뛰기와 다시 보�
   await page.keyboard.press('Enter')
   await expect(page.locator('#resolve')).toBeFocused()
   await page.keyboard.press('Enter')
-  await checkNote(page, 'defend', '정확히 막았습니다! 룰렛을 두 번 누르세요.')
+  await expect(page.locator('#counter-panel')).toHaveAttribute('data-roll-state', 'free')
   await expect(page.locator('#counter')).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(note(page)).toBeHidden()

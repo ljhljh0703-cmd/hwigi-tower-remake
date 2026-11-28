@@ -177,7 +177,6 @@ const ui = {
   resolve: element<HTMLButtonElement>('resolve'),
   counter: element<HTMLButtonElement>('counter'),
   counterPanel: element('counter-panel'),
-  counterFooter: element('counter-footer'),
   next: element<HTMLButtonElement>('next'),
   retry: element<HTMLButtonElement>('retry'),
 }
@@ -2189,12 +2188,7 @@ function updatePlayerVital(hp: number, max = ui.playerHp.max) {
 
 function teachOpening({ battle }: Ascent) {
   if (battle.phase === 'counter') {
-    if (ui.counter.hidden) {
-      firstRun.clear()
-      return
-    }
-    firstRun.teach({ id: 'defend', text: '정확히 막았습니다! 룰렛을 두 번 누르세요.', symbol: 'wheel',
-      anchor: ui.counterFooter, marks: [ui.counter] })
+    firstRun.mark(ui.counter)
     return
   }
 
@@ -3008,11 +3002,18 @@ function turnCues(before: YachtBattle | undefined, changedTurn: boolean) {
 }
 
 function resumeCounterOrFocus() {
-  if (ascent?.battle.phase === 'counter' && !ascent.battle.loot?.counter && settings.automaticCounter) void playCounter()
-  else focusPhase()
+  if (ascent?.battle.phase === 'counter' && !ascent.battle.loot?.counter) {
+    if (settings.automaticCounter) {
+      roulette.requestStop()
+      void playCounter()
+      return
+    }
+    if (roulette.startRoll(!reducedMotion(), animationSpeed())) sound.play('roulette-engage', 1, .26)
+  }
+  focusPhase()
 }
 
-async function playCounter(choice?: CounterChoice) {
+async function playCounter(choice?: CounterChoice, stoppedAngle?: number) {
   if (ui.guide.open || exchangeBusy || !ascent || ascent.battle.phase !== 'counter' || roulette.busy || (!choice && ascent.battle.loot?.counter)) return
   const previous = ascent
   const spun = spinAscentCounter(ascent, choice)
@@ -3033,7 +3034,7 @@ async function playCounter(choice?: CounterChoice) {
   }
 
   try {
-    await roulette.play(() => presentCounter(previous, checkpoint, reward, commit, choice))
+    await roulette.play(() => presentCounter(previous, checkpoint, reward, commit, choice, stoppedAngle))
   } catch (error) {
     console.error('반격 연출을 완료하지 못했습니다.', error)
     ui.companionFlight.hidden = true
@@ -3054,7 +3055,7 @@ async function playCounter(choice?: CounterChoice) {
   }
 }
 
-async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: CounterResult, commit: () => void, choice?: CounterChoice) {
+async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: CounterResult, commit: () => void, choice?: CounterChoice, stoppedAngle?: number) {
   ui.counter.hidden = true
   const before = previous.battle
   const next = checkpoint.battle
@@ -3071,8 +3072,8 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
   const animate = !reducedMotion()
   if (next.perk?.kind === 'counter') renderActivePerk(next)
   if (!choice || choice === 'coin') {
-    sound.play('roulette-engage', 1, .26)
-    const angle = settings.automaticCounter ? 0 : await roulette.waitForStop(animate, animationSpeed())
+    if (stoppedAngle === undefined) sound.play('roulette-engage', 1, .26)
+    const angle = choice === 'coin' && !settings.automaticCounter ? await roulette.waitForStop(animate, animationSpeed()) : stoppedAngle
     if (animate) sound.play('roulette-ratchet', animationSpeed(), .23)
     const recast = choice === 'coin' ? yachtCounterSlot(before, true) : undefined
     const landed = recast === undefined ? reward : { slot: recast, ...displayedCounterRewards(before)[recast] }
@@ -3146,10 +3147,10 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
   arena.finishStrike()
 }
 function operateCounter() {
-  if (!roulette.requestStop() && !ui.counter.hidden && !ui.counter.disabled) void playCounter()
+  const angle = roulette.requestStop()
+  if (angle !== undefined) void playCounter(undefined, angle)
 }
 ui.counter.addEventListener('click', operateCounter)
-ui.counterPanel.querySelector('.roulette-stage')?.addEventListener('click', operateCounter)
 
 const roomCover = element('room-transition')
 const roomFloor = element('room-floor')

@@ -157,6 +157,12 @@ export class FirstRunGuide {
     this.show(lesson)
   }
 
+  mark(target: HTMLElement) {
+    this.clear()
+    this.lesson = { id: 'defend', text: '', symbol: 'shield', anchor: target, marks: [target] }
+    target.dataset.firstRunTarget = ''
+  }
+
   needsSpace(id: string) {
     return this.active?.id === id || !this.progress.seen.includes(id)
   }
