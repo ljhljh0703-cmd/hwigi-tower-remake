@@ -1,0 +1,854 @@
+{
+  "base": "a112a5c9f9261bf50d6b215f7e0f9b7f2c27fb89",
+  "baseAssetsSha256": {
+    "index-B-2PINaM.js": "DA56C26A5024BE9648B491248A55605307345024532285CB924EB9A06A15F46A",
+    "index-MrYSID7y.css": "9E2595135DB4AB6CF9671BE5DC658E240CF43D862B0952C1C5D3ED00B6688E2E"
+  },
+  "preservedWork": "7783a61de3f549506d1b8c8c3bb5221e54fb264f",
+  "candidateAssetsSha256": {
+    "index-Pc0o5Mht.js": "B53BE92B9DFD141874913605472B04B19DF948C176606D391D26FFE1D00E9F75",
+    "index-PjCO4Axx.css": "82139C200A7779665FD101EB0F53C59DFCB8E2DA50B33D4296B5C3819E271331"
+  },
+  "browser": "Edge mobile, real DOM, Canvas 2D and production assets",
+  "offsets": "milliseconds after actual target damage at normal speed; at fast speed divide listed offsets by 2 for wall time",
+  "baselineSource": "Public seed 12 replay concurrent-a112. Material rooms are replays of the same saved battle on the matching a112a5c build.",
+  "baselinesFailed": {
+    "publicTestCases": 8,
+    "workGuardFirstDamageDisplay": "22/22 −4",
+    "strongVeil": "wall and floor lost texture",
+    "priorIntegrated320BossNamePixels": {
+      "160": 6,
+      "211": 165
+    },
+    "reviewer320FastDiscoveryPixels": {
+      "340": 1715,
+      "560": 770
+    },
+    "priorIntegratedConfirmDidNotDismissDiscovery": [
+      "320x568",
+      "390x844"
+    ]
+  },
+  "viewports": {
+    "320x568": {
+      "glyphAndContrast": {
+        "default": {
+          "offsetMs": [
+            112,
+            136,
+            160,
+            340
+          ],
+          "candidate": {
+            "covered": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "nearBackgroundPercent": [
+              16.1,
+              15.9,
+              15.2,
+              14.6
+            ],
+            "glyphPixels": [
+              158,
+              158,
+              158,
+              158
+            ]
+          },
+          "allSampledFrames": 10,
+          "anyGlyphOcclusion": false,
+          "allNumbersFitCards": true,
+          "public": {
+            "covered": [
+              628,
+              556,
+              195,
+              194
+            ],
+            "overlapPercent": [
+              15.4,
+              15.1,
+              7.7,
+              10.6
+            ],
+            "nearBackgroundPercent": [
+              52.9,
+              48.7,
+              53.2,
+              49.6
+            ]
+          },
+          "meanEarlyGainPp": 35.9
+        },
+        "ice": {
+          "offsetMs": [
+            112,
+            136,
+            160,
+            340
+          ],
+          "candidate": {
+            "covered": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "nearBackgroundPercent": [
+              24,
+              23.9,
+              23.3,
+              24.3
+            ],
+            "glyphPixels": [
+              137,
+              137,
+              137,
+              137
+            ]
+          },
+          "allSampledFrames": 11,
+          "anyGlyphOcclusion": false,
+          "allNumbersFitCards": true,
+          "public": {
+            "covered": [
+              593,
+              546,
+              457,
+              296
+            ],
+            "overlapPercent": [
+              12.1,
+              12.8,
+              11.1,
+              12
+            ],
+            "nearBackgroundPercent": [
+              44.4,
+              43.3,
+              43.3,
+              37.1
+            ]
+          },
+          "meanEarlyGainPp": 19.9
+        },
+        "brass": {
+          "offsetMs": [
+            112,
+            136,
+            160,
+            340
+          ],
+          "candidate": {
+            "covered": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "nearBackgroundPercent": [
+              28.8,
+              28.1,
+              29.3,
+              30
+            ],
+            "glyphPixels": [
+              137,
+              137,
+              137,
+              137
+            ]
+          },
+          "allSampledFrames": 10,
+          "anyGlyphOcclusion": false,
+          "allNumbersFitCards": true,
+          "public": {
+            "covered": [
+              645,
+              587,
+              490,
+              374
+            ],
+            "overlapPercent": [
+              13.3,
+              13,
+              12.2,
+              14.8
+            ],
+            "nearBackgroundPercent": [
+              41.2,
+              42,
+              46,
+              42.1
+            ]
+          },
+          "meanEarlyGainPp": 14.3
+        },
+        "fast": {
+          "offsetMs": [
+            112,
+            136,
+            160,
+            340
+          ],
+          "candidate": {
+            "covered": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "nearBackgroundPercent": [
+              17.5,
+              15.6,
+              16.2,
+              15.4
+            ],
+            "glyphPixels": [
+              408,
+              408,
+              408,
+              408
+            ]
+          },
+          "allSampledFrames": 10,
+          "anyGlyphOcclusion": false,
+          "allNumbersFitCards": true
+        },
+        "reduced": {
+          "offsetMs": [
+            112,
+            136,
+            160
+          ],
+          "candidate": {
+            "covered": [
+              0,
+              0,
+              0
+            ],
+            "nearBackgroundPercent": [
+              18.4,
+              18.4,
+              18.4
+            ],
+            "glyphPixels": [
+              158,
+              158,
+              158
+            ]
+          },
+          "allSampledFrames": 8,
+          "anyGlyphOcclusion": false,
+          "allNumbersFitCards": true
+        }
+      },
+      "normalSpeedReplay": [
+        {
+          "turn": 1,
+          "dice": [
+            "6",
+            "3",
+            "3"
+          ],
+          "before": 23,
+          "after": 11,
+          "contactMs": 231.3,
+          "distinctSteps": 8,
+          "maxPieces": 0,
+          "pulses": [
+            24
+          ],
+          "sounds": [
+            {
+              "name": "swish.wav",
+              "ms": 176.8
+            },
+            {
+              "name": "slam.wav",
+              "ms": 230.3
+            }
+          ],
+          "heroHp": 13
+        },
+        {
+          "turn": 2,
+          "dice": [
+            "4",
+            "5",
+            "3"
+          ],
+          "before": 11,
+          "after": 0,
+          "contactMs": 226,
+          "distinctSteps": 6,
+          "maxPieces": 7,
+          "pulses": [
+            52
+          ],
+          "sounds": [
+            {
+              "name": "swish.wav",
+              "ms": 166.7
+            },
+            {
+              "name": "slam.wav",
+              "ms": 225.5
+            },
+            {
+              "name": "seat.wav",
+              "ms": 573.7
+            },
+            {
+              "name": "victory.mp3",
+              "ms": 2160.1
+            }
+          ],
+          "heroHp": 13
+        }
+      ],
+      "fastDpr2": {
+        "offsetMs": [
+          16,
+          112,
+          136,
+          160,
+          340,
+          560
+        ],
+        "coveredByHud": [
+          {},
+          {},
+          {},
+          {},
+          {},
+          {}
+        ],
+        "coveredByNumber": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rightInsetCssPx": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ]
+      },
+      "guardDpr2": {
+        "offsetMs": [
+          112,
+          211,
+          340,
+          370,
+          540
+        ],
+        "playerCard": [
+          "18/22",
+          "18/22",
+          "18/22",
+          "9/22",
+          "9/22"
+        ],
+        "minCardGapCssPx": 17.546875,
+        "minimumHpInsetCssPx": 6,
+        "contacts": [
+          {
+            "msFromFirstPlayerHit": 0,
+            "label": "나−4",
+            "hp": {
+              "from": 22,
+              "to": 18
+            },
+            "sound": [
+              "tap.wav"
+            ]
+          },
+          {
+            "msFromFirstPlayerHit": 124,
+            "label": "나−9",
+            "hp": {
+              "from": 18,
+              "to": 9
+            },
+            "sound": [
+              "stone-hit.mp3"
+            ]
+          }
+        ]
+      },
+      "reducedStraight": {
+        "6": {
+          "testedBattleMs": [
+            16,
+            112,
+            249
+          ],
+          "staticMask": true,
+          "damage": [
+            "−11",
+            "−11",
+            "−11"
+          ],
+          "soundCount": [
+            0,
+            0,
+            0
+          ],
+          "unlockScreenMs": 250,
+          "damageCountOnUnlock": 0
+        },
+        "7": {
+          "testedBattleMs": [
+            16,
+            112,
+            274
+          ],
+          "staticMask": true,
+          "damage": [
+            "−11",
+            "−11",
+            "−11"
+          ],
+          "soundCount": [
+            0,
+            0,
+            0
+          ],
+          "unlockScreenMs": 275,
+          "damageCountOnUnlock": 0
+        }
+      },
+      "bossNameplate": {
+        "offsetMs": [
+          160,
+          211
+        ],
+        "coveredByHud": [
+          {},
+          {}
+        ]
+      }
+    },
+    "390x844": {
+      "glyphAndContrast": {
+        "default": {
+          "offsetMs": [
+            112,
+            136,
+            160,
+            340
+          ],
+          "candidate": {
+            "covered": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "nearBackgroundPercent": [
+              19.2,
+              17.9,
+              20.2,
+              19.5
+            ],
+            "glyphPixels": [
+              159,
+              159,
+              159,
+              159
+            ]
+          },
+          "allSampledFrames": 10,
+          "anyGlyphOcclusion": false,
+          "allNumbersFitCards": true,
+          "public": {
+            "covered": [
+              628,
+              355,
+              169,
+              155
+            ],
+            "overlapPercent": [
+              10.6,
+              6.4,
+              3.2,
+              5.2
+            ],
+            "nearBackgroundPercent": [
+              46.8,
+              55.8,
+              56.6,
+              54.7
+            ]
+          },
+          "meanEarlyGainPp": 34.0
+        },
+        "ice": {
+          "offsetMs": [
+            112,
+            136,
+            160,
+            340
+          ],
+          "candidate": {
+            "covered": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "nearBackgroundPercent": [
+              23.8,
+              24.1,
+              25.1,
+              24.1
+            ],
+            "glyphPixels": [
+              137,
+              137,
+              137,
+              137
+            ]
+          },
+          "allSampledFrames": 11,
+          "anyGlyphOcclusion": false,
+          "allNumbersFitCards": true,
+          "public": {
+            "covered": [
+              573,
+              546,
+              516,
+              350
+            ],
+            "overlapPercent": [
+              11.4,
+              12.2,
+              11.7,
+              12.5
+            ],
+            "nearBackgroundPercent": [
+              33.2,
+              36.2,
+              37,
+              36.3
+            ]
+          },
+          "meanEarlyGainPp": 11.1
+        },
+        "brass": {
+          "offsetMs": [
+            112,
+            136,
+            160,
+            340
+          ],
+          "candidate": {
+            "covered": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "nearBackgroundPercent": [
+              27.4,
+              26.4,
+              26.7,
+              30
+            ],
+            "glyphPixels": [
+              137,
+              137,
+              137,
+              137
+            ]
+          },
+          "allSampledFrames": 10,
+          "anyGlyphOcclusion": false,
+          "allNumbersFitCards": true,
+          "public": {
+            "covered": [
+              636,
+              489,
+              514,
+              395
+            ],
+            "overlapPercent": [
+              12.7,
+              10.4,
+              11.7,
+              14
+            ],
+            "nearBackgroundPercent": [
+              36.2,
+              37.1,
+              41.5,
+              41.4
+            ]
+          },
+          "meanEarlyGainPp": 11.4
+        },
+        "fast": {
+          "offsetMs": [
+            112,
+            136,
+            160,
+            340
+          ],
+          "candidate": {
+            "covered": [
+              0,
+              0,
+              0,
+              0
+            ],
+            "nearBackgroundPercent": [
+              19.9,
+              18,
+              20.1,
+              18.2
+            ],
+            "glyphPixels": [
+              408,
+              408,
+              408,
+              408
+            ]
+          },
+          "allSampledFrames": 10,
+          "anyGlyphOcclusion": false,
+          "allNumbersFitCards": true
+        },
+        "reduced": {
+          "offsetMs": [
+            112,
+            136,
+            160
+          ],
+          "candidate": {
+            "covered": [
+              0,
+              0,
+              0
+            ],
+            "nearBackgroundPercent": [
+              23.5,
+              23.5,
+              23.5
+            ],
+            "glyphPixels": [
+              158,
+              158,
+              158
+            ]
+          },
+          "allSampledFrames": 8,
+          "anyGlyphOcclusion": false,
+          "allNumbersFitCards": true
+        }
+      },
+      "normalSpeedReplay": [
+        {
+          "turn": 1,
+          "dice": [
+            "6",
+            "3",
+            "3"
+          ],
+          "before": 23,
+          "after": 11,
+          "contactMs": 231,
+          "distinctSteps": 8,
+          "maxPieces": 0,
+          "pulses": [
+            24
+          ],
+          "sounds": [
+            {
+              "name": "swish.wav",
+              "ms": 183.7
+            },
+            {
+              "name": "slam.wav",
+              "ms": 229.3
+            }
+          ],
+          "heroHp": 13
+        },
+        {
+          "turn": 2,
+          "dice": [
+            "4",
+            "5",
+            "3"
+          ],
+          "before": 11,
+          "after": 0,
+          "contactMs": 228.1,
+          "distinctSteps": 8,
+          "maxPieces": 7,
+          "pulses": [
+            52
+          ],
+          "sounds": [
+            {
+              "name": "swish.wav",
+              "ms": 181.8
+            },
+            {
+              "name": "slam.wav",
+              "ms": 227.6
+            },
+            {
+              "name": "seat.wav",
+              "ms": 670.9
+            },
+            {
+              "name": "victory.mp3",
+              "ms": 2174.6
+            }
+          ],
+          "heroHp": 13
+        }
+      ],
+      "fastDpr2": {
+        "offsetMs": [
+          16,
+          112,
+          136,
+          160,
+          340,
+          560
+        ],
+        "coveredByHud": [
+          {},
+          {},
+          {},
+          {},
+          {},
+          {}
+        ],
+        "coveredByNumber": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rightInsetCssPx": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ]
+      },
+      "guardDpr2": {
+        "offsetMs": [
+          112,
+          211,
+          340,
+          370,
+          540
+        ],
+        "playerCard": [
+          "18/22",
+          "18/22",
+          "18/22",
+          "9/22",
+          "9/22"
+        ],
+        "minCardGapCssPx": 31.1875,
+        "minimumHpInsetCssPx": 6,
+        "contacts": [
+          {
+            "msFromFirstPlayerHit": 0,
+            "label": "나−4",
+            "hp": {
+              "from": 22,
+              "to": 18
+            },
+            "sound": [
+              "tap.wav"
+            ]
+          },
+          {
+            "msFromFirstPlayerHit": 124,
+            "label": "나−9",
+            "hp": {
+              "from": 18,
+              "to": 9
+            },
+            "sound": [
+              "stone-hit.mp3"
+            ]
+          }
+        ]
+      },
+      "reducedStraight": {
+        "6": {
+          "testedBattleMs": [
+            16,
+            112,
+            249
+          ],
+          "staticMask": true,
+          "damage": [
+            "−11",
+            "−11",
+            "−11"
+          ],
+          "soundCount": [
+            0,
+            0,
+            0
+          ],
+          "unlockScreenMs": 250,
+          "damageCountOnUnlock": 0
+        },
+        "7": {
+          "testedBattleMs": [
+            16,
+            112,
+            274
+          ],
+          "staticMask": true,
+          "damage": [
+            "−11",
+            "−11",
+            "−11"
+          ],
+          "soundCount": [
+            0,
+            0,
+            0
+          ],
+          "unlockScreenMs": 275,
+          "damageCountOnUnlock": 0
+        }
+      },
+      "bossNameplate": {
+        "offsetMs": [
+          160,
+          211
+        ],
+        "coveredByHud": [
+          {},
+          {}
+        ]
+      }
+    }
+  }
+}

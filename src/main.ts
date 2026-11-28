@@ -1034,8 +1034,15 @@ const escortDefeatPause = 160
 const damageOutput = { player: ui.playerDamage, enemy: ui.enemyDamage, escort: ui.escortDamage }
 const parryFlash = element('parry-flash')
 
+function clearDamage(keepFinisher = false) {
+  for (const output of Object.values(damageOutput)) {
+    if (keepFinisher && output.querySelector('[data-impact="finisher"]')) continue
+    output.replaceChildren()
+  }
+}
+
 function clearExchange() {
-  for (const output of Object.values(damageOutput)) output.replaceChildren()
+  clearDamage()
   ui.hitResults.replaceChildren()
   ui.hitOrder.hidden = true
   window.clearTimeout(guardCueTimer)
@@ -1047,6 +1054,10 @@ function clearExchange() {
 
 function showDamage(hit: BattleHit) {
   const { target, damage } = hit
+  if (hit.defeated && target === 'enemy') {
+    ui.intent.hidden = true
+    chargeStop.hidden = true
+  }
   const number = document.createElement('span')
   number.className = 'damage-number'
   number.dataset.impact = battleImpactTier(hit)
@@ -1056,7 +1067,10 @@ function showDamage(hit: BattleHit) {
     number.append(targetName)
   }
   number.append(`−${damage}`)
-  damageOutput[target].append(number)
+  const output = damageOutput[target]
+  const hostileBreak = target === 'player' && ui.encounter.querySelector('.foe-damage > [data-impact="finisher"]')
+  if (hit.defeated && target !== 'player' || hostileBreak) output.replaceChildren(number)
+  else output.append(number)
   window.setTimeout(() => number.remove(), effectDuration(damageDuration))
 }
 
@@ -1227,6 +1241,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   const heroHit = (damage: number, final = true): BattleHit[] => damage ? [{ target: 'player', damage, defeated: final && after.playerHp === 0 }] : []
   const renewed = exchange.heartRevived || after.phase === 'won' && before.bossRelic?.id === 'healing-scepter' && after.playerHp > before.playerHp - taken
   const updatePlayer = () => updatePlayerVital(renewed ? Math.max(0, before.playerHp - taken) : after.playerHp)
+  let visiblePlayerHp = before.playerHp
   let visibleEnemyHp = before.enemyHp
   const hitEnemy = (damage: number, heavy = false) => {
     visibleEnemyHp -= damage
@@ -1319,6 +1334,12 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     }
     emit(heroHit(damage, final && !exchange.defeatedByThorns), { delay: reducedMotion() ? index * 40 : 0, incoming: true, ordered, final,
       guarded: damage === 0 && !(exact && final), parry: exact && final })
+    // Only present intermediate contacts here. The final contact (including
+    // thorns) uses the settled battle HP below, with its existing healing cue.
+    if (damage && index + 1 < hitsTaken.length) {
+      visiblePlayerHp = Math.max(0, visiblePlayerHp - damage)
+      updatePlayerVital(visiblePlayerHp)
+    }
     readHit(index)
   }
   if (thorns) {
@@ -2762,6 +2783,8 @@ ui.resolve.addEventListener('click', async () => {
   const before = ascent.battle
   const resolved = resolveAscentTurn(ascent)
   if (resolved === ascent) return
+  window.clearTimeout(discoveryTimer)
+  unlockDiscovery.hidden = true
   itemControl = undefined
   dockItem = undefined
   let next = resolved
@@ -2790,7 +2813,7 @@ ui.resolve.addEventListener('click', async () => {
     if (lastExchange) await showExchange(before, next.battle, lastExchange)
     if (phase !== 'lost' && (next.battle.turn !== before.turn || next.newUnlock)) {
       await arena.finishExchange()
-      for (const output of Object.values(damageOutput)) output.replaceChildren()
+      clearDamage(Boolean(next.newUnlock) && reducedMotion())
     }
     if (phase === 'lost') {
       if (!reducedMotion()) await wait(240)
@@ -2810,6 +2833,7 @@ ui.resolve.addEventListener('click', async () => {
       } else if (lastExchange && (lastExchange.dealt || lastExchange.escortDealt || lastExchange.hitsTaken.some(Boolean))) {
         await wait(250)
       }
+      clearDamage()
       render('unlock')
       if (next.newUnlock === 'triple' && !reducedMotion()) {
         // Reveal the first slice of the face and strike the opening chime together.
