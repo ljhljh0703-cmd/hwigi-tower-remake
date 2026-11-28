@@ -55,6 +55,8 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
           sevenDescription: `6층 ${ENEMY_CODEX['chain-warden'].name}와 12층 ${ENEMY_CODEX.boss.name}입니다. 힘 모으기에 대비하고 12층에서 승리하면 완주 인장을 받습니다.` }],
       ['map-pin', '갈림길', '보상 후 다음 층 길을 고릅니다. 시작·휴식·보스 앞에서는 길이 하나뿐입니다.'],
       ['map-check', '완료한 층', '등반 결과에 통과한 층 수를 표시합니다.'],
+      ['formation-front', '앞자리', '상층에서 공격과 반격은 앞자리의 적부터 피해를 줍니다.'],
+      ['formation-rear', '뒷자리', '앞자리의 적이 쓰러지면 가장 가까운 뒷자리 적이 앞으로 이동합니다.'],
       ['map-reward', '전리품', '보스 전 전투에서 이기면 전리품을 고르거나 건너뜁니다.'],
       ['map-relic', '유물 보상', '유물 보상이 있는 강적 방을 표시합니다.'],
     ],

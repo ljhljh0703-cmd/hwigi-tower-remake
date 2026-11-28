@@ -18,6 +18,7 @@ export interface UpperEnemy {
 
 export interface Formation {
   readonly room: RoomKey
+  readonly balance?: 2
   readonly cap: number
   readonly enemies: readonly UpperEnemy[]
   readonly retreated?: true
@@ -34,7 +35,7 @@ const support = (target: UpperRole): UpperAction => ({ hits: [], support: target
 type Beat = Partial<Record<UpperRole, UpperAction>>
 type Room = { cap: number; order: readonly (readonly [UpperRole, number])[]; beats: readonly Beat[] }
 
-const rooms: Readonly<Record<string, Room>> = {
+const originalRooms: Readonly<Record<string, Room>> = {
   '13:fight': { cap: 6, order: [['dash', 10], ['support', 12]], beats: [
     { dash: hit(4) }, { support: hit(4) }, { dash: hit(4), support: support('dash') },
   ] },
@@ -58,12 +59,37 @@ const rooms: Readonly<Record<string, Room>> = {
   ] },
 }
 
+const rooms: Readonly<Record<string, Room>> = {
+  ...originalRooms,
+  '14:fight': { cap: 13, order: [['shield', 25], ['dash', 24]], beats: [
+    { shield: hit(5, 4), dash: hit(3) }, { shield: hit(4), dash: hit(8) },
+    { shield: { hits: [], pose: 'retreat' }, dash: hit(13) },
+  ] },
+  '15:fight': { cap: 16, order: [['shield', 32], ['dash', 29]], beats: [
+    { shield: hit(7), dash: hit(8) }, { shield: hit(7, 4), dash: hit(4) }, { shield: hit(3), dash: hit(10) },
+  ] },
+  '15:elite': { cap: 17, order: [['shield', 42], ['support', 34]], beats: [
+    { shield: hit(9), support: hit(8) }, { shield: hit(7, 6), support: support('shield') }, { shield: hit(11), support: hit(4) },
+  ] },
+  '17:fight': { cap: 18, order: [['shield', 37], ['dash', 31]], beats: [
+    { shield: hit(6), dash: hit(8) }, { shield: hit(2), dash: hit(14) }, { shield: hit(12), dash: hit(5) },
+  ] },
+  '17:elite': { cap: 19, order: [['shield', 44], ['dash', 31], ['support', 24]], beats: [
+    { shield: hit(8), dash: hit(8), support: support('shield') },
+    { shield: hit(7, 5), dash: hit(2) }, { dash: hit(8), support: hit(9) },
+  ] },
+  '19:boss': { cap: 21, order: [['guard', 33], ['gatekeeper', 102]], beats: [
+    { guard: hit(4, 4), gatekeeper: hit(8) }, { guard: hit(5), gatekeeper: hit(14) },
+  ] },
+}
+
 type RoomKey = Pick<MapNode, 'floor' | 'kind'>
-const roomFor = ({ floor, kind }: RoomKey) => rooms[`${floor}:${kind}`]
+type Balance = 1 | 2
+const roomFor = ({ floor, kind }: RoomKey, balance: Balance) => (balance === 2 ? rooms : originalRooms)[`${floor}:${kind}`]
 const idleIntent: EnemyIntent = { id: 'wait', name: '대기', hits: [], matches: () => true }
 
-export function upperEnemyForNode(node: MapNode): ReturnType<typeof enemyForFight> | undefined {
-  const room = roomFor(node)
+export function upperEnemyForNode(node: MapNode, balance: Balance = 2): ReturnType<typeof enemyForFight> | undefined {
+  const room = roomFor(node, balance)
   if (!room || !node.enemyId) return undefined
   return { id: node.enemyId, hp: room.order.reduce((sum, [, hp]) => sum + hp, 0),
     attackGrowth: 0, attackPerUnlock: 0, intents: [idleIntent] }
@@ -78,10 +104,10 @@ export function effectiveCounterLimit(formation: Formation) {
     : formation.enemies.reduce((sum, enemy) => sum + enemy.hp, 0)
 }
 
-export function startFormation(node: RoomKey): Formation | undefined {
-  const room = roomFor(node)
+export function startFormation(node: RoomKey, balance: Balance = 2): Formation | undefined {
+  const room = roomFor(node, balance)
   if (!room) return undefined
-  return openFormation({ room: { floor: node.floor, kind: node.kind }, cap: room.cap,
+  return openFormation({ room: { floor: node.floor, kind: node.kind }, cap: room.cap, ...(balance === 2 && { balance }),
     enemies: room.order.map(([id, hp]) => ({ id, hp, maxHp: hp, action: rest })) }, 1)
 }
 
@@ -94,17 +120,21 @@ const bossActions: Record<Exclude<BossStep, 'guarded'>, UpperAction> = {
 }
 const bossNext = { guarded: 'advance', advance: 'flurry', flurry: 'prepare', prepare: 'strike', strike: 'recover', recover: 'flurry' } as const
 
+export function upperHeavyDamage(formation: Formation, weakened: boolean) {
+  return formation.balance === 2 ? weakened ? 11 : 21 : weakened ? 9 : 18
+}
+
 export function openFormation(formation: Formation, turn: number): Formation {
   const { enemies, movedBack: _movedBack, counterOrder: _order, ...previous } = formation
   const node = formation.room
-  const room = roomFor(node)
+  const room = roomFor(node, formation.balance ?? 1)
   const guarded = enemies.some(enemy => enemy.id === 'guard' && enemy.hp > 0)
   const bossStep = node.floor !== 19 ? undefined : guarded ? 'guarded' : bossNext[formation.bossStep ?? 'guarded']
   let beat = room.beats[(turn - 1) % room.beats.length]
   if (bossStep && bossStep !== 'guarded') {
-    const action = bossStep === 'strike' && formation.heavy
-      ? { hits: formation.heavy === 'weakened' ? [9] : [], pose: formation.heavy }
-      : bossActions[bossStep]
+    const action = bossStep === 'strike'
+      ? { hits: formation.heavy === 'cancelled' ? [] : [upperHeavyDamage(formation, formation.heavy === 'weakened')], pose: formation.heavy }
+      : bossStep === 'flurry' && formation.balance === 2 ? hit(7, 8) : bossActions[bossStep]
     beat = { gatekeeper: action }
   }
   const bossToppled = enemies.some(enemy => enemy.id === 'gatekeeper' && enemy.hp > 0 && enemy.toppled)

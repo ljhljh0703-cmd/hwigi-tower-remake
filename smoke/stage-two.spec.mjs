@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
@@ -11,6 +12,56 @@ const nextTurn = page => page.locator('#resolve')
 const card = (page, id) => page.locator(`.upper-card[data-role="${id}"]`)
 const save = page => page.evaluate(key => JSON.parse(localStorage.getItem(key)), ASCENT_SAVE_KEY)
 const goal = page => page.locator('.upper-goal')
+const atlas = JSON.parse(readFileSync(new URL('../art-source/enemy-motion/manifest.json', import.meta.url))).sheets
+
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    const canvas = CanvasRenderingContext2D.prototype
+    const clear = canvas.clearRect
+    canvas.clearRect = function (...args) {
+      if (this.canvas.parentElement?.id === 'arena') window.upperSpriteDraws = []
+      return clear.apply(this, args)
+    }
+    const draw = canvas.drawImage
+    canvas.drawImage = function (source, ...args) {
+      if (this.canvas.parentElement?.id === 'arena' && source.src?.includes('/art/motion/') && args.length === 8) {
+        window.upperSpriteDraws?.push({ sheet: source.src.split('/').at(-1).replace('.png', ''), args })
+      }
+      return draw.call(this, source, ...args)
+    }
+  })
+})
+
+async function verifyFormationArt(page, sheets) {
+  await expect.poll(async () => (await page.evaluate(() => window.upperSpriteDraws ?? []))
+    .filter(draw => sheets.includes(draw.sheet)).length).toBe(sheets.length)
+  const draws = await page.evaluate(() => window.upperSpriteDraws)
+  const field = await page.locator('#arena canvas').evaluate(el => ({ width: el.width, height: el.height }))
+  const boxes = sheets.map(sheet => {
+    const { args } = draws.find(draw => draw.sheet === sheet)
+    const [sx, sy, sw, sh, x, y, width] = args
+    const frame = atlas.find(entry => entry.id === sheet).frames.find(entry => entry.rect.join() === [sx, sy, sw, sh].join())
+    const scale = width / sw
+    const [left, top, bodyWidth, height] = frame.bounds.map(value => value * scale)
+    return { left: x + left, top: y + top, right: x + left + bodyWidth, bottom: y + top + height, height }
+  })
+  const [front, ...rear] = boxes
+  expect(front.height).toBeGreaterThanOrEqual(95)
+  for (const back of rear) {
+    expect(back.height).toBeGreaterThanOrEqual(front.height * .75 - 1)
+    expect(back.height).toBeLessThanOrEqual(front.height * .85 + 1)
+    expect(front.bottom - back.bottom).toBeGreaterThanOrEqual(30)
+  }
+  for (const [index, box] of boxes.entries()) {
+    expect(box.left).toBeGreaterThanOrEqual(0)
+    expect(box.top).toBeGreaterThanOrEqual(0)
+    expect(box.right).toBeLessThanOrEqual(field.width)
+    expect(box.bottom).toBeLessThan(field.height)
+    for (const neighbor of boxes.slice(index + 1)) expect(box.right).toBeLessThanOrEqual(neighbor.left)
+  }
+  await expect(page.locator('.upper-card[data-lane="0"] .upper-position use')).toHaveAttribute('href', '#icon-formation-front')
+  await expect(page.locator('.upper-card[data-lane="1"] .upper-position use')).toHaveAttribute('href', '#icon-formation-rear')
+}
 
 async function resume(page, run) {
   const { storage, json } = checkpointFor(run)
@@ -41,6 +92,12 @@ async function inFrame(page, selectors) {
     expect(item.x + item.width).toBeLessThanOrEqual(width)
     expect(item.y + item.height).toBeLessThanOrEqual(height)
   }
+  const healthFits = await page.locator('.upper-card').evaluateAll(nodes => nodes.every(node => {
+    const card = node.getBoundingClientRect()
+    const hp = node.querySelector('.upper-hp').getBoundingClientRect()
+    return hp.left > card.left && hp.right < card.right
+  }))
+  expect(healthFits).toBe(true)
   const cards = await page.locator('.upper-card').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().toJSON()))
   if (cards.length && await page.locator('#planning').isVisible()) {
     const planning = await page.locator('#planning').boundingBox()
@@ -75,6 +132,7 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   await expect.poll(async () => (await save(page)).ascent.battle.loot.consumables.tuning).toBe(1)
   await page.locator('.dice-motion').waitFor({ state: 'detached' })
   await inFrame(page, ['.upper-goal', '.upper-card[data-role="dash"]', '.upper-card[data-role="support"]', '#resolve'])
+  await verifyFormationArt(page, ['seal-sentinel', 'escort'])
   await photo(page, '13-turn1-formation')
 
   await resume(page, withDice(atFloor(13), [6, 4, 2], allAttack))
@@ -83,6 +141,9 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   await nextTurn(page).tap()
   await expect(card(page, 'dash').locator('.upper-damage')).toHaveText('−10')
   await photo(page, '13-turn1-front-hit')
+  await expect(page.locator('.upper-readout[data-advance="support"]')).toBeVisible()
+  await page.waitForTimeout(55)
+  await photo(page, '13-turn1-rear-stepping')
   await expect(card(page, 'support')).toHaveAttribute('data-lane', '0')
   await photo(page, '13-turn1-rear-advanced')
   await expect(nextTurn(page)).toBeVisible()
@@ -97,10 +158,11 @@ test('17층 세 마리와 지원, 14층 교대·취소, 19층 강타·약화 및
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   await resume(page, atFloor(17, 'elite'))
-  await expect(goal(page)).toContainText('11')
-  await expect(card(page, 'dash').locator('.upper-intent')).toContainText('5')
+  await expect(goal(page)).toContainText('16')
+  await expect(card(page, 'dash').locator('.upper-intent')).toContainText('8')
   await expect(card(page, 'support').locator('.upper-intent')).toContainText('지원')
   await inFrame(page, ['.upper-goal', ...['shield', 'dash', 'support'].map(id => `.upper-card[data-role="${id}"]`), '#resolve'])
+  await verifyFormationArt(page, ['shield-soldier', 'seal-sentinel', 'escort'])
   await photo(page, '17-turn1-elite')
   await resume(page, withDice(withFormation(atFloor(17, 'elite'), [5, 4, 14]), [6, 4, 2], allAttack))
   await expect(card(page, 'support').locator('.upper-preview')).toHaveText('↪3')
@@ -114,14 +176,15 @@ test('17층 세 마리와 지원, 14층 교대·취소, 19층 강타·약화 및
     run = { ...run, battle: { ...run.battle, turn: 3, formation: openFormation(run.battle.formation, 3) } }
     await resume(page, run)
     await expect(card(page, rear ? 'dash' : 'shield')).toHaveAttribute('data-lane', '0')
-    await expect(goal(page)).toContainText(rear ? '8' : '0')
+    await expect(goal(page)).toContainText(rear ? '13' : '0')
     await photo(page, rear ? '14-turn3-retreat' : '14-turn3-no-rear')
   }
 
   await resume(page, atFloor(19))
   await expect(card(page, 'gatekeeper')).toHaveAttribute('data-lane', '1')
-  await expect(goal(page)).toContainText('8')
+  await expect(goal(page)).toContainText('16')
   await inFrame(page, ['.upper-goal', '.upper-card[data-role="guard"]', '.upper-card[data-role="gatekeeper"]', '#resolve'])
+  await verifyFormationArt(page, ['reaction', 'boss'])
   await photo(page, '19-turn1-guarded-boss')
 
   for (const power of [11, 12]) {
@@ -131,7 +194,7 @@ test('17층 세 마리와 지원, 14층 교대·취소, 19층 강타·약화 및
     run = { ...run, battle: { ...run.battle, formation, turn: 5 } }
     await resume(page, withDice(run, [6, 4, power - 10], allAttack))
     await nextTurn(page).tap()
-    await expect(goal(page)).toContainText(power === 12 ? '9' : '18')
+    await expect(goal(page)).toContainText(power === 12 ? '11' : '21')
     await photo(page, power === 12 ? '19-turn6-weakened' : '19-turn6-full')
   }
   await resume(page, withDice(withFormation(atFloor(19), [1, 1]), [6, 5, 3], allAttack))

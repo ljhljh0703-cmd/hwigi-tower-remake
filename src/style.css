@@ -2663,8 +2663,7 @@ main[data-screen='defeat'] {
 .upper-readout { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
 .upper-goal {
   position: absolute;
-  inset: 8px auto auto 50%;
-  transform: translateX(-50%);
+  inset: 8px auto auto 56px;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -2693,8 +2692,11 @@ main[data-screen='defeat'] {
   font-size: .7rem;
   line-height: 1.15;
 }
-.upper-card:not([data-lane='0']) { inset-block-start: calc(var(--ground, 130px) - 19px); border-color: #8f897e; }
-.upper-card[data-role='gatekeeper'] { color: #ffe6ac; }
+.upper-card:not([data-lane='0']) { inset-block-start: calc(var(--ground, 130px) - var(--upper-tier, 35px) + 3px); border-color: #8f897e; }
+.upper-card[data-role='gatekeeper'] { color: #ffe6ac; inline-size: 70px; }
+.upper-position { display: flex; align-items: center; gap: 3px; }
+.upper-position > span { display: flex; color: #fdd390; font-size: .95rem; }
+.upper-card:not([data-lane='0']) .upper-position > span { color: #c9c9b5; }
 .upper-card[data-counter-target] { outline: 2px solid #f0cb82; outline-offset: 2px; }
 .upper-hp, .upper-intent { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
 .upper-hp { font-size: .92rem; margin: 2px 0; }
@@ -2717,7 +2719,7 @@ main[data-screen='defeat'] {
 }
 .upper-support-link {
   position: absolute;
-  inset-block-start: calc(var(--ground, 130px) - 32px);
+  inset-block-start: calc(var(--ground, 130px) - var(--upper-tier, 35px) + 10px);
   border-block-start: 2px dashed #d4eea5;
 }
 .upper-field #counter-panel.counter-over-field {
@@ -2733,7 +2735,6 @@ main[data-screen='defeat'] {
 
 @media (min-width: 361px) {
   .upper-card { inline-size: 61px; }
-  .upper-card:not([data-lane='0']) { inset-block-start: calc(var(--ground, 130px) - 25px); }
 }
 
 @media (max-height: 620px) {
@@ -2741,8 +2742,18 @@ main[data-screen='defeat'] {
     --arena-footer: 58px;
     --vital-offset: 5px;
   }
-  .upper-card { inline-size: 56px; padding-block: 1px; }
+  .upper-field .upper-goal { inset-block-start: -5px; padding-block: 3px; }
+  .upper-field #encounter-name ~ #ego-notices { inset-block-start: 40px; max-inline-size: 68px; }
+  .upper-field #ego-presence { padding: 2px 3px; gap: 2px; font-size: .7rem; }
+  .upper-card { inline-size: 52px; padding-block: 1px; }
   .upper-hp, .upper-intent { gap: 2px; }
-  .upper-hp { margin-block: 1px; }
+  .upper-hp { margin-block: 1px; font-size: .8rem; }
+  .upper-hp > small { font-size: .6rem; }
+  .upper-hp .icon { font-size: .65rem; }
   .upper-preview { min-block-size: 12px; }
+  .upper-field ~ #planning .slot .dice-row {
+    flex-wrap: nowrap;
+    inline-size: 100%;
+    column-gap: 1px;
+  }
 }

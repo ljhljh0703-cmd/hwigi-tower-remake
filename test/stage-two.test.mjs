@@ -4,7 +4,7 @@ import { chooseUpperAscent, resolveAscentTurn, rewardOffers, spinAscentCounter, 
 import { loadAscentSave, writeAscentSave } from '../src/ascent-save.ts'
 import { generateAscentMap } from '../src/ascent-map.ts'
 import { openMetaStage } from '../src/meta-progress.ts'
-import { damageFormation, forecastFormation, formationActions, openFormation } from '../src/upper-combat.ts'
+import { damageFormation, forecastFormation, formationActions, openFormation, startFormation } from '../src/upper-combat.ts'
 import { chooseEgoSlot, forecastYacht, resolveYachtTurn, spinYachtCounter } from '../src/yacht-combat.ts'
 import { atFloor, checkpointFor, withDice, withFormation } from '../smoke/stage-two-fixture.mjs'
 
@@ -58,7 +58,7 @@ test('counter aims at a waiting front enemy and keeps its chosen order through c
 
 test('caps round cumulative hits and spacer alone turns an excess guard into exact', () => {
   const run = atFloor(17, 'elite')
-  const formation = replace(run.battle.formation, [{ action: { hits: [8, 6] } }, { action: { hits: [5] } }, { action: { hits: [] } }])
+  const formation = replace({ ...run.battle.formation, cap: 15 }, [{ action: { hits: [8, 6] } }, { action: { hits: [5] } }, { action: { hits: [] } }])
   assert.deepEqual(attacks(formationActions(formation).actions), [6, 5, 4])
   assert.deepEqual(forecastFormation(formation, { attack: 0, guard: 11 }).hits, [0, 0, 4])
   assert.equal(forecastFormation(formation, { attack: 0, guard: 15 }).counter, true)
@@ -73,7 +73,7 @@ test('the shield retreats once before the third allocation and only with a livin
   const { formation } = run.battle
   const moved = openFormation(formation, 3)
   assert.equal(moved.retreated, true)
-  assert.deepEqual(moved.enemies.map(enemy => [enemy.id, enemy.action.hits]), [['dash', [8]], ['shield', []]])
+  assert.deepEqual(moved.enemies.map(enemy => [enemy.id, enemy.action.hits]), [['dash', [13]], ['shield', []]])
   const saved = restore({ ...run, battle: { ...run.battle, formation: moved, turn: 3 } })
   assert.equal(openFormation(saved.battle.formation, 6).movedBack, undefined)
   for (const changes of [[{}, { hp: 0 }], [{ hp: 0 }, {}], [{ toppled: true }, {}]]) {
@@ -83,13 +83,13 @@ test('the shield retreats once before the third allocation and only with a livin
 
 test('support cancels before either endpoint dies and survives its sender after applying', () => {
   const { formation } = atFloor(17, 'elite').battle
-  assert.deepEqual(attacks(formationActions(formation).actions), [6, 5])
+  assert.deepEqual(attacks(formationActions(formation).actions), [8, 8])
   for (const changes of [[{ hp: 0 }], [{}, {}, { hp: 0 }]]) {
     assert.equal(formationActions(replace(formation, changes)).actions.some(action => 'from' in action), false)
   }
   const applied = formationActions(formation)
   const next = openFormation(replace(applied.formation, [{}, {}, { hp: 0 }]), 2)
-  assert.deepEqual(attacks(formationActions(next).actions), [8, 4])
+  assert.deepEqual(attacks(formationActions(next).actions), [9, 5, 2])
   assert.equal(formationActions(next).formation.enemies[0].boost, undefined)
 })
 
@@ -97,18 +97,29 @@ test('the gatekeeper keeps the announced contact, then advances and can be weake
   const { formation } = withFormation(atFloor(19), [1, 64]).battle
   const announced = openFormation(formation, 2)
   const promoted = forecastFormation(announced, { attack: 1, guard: 0 })
-  assert.deepEqual(attacks(promoted.enemy.actions), [12])
+  assert.deepEqual(attacks(promoted.enemy.actions), [14])
   const ready = openFormation(promoted.enemy.formation, 3)
   assert.equal(formationActions(ready).totalDamage, 0)
   const flurry = openFormation(ready, 4)
-  assert.deepEqual(attacks(formationActions(flurry).actions), [5, 5])
+  assert.deepEqual(attacks(formationActions(flurry).actions), [7, 8])
   const prepared = openFormation(flurry, 5)
   for (const damage of [11, 12]) {
     const direct = damageFormation(prepared, damage, true)
-    assert.equal(formationActions(openFormation(direct.formation, 6)).totalDamage, damage === 12 ? 9 : 18)
+    assert.equal(formationActions(openFormation(direct.formation, 6)).totalDamage, damage === 12 ? 11 : 21)
   }
   const cancelled = openFormation(replace(flurry, [{}, { toppled: true }]), 5)
   assert.equal(formationActions(openFormation(cancelled, 6)).totalDamage, 0)
+})
+
+test('earlier upper checkpoints keep the original encounter through its next beat', () => {
+  const run = atFloor(19)
+  const formation = startFormation(run.battle.formation.room, 1)
+  const opening = { ...run, battle: { ...run.battle, formation, enemyHp: 90 } }
+  const restored = restore(opening)
+  assert.equal(restored.enemy.hp, 90)
+  assert.equal(restored.battle.formation.balance, undefined)
+  assert.equal(formationActions(restored.battle.formation).totalDamage, 8)
+  assert.equal(formationActions(openFormation(restored.battle.formation, 2)).totalDamage, 12)
 })
 
 test('ego first considers survival, then defeats, and ties keep attack first', () => {

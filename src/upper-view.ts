@@ -3,7 +3,7 @@ import type { Arena } from './arena.ts'
 import type { BattleAudio } from './battle-audio.ts'
 import { UPPER_ENEMIES } from './enemy-codex.ts'
 import { icon } from './icons.ts'
-import { formationActions, livingEnemies } from './upper-combat.ts'
+import { formationActions, livingEnemies, upperHeavyDamage } from './upper-combat.ts'
 import type { Formation, FormationDamage, UpperRole } from './upper-combat.ts'
 import { forecastYacht, hasAutomaticEgo } from './yacht-combat.ts'
 import type { YachtBattle } from './yacht-combat.ts'
@@ -39,16 +39,16 @@ export class UpperView {
       ${alive.map(({ id }, lane) => {
         const enemy = formation.enemies.find(entry => entry.id === id)!
         const name = UPPER_ENEMIES[id]
-        const position = lane ? '후위' : '전위'
+        const position = lane ? '뒤' : '앞'
         const hits = (enemy.hp && !missed.has(id) ? visibleActions : facing.actions).flatMap(action => 'hit' in action && action.hit.id === id ? [action.hit] : [])
         const aiding = helpers.find(action => action.from === id)
         const aided = helpers.find(action => action.to === id)
         const predicted = direct?.find(contact => contact.id === id)
-        const stance = enemy.toppled ? '넘어짐 ×2' : enemy.action.pose === 'prepare' ? `준비 ${weakened ? '9' : '18'}`
+        const stance = enemy.toppled ? '넘어짐 ×2' : enemy.action.pose === 'prepare' ? `준비 ${upperHeavyDamage(formation, Boolean(weakened))}`
           : enemy.action.pose === 'cancelled' ? '중단' : enemy.action.pose === 'rest' ? '자세 회복' : '대기'
         const opponent = aiding && alive.findIndex(entry => entry.id === aiding.to)
         return `<div class="upper-card" data-role="${id}" data-lane="${lane}" style="--lane-x:${upperLane[lane] * 100}%" ${target === id ? 'data-counter-target' : ''}>
-          <strong aria-label="${position} ${name.name}, ${name.role}">${position} ${name.name}</strong>
+          <strong class="upper-position" aria-label="${position} ${name.name}, ${name.role}"><span role="img" aria-label="${position}">${icon(lane ? 'formation-rear' : 'formation-front')}</span>${name.name}</strong>
           <span class="upper-hp" aria-label="체력 ${enemy.hp}/${enemy.maxHp}">${icon('heart')}${enemy.hp}<small>/${enemy.maxHp}</small></span>
           <span class="upper-intent" ${missed.has(id) ? 'data-cancelled' : ''}>${hits.length ? hits.map(action =>
             `<b>${action.amount}${action.boosted ? '<i aria-label="지원 적용">↑</i>' : ''}</b>`).join('') :
@@ -92,9 +92,11 @@ export class UpperView {
         this.sound.play('stone-hit', contact.amount >= 5 ? .82 : 1.15, .25)
         await pause(contact.hp === 0 ? 147 : 176)
         if (contact.advance) {
+          this.readout.dataset.advance = contact.advance
           this.arena.setUpperScene(formation, { id: contact.advance, kind: 'advance', from })
           await pause(220)
           this.sound.play('step', .9)
+          delete this.readout.dataset.advance
         }
         this.arena.setUpperScene(formation)
         this.show(before, formation)

@@ -16,7 +16,7 @@ import { artifactOptionsRecord, treasureRecord } from './treasure-save.ts'
 import { bestCoinCounter, yachtCounterRewards, yachtCounterSlot } from './yacht-combat.ts'
 import { GIMMICK_REQUIREMENTS } from './yacht-combat.ts'
 import type { Hand, YachtBattle } from './yacht-combat.ts'
-import { startFormation } from './upper-combat.ts'
+import { startFormation, upperEnemyForNode } from './upper-combat.ts'
 import type { Formation } from './upper-combat.ts'
 import type { MapNode } from './ascent-map.ts'
 
@@ -225,11 +225,11 @@ function mapCheckpoint(seed: number, fight: number, value: unknown, upper: boole
 }
 
 function validFormation(value: unknown, room: MapNode | undefined, phase: YachtBattle['phase'], hp: number): value is Formation | undefined {
-  const expected = room && startFormation(room)
+  const expected = room && startFormation(room, record(value) && value.balance === 2 ? 2 : 1)
   if (!expected) return value === undefined
   if (!record(value) || !record(value.room) || value.room.floor !== room?.floor || value.room.kind !== room.kind ||
     value.cap !== expected.cap || !Array.isArray(value.enemies) || value.enemies.length !== expected.enemies.length ||
-    value.stopAtFront !== undefined) return false
+    value.stopAtFront !== undefined || value.balance !== undefined && value.balance !== 2) return false
   const { enemies, retreated, movedBack, bossStep, heavy, counterOrder } = value
   if (retreated !== undefined && (retreated !== true || room.floor !== 14) ||
     movedBack !== undefined && (movedBack !== 'shield' || !retreated) ||
@@ -244,7 +244,7 @@ function validFormation(value: unknown, room: MapNode | undefined, phase: YachtB
       enemy.boost !== undefined && (enemy.boost !== 2 || !enemy.hp) ||
       enemy.toppled !== undefined && (enemy.toppled !== true || !enemy.hp || phase !== 'assign') || !record(enemy.action)) return false
     const { hits, support, pose } = enemy.action
-    return Array.isArray(hits) && hits.length <= 2 && hits.every(amount => integer(amount, 1, 18)) &&
+    return Array.isArray(hits) && hits.length <= 2 && hits.every(amount => integer(amount, 1, 21)) &&
       (support === undefined || order.some(id => id === support && id !== enemy.id)) &&
       (pose === undefined || typeof pose === 'string' && ['prepare', 'retreat', 'rest', 'weakened', 'cancelled'].includes(pose))
   }) || enemies.reduce((sum, enemy) => sum + enemy.hp, 0) !== hp) return false
@@ -268,7 +268,8 @@ function readCheckpoint(raw: unknown): AscentSave | null {
   if (new Set(unlocks).size !== unlocks.length || (newUnlock !== null && (!hand(newUnlock) || !unlocks.includes(newUnlock)))) return null
   const mapped = isMap ? mapCheckpoint(seed, fight, raw.ascent.route, upper) : null
   if (isMap && !mapped) return null
-  const enemy = mapped?.enemy ?? enemyForFight(seed, fight)
+  const savedBalance = record(battle) && record(battle.formation) && battle.formation.balance === 2 ? 2 : 1
+  const enemy = mapped ? upperEnemyForNode(mapped.battleNode, savedBalance) ?? mapped.enemy : enemyForFight(seed, fight)
   const fightSeed = mapped?.fightSeed ?? ascentBattleSeed(seed, fight)
   const rulesTwo = !!mapped && mapped.route.map.rules >= 2
   const rulesSix = (mapped?.route.map.rules ?? 0) >= 6

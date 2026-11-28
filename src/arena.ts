@@ -97,9 +97,19 @@ export const ENEMY_SPRITES = {
 export const ESCORT_SPRITE: Sprite = { ...enemySprite('escort-guard', 12, 26, 4, [11, 8], 14), restReach: [11, 3] }
 
 export const upperSprites: Record<UpperRole, AscentEnemyId> = {
-  dash: 'rage', support: 'escort', shield: 'shield-soldier', guard: 'reaction', gatekeeper: 'boss',
+  dash: 'seal-sentinel', support: 'escort', shield: 'shield-soldier', guard: 'reaction', gatekeeper: 'boss',
 }
-export const upperLane = [.47, .69, .90] as const
+export const upperLane = [.46, .71, .90] as const
+const upperHeroLane = .13
+// Scales are integer multiples of the source pixels. The rear support stance
+// has a shorter silhouette, so it uses the same pixel pitch as its front pose.
+const upperScales: Record<UpperRole, readonly [front: number, rear: number]> = {
+  dash: [5, 4], support: [3, 3], shield: [6, 5], guard: [4, 3], gatekeeper: [3, 2],
+}
+const wideUpperScales: typeof upperScales = {
+  dash: [7, 6], support: [4, 4], shield: [8, 6], guard: [4, 3], gatekeeper: [4, 2],
+}
+const upperTier = (width: number) => width >= 344 ? 60 : 35
 type UpperMotion = {
   id: UpperRole; kind: 'swing' | 'hit' | 'advance' | 'attack' | 'block' | 'recoil' | 'support'
   amount?: number; defeated?: boolean; heavy?: boolean; weakened?: boolean; repeat?: boolean; blade?: boolean
@@ -348,7 +358,8 @@ export class Arena {
     }
     this.encounter.style.setProperty('--ground', `${ground}px`)
     const upper = this.battle?.formation
-    this.encounter.style.setProperty('--player-x', `${upper ? stage.width * .16 : x(hero)}px`)
+    if (upper) this.encounter.style.setProperty('--upper-tier', `${upperTier(stage.width)}px`)
+    this.encounter.style.setProperty('--player-x', `${upper ? stage.width * upperHeroLane : x(hero)}px`)
     this.encounter.style.setProperty('--enemy-x', `${upper ? stage.width * upperLane[0] : x(enemy)}px`)
     this.encounter.style.setProperty('--player-body', `${ground - hero.footY * placements.get(hero)!.scale * .51 / this.density}px`)
     this.encounter.style.setProperty('--enemy-body', `${ground - (enemy.footY - enemy.head) * foe.scale * .57 / this.density}px`)
@@ -729,14 +740,16 @@ export class Arena {
     const { canvas, context, density, floor } = this
     this.drawBackground(floor, canvas.width, canvas.height)
     const px = Math.max(1, Math.round(density))
-    const upper = Math.round((canvas.width / density <= 330 ? 24 : 30) * density)
+    const tier = upperTier(canvas.width / density)
+    const wide = tier === 60
+    const upper = Math.round(tier * density)
     const motion = this.upperMotion
     const elapsed = motion ? Math.max(0, (now - motion.at) * this.animationSpeed) : Infinity
     const progress = this.reducedMotion ? 1 : Math.min(1, elapsed / 220)
     const shiftProgress = motion?.from ? motion.kind === 'advance' ? progress : 0 : 1
     const getX = (lane: number) => Math.round(upperLane[lane] * canvas.width)
     const getY = (lane: number) => floor - (lane ? upper : 0)
-    const heroX = Math.round(canvas.width * .16)
+    const heroX = Math.round(canvas.width * upperHeroLane)
     const foes = livingEnemies(formation)
     const previous = motion?.from && livingEnemies(motion.from)
     const point = (id: UpperRole, index: number) => {
@@ -745,19 +758,19 @@ export class Arena {
       return { x: Math.round(getX(old) + (getX(index) - getX(old)) * shiftProgress),
         y: Math.round(getY(old) + (getY(index) - getY(old)) * shiftProgress), old }
     }
-    const selectScale = (id: UpperRole, index: number) => index
-      ? (id === 'gatekeeper' || id === 'support' ? px : 2 * px)
-      : (id === 'gatekeeper' ? 2 * px : 3 * px)
+    const scales = wide ? wideUpperScales : upperScales
+    const selectScale = (id: UpperRole, index: number) => scales[id][index > 0 ? 1 : 0] * px
     if (foes.length) {
       context.fillStyle = '#bfa985'
       context.fillRect(getX(0) - 21 * px, floor + px, 42 * px, px)
     }
     for (const [index, enemy] of foes.entries()) {
       const { x, y } = point(enemy.id, index)
-      context.fillStyle = index ? '#797365' : '#a69678'
-      context.fillRect(x - 10 * px, y + px, 20 * px, px)
+      const ledge = (index ? 21 : 24) * px
+      context.fillStyle = index ? '#8a8171' : '#a69678'
+      context.fillRect(x - ledge, y + px, ledge * 2, px)
       context.fillStyle = '#1a1715b8'
-      context.fillRect(x - 13 * px, y - 2 * px, 26 * px, 3 * px)
+      context.fillRect(x - ledge - 2 * px, y + 2 * px, (ledge + 2 * px) * 2, 2 * px)
     }
     for (const fall of this.upperFallen) {
       const name = ENEMY_SPRITES[upperSprites[fall.id]].name
@@ -780,15 +793,18 @@ export class Arena {
       const name = ENEMY_SPRITES[upperSprites[enemy.id]].name
       const { old, ...position } = point(enemy.id, index)
       let { x, y } = position
-      const scale = selectScale(enemy.id, shiftProgress < .65 ? old : index)
+      const displayLane = shiftProgress < .65 ? old : index
+      const scale = selectScale(enemy.id, displayLane)
       const isSource = motion?.id === enemy.id
       const stance = enemy.action.pose
       let pose = enemy.toppled ? readyFrame(name, { ...enemyIntentAt(this.battle!), id: 'knockdown' }, false)
         : stance === 'cancelled' ? frame('boss-special', 'interrupted')
           : stance === 'weakened' ? frame('boss-special', 'knee-down')
-            : stance === 'prepare' ? frame('boss-special', 'charge-peak')
+            : stance === 'prepare' ? frame('boss-special', wide ? 'charge-peak' : 'charge-set')
               : stance === 'rest' ? frame('boss-special', 'get-up')
-                : frame(name, enemy.action.hits.length ? 'anticipate' : 'ready')
+                : frame(name, displayLane && enemy.id === 'support' ? 'anticipate'
+                  : !displayLane && enemy.id === 'dash' ? 'reload'
+                    : !wide && enemy.id === 'shield' ? 'approach' : 'ready')
       if (motion?.kind === 'advance' && old !== index && progress < 1) {
         pose = frame(name, progress < .47 ? 'approach' : 'follow')
         if (!this.reducedMotion) y -= Math.round(Math.sin(progress * Math.PI * 2) ** 2 * 3 * px)
@@ -813,9 +829,10 @@ export class Arena {
         heroPose = motion.kind === 'block' ? 'guard-brace' : motion.kind === 'recoil' ? 'hit' : 'guard'
       }
       context.save()
-      if (index && !(isSource && motion.kind !== 'advance')) context.filter = 'brightness(.59) saturate(.8)'
-      else if (enemy.id === 'support') context.filter = 'sepia(.35) hue-rotate(87deg)'
-      else if (enemy.id === 'guard' || enemy.id === 'gatekeeper') context.filter = 'sepia(.45) saturate(1.3)'
+      const color = enemy.id === 'support' ? 'sepia(.35) hue-rotate(87deg)'
+        : enemy.id === 'guard' || enemy.id === 'gatekeeper' ? 'sepia(.45) saturate(1.3)' : ''
+      const depth = displayLane && !(isSource && motion.kind !== 'advance') ? 'brightness(.83)' : ''
+      context.filter = [color, depth].filter(Boolean).join(' ') || 'none'
       const { cell, atlas } = atlasCell(pose)
       if (!isSource || !['attack', 'block', 'recoil'].includes(motion.kind)) {
         x -= Math.round((cell.bounds[0] + cell.bounds[2] / 2 - atlas.pivot[0]) * scale)
