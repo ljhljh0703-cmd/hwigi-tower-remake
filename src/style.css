@@ -2706,3 +2706,73 @@ main[data-screen='defeat'] {
 #ego-placement[data-ego-phase='landed'] small { display: flex; align-items: center; gap: 3px; color: #fff0b7; border: 1px solid #d6b67d; }
 #ego-placement small .icon { width: 18px; height: 18px; }
 .slot[data-ego-landed] { outline: 2px solid #e0ba76; box-shadow: inset 0 0 18px #e0ba764d; }
+
+@media (min-width: 1050px) and (min-height: 680px) {
+  main[data-screen='battle']:has(.encounter:not([hidden])) {
+    --desk-side: clamp(360px, 30vw, 475px);
+    --desk-gap: clamp(16px, 2vw, 32px);
+    --battle-header: 72px;
+    width: min(100% - 32px, 1584px);
+    grid-template-columns: minmax(0, 1fr) var(--desk-side);
+    column-gap: var(--desk-gap);
+  }
+  [data-screen='battle']:has(.encounter:not([hidden])) .masthead {
+    grid-column: 1 / -1;
+    border-bottom: 1px solid #786b58;
+  }
+  [data-screen='battle']:has(.encounter:not([hidden])) .masthead-title {
+    display: block;
+    font-size: 1.15rem;
+  }
+  [data-screen='battle'] #battle:has(> .encounter:not([hidden])) {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(0, 1fr) var(--desk-side);
+    grid-template-rows: auto auto 1fr;
+    gap: 12px var(--desk-gap);
+    margin-block-start: 20px;
+  }
+  [data-screen='battle'] .encounter {
+    --arena-height: min(73dvh, 780px);
+    --arena-footer: 106px;
+    grid-area: 1 / 1 / 4 / 2;
+    border: 1px solid #80705b;
+    box-shadow: 0 12px 30px #24211b6e;
+  }
+  [data-screen='battle'] .encounter.gimmick-intro {
+    margin-block-start: 0;
+    block-size: var(--arena-height);
+  }
+  [data-screen='battle'] #planning {
+    grid-area: 1 / 2;
+    padding: 16px;
+    margin-block-start: 74px;
+    border: 1px solid #80705b;
+    box-shadow: 0 8px 16px #24211b6e;
+    gap: 16px;
+  }
+  [data-screen='battle'] #planning[data-unlock-cues]:has(#locked-die:not([hidden]):not([data-awakening])) {
+    padding-block-start: 28px;
+  }
+  [data-screen='battle'] #planning .controls { row-gap: 7px; }
+  [data-screen='battle'] #treasure-controls:not([data-item-overlay]) { grid-area: 2 / 2; }
+  main[data-screen='battle']:has(.encounter:not([hidden])) .inventory-strip {
+    grid-area: 2 / 2;
+    justify-self: stretch;
+    justify-content: start;
+    inline-size: auto;
+    max-inline-size: none;
+    margin: 20px 0 0;
+    padding: 6px;
+    border-bottom: 1px solid #80705b;
+  }
+  [data-screen='battle'] .counter-over-field #counter,
+  [data-screen='battle'] .counter-over-field #counter-footer {
+    position: static;
+    width: 100%;
+  }
+  [data-screen='battle'] #counter-panel.counter-over-field {
+    --counter-top: clamp(32px, 8dvh, 72px);
+    inset-block-start: var(--counter-top);
+  }
+  [data-screen='battle'] .upper-field { --arena-footer: 130px; }
+}
