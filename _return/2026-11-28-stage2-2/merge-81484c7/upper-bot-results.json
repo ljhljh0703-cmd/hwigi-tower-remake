@@ -1,0 +1,5408 @@
+{
+  "build": "946c974bc0e201220ba21022c774a0a506fa5546",
+  "phases": [
+    {
+      "piercing": true,
+      "entrants": 22350,
+      "won": 11642,
+      "completionPercent": 52.09,
+      "floors": {
+        "13": {
+          "entered": 22350,
+          "lost": 0,
+          "attritionPercent": 0
+        },
+        "14": {
+          "entered": 22350,
+          "lost": 17,
+          "attritionPercent": 0.08
+        },
+        "15": {
+          "entered": 22333,
+          "lost": 664,
+          "attritionPercent": 2.97
+        },
+        "16": {
+          "entered": 21669,
+          "lost": 0,
+          "attritionPercent": 0
+        },
+        "17": {
+          "entered": 21669,
+          "lost": 3353,
+          "attritionPercent": 15.47
+        },
+        "18": {
+          "entered": 18316,
+          "lost": 0,
+          "attritionPercent": 0
+        },
+        "19": {
+          "entered": 18316,
+          "lost": 6674,
+          "attritionPercent": 36.44
+        }
+      }
+    },
+    {
+      "piercing": false,
+      "entrants": 22350,
+      "won": 11508,
+      "completionPercent": 51.49,
+      "floors": {
+        "13": {
+          "entered": 22350,
+          "lost": 0,
+          "attritionPercent": 0
+        },
+        "14": {
+          "entered": 22350,
+          "lost": 16,
+          "attritionPercent": 0.07
+        },
+        "15": {
+          "entered": 22334,
+          "lost": 619,
+          "attritionPercent": 2.77
+        },
+        "16": {
+          "entered": 21715,
+          "lost": 0,
+          "attritionPercent": 0
+        },
+        "17": {
+          "entered": 21715,
+          "lost": 3389,
+          "attritionPercent": 15.61
+        },
+        "18": {
+          "entered": 18326,
+          "lost": 0,
+          "attritionPercent": 0
+        },
+        "19": {
+          "entered": 18326,
+          "lost": 6818,
+          "attritionPercent": 37.2
+        }
+      }
+    }
+  ],
+  "cohorts": [
+    {
+      "route": "safe",
+      "first": 8192,
+      "count": 4096,
+      "unlocks": "none",
+      "lower": {
+        "won": 2984,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 107,
+            "turns": 17501
+          },
+          {
+            "entered": 3989,
+            "lost": 33,
+            "turns": 13374
+          },
+          {
+            "entered": 3956,
+            "lost": 63,
+            "turns": 9165
+          },
+          {
+            "entered": 3893,
+            "lost": 27,
+            "turns": 7995
+          },
+          {
+            "entered": 3866,
+            "lost": 81,
+            "turns": 8530
+          },
+          {
+            "entered": 3785,
+            "lost": 123,
+            "turns": 18568
+          },
+          {
+            "entered": 3662,
+            "lost": 42,
+            "turns": 5670
+          },
+          {
+            "entered": 3620,
+            "lost": 8,
+            "turns": 3334
+          },
+          {
+            "entered": 3612,
+            "lost": 7,
+            "turns": 4736
+          },
+          {
+            "entered": 3605,
+            "lost": 6,
+            "turns": 4969
+          },
+          {
+            "entered": 3599,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3599,
+            "lost": 615,
+            "turns": 31531
+          }
+        ],
+        "fingerprint": "f829f28b53384d2bc32dda94034fb717a49463a2028e93a82095bda705e0219e"
+      },
+      "upper": [
+        {
+          "piercing": true,
+          "won": 1458,
+          "entrants": 2984,
+          "finalCoins": 5074,
+          "floors": {
+            "13": {
+              "entered": 2984,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2984,
+              "lost": 1
+            },
+            "15": {
+              "entered": 2983,
+              "lost": 60
+            },
+            "16": {
+              "entered": 2923,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2923,
+              "lost": 349
+            },
+            "18": {
+              "entered": 2574,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2574,
+              "lost": 1116
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2984,
+              "turns": 5441,
+              "damage": 2,
+              "advanceTurn": 2996,
+              "firstDefeats": 2984,
+              "frontKills": 5428,
+              "piercingAttacks": 2970,
+              "piercedDamage": 24669,
+              "exact": 16,
+              "counters": 16,
+              "ego": {
+                "attack": 5313,
+                "guard": 8,
+                "rest": 0,
+                "extraDefeats": 535
+              },
+              "coins": 2984
+            },
+            "14:fight": {
+              "entered": 2984,
+              "turns": 12666,
+              "damage": 6622,
+              "advanceTurn": 9208,
+              "firstDefeats": 2983,
+              "frontKills": 5361,
+              "piercingAttacks": 2570,
+              "piercedDamage": 16639,
+              "exact": 3873,
+              "counters": 3873,
+              "ego": {
+                "attack": 9120,
+                "guard": 3340,
+                "rest": 11,
+                "extraDefeats": 1251
+              },
+              "coins": 2983
+            },
+            "15:fight": {
+              "entered": 2983,
+              "turns": 18812,
+              "damage": 12030,
+              "advanceTurn": 12835,
+              "firstDefeats": 2927,
+              "frontKills": 5799,
+              "piercingAttacks": 2248,
+              "piercedDamage": 12368,
+              "exact": 5528,
+              "counters": 5528,
+              "ego": {
+                "attack": 11405,
+                "guard": 7288,
+                "rest": 13,
+                "extraDefeats": 1344
+              },
+              "coins": 2923
+            },
+            "16:shop": {
+              "entered": 2923,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:fight": {
+              "entered": 2923,
+              "turns": 24780,
+              "damage": 22910,
+              "advanceTurn": 16061,
+              "firstDefeats": 2621,
+              "frontKills": 5185,
+              "piercingAttacks": 2098,
+              "piercedDamage": 10380,
+              "exact": 6437,
+              "counters": 6437,
+              "ego": {
+                "attack": 12176,
+                "guard": 12546,
+                "rest": 34,
+                "extraDefeats": 1379
+              },
+              "coins": 2574
+            },
+            "18:rest": {
+              "entered": 2574,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2574,
+              "turns": 29115,
+              "damage": 36000,
+              "advanceTurn": 9003,
+              "firstDefeats": 1638,
+              "frontKills": 3096,
+              "piercingAttacks": 1146,
+              "piercedDamage": 4672,
+              "exact": 4937,
+              "counters": 4937,
+              "ego": {
+                "attack": 13773,
+                "guard": 15330,
+                "rest": 10,
+                "extraDefeats": 666
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "die-latch": {
+              "offered": 520,
+              "selected": 91,
+              "triggered": 2992
+            },
+            "weight": {
+              "offered": 3542,
+              "selected": 1818,
+              "triggered": 2135
+            },
+            "tuning": {
+              "offered": 3473,
+              "selected": 1301,
+              "triggered": 0
+            },
+            "bandage": {
+              "offered": 5519,
+              "selected": 5519,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 567,
+              "selected": 85,
+              "triggered": 2642
+            },
+            "wedge": {
+              "offered": 3451,
+              "selected": 275,
+              "triggered": 327
+            },
+            "coin": {
+              "offered": 3340,
+              "selected": 185,
+              "triggered": 506
+            },
+            "kit": {
+              "offered": 5497,
+              "selected": 4565,
+              "triggered": 0
+            },
+            "mirror": {
+              "offered": 635,
+              "selected": 109,
+              "triggered": 2100
+            },
+            "heart-die": {
+              "offered": 1837,
+              "selected": 0,
+              "triggered": 0
+            },
+            "buckle": {
+              "offered": 3322,
+              "selected": 777,
+              "triggered": 806
+            },
+            "whetstone": {
+              "offered": 2574,
+              "selected": 411,
+              "triggered": 527
+            },
+            "twin-mold": {
+              "offered": 3365,
+              "selected": 17,
+              "triggered": 0
+            },
+            "spacer": {
+              "offered": 3472,
+              "selected": 502,
+              "triggered": 1932
+            },
+            "horn": {
+              "offered": 600,
+              "selected": 127,
+              "triggered": 872
+            },
+            "hourglass": {
+              "offered": 1057,
+              "selected": 0,
+              "triggered": 0
+            },
+            "clash-seal": {
+              "offered": 778,
+              "selected": 751,
+              "triggered": 828
+            },
+            "reserve-gauge": {
+              "offered": 730,
+              "selected": 211,
+              "triggered": 0
+            },
+            "advance-knot": {
+              "offered": 3400,
+              "selected": 108,
+              "triggered": 103
+            },
+            "overflow": {
+              "offered": 601,
+              "selected": 104,
+              "triggered": 2057
+            },
+            "incomplete": {
+              "offered": 3,
+              "selected": 0,
+              "triggered": 0
+            }
+          }
+        },
+        {
+          "piercing": false,
+          "won": 1446,
+          "entrants": 2984,
+          "finalCoins": 5021,
+          "floors": {
+            "13": {
+              "entered": 2984,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2984,
+              "lost": 2
+            },
+            "15": {
+              "entered": 2982,
+              "lost": 49
+            },
+            "16": {
+              "entered": 2933,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2933,
+              "lost": 333
+            },
+            "18": {
+              "entered": 2600,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2600,
+              "lost": 1154
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2984,
+              "turns": 6016,
+              "damage": 64,
+              "advanceTurn": 2996,
+              "firstDefeats": 2984,
+              "frontKills": 5968,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 24,
+              "counters": 24,
+              "ego": {
+                "attack": 5853,
+                "guard": 38,
+                "rest": 0,
+                "extraDefeats": 201
+              },
+              "coins": 2984
+            },
+            "14:fight": {
+              "entered": 2984,
+              "turns": 14158,
+              "damage": 5259,
+              "advanceTurn": 9362,
+              "firstDefeats": 2982,
+              "frontKills": 5964,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4626,
+              "counters": 4626,
+              "ego": {
+                "attack": 10118,
+                "guard": 3851,
+                "rest": 10,
+                "extraDefeats": 1002
+              },
+              "coins": 2982
+            },
+            "15:fight": {
+              "entered": 2982,
+              "turns": 19793,
+              "damage": 11771,
+              "advanceTurn": 12940,
+              "firstDefeats": 2935,
+              "frontKills": 5868,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 6054,
+              "counters": 6054,
+              "ego": {
+                "attack": 12066,
+                "guard": 7625,
+                "rest": 12,
+                "extraDefeats": 1316
+              },
+              "coins": 2933
+            },
+            "16:shop": {
+              "entered": 2933,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:fight": {
+              "entered": 2933,
+              "turns": 26004,
+              "damage": 22918,
+              "advanceTurn": 16429,
+              "firstDefeats": 2646,
+              "frontKills": 5246,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 6947,
+              "counters": 6947,
+              "ego": {
+                "attack": 12741,
+                "guard": 13214,
+                "rest": 29,
+                "extraDefeats": 1297
+              },
+              "coins": 2600
+            },
+            "18:rest": {
+              "entered": 2600,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2600,
+              "turns": 30125,
+              "damage": 36996,
+              "advanceTurn": 9395,
+              "firstDefeats": 1630,
+              "frontKills": 3076,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 5155,
+              "counters": 5155,
+              "ego": {
+                "attack": 13998,
+                "guard": 16113,
+                "rest": 12,
+                "extraDefeats": 644
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "die-latch": {
+              "offered": 520,
+              "selected": 97,
+              "triggered": 3089
+            },
+            "weight": {
+              "offered": 3549,
+              "selected": 1839,
+              "triggered": 2200
+            },
+            "tuning": {
+              "offered": 3487,
+              "selected": 1312,
+              "triggered": 0
+            },
+            "bandage": {
+              "offered": 5477,
+              "selected": 5477,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 567,
+              "selected": 82,
+              "triggered": 2657
+            },
+            "wedge": {
+              "offered": 3485,
+              "selected": 270,
+              "triggered": 327
+            },
+            "reserve-gauge": {
+              "offered": 743,
+              "selected": 215,
+              "triggered": 0
+            },
+            "coin": {
+              "offered": 3357,
+              "selected": 189,
+              "triggered": 532
+            },
+            "twin-mold": {
+              "offered": 3393,
+              "selected": 17,
+              "triggered": 0
+            },
+            "kit": {
+              "offered": 5533,
+              "selected": 4564,
+              "triggered": 0
+            },
+            "mirror": {
+              "offered": 641,
+              "selected": 124,
+              "triggered": 2226
+            },
+            "heart-die": {
+              "offered": 1843,
+              "selected": 0,
+              "triggered": 0
+            },
+            "buckle": {
+              "offered": 3329,
+              "selected": 806,
+              "triggered": 834
+            },
+            "whetstone": {
+              "offered": 2600,
+              "selected": 422,
+              "triggered": 537
+            },
+            "spacer": {
+              "offered": 3477,
+              "selected": 510,
+              "triggered": 2070
+            },
+            "horn": {
+              "offered": 603,
+              "selected": 132,
+              "triggered": 910
+            },
+            "hourglass": {
+              "offered": 1061,
+              "selected": 0,
+              "triggered": 0
+            },
+            "clash-seal": {
+              "offered": 783,
+              "selected": 755,
+              "triggered": 852
+            },
+            "advance-knot": {
+              "offered": 3417,
+              "selected": 109,
+              "triggered": 99
+            },
+            "overflow": {
+              "offered": 602,
+              "selected": 106,
+              "triggered": 2220
+            },
+            "incomplete": {
+              "offered": 2,
+              "selected": 0,
+              "triggered": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "route": "safe",
+      "first": 8192,
+      "count": 4096,
+      "unlocks": "all",
+      "lower": {
+        "won": 2894,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 99,
+            "turns": 16839
+          },
+          {
+            "entered": 3997,
+            "lost": 33,
+            "turns": 13112
+          },
+          {
+            "entered": 3964,
+            "lost": 48,
+            "turns": 8856
+          },
+          {
+            "entered": 3916,
+            "lost": 20,
+            "turns": 7875
+          },
+          {
+            "entered": 3896,
+            "lost": 66,
+            "turns": 8406
+          },
+          {
+            "entered": 3830,
+            "lost": 93,
+            "turns": 18663
+          },
+          {
+            "entered": 3737,
+            "lost": 46,
+            "turns": 5848
+          },
+          {
+            "entered": 3691,
+            "lost": 8,
+            "turns": 3406
+          },
+          {
+            "entered": 3683,
+            "lost": 6,
+            "turns": 4780
+          },
+          {
+            "entered": 3677,
+            "lost": 2,
+            "turns": 5014
+          },
+          {
+            "entered": 3675,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3675,
+            "lost": 781,
+            "turns": 31928
+          }
+        ],
+        "fingerprint": "ff1e0fd3ed540844c7d643f3962d1cdcd88793f2aa9f099536eaa022e7b14a4f"
+      },
+      "upper": [
+        {
+          "piercing": true,
+          "won": 1298,
+          "entrants": 2894,
+          "finalCoins": 4547,
+          "floors": {
+            "13": {
+              "entered": 2894,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2894,
+              "lost": 2
+            },
+            "15": {
+              "entered": 2892,
+              "lost": 51
+            },
+            "16": {
+              "entered": 2841,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2841,
+              "lost": 402
+            },
+            "18": {
+              "entered": 2439,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2439,
+              "lost": 1141
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2894,
+              "turns": 5181,
+              "damage": 11,
+              "advanceTurn": 2906,
+              "firstDefeats": 2894,
+              "frontKills": 5167,
+              "piercingAttacks": 2884,
+              "piercedDamage": 24536,
+              "exact": 15,
+              "counters": 15,
+              "ego": {
+                "attack": 5006,
+                "guard": 63,
+                "rest": 1,
+                "extraDefeats": 510
+              },
+              "coins": 2894
+            },
+            "14:fight": {
+              "entered": 2894,
+              "turns": 12640,
+              "damage": 6527,
+              "advanceTurn": 9087,
+              "firstDefeats": 2892,
+              "frontKills": 5268,
+              "piercingAttacks": 2443,
+              "piercedDamage": 14897,
+              "exact": 3940,
+              "counters": 3940,
+              "ego": {
+                "attack": 8954,
+                "guard": 3452,
+                "rest": 26,
+                "extraDefeats": 1197
+              },
+              "coins": 2892
+            },
+            "15:fight": {
+              "entered": 2892,
+              "turns": 18791,
+              "damage": 13056,
+              "advanceTurn": 12767,
+              "firstDefeats": 2845,
+              "frontKills": 5654,
+              "piercingAttacks": 2169,
+              "piercedDamage": 11345,
+              "exact": 5397,
+              "counters": 5397,
+              "ego": {
+                "attack": 11106,
+                "guard": 7531,
+                "rest": 30,
+                "extraDefeats": 1256
+              },
+              "coins": 2841
+            },
+            "16:shop": {
+              "entered": 2841,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:fight": {
+              "entered": 2841,
+              "turns": 24385,
+              "damage": 24761,
+              "advanceTurn": 15210,
+              "firstDefeats": 2484,
+              "frontKills": 4907,
+              "piercingAttacks": 1934,
+              "piercedDamage": 9442,
+              "exact": 6204,
+              "counters": 6204,
+              "ego": {
+                "attack": 11537,
+                "guard": 12764,
+                "rest": 34,
+                "extraDefeats": 1242
+              },
+              "coins": 2439
+            },
+            "18:rest": {
+              "entered": 2439,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2439,
+              "turns": 26165,
+              "damage": 35751,
+              "advanceTurn": 7328,
+              "firstDefeats": 1483,
+              "frontKills": 2781,
+              "piercingAttacks": 1018,
+              "piercedDamage": 4233,
+              "exact": 4167,
+              "counters": 4167,
+              "ego": {
+                "attack": 12047,
+                "guard": 14105,
+                "rest": 8,
+                "extraDefeats": 607
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "advance-knot": {
+              "offered": 3268,
+              "selected": 105,
+              "triggered": 102
+            },
+            "coin": {
+              "offered": 3183,
+              "selected": 104,
+              "triggered": 364
+            },
+            "bandage": {
+              "offered": 5412,
+              "selected": 5412,
+              "triggered": 0
+            },
+            "spacer": {
+              "offered": 3368,
+              "selected": 496,
+              "triggered": 1850
+            },
+            "twin-mold": {
+              "offered": 3254,
+              "selected": 15,
+              "triggered": 0
+            },
+            "clash-seal": {
+              "offered": 732,
+              "selected": 713,
+              "triggered": 793
+            },
+            "kit": {
+              "offered": 5280,
+              "selected": 4431,
+              "triggered": 0
+            },
+            "overflow": {
+              "offered": 573,
+              "selected": 93,
+              "triggered": 2018
+            },
+            "hourglass": {
+              "offered": 871,
+              "selected": 0,
+              "triggered": 0
+            },
+            "scabbard": {
+              "offered": 1084,
+              "selected": 41,
+              "triggered": 942
+            },
+            "buckle": {
+              "offered": 3234,
+              "selected": 800,
+              "triggered": 821
+            },
+            "whetstone": {
+              "offered": 2439,
+              "selected": 356,
+              "triggered": 446
+            },
+            "weight": {
+              "offered": 3412,
+              "selected": 1710,
+              "triggered": 2015
+            },
+            "tuning": {
+              "offered": 3330,
+              "selected": 1255,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 558,
+              "selected": 77,
+              "triggered": 2640
+            },
+            "wedge": {
+              "offered": 3309,
+              "selected": 243,
+              "triggered": 286
+            },
+            "reserve-gauge": {
+              "offered": 696,
+              "selected": 213,
+              "triggered": 0
+            },
+            "adjacent-needle": {
+              "offered": 631,
+              "selected": 26,
+              "triggered": 297
+            },
+            "die-latch": {
+              "offered": 620,
+              "selected": 0,
+              "triggered": 0
+            },
+            "heart-die": {
+              "offered": 1966,
+              "selected": 0,
+              "triggered": 0
+            },
+            "pip-ring": {
+              "offered": 529,
+              "selected": 21,
+              "triggered": 0
+            },
+            "linked-cup": {
+              "offered": 2611,
+              "selected": 0,
+              "triggered": 0
+            },
+            "horn": {
+              "offered": 567,
+              "selected": 114,
+              "triggered": 845
+            },
+            "blood-grip": {
+              "offered": 597,
+              "selected": 26,
+              "triggered": 353
+            },
+            "early-reroll": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 1098
+            },
+            "mirror": {
+              "offered": 523,
+              "selected": 86,
+              "triggered": 1639
+            },
+            "counter-recover": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 1377
+            },
+            "incomplete": {
+              "offered": 4,
+              "selected": 0,
+              "triggered": 0
+            }
+          }
+        },
+        {
+          "piercing": false,
+          "won": 1273,
+          "entrants": 2894,
+          "finalCoins": 4441,
+          "floors": {
+            "13": {
+              "entered": 2894,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2894,
+              "lost": 2
+            },
+            "15": {
+              "entered": 2892,
+              "lost": 52
+            },
+            "16": {
+              "entered": 2840,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2840,
+              "lost": 374
+            },
+            "18": {
+              "entered": 2466,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2466,
+              "lost": 1193
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2894,
+              "turns": 5856,
+              "damage": 98,
+              "advanceTurn": 2906,
+              "firstDefeats": 2894,
+              "frontKills": 5788,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 27,
+              "counters": 27,
+              "ego": {
+                "attack": 5671,
+                "guard": 63,
+                "rest": 1,
+                "extraDefeats": 242
+              },
+              "coins": 2894
+            },
+            "14:fight": {
+              "entered": 2894,
+              "turns": 13999,
+              "damage": 5611,
+              "advanceTurn": 9163,
+              "firstDefeats": 2892,
+              "frontKills": 5784,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4565,
+              "counters": 4565,
+              "ego": {
+                "attack": 9847,
+                "guard": 3932,
+                "rest": 28,
+                "extraDefeats": 953
+              },
+              "coins": 2892
+            },
+            "15:fight": {
+              "entered": 2892,
+              "turns": 19722,
+              "damage": 12818,
+              "advanceTurn": 12810,
+              "firstDefeats": 2845,
+              "frontKills": 5685,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 5841,
+              "counters": 5841,
+              "ego": {
+                "attack": 11669,
+                "guard": 7924,
+                "rest": 22,
+                "extraDefeats": 1222
+              },
+              "coins": 2840
+            },
+            "16:shop": {
+              "entered": 2840,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:fight": {
+              "entered": 2840,
+              "turns": 25480,
+              "damage": 24719,
+              "advanceTurn": 15547,
+              "firstDefeats": 2512,
+              "frontKills": 4978,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 6708,
+              "counters": 6708,
+              "ego": {
+                "attack": 12105,
+                "guard": 13306,
+                "rest": 27,
+                "extraDefeats": 1181
+              },
+              "coins": 2466
+            },
+            "18:rest": {
+              "entered": 2466,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2466,
+              "turns": 27083,
+              "damage": 36779,
+              "advanceTurn": 7647,
+              "firstDefeats": 1459,
+              "frontKills": 2732,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4296,
+              "counters": 4296,
+              "ego": {
+                "attack": 12171,
+                "guard": 14883,
+                "rest": 11,
+                "extraDefeats": 538
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "advance-knot": {
+              "offered": 3282,
+              "selected": 103,
+              "triggered": 98
+            },
+            "coin": {
+              "offered": 3200,
+              "selected": 101,
+              "triggered": 372
+            },
+            "bandage": {
+              "offered": 5397,
+              "selected": 5397,
+              "triggered": 0
+            },
+            "spacer": {
+              "offered": 3371,
+              "selected": 504,
+              "triggered": 2022
+            },
+            "twin-mold": {
+              "offered": 3273,
+              "selected": 15,
+              "triggered": 0
+            },
+            "kit": {
+              "offered": 5306,
+              "selected": 4431,
+              "triggered": 0
+            },
+            "overflow": {
+              "offered": 574,
+              "selected": 98,
+              "triggered": 2221
+            },
+            "hourglass": {
+              "offered": 871,
+              "selected": 0,
+              "triggered": 0
+            },
+            "scabbard": {
+              "offered": 1080,
+              "selected": 41,
+              "triggered": 1103
+            },
+            "buckle": {
+              "offered": 3219,
+              "selected": 791,
+              "triggered": 814
+            },
+            "whetstone": {
+              "offered": 2466,
+              "selected": 369,
+              "triggered": 460
+            },
+            "weight": {
+              "offered": 3414,
+              "selected": 1740,
+              "triggered": 2071
+            },
+            "tuning": {
+              "offered": 3340,
+              "selected": 1257,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 555,
+              "selected": 77,
+              "triggered": 2674
+            },
+            "wedge": {
+              "offered": 3332,
+              "selected": 245,
+              "triggered": 290
+            },
+            "reserve-gauge": {
+              "offered": 704,
+              "selected": 214,
+              "triggered": 0
+            },
+            "adjacent-needle": {
+              "offered": 631,
+              "selected": 29,
+              "triggered": 321
+            },
+            "die-latch": {
+              "offered": 622,
+              "selected": 0,
+              "triggered": 0
+            },
+            "heart-die": {
+              "offered": 1967,
+              "selected": 0,
+              "triggered": 0
+            },
+            "pip-ring": {
+              "offered": 530,
+              "selected": 23,
+              "triggered": 0
+            },
+            "linked-cup": {
+              "offered": 2612,
+              "selected": 0,
+              "triggered": 0
+            },
+            "horn": {
+              "offered": 568,
+              "selected": 120,
+              "triggered": 880
+            },
+            "blood-grip": {
+              "offered": 599,
+              "selected": 22,
+              "triggered": 360
+            },
+            "clash-seal": {
+              "offered": 744,
+              "selected": 725,
+              "triggered": 820
+            },
+            "early-reroll": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 1122
+            },
+            "mirror": {
+              "offered": 521,
+              "selected": 88,
+              "triggered": 1696
+            },
+            "counter-recover": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 1472
+            },
+            "incomplete": {
+              "offered": 2,
+              "selected": 0,
+              "triggered": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "route": "elite",
+      "first": 8192,
+      "count": 4096,
+      "unlocks": "none",
+      "lower": {
+        "won": 2678,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 107,
+            "turns": 17501
+          },
+          {
+            "entered": 3989,
+            "lost": 62,
+            "turns": 11928
+          },
+          {
+            "entered": 3927,
+            "lost": 132,
+            "turns": 8370
+          },
+          {
+            "entered": 3795,
+            "lost": 106,
+            "turns": 7388
+          },
+          {
+            "entered": 3689,
+            "lost": 123,
+            "turns": 6905
+          },
+          {
+            "entered": 3566,
+            "lost": 309,
+            "turns": 15616
+          },
+          {
+            "entered": 3257,
+            "lost": 40,
+            "turns": 4531
+          },
+          {
+            "entered": 3217,
+            "lost": 9,
+            "turns": 2911
+          },
+          {
+            "entered": 3208,
+            "lost": 21,
+            "turns": 4695
+          },
+          {
+            "entered": 3187,
+            "lost": 6,
+            "turns": 4553
+          },
+          {
+            "entered": 3181,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3181,
+            "lost": 503,
+            "turns": 24267
+          }
+        ],
+        "fingerprint": "3b141e6b82aeb92ec6163d9596e2758fcfa298e2771d95bb8b1fa39ae77789f6"
+      },
+      "upper": [
+        {
+          "piercing": true,
+          "won": 1611,
+          "entrants": 2678,
+          "finalCoins": 14937,
+          "floors": {
+            "13": {
+              "entered": 2678,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2678,
+              "lost": 0
+            },
+            "15": {
+              "entered": 2678,
+              "lost": 99
+            },
+            "16": {
+              "entered": 2579,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2579,
+              "lost": 408
+            },
+            "18": {
+              "entered": 2171,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2171,
+              "lost": 560
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2678,
+              "turns": 4897,
+              "damage": 0,
+              "advanceTurn": 2688,
+              "firstDefeats": 2678,
+              "frontKills": 4889,
+              "piercingAttacks": 2674,
+              "piercedDamage": 22285,
+              "exact": 10,
+              "counters": 10,
+              "ego": {
+                "attack": 4835,
+                "guard": 4,
+                "rest": 2,
+                "extraDefeats": 483
+              },
+              "coins": 2678
+            },
+            "14:fight": {
+              "entered": 2678,
+              "turns": 7783,
+              "damage": 3527,
+              "advanceTurn": 4808,
+              "firstDefeats": 2678,
+              "frontKills": 4995,
+              "piercingAttacks": 2438,
+              "piercedDamage": 20823,
+              "exact": 3185,
+              "counters": 3185,
+              "ego": {
+                "attack": 6198,
+                "guard": 1467,
+                "rest": 61,
+                "extraDefeats": 693
+              },
+              "coins": 2678
+            },
+            "15:elite": {
+              "entered": 2678,
+              "turns": 15456,
+              "damage": 8835,
+              "advanceTurn": 9562,
+              "firstDefeats": 2584,
+              "frontKills": 5140,
+              "piercingAttacks": 2261,
+              "piercedDamage": 17357,
+              "exact": 4244,
+              "counters": 4244,
+              "ego": {
+                "attack": 10707,
+                "guard": 4664,
+                "rest": 51,
+                "extraDefeats": 1006
+              },
+              "coins": 5158
+            },
+            "16:shop": {
+              "entered": 2579,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:elite": {
+              "entered": 2579,
+              "turns": 23528,
+              "damage": 20380,
+              "advanceTurn": 11798,
+              "firstDefeats": 2285,
+              "frontKills": 6581,
+              "piercingAttacks": 3735,
+              "piercedDamage": 22189,
+              "exact": 5769,
+              "counters": 5769,
+              "ego": {
+                "attack": 12271,
+                "guard": 11182,
+                "rest": 72,
+                "extraDefeats": 1438
+              },
+              "coins": 4342
+            },
+            "18:rest": {
+              "entered": 2171,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2171,
+              "turns": 22224,
+              "damage": 18229,
+              "advanceTurn": 6253,
+              "firstDefeats": 1767,
+              "frontKills": 3378,
+              "piercingAttacks": 1281,
+              "piercedDamage": 4263,
+              "exact": 4072,
+              "counters": 4072,
+              "ego": {
+                "attack": 13617,
+                "guard": 8567,
+                "rest": 40,
+                "extraDefeats": 694
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "tuning": {
+              "offered": 1709,
+              "selected": 706,
+              "triggered": 0
+            },
+            "wedge": {
+              "offered": 1648,
+              "selected": 127,
+              "triggered": 151
+            },
+            "bandage": {
+              "offered": 2252,
+              "selected": 2252,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 15706
+            },
+            "spacer": {
+              "offered": 1624,
+              "selected": 247,
+              "triggered": 708
+            },
+            "mirror": {
+              "offered": 2907,
+              "selected": 1522,
+              "triggered": 3092
+            },
+            "overflow": {
+              "offered": 3052,
+              "selected": 998,
+              "triggered": 2071
+            },
+            "kit": {
+              "offered": 4750,
+              "selected": 3813,
+              "triggered": 0
+            },
+            "heart-die": {
+              "offered": 1957,
+              "selected": 0,
+              "triggered": 0
+            },
+            "weight": {
+              "offered": 1697,
+              "selected": 949,
+              "triggered": 1087
+            },
+            "reserve-gauge": {
+              "offered": 368,
+              "selected": 110,
+              "triggered": 0
+            },
+            "horn": {
+              "offered": 819,
+              "selected": 579,
+              "triggered": 4324
+            },
+            "die-latch": {
+              "offered": 2561,
+              "selected": 1651,
+              "triggered": 7172
+            },
+            "whetstone": {
+              "offered": 2171,
+              "selected": 290,
+              "triggered": 454
+            },
+            "coin": {
+              "offered": 1538,
+              "selected": 96,
+              "triggered": 250
+            },
+            "twin-mold": {
+              "offered": 1655,
+              "selected": 11,
+              "triggered": 0
+            },
+            "hourglass": {
+              "offered": 608,
+              "selected": 164,
+              "triggered": 0
+            },
+            "advance-knot": {
+              "offered": 1590,
+              "selected": 42,
+              "triggered": 42
+            },
+            "buckle": {
+              "offered": 1595,
+              "selected": 434,
+              "triggered": 462
+            },
+            "clash-seal": {
+              "offered": 392,
+              "selected": 382,
+              "triggered": 412
+            },
+            "incomplete": {
+              "offered": 1,
+              "selected": 0,
+              "triggered": 2
+            }
+          }
+        },
+        {
+          "piercing": false,
+          "won": 1606,
+          "entrants": 2678,
+          "finalCoins": 14888,
+          "floors": {
+            "13": {
+              "entered": 2678,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2678,
+              "lost": 0
+            },
+            "15": {
+              "entered": 2678,
+              "lost": 92
+            },
+            "16": {
+              "entered": 2586,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2586,
+              "lost": 437
+            },
+            "18": {
+              "entered": 2149,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2149,
+              "lost": 543
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2678,
+              "turns": 5391,
+              "damage": 15,
+              "advanceTurn": 2688,
+              "firstDefeats": 2678,
+              "frontKills": 5356,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 16,
+              "counters": 16,
+              "ego": {
+                "attack": 5319,
+                "guard": 13,
+                "rest": 1,
+                "extraDefeats": 104
+              },
+              "coins": 2678
+            },
+            "14:fight": {
+              "entered": 2678,
+              "turns": 9217,
+              "damage": 3215,
+              "advanceTurn": 4833,
+              "firstDefeats": 2678,
+              "frontKills": 5356,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 3970,
+              "counters": 3970,
+              "ego": {
+                "attack": 7285,
+                "guard": 1825,
+                "rest": 63,
+                "extraDefeats": 600
+              },
+              "coins": 2678
+            },
+            "15:elite": {
+              "entered": 2678,
+              "turns": 16415,
+              "damage": 8776,
+              "advanceTurn": 9685,
+              "firstDefeats": 2591,
+              "frontKills": 5177,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4607,
+              "counters": 4607,
+              "ego": {
+                "attack": 11498,
+                "guard": 4841,
+                "rest": 52,
+                "extraDefeats": 1042
+              },
+              "coins": 5172
+            },
+            "16:shop": {
+              "entered": 2586,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:elite": {
+              "entered": 2586,
+              "turns": 25560,
+              "damage": 19949,
+              "advanceTurn": 11847,
+              "firstDefeats": 2282,
+              "frontKills": 6592,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 6278,
+              "counters": 6278,
+              "ego": {
+                "attack": 13373,
+                "guard": 12118,
+                "rest": 66,
+                "extraDefeats": 1295
+              },
+              "coins": 4298
+            },
+            "18:rest": {
+              "entered": 2149,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2149,
+              "turns": 22563,
+              "damage": 17993,
+              "advanceTurn": 6426,
+              "firstDefeats": 1764,
+              "frontKills": 3370,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4125,
+              "counters": 4125,
+              "ego": {
+                "attack": 13711,
+                "guard": 8812,
+                "rest": 40,
+                "extraDefeats": 615
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "tuning": {
+              "offered": 1709,
+              "selected": 700,
+              "triggered": 0
+            },
+            "wedge": {
+              "offered": 1643,
+              "selected": 131,
+              "triggered": 171
+            },
+            "bandage": {
+              "offered": 2270,
+              "selected": 2270,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 15834
+            },
+            "horn": {
+              "offered": 822,
+              "selected": 581,
+              "triggered": 4682
+            },
+            "spacer": {
+              "offered": 1632,
+              "selected": 242,
+              "triggered": 792
+            },
+            "mirror": {
+              "offered": 2903,
+              "selected": 1514,
+              "triggered": 3429
+            },
+            "overflow": {
+              "offered": 3028,
+              "selected": 987,
+              "triggered": 2303
+            },
+            "kit": {
+              "offered": 4735,
+              "selected": 3785,
+              "triggered": 0
+            },
+            "heart-die": {
+              "offered": 1968,
+              "selected": 0,
+              "triggered": 0
+            },
+            "weight": {
+              "offered": 1693,
+              "selected": 943,
+              "triggered": 1213
+            },
+            "reserve-gauge": {
+              "offered": 360,
+              "selected": 108,
+              "triggered": 0
+            },
+            "die-latch": {
+              "offered": 2556,
+              "selected": 1653,
+              "triggered": 7380
+            },
+            "whetstone": {
+              "offered": 2149,
+              "selected": 315,
+              "triggered": 478
+            },
+            "coin": {
+              "offered": 1535,
+              "selected": 97,
+              "triggered": 252
+            },
+            "twin-mold": {
+              "offered": 1642,
+              "selected": 11,
+              "triggered": 0
+            },
+            "hourglass": {
+              "offered": 605,
+              "selected": 160,
+              "triggered": 0
+            },
+            "advance-knot": {
+              "offered": 1592,
+              "selected": 42,
+              "triggered": 41
+            },
+            "buckle": {
+              "offered": 1599,
+              "selected": 429,
+              "triggered": 456
+            },
+            "clash-seal": {
+              "offered": 393,
+              "selected": 383,
+              "triggered": 405
+            },
+            "incomplete": {
+              "offered": 1,
+              "selected": 0,
+              "triggered": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "route": "elite",
+      "first": 8192,
+      "count": 4096,
+      "unlocks": "all",
+      "lower": {
+        "won": 2662,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 99,
+            "turns": 16839
+          },
+          {
+            "entered": 3997,
+            "lost": 53,
+            "turns": 11348
+          },
+          {
+            "entered": 3944,
+            "lost": 104,
+            "turns": 8171
+          },
+          {
+            "entered": 3840,
+            "lost": 88,
+            "turns": 7331
+          },
+          {
+            "entered": 3752,
+            "lost": 77,
+            "turns": 6778
+          },
+          {
+            "entered": 3675,
+            "lost": 275,
+            "turns": 16224
+          },
+          {
+            "entered": 3400,
+            "lost": 25,
+            "turns": 4525
+          },
+          {
+            "entered": 3375,
+            "lost": 8,
+            "turns": 3082
+          },
+          {
+            "entered": 3367,
+            "lost": 16,
+            "turns": 5032
+          },
+          {
+            "entered": 3351,
+            "lost": 8,
+            "turns": 4814
+          },
+          {
+            "entered": 3343,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3343,
+            "lost": 681,
+            "turns": 26094
+          }
+        ],
+        "fingerprint": "bf4fe0717e12586d09c71ed6e7acc8d217f85d101783036b6f6f7fb81b207bdc"
+      },
+      "upper": [
+        {
+          "piercing": true,
+          "won": 1533,
+          "entrants": 2662,
+          "finalCoins": 14596,
+          "floors": {
+            "13": {
+              "entered": 2662,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2662,
+              "lost": 1
+            },
+            "15": {
+              "entered": 2661,
+              "lost": 108
+            },
+            "16": {
+              "entered": 2553,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2553,
+              "lost": 483
+            },
+            "18": {
+              "entered": 2070,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2070,
+              "lost": 537
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2662,
+              "turns": 4593,
+              "damage": 12,
+              "advanceTurn": 2668,
+              "firstDefeats": 2662,
+              "frontKills": 4587,
+              "piercingAttacks": 2653,
+              "piercedDamage": 23318,
+              "exact": 6,
+              "counters": 6,
+              "ego": {
+                "attack": 4441,
+                "guard": 51,
+                "rest": 1,
+                "extraDefeats": 523
+              },
+              "coins": 2662
+            },
+            "14:fight": {
+              "entered": 2662,
+              "turns": 8231,
+              "damage": 3839,
+              "advanceTurn": 4860,
+              "firstDefeats": 2661,
+              "frontKills": 5080,
+              "piercingAttacks": 2384,
+              "piercedDamage": 17978,
+              "exact": 3286,
+              "counters": 3286,
+              "ego": {
+                "attack": 6407,
+                "guard": 1559,
+                "rest": 122,
+                "extraDefeats": 741
+              },
+              "coins": 2661
+            },
+            "15:elite": {
+              "entered": 2661,
+              "turns": 16111,
+              "damage": 10386,
+              "advanceTurn": 9956,
+              "firstDefeats": 2558,
+              "frontKills": 5100,
+              "piercingAttacks": 2206,
+              "piercedDamage": 14887,
+              "exact": 4350,
+              "counters": 4350,
+              "ego": {
+                "attack": 10765,
+                "guard": 5189,
+                "rest": 64,
+                "extraDefeats": 1092
+              },
+              "coins": 5106
+            },
+            "16:shop": {
+              "entered": 2553,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:elite": {
+              "entered": 2553,
+              "turns": 24524,
+              "damage": 23713,
+              "advanceTurn": 12208,
+              "firstDefeats": 2201,
+              "frontKills": 6329,
+              "piercingAttacks": 3497,
+              "piercedDamage": 19594,
+              "exact": 5876,
+              "counters": 5876,
+              "ego": {
+                "attack": 11885,
+                "guard": 12546,
+                "rest": 64,
+                "extraDefeats": 1416
+              },
+              "coins": 4140
+            },
+            "18:rest": {
+              "entered": 2070,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2070,
+              "turns": 21330,
+              "damage": 19191,
+              "advanceTurn": 6074,
+              "firstDefeats": 1696,
+              "frontKills": 3229,
+              "piercingAttacks": 1157,
+              "piercedDamage": 3766,
+              "exact": 3786,
+              "counters": 3786,
+              "ego": {
+                "attack": 12669,
+                "guard": 8619,
+                "rest": 42,
+                "extraDefeats": 656
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "advance-knot": {
+              "offered": 1608,
+              "selected": 58,
+              "triggered": 57
+            },
+            "coin": {
+              "offered": 1572,
+              "selected": 51,
+              "triggered": 232
+            },
+            "bandage": {
+              "offered": 1962,
+              "selected": 1962,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 160,
+              "selected": 78,
+              "triggered": 14795
+            },
+            "spacer": {
+              "offered": 1677,
+              "selected": 294,
+              "triggered": 756
+            },
+            "twin-mold": {
+              "offered": 1669,
+              "selected": 11,
+              "triggered": 0
+            },
+            "horn": {
+              "offered": 554,
+              "selected": 336,
+              "triggered": 4747
+            },
+            "die-latch": {
+              "offered": 6568,
+              "selected": 595,
+              "triggered": 942
+            },
+            "adjacent-needle": {
+              "offered": 1445,
+              "selected": 898,
+              "triggered": 890
+            },
+            "kit": {
+              "offered": 4623,
+              "selected": 3686,
+              "triggered": 0
+            },
+            "hourglass": {
+              "offered": 725,
+              "selected": 1,
+              "triggered": 0
+            },
+            "pip-ring": {
+              "offered": 1520,
+              "selected": 937,
+              "triggered": 0
+            },
+            "linked-cup": {
+              "offered": 2393,
+              "selected": 61,
+              "triggered": 0
+            },
+            "whetstone": {
+              "offered": 2070,
+              "selected": 272,
+              "triggered": 408
+            },
+            "scabbard": {
+              "offered": 786,
+              "selected": 546,
+              "triggered": 1542
+            },
+            "weight": {
+              "offered": 1697,
+              "selected": 1018,
+              "triggered": 1169
+            },
+            "tuning": {
+              "offered": 1738,
+              "selected": 785,
+              "triggered": 0
+            },
+            "wedge": {
+              "offered": 1626,
+              "selected": 144,
+              "triggered": 174
+            },
+            "heart-die": {
+              "offered": 1826,
+              "selected": 0,
+              "triggered": 0
+            },
+            "reserve-gauge": {
+              "offered": 410,
+              "selected": 118,
+              "triggered": 0
+            },
+            "mirror": {
+              "offered": 1229,
+              "selected": 323,
+              "triggered": 1168
+            },
+            "counter-recover": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 832
+            },
+            "buckle": {
+              "offered": 1590,
+              "selected": 470,
+              "triggered": 486
+            },
+            "overflow": {
+              "offered": 514,
+              "selected": 216,
+              "triggered": 2176
+            },
+            "clash-seal": {
+              "offered": 420,
+              "selected": 412,
+              "triggered": 435
+            },
+            "blood-grip": {
+              "offered": 1718,
+              "selected": 931,
+              "triggered": 1163
+            },
+            "early-reroll": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 1115
+            },
+            "incomplete": {
+              "offered": 2,
+              "selected": 0,
+              "triggered": 0
+            }
+          }
+        },
+        {
+          "piercing": false,
+          "won": 1511,
+          "entrants": 2662,
+          "finalCoins": 14355,
+          "floors": {
+            "13": {
+              "entered": 2662,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2662,
+              "lost": 0
+            },
+            "15": {
+              "entered": 2662,
+              "lost": 106
+            },
+            "16": {
+              "entered": 2556,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2556,
+              "lost": 505
+            },
+            "18": {
+              "entered": 2051,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2051,
+              "lost": 540
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2662,
+              "turns": 5384,
+              "damage": 38,
+              "advanceTurn": 2668,
+              "firstDefeats": 2662,
+              "frontKills": 5324,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 11,
+              "counters": 11,
+              "ego": {
+                "attack": 5253,
+                "guard": 24,
+                "rest": 1,
+                "extraDefeats": 188
+              },
+              "coins": 2662
+            },
+            "14:fight": {
+              "entered": 2662,
+              "turns": 9379,
+              "damage": 3424,
+              "advanceTurn": 4784,
+              "firstDefeats": 2662,
+              "frontKills": 5324,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 3923,
+              "counters": 3923,
+              "ego": {
+                "attack": 7209,
+                "guard": 1873,
+                "rest": 158,
+                "extraDefeats": 717
+              },
+              "coins": 2662
+            },
+            "15:elite": {
+              "entered": 2662,
+              "turns": 17088,
+              "damage": 10398,
+              "advanceTurn": 10093,
+              "firstDefeats": 2559,
+              "frontKills": 5115,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4625,
+              "counters": 4625,
+              "ego": {
+                "attack": 11561,
+                "guard": 5373,
+                "rest": 64,
+                "extraDefeats": 1093
+              },
+              "coins": 5112
+            },
+            "16:shop": {
+              "entered": 2556,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:elite": {
+              "entered": 2556,
+              "turns": 26306,
+              "damage": 23467,
+              "advanceTurn": 12342,
+              "firstDefeats": 2197,
+              "frontKills": 6315,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 6491,
+              "counters": 6491,
+              "ego": {
+                "attack": 12946,
+                "guard": 13269,
+                "rest": 62,
+                "extraDefeats": 1269
+              },
+              "coins": 4102
+            },
+            "18:rest": {
+              "entered": 2051,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2051,
+              "turns": 21694,
+              "damage": 19373,
+              "advanceTurn": 6248,
+              "firstDefeats": 1689,
+              "frontKills": 3200,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 3814,
+              "counters": 3814,
+              "ego": {
+                "attack": 12769,
+                "guard": 8886,
+                "rest": 39,
+                "extraDefeats": 613
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "advance-knot": {
+              "offered": 1596,
+              "selected": 62,
+              "triggered": 61
+            },
+            "coin": {
+              "offered": 1582,
+              "selected": 54,
+              "triggered": 252
+            },
+            "bandage": {
+              "offered": 1956,
+              "selected": 1956,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 161,
+              "selected": 79,
+              "triggered": 14964
+            },
+            "horn": {
+              "offered": 553,
+              "selected": 338,
+              "triggered": 5054
+            },
+            "spacer": {
+              "offered": 1676,
+              "selected": 285,
+              "triggered": 852
+            },
+            "twin-mold": {
+              "offered": 1673,
+              "selected": 11,
+              "triggered": 0
+            },
+            "die-latch": {
+              "offered": 6560,
+              "selected": 597,
+              "triggered": 949
+            },
+            "adjacent-needle": {
+              "offered": 1447,
+              "selected": 895,
+              "triggered": 955
+            },
+            "kit": {
+              "offered": 4607,
+              "selected": 3631,
+              "triggered": 0
+            },
+            "hourglass": {
+              "offered": 727,
+              "selected": 1,
+              "triggered": 0
+            },
+            "pip-ring": {
+              "offered": 1514,
+              "selected": 936,
+              "triggered": 0
+            },
+            "linked-cup": {
+              "offered": 2395,
+              "selected": 64,
+              "triggered": 0
+            },
+            "whetstone": {
+              "offered": 2051,
+              "selected": 293,
+              "triggered": 431
+            },
+            "scabbard": {
+              "offered": 779,
+              "selected": 548,
+              "triggered": 2015
+            },
+            "weight": {
+              "offered": 1701,
+              "selected": 1026,
+              "triggered": 1271
+            },
+            "tuning": {
+              "offered": 1744,
+              "selected": 794,
+              "triggered": 0
+            },
+            "wedge": {
+              "offered": 1621,
+              "selected": 146,
+              "triggered": 196
+            },
+            "reserve-gauge": {
+              "offered": 407,
+              "selected": 112,
+              "triggered": 0
+            },
+            "heart-die": {
+              "offered": 1828,
+              "selected": 0,
+              "triggered": 0
+            },
+            "mirror": {
+              "offered": 1221,
+              "selected": 321,
+              "triggered": 1332
+            },
+            "counter-recover": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 908
+            },
+            "buckle": {
+              "offered": 1586,
+              "selected": 456,
+              "triggered": 472
+            },
+            "overflow": {
+              "offered": 507,
+              "selected": 214,
+              "triggered": 2529
+            },
+            "clash-seal": {
+              "offered": 430,
+              "selected": 422,
+              "triggered": 445
+            },
+            "blood-grip": {
+              "offered": 1720,
+              "selected": 930,
+              "triggered": 1173
+            },
+            "early-reroll": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 1143
+            },
+            "incomplete": {
+              "offered": 1,
+              "selected": 0,
+              "triggered": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "route": "safe",
+      "first": 12288,
+      "count": 4096,
+      "unlocks": "none",
+      "lower": {
+        "won": 2945,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 97,
+            "turns": 17393
+          },
+          {
+            "entered": 3999,
+            "lost": 44,
+            "turns": 13444
+          },
+          {
+            "entered": 3955,
+            "lost": 69,
+            "turns": 8968
+          },
+          {
+            "entered": 3886,
+            "lost": 25,
+            "turns": 7874
+          },
+          {
+            "entered": 3861,
+            "lost": 73,
+            "turns": 8526
+          },
+          {
+            "entered": 3788,
+            "lost": 115,
+            "turns": 18572
+          },
+          {
+            "entered": 3673,
+            "lost": 56,
+            "turns": 5761
+          },
+          {
+            "entered": 3617,
+            "lost": 6,
+            "turns": 3305
+          },
+          {
+            "entered": 3611,
+            "lost": 12,
+            "turns": 4810
+          },
+          {
+            "entered": 3599,
+            "lost": 4,
+            "turns": 4868
+          },
+          {
+            "entered": 3595,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3595,
+            "lost": 650,
+            "turns": 31449
+          }
+        ],
+        "fingerprint": "792abb0feee94e8504d6899dcc7d5c56dd605222fd52a1ecc1a3ed74876290cd"
+      },
+      "upper": [
+        {
+          "piercing": true,
+          "won": 1412,
+          "entrants": 2945,
+          "finalCoins": 4894,
+          "floors": {
+            "13": {
+              "entered": 2945,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2945,
+              "lost": 7
+            },
+            "15": {
+              "entered": 2938,
+              "lost": 60
+            },
+            "16": {
+              "entered": 2878,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2878,
+              "lost": 336
+            },
+            "18": {
+              "entered": 2542,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2542,
+              "lost": 1130
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2945,
+              "turns": 5365,
+              "damage": 0,
+              "advanceTurn": 2958,
+              "firstDefeats": 2945,
+              "frontKills": 5349,
+              "piercingAttacks": 2933,
+              "piercedDamage": 24175,
+              "exact": 19,
+              "counters": 19,
+              "ego": {
+                "attack": 5214,
+                "guard": 10,
+                "rest": 0,
+                "extraDefeats": 548
+              },
+              "coins": 2945
+            },
+            "14:fight": {
+              "entered": 2945,
+              "turns": 12352,
+              "damage": 6133,
+              "advanceTurn": 8917,
+              "firstDefeats": 2939,
+              "frontKills": 5267,
+              "piercingAttacks": 2516,
+              "piercedDamage": 16912,
+              "exact": 3910,
+              "counters": 3910,
+              "ego": {
+                "attack": 8842,
+                "guard": 3190,
+                "rest": 20,
+                "extraDefeats": 1249
+              },
+              "coins": 2938
+            },
+            "15:fight": {
+              "entered": 2938,
+              "turns": 18377,
+              "damage": 12173,
+              "advanceTurn": 12522,
+              "firstDefeats": 2882,
+              "frontKills": 5709,
+              "piercingAttacks": 2208,
+              "piercedDamage": 12285,
+              "exact": 5362,
+              "counters": 5362,
+              "ego": {
+                "attack": 11086,
+                "guard": 7067,
+                "rest": 14,
+                "extraDefeats": 1232
+              },
+              "coins": 2878
+            },
+            "16:shop": {
+              "entered": 2878,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:fight": {
+              "entered": 2878,
+              "turns": 24220,
+              "damage": 22846,
+              "advanceTurn": 15809,
+              "firstDefeats": 2576,
+              "frontKills": 5081,
+              "piercingAttacks": 2059,
+              "piercedDamage": 10868,
+              "exact": 6297,
+              "counters": 6297,
+              "ego": {
+                "attack": 11931,
+                "guard": 12200,
+                "rest": 20,
+                "extraDefeats": 1288
+              },
+              "coins": 2542
+            },
+            "18:rest": {
+              "entered": 2542,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2542,
+              "turns": 28622,
+              "damage": 36109,
+              "advanceTurn": 8796,
+              "firstDefeats": 1596,
+              "frontKills": 3008,
+              "piercingAttacks": 1102,
+              "piercedDamage": 4306,
+              "exact": 4844,
+              "counters": 4844,
+              "ego": {
+                "attack": 13392,
+                "guard": 15216,
+                "rest": 14,
+                "extraDefeats": 662
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "spacer": {
+              "offered": 3377,
+              "selected": 525,
+              "triggered": 1900
+            },
+            "buckle": {
+              "offered": 3357,
+              "selected": 852,
+              "triggered": 890
+            },
+            "bandage": {
+              "offered": 5345,
+              "selected": 5345,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 551,
+              "selected": 83,
+              "triggered": 2872
+            },
+            "weight": {
+              "offered": 3368,
+              "selected": 1763,
+              "triggered": 2102
+            },
+            "wedge": {
+              "offered": 3388,
+              "selected": 301,
+              "triggered": 359
+            },
+            "coin": {
+              "offered": 3384,
+              "selected": 165,
+              "triggered": 432
+            },
+            "kit": {
+              "offered": 5420,
+              "selected": 4497,
+              "triggered": 0
+            },
+            "overflow": {
+              "offered": 612,
+              "selected": 122,
+              "triggered": 1831
+            },
+            "heart-die": {
+              "offered": 1815,
+              "selected": 0,
+              "triggered": 0
+            },
+            "advance-knot": {
+              "offered": 3407,
+              "selected": 113,
+              "triggered": 110
+            },
+            "whetstone": {
+              "offered": 2542,
+              "selected": 408,
+              "triggered": 543
+            },
+            "tuning": {
+              "offered": 3388,
+              "selected": 1259,
+              "triggered": 0
+            },
+            "mirror": {
+              "offered": 587,
+              "selected": 98,
+              "triggered": 2054
+            },
+            "twin-mold": {
+              "offered": 3394,
+              "selected": 16,
+              "triggered": 0
+            },
+            "horn": {
+              "offered": 597,
+              "selected": 112,
+              "triggered": 777
+            },
+            "clash-seal": {
+              "offered": 748,
+              "selected": 726,
+              "triggered": 806
+            },
+            "reserve-gauge": {
+              "offered": 753,
+              "selected": 238,
+              "triggered": 0
+            },
+            "die-latch": {
+              "offered": 531,
+              "selected": 98,
+              "triggered": 3012
+            },
+            "hourglass": {
+              "offered": 1033,
+              "selected": 0,
+              "triggered": 0
+            },
+            "incomplete": {
+              "offered": 6,
+              "selected": 0,
+              "triggered": 0
+            }
+          }
+        },
+        {
+          "piercing": false,
+          "won": 1384,
+          "entrants": 2945,
+          "finalCoins": 4761,
+          "floors": {
+            "13": {
+              "entered": 2945,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2945,
+              "lost": 6
+            },
+            "15": {
+              "entered": 2939,
+              "lost": 57
+            },
+            "16": {
+              "entered": 2882,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2882,
+              "lost": 347
+            },
+            "18": {
+              "entered": 2535,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2535,
+              "lost": 1151
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2945,
+              "turns": 5952,
+              "damage": 80,
+              "advanceTurn": 2958,
+              "firstDefeats": 2945,
+              "frontKills": 5890,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 30,
+              "counters": 30,
+              "ego": {
+                "attack": 5760,
+                "guard": 47,
+                "rest": 1,
+                "extraDefeats": 202
+              },
+              "coins": 2945
+            },
+            "14:fight": {
+              "entered": 2945,
+              "turns": 13899,
+              "damage": 4777,
+              "advanceTurn": 9037,
+              "firstDefeats": 2940,
+              "frontKills": 5879,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4626,
+              "counters": 4626,
+              "ego": {
+                "attack": 9896,
+                "guard": 3717,
+                "rest": 20,
+                "extraDefeats": 1012
+              },
+              "coins": 2939
+            },
+            "15:fight": {
+              "entered": 2939,
+              "turns": 19322,
+              "damage": 11626,
+              "advanceTurn": 12642,
+              "firstDefeats": 2884,
+              "frontKills": 5766,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 5906,
+              "counters": 5906,
+              "ego": {
+                "attack": 11730,
+                "guard": 7399,
+                "rest": 12,
+                "extraDefeats": 1299
+              },
+              "coins": 2882
+            },
+            "16:shop": {
+              "entered": 2882,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:fight": {
+              "entered": 2882,
+              "turns": 25351,
+              "damage": 22798,
+              "advanceTurn": 15885,
+              "firstDefeats": 2576,
+              "frontKills": 5111,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 6751,
+              "counters": 6751,
+              "ego": {
+                "attack": 12437,
+                "guard": 12828,
+                "rest": 21,
+                "extraDefeats": 1203
+              },
+              "coins": 2535
+            },
+            "18:rest": {
+              "entered": 2535,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2535,
+              "turns": 29020,
+              "damage": 36196,
+              "advanceTurn": 9035,
+              "firstDefeats": 1581,
+              "frontKills": 2965,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4948,
+              "counters": 4948,
+              "ego": {
+                "attack": 13465,
+                "guard": 15541,
+                "rest": 14,
+                "extraDefeats": 619
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "spacer": {
+              "offered": 3386,
+              "selected": 521,
+              "triggered": 2048
+            },
+            "buckle": {
+              "offered": 3376,
+              "selected": 878,
+              "triggered": 916
+            },
+            "bandage": {
+              "offered": 5187,
+              "selected": 5187,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 552,
+              "selected": 89,
+              "triggered": 2923
+            },
+            "weight": {
+              "offered": 3398,
+              "selected": 1837,
+              "triggered": 2220
+            },
+            "coin": {
+              "offered": 3414,
+              "selected": 166,
+              "triggered": 474
+            },
+            "tuning": {
+              "offered": 3413,
+              "selected": 1294,
+              "triggered": 0
+            },
+            "kit": {
+              "offered": 5417,
+              "selected": 4440,
+              "triggered": 0
+            },
+            "overflow": {
+              "offered": 613,
+              "selected": 126,
+              "triggered": 1987
+            },
+            "heart-die": {
+              "offered": 1819,
+              "selected": 0,
+              "triggered": 0
+            },
+            "advance-knot": {
+              "offered": 3417,
+              "selected": 120,
+              "triggered": 112
+            },
+            "whetstone": {
+              "offered": 2535,
+              "selected": 417,
+              "triggered": 550
+            },
+            "wedge": {
+              "offered": 3388,
+              "selected": 294,
+              "triggered": 350
+            },
+            "mirror": {
+              "offered": 588,
+              "selected": 108,
+              "triggered": 2186
+            },
+            "horn": {
+              "offered": 595,
+              "selected": 121,
+              "triggered": 839
+            },
+            "twin-mold": {
+              "offered": 3403,
+              "selected": 17,
+              "triggered": 0
+            },
+            "clash-seal": {
+              "offered": 766,
+              "selected": 744,
+              "triggered": 845
+            },
+            "reserve-gauge": {
+              "offered": 755,
+              "selected": 243,
+              "triggered": 0
+            },
+            "die-latch": {
+              "offered": 534,
+              "selected": 113,
+              "triggered": 3145
+            },
+            "hourglass": {
+              "offered": 1033,
+              "selected": 0,
+              "triggered": 0
+            },
+            "incomplete": {
+              "offered": 6,
+              "selected": 0,
+              "triggered": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "route": "safe",
+      "first": 12288,
+      "count": 4096,
+      "unlocks": "all",
+      "lower": {
+        "won": 2827,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 102,
+            "turns": 16958
+          },
+          {
+            "entered": 3994,
+            "lost": 45,
+            "turns": 13171
+          },
+          {
+            "entered": 3949,
+            "lost": 72,
+            "turns": 8986
+          },
+          {
+            "entered": 3877,
+            "lost": 25,
+            "turns": 7755
+          },
+          {
+            "entered": 3852,
+            "lost": 76,
+            "turns": 8484
+          },
+          {
+            "entered": 3776,
+            "lost": 98,
+            "turns": 18402
+          },
+          {
+            "entered": 3678,
+            "lost": 51,
+            "turns": 5791
+          },
+          {
+            "entered": 3627,
+            "lost": 6,
+            "turns": 3300
+          },
+          {
+            "entered": 3621,
+            "lost": 6,
+            "turns": 4727
+          },
+          {
+            "entered": 3615,
+            "lost": 2,
+            "turns": 4887
+          },
+          {
+            "entered": 3613,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3613,
+            "lost": 786,
+            "turns": 31580
+          }
+        ],
+        "fingerprint": "8627b472789a05739d182150f38783cd393cce11a201080a7bc9e5c1ecfd7f39"
+      },
+      "upper": [
+        {
+          "piercing": true,
+          "won": 1228,
+          "entrants": 2827,
+          "finalCoins": 4213,
+          "floors": {
+            "13": {
+              "entered": 2827,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2827,
+              "lost": 6
+            },
+            "15": {
+              "entered": 2821,
+              "lost": 71
+            },
+            "16": {
+              "entered": 2750,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2750,
+              "lost": 395
+            },
+            "18": {
+              "entered": 2355,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2355,
+              "lost": 1127
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2827,
+              "turns": 5058,
+              "damage": 5,
+              "advanceTurn": 2834,
+              "firstDefeats": 2827,
+              "frontKills": 5049,
+              "piercingAttacks": 2815,
+              "piercedDamage": 23784,
+              "exact": 10,
+              "counters": 10,
+              "ego": {
+                "attack": 4892,
+                "guard": 52,
+                "rest": 0,
+                "extraDefeats": 515
+              },
+              "coins": 2827
+            },
+            "14:fight": {
+              "entered": 2827,
+              "turns": 12201,
+              "damage": 6389,
+              "advanceTurn": 8704,
+              "firstDefeats": 2822,
+              "frontKills": 5170,
+              "piercingAttacks": 2381,
+              "piercedDamage": 14275,
+              "exact": 3854,
+              "counters": 3854,
+              "ego": {
+                "attack": 8697,
+                "guard": 3238,
+                "rest": 26,
+                "extraDefeats": 1202
+              },
+              "coins": 2821
+            },
+            "15:fight": {
+              "entered": 2821,
+              "turns": 18076,
+              "damage": 12687,
+              "advanceTurn": 12078,
+              "firstDefeats": 2754,
+              "frontKills": 5472,
+              "piercingAttacks": 2084,
+              "piercedDamage": 10444,
+              "exact": 5153,
+              "counters": 5153,
+              "ego": {
+                "attack": 10770,
+                "guard": 7137,
+                "rest": 25,
+                "extraDefeats": 1241
+              },
+              "coins": 2750
+            },
+            "16:shop": {
+              "entered": 2750,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:fight": {
+              "entered": 2750,
+              "turns": 23694,
+              "damage": 24108,
+              "advanceTurn": 14978,
+              "firstDefeats": 2413,
+              "frontKills": 4744,
+              "piercingAttacks": 1896,
+              "piercedDamage": 9727,
+              "exact": 6101,
+              "counters": 6101,
+              "ego": {
+                "attack": 11169,
+                "guard": 12449,
+                "rest": 32,
+                "extraDefeats": 1140
+              },
+              "coins": 2355
+            },
+            "18:rest": {
+              "entered": 2355,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2355,
+              "turns": 25327,
+              "damage": 35666,
+              "advanceTurn": 7021,
+              "firstDefeats": 1412,
+              "frontKills": 2640,
+              "piercingAttacks": 946,
+              "piercedDamage": 3680,
+              "exact": 4062,
+              "counters": 4062,
+              "ego": {
+                "attack": 11409,
+                "guard": 13908,
+                "rest": 10,
+                "extraDefeats": 567
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "tuning": {
+              "offered": 3218,
+              "selected": 1214,
+              "triggered": 0
+            },
+            "wedge": {
+              "offered": 3221,
+              "selected": 270,
+              "triggered": 329
+            },
+            "bandage": {
+              "offered": 5221,
+              "selected": 5221,
+              "triggered": 0
+            },
+            "advance-knot": {
+              "offered": 3187,
+              "selected": 122,
+              "triggered": 112
+            },
+            "weight": {
+              "offered": 3213,
+              "selected": 1650,
+              "triggered": 1943
+            },
+            "buckle": {
+              "offered": 3212,
+              "selected": 790,
+              "triggered": 829
+            },
+            "banner": {
+              "offered": 515,
+              "selected": 73,
+              "triggered": 2819
+            },
+            "spacer": {
+              "offered": 3165,
+              "selected": 503,
+              "triggered": 1826
+            },
+            "kit": {
+              "offered": 5105,
+              "selected": 4229,
+              "triggered": 0
+            },
+            "mirror": {
+              "offered": 479,
+              "selected": 75,
+              "triggered": 1567
+            },
+            "heart-die": {
+              "offered": 1886,
+              "selected": 0,
+              "triggered": 0
+            },
+            "blood-grip": {
+              "offered": 573,
+              "selected": 25,
+              "triggered": 284
+            },
+            "linked-cup": {
+              "offered": 2522,
+              "selected": 0,
+              "triggered": 0
+            },
+            "twin-mold": {
+              "offered": 3226,
+              "selected": 13,
+              "triggered": 0
+            },
+            "whetstone": {
+              "offered": 2355,
+              "selected": 378,
+              "triggered": 488
+            },
+            "horn": {
+              "offered": 565,
+              "selected": 105,
+              "triggered": 786
+            },
+            "coin": {
+              "offered": 3203,
+              "selected": 58,
+              "triggered": 256
+            },
+            "clash-seal": {
+              "offered": 689,
+              "selected": 679,
+              "triggered": 757
+            },
+            "scabbard": {
+              "offered": 1018,
+              "selected": 48,
+              "triggered": 941
+            },
+            "reserve-gauge": {
+              "offered": 704,
+              "selected": 233,
+              "triggered": 0
+            },
+            "adjacent-needle": {
+              "offered": 592,
+              "selected": 21,
+              "triggered": 264
+            },
+            "overflow": {
+              "offered": 568,
+              "selected": 117,
+              "triggered": 1830
+            },
+            "pip-ring": {
+              "offered": 567,
+              "selected": 27,
+              "triggered": 0
+            },
+            "counter-recover": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 1351
+            },
+            "incomplete": {
+              "offered": 3,
+              "selected": 0,
+              "triggered": 0
+            },
+            "die-latch": {
+              "offered": 623,
+              "selected": 0,
+              "triggered": 0
+            },
+            "hourglass": {
+              "offered": 861,
+              "selected": 0,
+              "triggered": 0
+            },
+            "early-reroll": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 1282
+            }
+          }
+        },
+        {
+          "piercing": false,
+          "won": 1197,
+          "entrants": 2827,
+          "finalCoins": 4090,
+          "floors": {
+            "13": {
+              "entered": 2827,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2827,
+              "lost": 6
+            },
+            "15": {
+              "entered": 2821,
+              "lost": 63
+            },
+            "16": {
+              "entered": 2758,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2758,
+              "lost": 389
+            },
+            "18": {
+              "entered": 2369,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2369,
+              "lost": 1172
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2827,
+              "turns": 5724,
+              "damage": 104,
+              "advanceTurn": 2833,
+              "firstDefeats": 2827,
+              "frontKills": 5654,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 23,
+              "counters": 23,
+              "ego": {
+                "attack": 5538,
+                "guard": 64,
+                "rest": 1,
+                "extraDefeats": 221
+              },
+              "coins": 2827
+            },
+            "14:fight": {
+              "entered": 2827,
+              "turns": 13547,
+              "damage": 5317,
+              "advanceTurn": 8773,
+              "firstDefeats": 2823,
+              "frontKills": 5644,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4404,
+              "counters": 4404,
+              "ego": {
+                "attack": 9568,
+                "guard": 3733,
+                "rest": 27,
+                "extraDefeats": 997
+              },
+              "coins": 2821
+            },
+            "15:fight": {
+              "entered": 2821,
+              "turns": 18917,
+              "damage": 12230,
+              "advanceTurn": 12193,
+              "firstDefeats": 2761,
+              "frontKills": 5519,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 5599,
+              "counters": 5599,
+              "ego": {
+                "attack": 11330,
+                "guard": 7453,
+                "rest": 20,
+                "extraDefeats": 1240
+              },
+              "coins": 2758
+            },
+            "16:shop": {
+              "entered": 2758,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:fight": {
+              "entered": 2758,
+              "turns": 24757,
+              "damage": 24088,
+              "advanceTurn": 15177,
+              "firstDefeats": 2422,
+              "frontKills": 4791,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 6589,
+              "counters": 6589,
+              "ego": {
+                "attack": 11697,
+                "guard": 13001,
+                "rest": 28,
+                "extraDefeats": 1143
+              },
+              "coins": 2369
+            },
+            "18:rest": {
+              "entered": 2369,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2369,
+              "turns": 25943,
+              "damage": 36163,
+              "advanceTurn": 7388,
+              "firstDefeats": 1411,
+              "frontKills": 2608,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4185,
+              "counters": 4185,
+              "ego": {
+                "attack": 11535,
+                "guard": 14394,
+                "rest": 14,
+                "extraDefeats": 535
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "tuning": {
+              "offered": 3253,
+              "selected": 1240,
+              "triggered": 0
+            },
+            "wedge": {
+              "offered": 3243,
+              "selected": 276,
+              "triggered": 329
+            },
+            "bandage": {
+              "offered": 5104,
+              "selected": 5104,
+              "triggered": 0
+            },
+            "advance-knot": {
+              "offered": 3200,
+              "selected": 126,
+              "triggered": 116
+            },
+            "weight": {
+              "offered": 3227,
+              "selected": 1696,
+              "triggered": 2030
+            },
+            "buckle": {
+              "offered": 3236,
+              "selected": 829,
+              "triggered": 869
+            },
+            "banner": {
+              "offered": 516,
+              "selected": 84,
+              "triggered": 2904
+            },
+            "spacer": {
+              "offered": 3199,
+              "selected": 503,
+              "triggered": 1952
+            },
+            "kit": {
+              "offered": 5127,
+              "selected": 4222,
+              "triggered": 0
+            },
+            "mirror": {
+              "offered": 482,
+              "selected": 83,
+              "triggered": 1681
+            },
+            "heart-die": {
+              "offered": 1895,
+              "selected": 0,
+              "triggered": 0
+            },
+            "blood-grip": {
+              "offered": 578,
+              "selected": 27,
+              "triggered": 325
+            },
+            "linked-cup": {
+              "offered": 2525,
+              "selected": 0,
+              "triggered": 0
+            },
+            "whetstone": {
+              "offered": 2369,
+              "selected": 381,
+              "triggered": 484
+            },
+            "horn": {
+              "offered": 565,
+              "selected": 105,
+              "triggered": 828
+            },
+            "twin-mold": {
+              "offered": 3215,
+              "selected": 15,
+              "triggered": 0
+            },
+            "coin": {
+              "offered": 3236,
+              "selected": 62,
+              "triggered": 300
+            },
+            "clash-seal": {
+              "offered": 701,
+              "selected": 692,
+              "triggered": 783
+            },
+            "scabbard": {
+              "offered": 1020,
+              "selected": 49,
+              "triggered": 1077
+            },
+            "reserve-gauge": {
+              "offered": 711,
+              "selected": 232,
+              "triggered": 0
+            },
+            "overflow": {
+              "offered": 572,
+              "selected": 113,
+              "triggered": 1947
+            },
+            "pip-ring": {
+              "offered": 568,
+              "selected": 32,
+              "triggered": 0
+            },
+            "adjacent-needle": {
+              "offered": 592,
+              "selected": 25,
+              "triggered": 283
+            },
+            "counter-recover": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 1430
+            },
+            "incomplete": {
+              "offered": 2,
+              "selected": 0,
+              "triggered": 0
+            },
+            "die-latch": {
+              "offered": 623,
+              "selected": 0,
+              "triggered": 0
+            },
+            "hourglass": {
+              "offered": 861,
+              "selected": 0,
+              "triggered": 0
+            },
+            "early-reroll": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 1302
+            }
+          }
+        }
+      ]
+    },
+    {
+      "route": "elite",
+      "first": 12288,
+      "count": 4096,
+      "unlocks": "none",
+      "lower": {
+        "won": 2705,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 97,
+            "turns": 17393
+          },
+          {
+            "entered": 3999,
+            "lost": 65,
+            "turns": 12164
+          },
+          {
+            "entered": 3934,
+            "lost": 97,
+            "turns": 8239
+          },
+          {
+            "entered": 3837,
+            "lost": 113,
+            "turns": 7320
+          },
+          {
+            "entered": 3724,
+            "lost": 119,
+            "turns": 6969
+          },
+          {
+            "entered": 3605,
+            "lost": 269,
+            "turns": 15870
+          },
+          {
+            "entered": 3336,
+            "lost": 56,
+            "turns": 4585
+          },
+          {
+            "entered": 3280,
+            "lost": 15,
+            "turns": 3038
+          },
+          {
+            "entered": 3265,
+            "lost": 14,
+            "turns": 4769
+          },
+          {
+            "entered": 3251,
+            "lost": 6,
+            "turns": 4622
+          },
+          {
+            "entered": 3245,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3245,
+            "lost": 540,
+            "turns": 24590
+          }
+        ],
+        "fingerprint": "0d95400a2fd7cb36b91742832817e316111b416dff33eace298beca47c332ce9"
+      },
+      "upper": [
+        {
+          "piercing": true,
+          "won": 1619,
+          "entrants": 2705,
+          "finalCoins": 15024,
+          "floors": {
+            "13": {
+              "entered": 2705,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2705,
+              "lost": 0
+            },
+            "15": {
+              "entered": 2705,
+              "lost": 98
+            },
+            "16": {
+              "entered": 2607,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2607,
+              "lost": 457
+            },
+            "18": {
+              "entered": 2150,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2150,
+              "lost": 531
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2705,
+              "turns": 4925,
+              "damage": 0,
+              "advanceTurn": 2713,
+              "firstDefeats": 2705,
+              "frontKills": 4916,
+              "piercingAttacks": 2697,
+              "piercedDamage": 22528,
+              "exact": 6,
+              "counters": 6,
+              "ego": {
+                "attack": 4866,
+                "guard": 5,
+                "rest": 0,
+                "extraDefeats": 518
+              },
+              "coins": 2705
+            },
+            "14:fight": {
+              "entered": 2705,
+              "turns": 7965,
+              "damage": 3800,
+              "advanceTurn": 4903,
+              "firstDefeats": 2705,
+              "frontKills": 5055,
+              "piercingAttacks": 2459,
+              "piercedDamage": 20756,
+              "exact": 3217,
+              "counters": 3217,
+              "ego": {
+                "attack": 6260,
+                "guard": 1545,
+                "rest": 81,
+                "extraDefeats": 641
+              },
+              "coins": 2705
+            },
+            "15:elite": {
+              "entered": 2705,
+              "turns": 15657,
+              "damage": 9062,
+              "advanceTurn": 9716,
+              "firstDefeats": 2610,
+              "frontKills": 5196,
+              "piercingAttacks": 2287,
+              "piercedDamage": 17340,
+              "exact": 4314,
+              "counters": 4314,
+              "ego": {
+                "attack": 10811,
+                "guard": 4753,
+                "rest": 43,
+                "extraDefeats": 1041
+              },
+              "coins": 5214
+            },
+            "16:shop": {
+              "entered": 2607,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:elite": {
+              "entered": 2607,
+              "turns": 23942,
+              "damage": 20956,
+              "advanceTurn": 11804,
+              "firstDefeats": 2267,
+              "frontKills": 6534,
+              "piercingAttacks": 3624,
+              "piercedDamage": 21689,
+              "exact": 5720,
+              "counters": 5720,
+              "ego": {
+                "attack": 12207,
+                "guard": 11659,
+                "rest": 74,
+                "extraDefeats": 1434
+              },
+              "coins": 4300
+            },
+            "18:rest": {
+              "entered": 2150,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2150,
+              "turns": 22169,
+              "damage": 17910,
+              "advanceTurn": 6390,
+              "firstDefeats": 1788,
+              "frontKills": 3407,
+              "piercingAttacks": 1251,
+              "piercedDamage": 4316,
+              "exact": 4126,
+              "counters": 4126,
+              "ego": {
+                "attack": 13748,
+                "guard": 8378,
+                "rest": 43,
+                "extraDefeats": 670
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "die-latch": {
+              "offered": 2568,
+              "selected": 1671,
+              "triggered": 7177
+            },
+            "coin": {
+              "offered": 1656,
+              "selected": 105,
+              "triggered": 248
+            },
+            "wedge": {
+              "offered": 1685,
+              "selected": 146,
+              "triggered": 180
+            },
+            "bandage": {
+              "offered": 2206,
+              "selected": 2206,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 15767
+            },
+            "horn": {
+              "offered": 762,
+              "selected": 536,
+              "triggered": 4317
+            },
+            "advance-knot": {
+              "offered": 1645,
+              "selected": 67,
+              "triggered": 65
+            },
+            "twin-mold": {
+              "offered": 1660,
+              "selected": 11,
+              "triggered": 0
+            },
+            "mirror": {
+              "offered": 2964,
+              "selected": 1555,
+              "triggered": 3019
+            },
+            "overflow": {
+              "offered": 3065,
+              "selected": 995,
+              "triggered": 2009
+            },
+            "kit": {
+              "offered": 4757,
+              "selected": 3786,
+              "triggered": 0
+            },
+            "hourglass": {
+              "offered": 614,
+              "selected": 156,
+              "triggered": 0
+            },
+            "whetstone": {
+              "offered": 2150,
+              "selected": 311,
+              "triggered": 486
+            },
+            "spacer": {
+              "offered": 1624,
+              "selected": 265,
+              "triggered": 674
+            },
+            "buckle": {
+              "offered": 1639,
+              "selected": 458,
+              "triggered": 478
+            },
+            "weight": {
+              "offered": 1633,
+              "selected": 927,
+              "triggered": 1057
+            },
+            "heart-die": {
+              "offered": 1978,
+              "selected": 0,
+              "triggered": 0
+            },
+            "tuning": {
+              "offered": 1654,
+              "selected": 677,
+              "triggered": 0
+            },
+            "clash-seal": {
+              "offered": 425,
+              "selected": 416,
+              "triggered": 452
+            },
+            "reserve-gauge": {
+              "offered": 403,
+              "selected": 132,
+              "triggered": 0
+            },
+            "incomplete": {
+              "offered": 1,
+              "selected": 0,
+              "triggered": 0
+            }
+          }
+        },
+        {
+          "piercing": false,
+          "won": 1616,
+          "entrants": 2705,
+          "finalCoins": 14905,
+          "floors": {
+            "13": {
+              "entered": 2705,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2705,
+              "lost": 0
+            },
+            "15": {
+              "entered": 2705,
+              "lost": 87
+            },
+            "16": {
+              "entered": 2618,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2618,
+              "lost": 462
+            },
+            "18": {
+              "entered": 2156,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2156,
+              "lost": 540
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2705,
+              "turns": 5442,
+              "damage": 12,
+              "advanceTurn": 2713,
+              "firstDefeats": 2705,
+              "frontKills": 5410,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 16,
+              "counters": 16,
+              "ego": {
+                "attack": 5375,
+                "guard": 11,
+                "rest": 1,
+                "extraDefeats": 117
+              },
+              "coins": 2705
+            },
+            "14:fight": {
+              "entered": 2705,
+              "turns": 9431,
+              "damage": 3222,
+              "advanceTurn": 4948,
+              "firstDefeats": 2705,
+              "frontKills": 5410,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4040,
+              "counters": 4040,
+              "ego": {
+                "attack": 7361,
+                "guard": 1906,
+                "rest": 80,
+                "extraDefeats": 622
+              },
+              "coins": 2705
+            },
+            "15:elite": {
+              "entered": 2705,
+              "turns": 16621,
+              "damage": 9099,
+              "advanceTurn": 9844,
+              "firstDefeats": 2620,
+              "frontKills": 5238,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4668,
+              "counters": 4668,
+              "ego": {
+                "attack": 11604,
+                "guard": 4918,
+                "rest": 43,
+                "extraDefeats": 1070
+              },
+              "coins": 5236
+            },
+            "16:shop": {
+              "entered": 2618,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:elite": {
+              "entered": 2618,
+              "turns": 26131,
+              "damage": 20301,
+              "advanceTurn": 12194,
+              "firstDefeats": 2295,
+              "frontKills": 6631,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 6372,
+              "counters": 6372,
+              "ego": {
+                "attack": 13440,
+                "guard": 12623,
+                "rest": 66,
+                "extraDefeats": 1332
+              },
+              "coins": 4312
+            },
+            "18:rest": {
+              "entered": 2156,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2156,
+              "turns": 22741,
+              "damage": 18266,
+              "advanceTurn": 6561,
+              "firstDefeats": 1782,
+              "frontKills": 3398,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4208,
+              "counters": 4208,
+              "ego": {
+                "attack": 13883,
+                "guard": 8813,
+                "rest": 45,
+                "extraDefeats": 634
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "die-latch": {
+              "offered": 2573,
+              "selected": 1674,
+              "triggered": 7367
+            },
+            "coin": {
+              "offered": 1658,
+              "selected": 104,
+              "triggered": 272
+            },
+            "wedge": {
+              "offered": 1695,
+              "selected": 149,
+              "triggered": 203
+            },
+            "bandage": {
+              "offered": 2183,
+              "selected": 2183,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 15951
+            },
+            "horn": {
+              "offered": 773,
+              "selected": 546,
+              "triggered": 4676
+            },
+            "advance-knot": {
+              "offered": 1652,
+              "selected": 66,
+              "triggered": 61
+            },
+            "twin-mold": {
+              "offered": 1664,
+              "selected": 11,
+              "triggered": 0
+            },
+            "mirror": {
+              "offered": 2968,
+              "selected": 1553,
+              "triggered": 3342
+            },
+            "overflow": {
+              "offered": 3076,
+              "selected": 1001,
+              "triggered": 2304
+            },
+            "kit": {
+              "offered": 4774,
+              "selected": 3785,
+              "triggered": 0
+            },
+            "hourglass": {
+              "offered": 618,
+              "selected": 161,
+              "triggered": 0
+            },
+            "whetstone": {
+              "offered": 2156,
+              "selected": 334,
+              "triggered": 515
+            },
+            "spacer": {
+              "offered": 1622,
+              "selected": 270,
+              "triggered": 796
+            },
+            "buckle": {
+              "offered": 1637,
+              "selected": 458,
+              "triggered": 478
+            },
+            "weight": {
+              "offered": 1637,
+              "selected": 938,
+              "triggered": 1178
+            },
+            "heart-die": {
+              "offered": 1985,
+              "selected": 0,
+              "triggered": 0
+            },
+            "tuning": {
+              "offered": 1652,
+              "selected": 680,
+              "triggered": 0
+            },
+            "clash-seal": {
+              "offered": 431,
+              "selected": 421,
+              "triggered": 464
+            },
+            "reserve-gauge": {
+              "offered": 399,
+              "selected": 130,
+              "triggered": 0
+            },
+            "incomplete": {
+              "offered": 1,
+              "selected": 0,
+              "triggered": 0
+            }
+          }
+        }
+      ]
+    },
+    {
+      "route": "elite",
+      "first": 12288,
+      "count": 4096,
+      "unlocks": "all",
+      "lower": {
+        "won": 2655,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 102,
+            "turns": 16958
+          },
+          {
+            "entered": 3994,
+            "lost": 51,
+            "turns": 11507
+          },
+          {
+            "entered": 3943,
+            "lost": 80,
+            "turns": 8068
+          },
+          {
+            "entered": 3863,
+            "lost": 86,
+            "turns": 7061
+          },
+          {
+            "entered": 3777,
+            "lost": 103,
+            "turns": 6914
+          },
+          {
+            "entered": 3674,
+            "lost": 255,
+            "turns": 16102
+          },
+          {
+            "entered": 3419,
+            "lost": 37,
+            "turns": 4601
+          },
+          {
+            "entered": 3382,
+            "lost": 12,
+            "turns": 2961
+          },
+          {
+            "entered": 3370,
+            "lost": 12,
+            "turns": 4971
+          },
+          {
+            "entered": 3358,
+            "lost": 7,
+            "turns": 4855
+          },
+          {
+            "entered": 3351,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3351,
+            "lost": 696,
+            "turns": 26217
+          }
+        ],
+        "fingerprint": "80668df6820b861fbc93aaa1044081c435df35eb7d027d279872437ca902d8a9"
+      },
+      "upper": [
+        {
+          "piercing": true,
+          "won": 1483,
+          "entrants": 2655,
+          "finalCoins": 14082,
+          "floors": {
+            "13": {
+              "entered": 2655,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2655,
+              "lost": 0
+            },
+            "15": {
+              "entered": 2655,
+              "lost": 117
+            },
+            "16": {
+              "entered": 2538,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2538,
+              "lost": 523
+            },
+            "18": {
+              "entered": 2015,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2015,
+              "lost": 532
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2655,
+              "turns": 4597,
+              "damage": 0,
+              "advanceTurn": 2658,
+              "firstDefeats": 2655,
+              "frontKills": 4594,
+              "piercingAttacks": 2648,
+              "piercedDamage": 23203,
+              "exact": 5,
+              "counters": 5,
+              "ego": {
+                "attack": 4488,
+                "guard": 45,
+                "rest": 0,
+                "extraDefeats": 508
+              },
+              "coins": 2655
+            },
+            "14:fight": {
+              "entered": 2655,
+              "turns": 8274,
+              "damage": 3558,
+              "advanceTurn": 4880,
+              "firstDefeats": 2655,
+              "frontKills": 5075,
+              "piercingAttacks": 2390,
+              "piercedDamage": 17215,
+              "exact": 3307,
+              "counters": 3307,
+              "ego": {
+                "attack": 6505,
+                "guard": 1588,
+                "rest": 125,
+                "extraDefeats": 717
+              },
+              "coins": 2655
+            },
+            "15:elite": {
+              "entered": 2655,
+              "turns": 16130,
+              "damage": 10189,
+              "advanceTurn": 9860,
+              "firstDefeats": 2542,
+              "frontKills": 5072,
+              "piercingAttacks": 2218,
+              "piercedDamage": 14799,
+              "exact": 4397,
+              "counters": 4397,
+              "ego": {
+                "attack": 10766,
+                "guard": 5253,
+                "rest": 56,
+                "extraDefeats": 1044
+              },
+              "coins": 5076
+            },
+            "16:shop": {
+              "entered": 2538,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:elite": {
+              "entered": 2538,
+              "turns": 24737,
+              "damage": 24108,
+              "advanceTurn": 12020,
+              "firstDefeats": 2132,
+              "frontKills": 6154,
+              "piercingAttacks": 3378,
+              "piercedDamage": 18804,
+              "exact": 5760,
+              "counters": 5760,
+              "ego": {
+                "attack": 11691,
+                "guard": 12970,
+                "rest": 72,
+                "extraDefeats": 1323
+              },
+              "coins": 4030
+            },
+            "18:rest": {
+              "entered": 2015,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2015,
+              "turns": 20742,
+              "damage": 18968,
+              "advanceTurn": 5809,
+              "firstDefeats": 1623,
+              "frontKills": 3106,
+              "piercingAttacks": 1099,
+              "piercedDamage": 3622,
+              "exact": 3665,
+              "counters": 3665,
+              "ego": {
+                "attack": 12377,
+                "guard": 8324,
+                "rest": 41,
+                "extraDefeats": 616
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "coin": {
+              "offered": 1656,
+              "selected": 54,
+              "triggered": 234
+            },
+            "wedge": {
+              "offered": 1659,
+              "selected": 156,
+              "triggered": 185
+            },
+            "bandage": {
+              "offered": 1948,
+              "selected": 1948,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 146,
+              "selected": 84,
+              "triggered": 14637
+            },
+            "horn": {
+              "offered": 442,
+              "selected": 297,
+              "triggered": 4791
+            },
+            "advance-knot": {
+              "offered": 1655,
+              "selected": 69,
+              "triggered": 66
+            },
+            "twin-mold": {
+              "offered": 1647,
+              "selected": 13,
+              "triggered": 0
+            },
+            "die-latch": {
+              "offered": 6592,
+              "selected": 579,
+              "triggered": 884
+            },
+            "pip-ring": {
+              "offered": 1491,
+              "selected": 923,
+              "triggered": 0
+            },
+            "kit": {
+              "offered": 4553,
+              "selected": 3581,
+              "triggered": 0
+            },
+            "hourglass": {
+              "offered": 705,
+              "selected": 0,
+              "triggered": 0
+            },
+            "blood-grip": {
+              "offered": 1732,
+              "selected": 958,
+              "triggered": 1202
+            },
+            "linked-cup": {
+              "offered": 2403,
+              "selected": 67,
+              "triggered": 0
+            },
+            "whetstone": {
+              "offered": 2015,
+              "selected": 271,
+              "triggered": 403
+            },
+            "tuning": {
+              "offered": 1626,
+              "selected": 714,
+              "triggered": 0
+            },
+            "spacer": {
+              "offered": 1628,
+              "selected": 298,
+              "triggered": 790
+            },
+            "weight": {
+              "offered": 1656,
+              "selected": 1014,
+              "triggered": 1155
+            },
+            "buckle": {
+              "offered": 1627,
+              "selected": 490,
+              "triggered": 520
+            },
+            "mirror": {
+              "offered": 1188,
+              "selected": 324,
+              "triggered": 962
+            },
+            "scabbard": {
+              "offered": 865,
+              "selected": 576,
+              "triggered": 1510
+            },
+            "heart-die": {
+              "offered": 1833,
+              "selected": 0,
+              "triggered": 0
+            },
+            "adjacent-needle": {
+              "offered": 1393,
+              "selected": 865,
+              "triggered": 818
+            },
+            "counter-recover": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 810
+            },
+            "clash-seal": {
+              "offered": 419,
+              "selected": 416,
+              "triggered": 460
+            },
+            "overflow": {
+              "offered": 489,
+              "selected": 208,
+              "triggered": 2063
+            },
+            "early-reroll": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 1189
+            },
+            "reserve-gauge": {
+              "offered": 409,
+              "selected": 138,
+              "triggered": 0
+            }
+          }
+        },
+        {
+          "piercing": false,
+          "won": 1475,
+          "entrants": 2655,
+          "finalCoins": 14006,
+          "floors": {
+            "13": {
+              "entered": 2655,
+              "lost": 0
+            },
+            "14": {
+              "entered": 2655,
+              "lost": 0
+            },
+            "15": {
+              "entered": 2655,
+              "lost": 113
+            },
+            "16": {
+              "entered": 2542,
+              "lost": 0
+            },
+            "17": {
+              "entered": 2542,
+              "lost": 542
+            },
+            "18": {
+              "entered": 2000,
+              "lost": 0
+            },
+            "19": {
+              "entered": 2000,
+              "lost": 525
+            }
+          },
+          "rooms": {
+            "13:fight": {
+              "entered": 2655,
+              "turns": 5372,
+              "damage": 56,
+              "advanceTurn": 2658,
+              "firstDefeats": 2655,
+              "frontKills": 5310,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 13,
+              "counters": 13,
+              "ego": {
+                "attack": 5263,
+                "guard": 38,
+                "rest": 2,
+                "extraDefeats": 201
+              },
+              "coins": 2655
+            },
+            "14:fight": {
+              "entered": 2655,
+              "turns": 9465,
+              "damage": 3180,
+              "advanceTurn": 4823,
+              "firstDefeats": 2655,
+              "frontKills": 5310,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 3954,
+              "counters": 3954,
+              "ego": {
+                "attack": 7298,
+                "guard": 1949,
+                "rest": 148,
+                "extraDefeats": 707
+              },
+              "coins": 2655
+            },
+            "15:elite": {
+              "entered": 2655,
+              "turns": 17097,
+              "damage": 10479,
+              "advanceTurn": 10000,
+              "firstDefeats": 2545,
+              "frontKills": 5087,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 4676,
+              "counters": 4676,
+              "ego": {
+                "attack": 11527,
+                "guard": 5451,
+                "rest": 54,
+                "extraDefeats": 1124
+              },
+              "coins": 5084
+            },
+            "16:shop": {
+              "entered": 2542,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "17:elite": {
+              "entered": 2542,
+              "turns": 26360,
+              "damage": 23519,
+              "advanceTurn": 12103,
+              "firstDefeats": 2135,
+              "frontKills": 6150,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 6183,
+              "counters": 6183,
+              "ego": {
+                "attack": 12662,
+                "guard": 13621,
+                "rest": 68,
+                "extraDefeats": 1247
+              },
+              "coins": 4000
+            },
+            "18:rest": {
+              "entered": 2000,
+              "turns": 0,
+              "damage": 0,
+              "advanceTurn": 0,
+              "firstDefeats": 0,
+              "frontKills": 0,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 0,
+              "counters": 0,
+              "ego": {
+                "attack": 0,
+                "guard": 0,
+                "rest": 0,
+                "extraDefeats": 0
+              },
+              "coins": 0
+            },
+            "19:boss": {
+              "entered": 2000,
+              "turns": 21224,
+              "damage": 19343,
+              "advanceTurn": 5990,
+              "firstDefeats": 1620,
+              "frontKills": 3095,
+              "piercingAttacks": 0,
+              "piercedDamage": 0,
+              "exact": 3751,
+              "counters": 3751,
+              "ego": {
+                "attack": 12510,
+                "guard": 8673,
+                "rest": 41,
+                "extraDefeats": 604
+              },
+              "coins": 0
+            }
+          },
+          "cards": {
+            "coin": {
+              "offered": 1654,
+              "selected": 53,
+              "triggered": 258
+            },
+            "wedge": {
+              "offered": 1671,
+              "selected": 158,
+              "triggered": 206
+            },
+            "bandage": {
+              "offered": 1957,
+              "selected": 1957,
+              "triggered": 0
+            },
+            "banner": {
+              "offered": 148,
+              "selected": 83,
+              "triggered": 14810
+            },
+            "horn": {
+              "offered": 433,
+              "selected": 296,
+              "triggered": 5063
+            },
+            "adjacent-needle": {
+              "offered": 1383,
+              "selected": 854,
+              "triggered": 897
+            },
+            "advance-knot": {
+              "offered": 1663,
+              "selected": 71,
+              "triggered": 69
+            },
+            "twin-mold": {
+              "offered": 1651,
+              "selected": 12,
+              "triggered": 0
+            },
+            "die-latch": {
+              "offered": 6584,
+              "selected": 570,
+              "triggered": 881
+            },
+            "pip-ring": {
+              "offered": 1508,
+              "selected": 930,
+              "triggered": 0
+            },
+            "kit": {
+              "offered": 4542,
+              "selected": 3547,
+              "triggered": 0
+            },
+            "hourglass": {
+              "offered": 709,
+              "selected": 0,
+              "triggered": 0
+            },
+            "blood-grip": {
+              "offered": 1732,
+              "selected": 958,
+              "triggered": 1242
+            },
+            "linked-cup": {
+              "offered": 2405,
+              "selected": 62,
+              "triggered": 0
+            },
+            "whetstone": {
+              "offered": 2000,
+              "selected": 297,
+              "triggered": 442
+            },
+            "tuning": {
+              "offered": 1622,
+              "selected": 705,
+              "triggered": 0
+            },
+            "spacer": {
+              "offered": 1616,
+              "selected": 304,
+              "triggered": 890
+            },
+            "weight": {
+              "offered": 1653,
+              "selected": 1016,
+              "triggered": 1252
+            },
+            "buckle": {
+              "offered": 1623,
+              "selected": 482,
+              "triggered": 512
+            },
+            "mirror": {
+              "offered": 1179,
+              "selected": 331,
+              "triggered": 1101
+            },
+            "scabbard": {
+              "offered": 865,
+              "selected": 578,
+              "triggered": 1946
+            },
+            "heart-die": {
+              "offered": 1832,
+              "selected": 0,
+              "triggered": 0
+            },
+            "counter-recover": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 886
+            },
+            "clash-seal": {
+              "offered": 414,
+              "selected": 410,
+              "triggered": 447
+            },
+            "overflow": {
+              "offered": 492,
+              "selected": 205,
+              "triggered": 2391
+            },
+            "early-reroll": {
+              "offered": 0,
+              "selected": 0,
+              "triggered": 1217
+            },
+            "reserve-gauge": {
+              "offered": 406,
+              "selected": 142,
+              "triggered": 0
+            },
+            "incomplete": {
+              "offered": 1,
+              "selected": 0,
+              "triggered": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

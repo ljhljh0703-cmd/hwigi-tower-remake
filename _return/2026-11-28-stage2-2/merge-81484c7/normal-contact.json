@@ -1,0 +1,50 @@
+[
+  {
+    "label": "public",
+    "width": 320,
+    "height": 568,
+    "damage": "−11",
+    "sounds": [
+      "slam.wav",
+      "grit.wav",
+      "seat.wav"
+    ],
+    "seatOffset": 354.6
+  },
+  {
+    "label": "public",
+    "width": 390,
+    "height": 844,
+    "damage": "−11",
+    "sounds": [
+      "slam.wav",
+      "grit.wav",
+      "seat.wav"
+    ],
+    "seatOffset": 349.3
+  },
+  {
+    "label": "merged",
+    "width": 320,
+    "height": 568,
+    "damage": "−11",
+    "sounds": [
+      "slam.wav",
+      "grit.wav",
+      "seat.wav"
+    ],
+    "seatOffset": 350.1
+  },
+  {
+    "label": "merged",
+    "width": 390,
+    "height": 844,
+    "damage": "−11",
+    "sounds": [
+      "slam.wav",
+      "grit.wav",
+      "seat.wav"
+    ],
+    "seatOffset": 354.4
+  }
+]

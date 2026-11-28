@@ -1,0 +1,640 @@
+[
+  {
+    "size": "320x568",
+    "scene": "golem",
+    "outcome": [
+      {
+        "target": "enemy-damage",
+        "damage": "−11"
+      }
+    ],
+    "sounds": [
+      "dice-place.mp3",
+      "swish.wav",
+      "slam.wav",
+      "grit.wav",
+      "seat.wav"
+    ],
+    "settledHashMatches": true,
+    "public": [
+      {
+        "offset": 16,
+        "area": 0,
+        "distinct": 0,
+        "hash": 0,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 112,
+        "area": 4440,
+        "distinct": 1,
+        "hash": -1284421541,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 136,
+        "area": 4199,
+        "distinct": 4,
+        "hash": 623048891,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 160,
+        "area": 4151,
+        "distinct": 4,
+        "hash": -1103484849,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 211,
+        "area": 2720,
+        "distinct": 7,
+        "hash": 712466748,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 340,
+        "area": 2826,
+        "distinct": 5,
+        "hash": -679571509,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 420,
+        "area": 1756,
+        "distinct": 4,
+        "hash": 1055054817,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 560,
+        "area": 1584,
+        "distinct": 5,
+        "hash": 1806546390,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 640,
+        "area": 1584,
+        "distinct": 5,
+        "hash": 1806546390,
+        "clipped": 0,
+        "covered": 0
+      }
+    ],
+    "merged": [
+      {
+        "offset": 16,
+        "area": 0,
+        "distinct": 0,
+        "hash": 0,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 112,
+        "area": 4466,
+        "distinct": 1,
+        "hash": 1982676520,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 136,
+        "area": 4175,
+        "distinct": 4,
+        "hash": -280706300,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 160,
+        "area": 4112,
+        "distinct": 4,
+        "hash": 544139810,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 211,
+        "area": 2724,
+        "distinct": 7,
+        "hash": 1117684912,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 340,
+        "area": 2834,
+        "distinct": 5,
+        "hash": 559633562,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 420,
+        "area": 1756,
+        "distinct": 4,
+        "hash": 966163177,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 560,
+        "area": 1584,
+        "distinct": 5,
+        "hash": 1806546390,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 640,
+        "area": 1584,
+        "distinct": 5,
+        "hash": 1806546390,
+        "clipped": 0,
+        "covered": 0
+      }
+    ]
+  },
+  {
+    "size": "320x568",
+    "scene": "counter",
+    "outcome": [
+      {
+        "target": "enemy-damage",
+        "damage": "−1"
+      }
+    ],
+    "sounds": [
+      "perfect-block.mp3",
+      "stone-hit.mp3",
+      "roulette-engage.wav",
+      "roulette-ratchet.wav",
+      "roulette-latch.wav",
+      "slam.wav",
+      "grit.wav",
+      "seat.wav"
+    ],
+    "settledHashMatches": true,
+    "public": [
+      {
+        "offset": 16,
+        "area": 0,
+        "distinct": 0,
+        "hash": 0,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 112,
+        "area": 3010,
+        "distinct": 5,
+        "hash": -1825984453,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 136,
+        "area": 3006,
+        "distinct": 7,
+        "hash": -1046007686,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 160,
+        "area": 3004,
+        "distinct": 6,
+        "hash": 601924702,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 211,
+        "area": 3004,
+        "distinct": 7,
+        "hash": -1038707874,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 340,
+        "area": 1775,
+        "distinct": 5,
+        "hash": 14862970,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 560,
+        "area": 751,
+        "distinct": 7,
+        "hash": -336633811,
+        "clipped": 0,
+        "covered": 0
+      }
+    ],
+    "merged": [
+      {
+        "offset": 16,
+        "area": 0,
+        "distinct": 0,
+        "hash": 0,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 112,
+        "area": 3010,
+        "distinct": 5,
+        "hash": -1825984453,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 136,
+        "area": 3006,
+        "distinct": 7,
+        "hash": -1046007686,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 160,
+        "area": 3004,
+        "distinct": 6,
+        "hash": 601924702,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 211,
+        "area": 3004,
+        "distinct": 7,
+        "hash": -1038707874,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 340,
+        "area": 1775,
+        "distinct": 5,
+        "hash": 14862970,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 560,
+        "area": 751,
+        "distinct": 7,
+        "hash": -336633811,
+        "clipped": 0,
+        "covered": 0
+      }
+    ]
+  },
+  {
+    "size": "390x844",
+    "scene": "golem",
+    "outcome": [
+      {
+        "target": "enemy-damage",
+        "damage": "−11"
+      }
+    ],
+    "sounds": [
+      "dice-place.mp3",
+      "swish.wav",
+      "slam.wav",
+      "grit.wav",
+      "seat.wav"
+    ],
+    "settledHashMatches": true,
+    "public": [
+      {
+        "offset": 16,
+        "area": 0,
+        "distinct": 0,
+        "hash": 0,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 112,
+        "area": 6485,
+        "distinct": 5,
+        "hash": 708963438,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 136,
+        "area": 6420,
+        "distinct": 7,
+        "hash": -210202176,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 160,
+        "area": 6408,
+        "distinct": 6,
+        "hash": 305172164,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 211,
+        "area": 4450,
+        "distinct": 7,
+        "hash": -1827769954,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 340,
+        "area": 3557,
+        "distinct": 6,
+        "hash": 1936825541,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 420,
+        "area": 2792,
+        "distinct": 6,
+        "hash": -295431360,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 560,
+        "area": 2808,
+        "distinct": 5,
+        "hash": 1378240968,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 640,
+        "area": 2808,
+        "distinct": 5,
+        "hash": 1378240968,
+        "clipped": 0,
+        "covered": 0
+      }
+    ],
+    "merged": [
+      {
+        "offset": 16,
+        "area": 0,
+        "distinct": 0,
+        "hash": 0,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 112,
+        "area": 6485,
+        "distinct": 5,
+        "hash": 708963438,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 136,
+        "area": 6420,
+        "distinct": 7,
+        "hash": -210202176,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 160,
+        "area": 6408,
+        "distinct": 6,
+        "hash": 305172164,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 211,
+        "area": 4450,
+        "distinct": 7,
+        "hash": -1827769954,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 340,
+        "area": 3557,
+        "distinct": 6,
+        "hash": 1936825541,
+        "glyphPixels": 101,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 420,
+        "area": 2792,
+        "distinct": 6,
+        "hash": -295431360,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 560,
+        "area": 2808,
+        "distinct": 5,
+        "hash": 1378240968,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 640,
+        "area": 2808,
+        "distinct": 5,
+        "hash": 1378240968,
+        "clipped": 0,
+        "covered": 0
+      }
+    ]
+  },
+  {
+    "size": "390x844",
+    "scene": "counter",
+    "outcome": [
+      {
+        "target": "enemy-damage",
+        "damage": "−1"
+      }
+    ],
+    "sounds": [
+      "perfect-block.mp3",
+      "stone-hit.mp3",
+      "roulette-engage.wav",
+      "roulette-ratchet.wav",
+      "roulette-latch.wav",
+      "slam.wav",
+      "grit.wav",
+      "seat.wav"
+    ],
+    "settledHashMatches": true,
+    "public": [
+      {
+        "offset": 16,
+        "area": 0,
+        "distinct": 0,
+        "hash": 0,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 112,
+        "area": 6772,
+        "distinct": 6,
+        "hash": 1281465912,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 136,
+        "area": 6764,
+        "distinct": 7,
+        "hash": -818729720,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 160,
+        "area": 6759,
+        "distinct": 8,
+        "hash": 2000527188,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 211,
+        "area": 6761,
+        "distinct": 7,
+        "hash": -1756603808,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 340,
+        "area": 2920,
+        "distinct": 6,
+        "hash": -1108417026,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 560,
+        "area": 2969,
+        "distinct": 4,
+        "hash": 1565551166,
+        "clipped": 0,
+        "covered": 0
+      }
+    ],
+    "merged": [
+      {
+        "offset": 16,
+        "area": 0,
+        "distinct": 0,
+        "hash": 0,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 112,
+        "area": 6772,
+        "distinct": 6,
+        "hash": -86903209,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 136,
+        "area": 6764,
+        "distinct": 7,
+        "hash": -1776788094,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 160,
+        "area": 6759,
+        "distinct": 8,
+        "hash": -59106728,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 211,
+        "area": 6761,
+        "distinct": 7,
+        "hash": -315776224,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 340,
+        "area": 2929,
+        "distinct": 6,
+        "hash": 1155689850,
+        "glyphPixels": 56,
+        "clipped": 0,
+        "covered": 0
+      },
+      {
+        "offset": 560,
+        "area": 2969,
+        "distinct": 4,
+        "hash": 1565551166,
+        "clipped": 0,
+        "covered": 0
+      }
+    ]
+  }
+]
