@@ -2700,9 +2700,9 @@ main[data-screen='defeat'] {
 .upper-card:not([data-lane='0']) .upper-position > span { color: #c9c9b5; }
 .upper-card[data-counter-target] { outline: 2px solid #f0cb82; outline-offset: 2px; }
 .upper-hp, .upper-intent { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
-.upper-hp { font: .92rem/1.15 ui-monospace, monospace; margin: 2px 0; }
+.upper-hp { font: .92rem/1.15 ui-monospace, monospace; gap: 2px; margin: 2px 0; }
 .upper-hp > small { color: #d3c3ac; font-size: .67rem; }
-.upper-hp .icon { color: #f2ab91; font-size: .74rem; }
+.upper-hp .icon { color: #f2ab91; inline-size: 12px; block-size: 12px; flex: none; }
 .upper-intent { min-block-size: 15px; color: #f8ca83; }
 .upper-intent > b { min-inline-size: 12px; text-align: center; border: 1px solid #806747; background: #392c20; }
 .upper-intent > b i { color: #c8e6aa; font-style: normal; }
@@ -2750,7 +2750,7 @@ main[data-screen='defeat'] {
   .upper-hp, .upper-intent { gap: 2px; }
   .upper-hp { margin-block: 1px; font-size: 12px; }
   .upper-hp > small { font-size: 9px; }
-  .upper-hp .icon { inline-size: 10px; block-size: 10px; flex: none; }
+  .upper-hp .icon { inline-size: 10px; block-size: 10px; }
   .upper-preview { min-block-size: 12px; }
   .upper-field ~ #planning .slot .dice-row {
     flex-wrap: nowrap;
