@@ -1108,6 +1108,7 @@ main[data-screen='battle'] {
 }
 
 .combatant {
+  container-type: inline-size;
   --card-width: clamp(90px, 29vw, 126px);
   --card-half: calc(var(--card-width) / 2);
   position: absolute;
@@ -1121,13 +1122,20 @@ main[data-screen='battle'] {
 .player { --actor-x: var(--player-x, 26%); }
 .enemy { --actor-x: var(--enemy-x, 73%); }
 .escort-room .combatant { --card-width: clamp(72px, 24vw, 104px); }
-.escort-guard, .escort-damage { --actor-x: var(--escort-x, 50%); }
+.escort-guard { --actor-x: var(--escort-x, 50%); }
 .gimmick-intro .player { --actor-x: min(var(--player-x, 26%), calc(var(--vital-center) - var(--card-half) - var(--vital-gap))); }
 .gimmick-intro .enemy { --actor-x: max(var(--enemy-x, 73%), calc(var(--vital-center) + var(--card-half) + var(--vital-gap))); }
 .gimmick-intro.escort-room {
   --vital-center: var(--escort-x, 50%);
   --vital-gap: calc(clamp(22px, 7vw, 32px) + 3px);
 }
+
+/* Three independent HP readouts share the footer while the guard is on the field. */
+.escort-room:has(#escort-guard:not([hidden])) .combatant { --card-width: clamp(80px, 27vw, 110px); }
+.escort-room:has(#escort-guard:not([hidden])) .vital label { gap: 3px; }
+.escort-room:has(#escort-guard:not([hidden])) .player { --actor-x: 17%; }
+.escort-room:has(#escort-guard:not([hidden])) .escort-guard { --actor-x: 50%; }
+.escort-room:has(#escort-guard:not([hidden])) .enemy { --actor-x: 83%; }
 
 #intent {
   position: absolute;
@@ -1360,7 +1368,10 @@ meter[data-empty] + .hp-trail { display: none; }
 }
 .player { --impact-y: var(--player-body); }
 .enemy { --impact-y: var(--enemy-body); }
-.escort-damage { --impact-y: var(--escort-body); }
+.escort-guard { --impact-y: var(--escort-body); }
+.vital > .damage-float {
+  inset-block-start: calc(var(--impact-y) - var(--ground) - var(--vital-offset));
+}
 
 .damage-number {
   --damage-scale: 1;
@@ -1392,6 +1403,39 @@ meter[data-empty] + .hp-trail { display: none; }
   color: #ffe39f;
 }
 .damage-number small { margin-inline-end: 3px; font-size: .65em; color: #f5e9dc; }
+
+/* During a break, keep both hostile targets' readings with their own HP.
+   The output occupies real space in the card, including in the three-actor room. */
+.encounter:has(.foe-damage > [data-impact='finisher']) .vital:has(.damage-number) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  column-gap: 3px;
+  padding-inline: 6px;
+}
+.encounter:has(.foe-damage > [data-impact='finisher']) .vital:has(.damage-number) .hp-track { flex-basis: 100%; }
+.encounter:has(.foe-damage > [data-impact='finisher']) .vital:has(.damage-number) label { gap: 3px; }
+.encounter:has(.foe-damage > [data-impact='finisher']) .vital > .damage-float {
+  position: static;
+  margin-inline-start: auto;
+  gap: 2px;
+}
+.encounter:has(.foe-damage > [data-impact='finisher']) .vital .damage-number {
+  color: #ffe0a6;
+  font-size: 15px;
+  line-height: 16px;
+  -webkit-text-stroke: 0;
+  animation: none;
+}
+.escort-room:has(.foe-damage > [data-impact='finisher']) .vital:has(.damage-number) .icon { display: none; }
+.encounter:has(.foe-damage > [data-impact='finisher']) #player-damage small { display: none; }
+@container (max-width: 100px) {
+  .encounter:has(.foe-damage > [data-impact='finisher']) .enemy .vital:has(.damage-number) label .icon { display: none; }
+}
+.escort-room:has(.foe-damage > [data-impact='finisher']) .escort-guard .vital:has(.damage-number) {
+  inline-size: max-content;
+}
 
 .damage-float:has(.damage-number:nth-child(4)) .damage-number {
   font-size: calc(clamp(.76rem, 3.3vw, .95rem) * var(--damage-scale));

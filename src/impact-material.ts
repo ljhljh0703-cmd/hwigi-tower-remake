@@ -1,7 +1,7 @@
 import type { AscentEnemyId } from './enemy-roster.ts'
 import type { ImpactTarget } from './arena.ts'
 
-type Material = 'brass' | 'stone' | 'ice'
+export type Material = 'brass' | 'stone' | 'ice'
 const surfaces: Partial<Record<AscentEnemyId, Material>> = {
   lock: 'brass',
   thorns: 'stone',

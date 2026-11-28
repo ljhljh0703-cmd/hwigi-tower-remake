@@ -211,6 +211,8 @@ export class Arena {
   private density = 1
   private placements = new Map<Sprite, Placement>()
   private shake = 0
+  private intentBottom = 0
+  private bossNameBottom = 0
   private floor = 0
   private battle?: YachtBattle
   private enemyId: AscentEnemyId = 'thorns'
@@ -321,8 +323,14 @@ export class Arena {
       if (headY - intentHeight - gap < top && left >= intentWidth + gap * 2) center = left - half - gap
     }
     this.encounter.style.setProperty('--intent-center', `${center}px`)
-    this.encounter.style.setProperty('--intent-top', `${Math.max(top, headY - intentHeight - gap)}px`)
+    const intentTop = Math.max(top, headY - intentHeight - gap)
+    this.encounter.style.setProperty('--intent-top', `${intentTop}px`)
+    this.intentBottom = (intentTop + intentHeight - canvasTop) * this.density
     this.encounter.style.setProperty('--inventory-clearance', `${top}px`)
+    if (enemy === boss) {
+      const name = this.encounter.querySelector<HTMLElement>('#encounter-name')!.getBoundingClientRect()
+      this.bossNameBottom = Math.max(0, name.bottom - stage.top - canvasTop) * this.density
+    }
     this.encounter.style.setProperty('--ground', `${ground}px`)
     this.encounter.style.setProperty('--player-x', `${x(hero)}px`)
     this.encounter.style.setProperty('--enemy-x', `${x(enemy)}px`)
@@ -507,11 +515,16 @@ export class Arena {
     const key = art + '/' + rect.join(',')
     let pieces = this.shards.get(key)
     if (!pieces) {
-      pieces = splitSilhouette(sheet, rect)
+      pieces = splitSilhouette(sheet, rect, impactMaterial(this.enemyId, 'enemy'))
       this.shards.set(key, pieces)
     }
     if (!pieces.length) return false
-    scatterBody(this.context, pieces, foot - pivot[0] * scale, ground - pivot[1] * scale, foot, this.floor, scale, age)
+    const clearance = 5 * this.density
+    let ceiling = clearance
+    if (art === 'motion/escort-guard' && !this.intent.hidden) ceiling += this.intentBottom
+    if (this.enemyId === 'boss') ceiling += this.bossNameBottom
+    scatterBody(this.context, pieces, foot - pivot[0] * scale, ground - pivot[1] * scale,
+      foot, this.floor, scale, age, this.density, ceiling)
     return true
   }
 
