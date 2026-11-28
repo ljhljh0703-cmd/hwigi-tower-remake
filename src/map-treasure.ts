@@ -8,12 +8,13 @@ import type { Artifact, ArtifactOptions, Treasure } from './treasure.ts'
 import type { YachtBattle } from './yacht-combat.ts'
 import { META_STAGES } from './meta-unlocks.ts'
 
-export const SHOP_PRICES = { kit: 2, artifact: 4, rare: 5 }
+export const SHOP_PRICES = { kit: 2, consumable: 2, artifact: 4, rare: 5 }
 export const SHOP_HEAL = 4
 const MAP_THREE_BANDAGE_HEAL = 5
 
 export function shopPrice(choice: Treasure, rules?: MapRules): number {
   if (choice === 'kit') return SHOP_PRICES.kit
+  if (rules === 7 && isConsumable(choice)) return SHOP_PRICES.consumable
   if (!isArtifact(choice)) return 0
   return rules === 7 && treasureRarity(choice) === 'rare' ? SHOP_PRICES.rare : SHOP_PRICES.artifact
 }
@@ -77,7 +78,8 @@ function sevenTreasureOffers(run: Ascent, node: MapNode, legacyMixedPool: boolea
     const { common, rare, bonus } = sevenArtifactOffers(run, node, legacyMixedPool)
     const artifact = rareSlot ? rare[0] ?? common[0] : common[0] ?? rare[0]
     const extra = bonus.find((id) => treasureRarity(id) === (rareSlot ? 'rare' : 'common'))
-    return [...(node.kind === 'shop' ? ['kit'] as const : []), ...(artifact ? [artifact] : []), ...(extra ? [extra] : [])]
+    const stock: Treasure[] = node.kind === 'shop' ? ['kit', COMMON_CONSUMABLES[draw(run.seed, node.id, 108) % COMMON_CONSUMABLES.length]] : []
+    return [...stock, ...(artifact ? [artifact] : []), ...(extra ? [extra] : [])]
   }
   const common = [...COMMON_CONSUMABLES]
   const offers: Treasure[] = [0, 1, 2].map((index) => common.splice(draw(run.seed, node.id, 100 + index) % common.length, 1)[0])
@@ -135,7 +137,8 @@ export function treasureEnabled(run: Ascent, choice: Treasure): boolean {
   const room = currentTreasureRoom(run)
   const cost = treasureCost(room, choice)
   if (cost && hp <= cost) return false
-  if (room?.kind === 'shop' && (run.route?.coins ?? 0) < shopPrice(choice, run.route?.map.rules)) return false
+  if (room?.kind === 'shop' && ((run.route?.coins ?? 0) < shopPrice(choice, run.route?.map.rules) ||
+    run.route?.shopReceipts?.some(receipt => receipt.node === room.id && receipt.item === choice))) return false
   if (healingForRun(run, choice, room) && hp >= run.maxHp) return false
   return (run.route?.offers ?? []).includes(choice)
 }

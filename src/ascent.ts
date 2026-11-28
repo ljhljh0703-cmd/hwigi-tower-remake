@@ -26,6 +26,7 @@ export interface MapProgress {
   readonly offers?: readonly Reward[]
   readonly coins?: number
   readonly shopPurchase?: Treasure
+  readonly shopReceipts?: readonly { readonly node: number; readonly item: Treasure }[]
   readonly declinedEliteRewards?: readonly number[]
 }
 
@@ -177,6 +178,8 @@ export function spinAscentCounter(ascent: Ascent, choice?: CounterChoice): Ascen
 
 export function rewardOffers(ascent: Ascent): readonly Reward[] {
   const { battle, fight, seed, rewardChoice, route } = ascent
+  if (route?.screen === 'shop') return (route.offers ?? []).filter(item =>
+    !route.shopReceipts?.some(receipt => receipt.node === route.node && receipt.item === item))
   if (route) return route.screen !== 'return' ? route.offers ?? [] : []
   if (battle.phase !== 'won' || fight === FIGHT_COUNT || rewardChoice) return []
   return rewardCandidates(battle, draw(seed, fight, REWARD_ORDER_CHANNEL))
@@ -228,9 +231,16 @@ export function takeAscentReward(ascent: Ascent, choice: RewardChoice, options: 
       route: { ...completeMapNode(route, 'return'), offers } }
   }
   if (isBossRelic(choice) || choice === 'skip' && (route?.map.rules ?? 0) >= 6 && node?.kind === 'elite' && offers.length) return ascent
+  if (route?.map.rules === 7 && route.screen === 'shop' && choice !== 'skip') {
+    const next = grantTreasure(ascent, choice, options)
+    if (!next) return ascent
+    return { ...ascent, battle: next, route: { ...route, coins: (route.coins ?? 0) - shopPrice(choice, 7),
+      shopReceipts: [...(route.shopReceipts ?? []), { node: node!.id, item: choice }] } }
+  }
   const purchase = route && route.map.rules >= 3 && route.screen === 'shop' && choice !== 'skip'
     ? { coins: (route.coins ?? 0) - shopPrice(choice, route.map.rules), shopPurchase: choice } : {}
-  const grantedAscent = { ...ascent, rewardChoice: choice, ...(route && { route: { ...completeMapNode(route, 'return'), offers, ...purchase } }) }
+  const grantedAscent = { ...ascent, rewardChoice: choice, ...(route && { route: { ...completeMapNode(route, 'return'),
+    offers: route.screen === 'shop' ? route.offers : offers, ...purchase } }) }
   if (route && route.map.rules >= 2) {
     const next = choice === 'skip' ? battle : grantTreasure(ascent, choice, options)
     return next ? { ...grantedAscent, battle: next } : ascent

@@ -13,7 +13,7 @@ import { shopPrice, treasureOffers } from './map-treasure.ts'
 import { ARTIFACT_SLOTS, isArtifact, isConsumable, isItem, isNewTreasureId, isPreparation, isSevenTreasure, isShard, itemUses } from './treasure.ts'
 import type { ArtifactOptions } from './treasure.ts'
 import { artifactOptionsRecord, treasureRecord } from './treasure-save.ts'
-import { yachtCounterRewards, yachtCounterSlot } from './yacht-combat.ts'
+import { bestCoinCounter, yachtCounterRewards, yachtCounterSlot } from './yacht-combat.ts'
 import { GIMMICK_REQUIREMENTS } from './yacht-combat.ts'
 import type { Hand, YachtBattle } from './yacht-combat.ts'
 
@@ -162,7 +162,7 @@ function validReward(value: unknown, seven: boolean): value is Reward {
 
 function mapCheckpoint(seed: number, fight: number, value: unknown) {
   if (!record(value) || (value.rules !== 1 && value.rules !== 2 && value.rules !== 3 && value.rules !== 4 && value.rules !== 5 && value.rules !== 6 && value.rules !== 7) || !Array.isArray(value.completed)) return null
-  const { completed, screen, node, offers, rules, bossMaxHp, coins, shopPurchase, declinedEliteRewards } = value
+  const { completed, screen, node, offers, rules, bossMaxHp, coins, shopPurchase, shopReceipts, declinedEliteRewards } = value
   if (completed.length >= MAP_FLOORS || !completed.every((id) => integer(id))) return null
   const room = screen === 'rest' || (rules >= 2 && (screen === 'event' || screen === 'shop'))
   if (screen !== 'map' && screen !== 'return' && screen !== 'battle' && screen !== 'reward' && !room) return null
@@ -177,19 +177,27 @@ function mapCheckpoint(seed: number, fight: number, value: unknown) {
     !declinedEliteRewards.every((id) => completed.includes(id) && map.byId[id]?.kind === 'elite'))) return null
   if (active !== null && (room ? map.byId[active].kind !== screen : !map.byId[active].enemyId)) return null
   const lastCompleted = completed.at(-1)
+  const shop = screen === 'shop' || screen === 'return' && map.byId[lastCompleted!]?.kind === 'shop'
+  const receipts = shopReceipts === undefined ? [] : shopReceipts
+  if (!Array.isArray(receipts) || rules !== 7 && shopReceipts !== undefined || !receipts.every(receipt =>
+    record(receipt) && integer(receipt.node) && path.includes(receipt.node) && map.byId[receipt.node]?.kind === 'shop' &&
+    (receipt.item === 'kit' || isArtifact(receipt.item) || isConsumable(receipt.item)) && validReward(receipt.item, true)) ||
+    new Set(receipts.map(receipt => `${receipt.node}:${receipt.item}`)).size !== receipts.length) return null
   if (screen === 'reward' && map.byId[active!].floor === MAP_FLOORS) return null
   const bossReward = (screen === 'reward' || screen === 'return') && map.byId[(screen === 'reward' ? active : lastCompleted)!]?.enemyId === 'chain-warden'
   if (screen === 'return' && (lastCompleted === undefined || (rules === 1 && map.byId[lastCompleted].kind === 'rest'))) return null
   const hasOffers = screen === 'reward' || screen === 'return' || (rules >= 2 && room)
-  if (bossReward ? !sameList(offers, BOSS_RELICS) : hasOffers ? !Array.isArray(offers) || offers.length > 3 ||
+  if (bossReward ? !sameList(offers, BOSS_RELICS) : hasOffers ? !Array.isArray(offers) || offers.length > (rules === 7 && shop ? 4 : 3) ||
     new Set(offers).size !== offers.length || !offers.every((offer) => !isBossRelic(offer) && (rules >= 2 ? validReward(offer, rules === 7) : isLegacyReward(offer))) : offers !== undefined) return null
+  if (shop && Array.isArray(offers) && receipts.some(({ node, item }) => node === (active ?? lastCompleted) && !offers.includes(item))) return null
   if (rules >= 3) {
     const price = (shopPurchase === 'kit' || isArtifact(shopPurchase)) && validReward(shopPurchase, rules === 7) ? shopPrice(shopPurchase, rules) : 0
     if (shopPurchase !== undefined && (!price || !completed.some((id) => map.byId[id].kind === 'shop'))) return null
     const won = screen === 'reward' ? path : completed
     const earned = won.reduce((sum, id) => sum + victoryCoins(map.byId[id].kind), 0)
     const extra = (declinedEliteRewards?.length ?? 0) * ELITE_KEEP_COINS
-    if (!integer(coins) || coins !== earned + extra - price) return null
+    const spent = receipts.reduce((sum, { item }) => sum + shopPrice(item, 7), price)
+    if (!integer(coins) || coins !== earned + extra - spent) return null
   } else if (coins !== undefined || shopPurchase !== undefined) return null
   const fights = path.map((id) => map.byId[id]).filter((room) => room.enemyId)
   if (fight !== fights.length) return null
@@ -204,6 +212,7 @@ function mapCheckpoint(seed: number, fight: number, value: unknown) {
     map, completed, screen, node: active, ...(Array.isArray(offers) && { offers }),
     ...(typeof coins === 'number' && { coins }),
     ...((shopPurchase === 'kit' || isArtifact(shopPurchase)) && { shopPurchase }),
+    ...(receipts.length && { shopReceipts: receipts }),
     ...(declinedEliteRewards && { declinedEliteRewards }),
   }
   return { route, enemy: restoredEnemy, fightSeed: battleNode.battleSeed, acquired: value.acquired }
@@ -258,13 +267,22 @@ function readCheckpoint(raw: unknown): AscentSave | null {
     ? { ...battle.fixedDie, index: dice.indexOf(Math.min(...dice)) } : battle.fixedDie
   const metaTurn = oldPlanningEgo && battle.metaTurn?.chargeDie === ordinaryCount
     ? { ...battle.metaTurn, chargeDie: undefined } : battle.metaTurn
-  const restoredBattle: YachtBattle = {
+  let restoredBattle: YachtBattle = {
     ...battle,
     dice,
     slots: battle.slots.slice(0, dice.length).map((slot) => slot === 'escort' ? 'attack' : slot),
     ...(oldPlanningEgo && { fixedDie, metaTurn }),
     enemyIntents: enemy.intents,
     enemyAttackGrowth: enemy.attackGrowth,
+  }
+  const pending = restoredBattle.loot?.counter
+  if (pending) {
+    const table = yachtCounterRewards(restoredBattle)
+    const slot = yachtCounterSlot(restoredBattle, restoredBattle.loot?.counterRecast)
+    const best = restoredBattle.loot?.counterRecast ? bestCoinCounter(restoredBattle) : undefined
+    const original = pending.slot === slot && pending.damage === table[slot].damage && pending.joint === table[slot].joint
+    if (!original && (!best || pending.slot !== best.slot || pending.damage !== best.damage || pending.joint !== best.joint)) return null
+    if (best && pending.slot !== best.slot) restoredBattle = { ...restoredBattle, loot: { ...restoredBattle.loot!, counter: best } }
   }
   if (mapped) {
     const { route, acquired } = mapped
@@ -275,6 +293,7 @@ function readCheckpoint(raw: unknown): AscentSave | null {
     const expectsVictory = route.screen !== 'battle' && fight > 0
     if ((battle.phase === 'won') !== expectsVictory || (route.screen === 'return') !== (rewardChoice !== undefined)) return null
     if (isArtifact(route.shopPurchase) && !battle.loot?.acquired.includes(route.shopPurchase)) return null
+    if (route.shopReceipts?.some(({ item }) => isArtifact(item) && !battle.loot?.acquired.includes(item))) return null
     if (fight === 0 && (battle.phase !== 'assign' || battle.turn !== 1 || battle.playerHp !== PLAYER_HP || battle.lastExchange !== null || unlocks.length)) return null
     if (!sameList(acquired, rulesTwo ? battle.loot!.acquired : acquiredRewards(battle.rewards))) return null
     if ((battle.enemyAttackBuff ?? 0) > enemy.attackPerUnlock * unlocks.length) return null
@@ -286,7 +305,7 @@ function readCheckpoint(raw: unknown): AscentSave | null {
       if (rewardChoice === 'keep-artifacts') {
         if (battle.loot?.equipped.length !== ARTIFACT_SLOTS || !route.offers?.some(isArtifact)) return null
       } else if (rewardChoice !== 'skip' && !route.offers?.includes(rewardChoice)) return null
-      if (route.map.rules >= 3 && lastRoom.kind === 'shop' &&
+      if (route.map.rules >= 3 && lastRoom.kind === 'shop' && (route.map.rules < 7 || rewardChoice !== 'skip') &&
         (rewardChoice === 'skip' ? route.shopPurchase !== undefined : route.shopPurchase !== rewardChoice)) return null
       if (!rulesTwo) {
         const prior = beforeClaim(restoredBattle, rewardChoice)
@@ -307,15 +326,16 @@ function readCheckpoint(raw: unknown): AscentSave | null {
   }
   if (rulesTwo && mapped?.route.offers && mapped.route.node !== null) {
     const room = mapped.route.map.byId[mapped.route.node]
+    const bought = mapped.route.shopReceipts?.filter(({ node }) => node === room.id).map(({ item }) => item) ?? []
+    const stockRun = bought.length && battle.loot ? { ...ascent, battle: { ...restoredBattle,
+      loot: { ...battle.loot, acquired: battle.loot.acquired.filter(item => !bought.includes(item)) } } } : ascent
+    const matchesStock = (mixed = false) => {
+      const stock = treasureOffers(stockRun, room, mixed)
+      return sameList(mapped.route.offers, stock) || seven && room.kind === 'shop' && !bought.some(isConsumable) &&
+        sameList(mapped.route.offers, stock.filter(item => !isConsumable(item)))
+    }
     if ((seven ? room.enemyId : mapped.enemy.id) !== 'chain-warden' &&
-      !sameList(mapped.route.offers, treasureOffers(ascent, room)) &&
-      !(seven && meta?.pool.length && sameList(mapped.route.offers, treasureOffers(ascent, room, true)))) return null
-  }
-  const pending = restoredBattle.loot?.counter
-  if (pending) {
-    const table = yachtCounterRewards(restoredBattle)
-    const slot = yachtCounterSlot(restoredBattle, restoredBattle.loot?.counterRecast)
-    if (pending.slot !== slot || pending.damage !== table[slot].damage || pending.joint !== table[slot].joint) return null
+      !matchesStock() && !(seven && meta?.pool.length && matchesStock(true))) return null
   }
   const { rewardPreview } = raw
   if (rewardPreview !== undefined && !validReward(rewardPreview, seven)) return null
@@ -363,7 +383,7 @@ export function writeAscentSave({ ascent, selected, rewardPreview, nodePreview, 
     const savedRoute = route && {
       rules: route.map.rules, completed: route.completed, node: route.node, screen: route.screen,
       offers: route.offers, acquired: battle.loot?.acquired ?? acquiredRewards(battle.rewards),
-      coins: route.coins, shopPurchase: route.shopPurchase, declinedEliteRewards: route.declinedEliteRewards,
+      coins: route.coins, shopPurchase: route.shopPurchase, shopReceipts: route.shopReceipts, declinedEliteRewards: route.declinedEliteRewards,
       ...(route.map.rules === 2 && enemy.id === 'boss' && { bossMaxHp: enemy.hp }),
     }
     store.setItem(ASCENT_SAVE_KEY, JSON.stringify({

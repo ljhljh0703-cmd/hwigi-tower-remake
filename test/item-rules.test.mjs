@@ -6,7 +6,7 @@ import { CURRENT_MAP_RULES, generateAscentMap } from '../src/ascent-map.ts'
 import { loadAscentSave } from '../src/ascent-save.ts'
 import { SEVEN_CROWN_DAMAGE_BONUS, SEVEN_HEART_REVIVAL_HP, SEVEN_SCEPTER_HEAL } from '../src/boss-relic.ts'
 import { adjustItemDie, chooseReserveRoll, selectLatchDie, toggleConsumable } from '../src/item-effects.ts'
-import { shopPrice, treasureOffers } from '../src/map-treasure.ts'
+import { healingForRun, shopPrice, treasureOffers } from '../src/map-treasure.ts'
 import { startPerk } from '../src/perks.ts'
 import { COMMON_ARTIFACTS, COMMON_CONSUMABLES, emptyTreasure, isSevenTreasure, NEW_TREASURES, RARE_ARTIFACTS, RARE_CONSUMABLES } from '../src/treasure.ts'
 import { availableCounterChoices, toggleArtifact } from '../src/treasure-combat.ts'
@@ -300,7 +300,7 @@ test('the rules-seven bandage preview and claim survive reloading without a seco
   assert.equal(returnToMap(after).battle.playerHp, claimed.battle.playerHp)
 })
 
-test('rare shop price persists after purchase and rules-six pending deleted loot survives', () => {
+test('shop purchases persist independently before leaving and rules-six pending deleted loot survives', () => {
   let rareShop
   for (let seed = 0; seed < 64 && !rareShop; seed++) {
     const map = generateAscentMap(seed, 7)
@@ -315,9 +315,21 @@ test('rare shop price persists after purchase and rules-six pending deleted loot
   const bought = takeAscentReward(before, 'hourglass')
   assert.equal(bought.route.coins, before.route.coins - 5)
   const restored = checkpoint(bought).restored.ascent
-  assert.equal(restored.route.shopPurchase, 'hourglass')
+  assert.equal(restored.route.screen, 'shop')
+  assert.deepEqual(restored.route.shopReceipts, [{ node: before.route.node, item: 'hourglass' }])
   assert.equal(takeAscentReward(restored, 'hourglass'), restored)
-  assert.ok(checkpoint(returnToMap(restored)).restored)
+  const injured = { ...before, battle: { ...before.battle, playerHp: before.maxHp - 5 } }
+  const consumable = rewardOffers(before).find(item => item !== 'kit' && item !== 'hourglass')
+  assert.ok(consumable)
+  const firstPurchase = takeAscentReward(injured, 'kit')
+  const secondPurchase = takeAscentReward(checkpoint(firstPurchase).restored.ascent, consumable)
+  assert.equal(secondPurchase.route.coins, before.route.coins - 4)
+  assert.equal(secondPurchase.battle.playerHp, injured.battle.playerHp + healingForRun(injured, 'kit'))
+  assert.equal(secondPurchase.battle.loot.consumables[consumable], 1)
+  assert.deepEqual(checkpoint(secondPurchase).restored.ascent.route.shopReceipts.map(({ item }) => item), ['kit', consumable])
+  const left = returnToMap(takeAscentReward(secondPurchase, 'skip'))
+  assert.equal(left.route.screen, 'map')
+  assert.ok(checkpoint(left).restored)
 
   const old = encounter('chain-warden', 6, 6)
   const legacy = { ...old, battle: { ...old.battle, loot: { ...old.battle.loot, ...gear('hammer'), items: { hook: 2, mantle: 1 }, armed: ['hammer'], shards: { assist: 1 } } } }

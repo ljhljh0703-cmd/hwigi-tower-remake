@@ -113,6 +113,25 @@ for (let seed = Number(first); seed < Number(first) + Number(count); seed++) {
       else stats.lost++
       break
     }
+    if (rules === 7 && run.route.screen === 'shop') {
+      if (measured) {
+        for (const id of rewardOffers(run)) track(id).offered++
+        if (metaPool.length) compareCandidates('shop', treasureOffers({ ...run, meta: undefined }, node), rewardOffers(run))
+      }
+      while (run.route.screen === 'shop') {
+        const item = pickSevenTreasure(run, metaPicks === 'auto' || metaPicks === 'artifact')
+        const next = takeAscentReward(run, item, sevenRewardOptions(run, item))
+        if (next === run) throw new Error(`구매 실패: ${seed}, ${node.floor}층, ${item}`)
+        if (measured && item !== 'skip') {
+          track(item).selected++
+          measured.owned.add(item)
+          if (next.battle.playerHp > run.battle.playerHp) measured.used.add(item)
+        }
+        run = next
+      }
+      run = returnToMap(run)
+      continue
+    }
     const choice = node.enemyId === 'chain-warden' ? (relic === 'mixed' ? BOSS_RELICS[draw(seed, node.id, 94) % 4] : relic)
       : rules === 7 ? pickSevenTreasure(run, metaPicks === 'auto' || metaPicks === 'artifact')
       : node.kind === 'elite' ? rewardOffers(run)[0] ?? 'skip' : pickTreasure(run)

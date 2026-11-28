@@ -623,7 +623,7 @@ export function resolveYachtTurn(battle: YachtBattle, unlocks?: readonly Hand[])
   const gimmick = yachtGimmick(battle)
   const activated = gimmick?.ready ? gimmick.kind : undefined
   const inCrisis = planned.damage >= battle.playerHp || battle.playerHp * 10 <= PLAYER_HP * 3
-  const awakened = !battle.awakened && inCrisis && draw(battle.seed, battle.turn, 5) / 0x100000000 < 0.1
+  const awakened = !battle.itemsSeven && !battle.awakened && inCrisis && draw(battle.seed, battle.turn, 5) / 0x100000000 < 0.1
   const mechanic = enemyIntentAt(battle).mechanic
   const sacrificed = bloodDieFor(battle)
   const awakenedDice = awakened ? battle.dice.map((face, index) =>
@@ -717,8 +717,7 @@ export function spinYachtCounter(battle: YachtBattle, choice?: CounterChoice): Y
     if (!choice && choices.length > 1) return loot.counter ? battle : { ...battle, loot: { ...loot, counter: rolled } }
     if (choice && (!loot.counter || !choices.includes(choice))) return battle
     if (choice === 'coin') {
-      const second = yachtCounterSlot(battle, true)
-      return { ...battle, loot: { ...spendConsumable(loot, 'coin'), counter: { slot: second, ...rewards[second] }, counterRecast: true } }
+      return { ...battle, loot: { ...spendConsumable(loot, 'coin'), counter: bestCoinCounter(battle), counterRecast: true } }
     }
     const result = battle.itemsSeven ? settleSevenCounter(battle, loot, rolled, choice) : settleTreasureCounter(battle, rolled, choice ?? 'now')
     loot = result.loot
@@ -745,6 +744,14 @@ export function spinYachtCounter(battle: YachtBattle, choice?: CounterChoice): Y
       : { ...perk, rewards, growth: perk.growth + START_PERKS.counter.step } }),
   }
   return next.turn > battle.turn ? openYachtDice(next) : expireBattleTreasure(next)
+}
+
+export function bestCoinCounter(battle: YachtBattle): CounterResult {
+  const table = yachtCounterRewards(battle)
+  const first = yachtCounterSlot(battle)
+  const second = yachtCounterSlot(battle, true)
+  const slot = counterDamage(battle, table[second].damage) > counterDamage(battle, table[first].damage) ? second : first
+  return { slot, ...table[slot] }
 }
 
 function settleSevenCounter(battle: YachtBattle, state: TreasureState, rolled: CounterResult, choice?: Exclude<CounterChoice, 'coin'>) {
