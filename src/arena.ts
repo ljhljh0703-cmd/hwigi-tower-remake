@@ -105,8 +105,33 @@ export const upperCardLanes = (count: number) => count === 3 ? [.39, .631, .91] 
 const upperActorLanes = (count: number, wide: boolean) => count === 3
   ? wide ? [.31, .631, .914] : [.347, .656, .920]
   : upperCardLanes(count)
-const upperHeroLane = .13
 const upperTier = (width: number) => width >= 344 ? 60 : 35
+const upperEnemyScale = (id: UpperRole, lane: number, wide: boolean, px: number) =>
+  (4 + Number(wide) - Number(lane > 0 || id === 'gatekeeper')) * px
+// Leftmost opaque pixel relative to the foot in poses that extend past idle.
+const upperHeroOverhang: Record<string, number> = {
+  'attack-prepare': 14, step: 4, attack: 20, 'attack-follow': 19, hit: 9,
+}
+
+function layoutUpperEnemies(roles: readonly UpperRole[], width: number, wide: boolean, px: number, playerRight: number) {
+  const lanes = upperActorLanes(roles.length, wide)
+  const widths = roles.map((id, lane) => {
+    const { cell } = atlasCell(frame(upperSprites[id], lane ? 'rear-ready' : 'ready'))
+    return cell.bounds[2] * upperEnemyScale(id, lane, wide, px)
+  })
+  const rightEdge = width - 4 * px
+  let remaining = widths.reduce((total, item) => total + item, 0)
+  const gap = Math.max(0, Math.min(12 * px, Math.floor((rightEdge - playerRight - remaining) / Math.max(1, roles.length))))
+  let left = playerRight
+  return widths.map((bodyWidth, lane) => {
+    const half = Math.ceil(bodyWidth / 2)
+    const latest = rightEdge - remaining + half - (roles.length - lane - 1) * gap
+    const center = Math.min(latest, Math.max(left + gap + half, Math.round(lanes[lane] * width)))
+    left = center - half + bodyWidth
+    remaining -= bodyWidth
+    return center
+  })
+}
 const upperBossArt = 'upper-boss-special'
 const upperAttackStages = ['anticipate', 'approach', 'contact', 'follow'] as const
 const upperHeavyPoses = ['charge-set', 'charge-approach', 'charge-contact', 'charge-follow'] as const
@@ -255,7 +280,7 @@ export class Arena {
   private lastFrame = 0
   private upperScene?: Formation
   private upperMotion?: UpperMotion & { at: number; hold: number }
-  private upperFallen: { id: UpperRole; lane: number; count: number; at: number }[] = []
+  private upperFallen: { id: UpperRole; lane: number; roles: UpperRole[]; at: number }[] = []
 
   constructor(frame: HTMLElement, encounter: HTMLElement, intent: HTMLElement, inventory: HTMLElement) {
     this.frame = frame
@@ -363,9 +388,19 @@ export class Arena {
     this.encounter.style.setProperty('--ground', `${ground}px`)
     const upper = this.battle?.formation
     const tier = upperTier(stage.width)
-    if (upper) this.encounter.style.setProperty('--upper-tier', `${tier}px`)
-    this.encounter.style.setProperty('--player-x', `${upper ? stage.width * upperHeroLane : x(hero)}px`)
-    this.encounter.style.setProperty('--enemy-x', `${upper ? stage.width * upperActorLanes(livingEnemies(upper).length, tier === 60)[0] : x(enemy)}px`)
+    let enemyX = x(enemy)
+    if (upper) {
+      const px = Math.max(1, Math.round(this.density))
+      const player = placements.get(hero)!
+      const edge = 4 * px + hero.restReach![0] * player.scale
+      player.foot = zoom > 1 ? Math.max(edge, Math.round(this.canvas.width * .18)) : edge
+      const foes = livingEnemies(upper).map(enemy => enemy.id)
+      const [front] = layoutUpperEnemies(foes, this.canvas.width, tier === 60, px, player.foot + hero.restReach![1] * player.scale)
+      if (front !== undefined) enemyX = canvasLeft + front / this.density
+      this.encounter.style.setProperty('--upper-tier', `${tier}px`)
+    }
+    this.encounter.style.setProperty('--player-x', `${x(hero)}px`)
+    this.encounter.style.setProperty('--enemy-x', `${enemyX}px`)
     this.encounter.style.setProperty('--player-body', `${ground - hero.footY * placements.get(hero)!.scale * .51 / this.density}px`)
     this.encounter.style.setProperty('--enemy-body', `${ground - (enemy.footY - enemy.head) * foe.scale * .57 / this.density}px`)
     if (this.enemyId === 'escort') {
@@ -763,23 +798,26 @@ export class Arena {
     const shiftProgress = motion?.from ? motion.kind === 'advance' ? progress : 0 : 1
     const foes = livingEnemies(formation)
     const previous = motion?.from && livingEnemies(motion.from)
-    const getX = (lane: number, count = foes.length) => Math.round(upperActorLanes(count, wide)[lane] * canvas.width)
+    const { foot: heroX, scale: heroScale } = this.placements.get(hero)!
+    const layout = (roles: readonly UpperRole[]) =>
+      layoutUpperEnemies(roles, canvas.width, wide, px, heroX + hero.restReach![1] * heroScale)
+    const settled = layout(foes.map(enemy => enemy.id))
+    const starting = previous ? layout(previous.map(enemy => enemy.id)) : settled
     const getY = (lane: number) => floor - (lane ? upper : 0)
-    const heroX = Math.round(canvas.width * ((previous ?? foes).length === 3 ? .083 : .095))
     const point = (id: UpperRole, index: number) => {
       const before = previous?.findIndex(enemy => enemy.id === id) ?? index
       const old = before < 0 ? index : before
-      const fromX = getX(old, previous?.length)
-      return { x: Math.round(fromX + (getX(index) - fromX) * shiftProgress),
+      const fromX = starting[old] ?? settled[index]
+      return { x: Math.round(fromX + (settled[index] - fromX) * shiftProgress),
         y: Math.round(getY(old) + (getY(index) - getY(old)) * shiftProgress), old }
     }
     // The boss has denser front art and its own compact rear cells.
-    const selectScale = (id: UpperRole, index: number) => (4 + Number(wide) - Number(index > 0 || id === 'gatekeeper')) * px
+    const selectScale = (id: UpperRole, index: number) => upperEnemyScale(id, index, wide, px)
     const centerOffset = (cell: ReturnType<typeof atlasCell>['cell'], pivot: number[], scale: number) =>
       Math.round((cell.bounds[0] + cell.bounds[2] / 2 - pivot[0]) * scale)
     if (foes.length) {
       context.fillStyle = '#bfa985'
-      context.fillRect(getX(0) - 21 * px, floor + px, 42 * px, px)
+      context.fillRect(settled[0] - 21 * px, floor + px, 42 * px, px)
     }
     for (const [index, enemy] of foes.entries()) {
       const { x, y } = point(enemy.id, index)
@@ -795,16 +833,15 @@ export class Arena {
       const scale = selectScale(fall.id, fall.lane)
       const pose = this.reducedMotion ? frame(name, 'down') : hurtFrame(name, 8, true, age)
       const { cell, atlas, art } = atlasCell(age < fracture.release || this.reducedMotion ? pose : frame(name, 'heavy-hit'))
-      const x = getX(fall.lane, fall.count) - centerOffset(cell, atlas.pivot, scale)
+      const x = layout(fall.roles)[fall.lane] - centerOffset(cell, atlas.pivot, scale)
       const y = getY(fall.lane)
       if (age < fracture.release || this.reducedMotion) this.drawCell(pose, x, y, scale)
       else this.drawBrokenBody(art, cell.rect, atlas.pivot, x, y, scale, age, upperMaterials[fall.id] ?? null)
     }
-    let bladeX = 0, bladeY = 0
+    let bladeX = 0
     let heroPose = this.battle?.phase === 'lost' ? 'down' : 'idle'
-    function bladeOffset(x: number, y: number, t: number) {
-      bladeX = (x - heroX - (heroSwordTip[0] - heroFootX) * 2 * px) * t
-      bladeY = (y - floor - (heroSwordTip[1] - hero.footY) * 2 * px) * t
+    function bladeOffset(x: number, t: number) {
+      bladeX = (x - heroX - (heroSwordTip[0] - heroFootX) * heroScale) * t
     }
     for (let index = foes.length - 1; index >= 0; index--) {
       const enemy = foes[index]
@@ -846,8 +883,8 @@ export class Arena {
         const tip = cell.candidateContact ?? [cell.bounds[0], atlas.pivot[1] - 14]
         const distance = preparing ? Math.min(1, elapsed / approach) : Math.max(0, 1 - Math.max(0, elapsed - 65) / 120)
         if (!this.reducedMotion || !preparing) {
-          x += Math.round((heroX + 10 * px - x - (tip[0] - atlas.pivot[0]) * scale) * distance)
-          y += Math.round((floor - 15 * px - y - (tip[1] - atlas.pivot[1]) * scale) * distance)
+          x += Math.round((heroX + 5 * heroScale - x - (tip[0] - atlas.pivot[0]) * scale) * distance)
+          y += Math.round((floor - 7.5 * heroScale - y - (tip[1] - atlas.pivot[1]) * scale) * distance)
         }
         heroPose = motion.kind === 'block' ? 'guard-brace' : motion.kind === 'recoil' ? 'hit' : 'guard'
         if (motion.kind === 'recoil' && !this.reducedMotion) {
@@ -865,33 +902,33 @@ export class Arena {
       if (isSource && motion.kind === 'swing') {
         const t = this.reducedMotion ? 1 : Math.min(1, elapsed / (motion.approach ?? 106))
         heroPose = t < .35 ? 'attack-prepare' : t < .82 ? 'step' : 'attack'
-        bladeOffset(x + (cell.bounds[0] - atlas.pivot[0]) * scale, y - 18 * px, motion.approach ? t * t : t)
+        bladeOffset(x + (cell.bounds[0] - atlas.pivot[0]) * scale, motion.approach ? t * t : t)
       }
     }
     if (motion?.blade && motion.kind === 'hit' && elapsed < 145) {
-      const lane = previous?.findIndex(enemy => enemy.id === motion.id) ?? 0
+      const lane = Math.max(0, previous?.findIndex(enemy => enemy.id === motion.id) ?? 0)
       const name = upperSprites[motion.id]
       const { cell } = atlasCell(frame(name, lane ? 'rear-ready' : 'ready'))
       const held = this.reducedMotion ? 1 : Math.min(1, (145 - elapsed) / 92)
       heroPose = held === 1 ? 'attack' : 'attack-follow'
-      bladeOffset(getX(lane, previous?.length) - cell.bounds[2] * selectScale(motion.id, lane) / 2, getY(lane) - 18 * px, held)
+      bladeOffset(starting[lane] - Math.ceil(cell.bounds[2] * selectScale(motion.id, lane) / 2), held)
     }
-    this.placements.set(hero, { foot: heroX, scale: 2 * px, travel: 0 })
-    this.drawHero(heroPose, bladeX, bladeY)
+    const leftReach = upperHeroOverhang[heroPose] ?? hero.restReach![0]
+    this.drawHero(heroPose, Math.max(bladeX, 3 * px + leftReach * heroScale - heroX))
     if (motion?.kind === 'hit' && !motion.defeated && !this.reducedMotion) {
       const material = upperMaterials[motion.id]
       const lane = previous?.findIndex(enemy => enemy.id === motion.id) ?? -1
       if (material && lane >= 0) {
         const { cell } = atlasCell(frame(upperSprites[motion.id], lane ? 'rear-ready' : 'ready'))
         const ground = getY(lane)
-        const x = getX(lane, previous?.length) - cell.bounds[2] * selectScale(motion.id, lane) / 2
+        const x = starting[lane] - Math.ceil(cell.bounds[2] * selectScale(motion.id, lane) / 2)
         drawMaterialChips(context, material, elapsed, x, ground - 18 * px, ground, px, motion.amount! >= 5)
       }
     }
     if (motion?.kind === 'block' && elapsed < 100) {
       context.fillStyle = '#ffe5a6'
-      context.fillRect(heroX + 12 * px, floor - 16 * px, 8 * px, 2 * px)
-      context.fillRect(heroX + 14 * px, floor - 20 * px, 2 * px, 8 * px)
+      context.fillRect(heroX + 6 * heroScale, floor - 8 * heroScale, 8 * px, 2 * px)
+      context.fillRect(heroX + 7 * heroScale, floor - 10 * heroScale, 2 * px, 8 * px)
     }
     context.restore()
   }
@@ -910,7 +947,7 @@ export class Arena {
     if (motion?.defeated && formation) {
       const previous = livingEnemies(motion.from ?? formation)
       const lane = previous.findIndex(enemy => enemy.id === motion.id)
-      this.upperFallen.push({ id: motion.id, lane: Math.max(0, lane), count: previous.length, at })
+      this.upperFallen.push({ id: motion.id, lane: Math.max(0, lane), roles: previous.map(enemy => enemy.id), at })
     }
     this.restartAnimation()
   }

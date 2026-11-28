@@ -29,8 +29,9 @@ for i, name in enumerate(("bone", "ego", "socket")):
     atlas.save(DEST / f"{name}.png", optimize=True)
 
 socket = part_at(sheet, 2).resize((88, 88), Image.Resampling.LANCZOS)
-socket.save(DEST / "slot-frame.png", optimize=True)
-tint(socket, "#222b25", "#b8b395").save(DEST / "slot-filled.png", optimize=True)
+slate = tint(socket, "#222b25", "#b8b395")
+ImageEnhance.Brightness(slate).enhance(0.76).save(DEST / "slot-frame.png", optimize=True)
+slate.save(DEST / "slot-filled.png", optimize=True)
 tint(socket, "#171316", "#ac7850").resize((44, 44), Image.Resampling.LANCZOS).save(
     DEST / "stolen-socket.png", optimize=True,
 )

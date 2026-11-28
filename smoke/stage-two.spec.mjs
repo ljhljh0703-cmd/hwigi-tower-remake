@@ -33,6 +33,14 @@ test.beforeEach(async ({ page }) => {
     }
     const draw = canvas.drawImage
     canvas.drawImage = function (source, ...args) {
+      if (this.canvas.parentElement?.id === 'arena') {
+        if (source.src?.includes('/art/ui/backgrounds/') && args[1] === 204) window.arenaGround = args[5]
+        if (source.src?.endsWith('/art/hero-idle.png') && args.length === 4) {
+          const [x, y, width, height] = args
+          const scale = width / source.naturalWidth
+          window.idleHero = { scale, scaleY: height / source.naturalHeight, foot: y + 39 * scale, right: x + 47 * scale }
+        }
+      }
       if (this.canvas.parentElement?.id === 'arena' && source.src?.includes('/art/motion/') && args.length === 8) {
         const sheet = source.src.split('/').at(-1).replace('.png', '')
         window.upperSpriteDraws?.push({ sheet, args })
@@ -87,6 +95,8 @@ async function verifyFormationArt(page, sheets) {
     return { left: x + left, top: y + top, right: x + left + bodyWidth, bottom: y + top + height, height, scale }
   })
   const [front, ...rear] = boxes
+  const hero = await verifyHeroOnFloor(page)
+  expect(hero.right).toBeLessThanOrEqual(front.left)
   expect(front.height).toBeGreaterThanOrEqual(95)
   for (const back of rear) {
     expect(back.scale).toBeLessThan(front.scale)
@@ -114,6 +124,21 @@ async function resume(page, run) {
   await page.locator('#continue-ascent').tap()
   await expect(page.locator('#room-transition')).toBeHidden()
 }
+
+async function verifyHeroOnFloor(page, scale = 3) {
+  await expect.poll(() => page.evaluate(() => {
+    const hero = window.idleHero
+    return hero && [hero.scale, hero.scaleY, hero.foot - window.arenaGround]
+  })).toEqual([scale, scale, 0])
+  return page.evaluate(() => window.idleHero)
+}
+
+test('the upper-floor hero uses the lower-floor pixel scale and stands on the arena floor', async ({ page }) => {
+  await resume(page, atFloor(12))
+  const { scale } = await verifyHeroOnFloor(page)
+  await resume(page, atFloor(19))
+  await verifyHeroOnFloor(page, scale)
+})
 
 async function photo(page, label) {
   const output = process.env.HWIGI_STAGE_TWO_SHOTS

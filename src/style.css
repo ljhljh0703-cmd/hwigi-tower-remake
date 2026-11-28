@@ -2605,6 +2605,9 @@ main[data-screen='defeat'] {
 .upper-field .combatant.player {
   --card-width: 78px;
 }
+@media (max-width: 560px) {
+  [data-screen='battle'] #battle .encounter.upper-field { margin-inline: -16px; }
+}
 .upper-readout { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
 .upper-goal {
   position: absolute;
@@ -2621,13 +2624,16 @@ main[data-screen='defeat'] {
 }
 .upper-goal b { color: #ffd689; font-size: .95rem; }
 .upper-card {
+  --upper-card-width: 64px;
+  --upper-card-edge: calc(var(--upper-card-width) / 2 + 4px);
   position: absolute;
-  inset: calc(var(--ground, 130px) + 3px) auto auto var(--lane-x);
+  inset: calc(var(--ground, 130px) + 3px) auto auto
+    clamp(var(--upper-card-edge), var(--lane-x), calc(100% - var(--upper-card-edge)));
   transform: translateX(-50%);
   display: grid;
   justify-items: center;
   align-content: start;
-  inline-size: 64px;
+  inline-size: var(--upper-card-width);
   padding: 2px 3px;
   color: #fff2d5;
   background: #28231ff5;
@@ -2638,7 +2644,7 @@ main[data-screen='defeat'] {
   line-height: 1.15;
 }
 .upper-card:not([data-lane='0']) { inset-block-start: calc(var(--ground, 130px) - var(--upper-tier, 35px) + 3px); border-color: #8f897e; }
-.upper-card[data-role='gatekeeper'] { color: #ffe6ac; inline-size: 76px; }
+.upper-card[data-role='gatekeeper'] { color: #ffe6ac; --upper-card-width: 76px; }
 .upper-card[data-role='gatekeeper'] .upper-hp { font-size: .85rem; gap: 2px; }
 .upper-name { white-space: nowrap; }
 .upper-position { display: flex; color: #fdd390; font-size: .8rem; }
@@ -2693,7 +2699,7 @@ main[data-screen='defeat'] {
 }
 
 @media (min-width: 361px) {
-  .upper-card { inline-size: 70px; }
+  .upper-card { --upper-card-width: 70px; }
 }
 
 @media (max-height: 620px) {
