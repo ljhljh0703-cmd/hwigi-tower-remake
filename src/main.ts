@@ -48,7 +48,7 @@ import {
 } from './yacht-combat.ts'
 import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput, rerollSelectedDice } from './dice-drag.ts'
-import { dieCenter, playDiceMotion, playPlacementMotion } from './dice-motion.ts'
+import { dieCenter, playDiceMotion, playPlacementMotion, playRerollMotion, playStraightPhrase } from './dice-motion.ts'
 import { CounterRoulette } from './counter-roulette.ts'
 import type { DropZone } from './dice-drag.ts'
 import './style.css'
@@ -287,6 +287,14 @@ let dockItem: Reward | undefined
 let exchangeBusy = false
 let stopDiceMotion: (() => void) | undefined
 let stopPlacementMotion: (() => void) | undefined
+let stopRerollMotion: (() => void) | undefined
+let diceFeedback = new AbortController()
+function interruptDiceFeedback() {
+  diceFeedback.abort()
+  diceFeedback = new AbortController()
+}
+window.addEventListener('resize', interruptDiceFeedback)
+window.visualViewport?.addEventListener('resize', interruptDiceFeedback)
 let turnSignals = new AbortController()
 const selected = new Set<number>()
 const roulette = new CounterRoulette(ui.counterPanel, ui.counter)
@@ -310,14 +318,14 @@ function effectDuration(milliseconds: number) { return milliseconds / animationS
 
 function renderSettings() {
   const reduced = reducedMotion()
+  if (document.documentElement.dataset.animationSpeed !== settings.speed ||
+      document.documentElement.dataset.reducedMotion !== String(reduced)) interruptDiceFeedback()
   document.documentElement.dataset.reducedMotion = String(reduced)
   document.documentElement.dataset.animationSpeed = settings.speed
   arena.setAnimation(animationSpeed(), reduced)
   if (reduced) {
     feel.clear()
     roulette.finishMotion()
-    stopDiceMotion?.()
-    stopPlacementMotion?.()
   }
   const switches = [
     [ui.settingsMusic, settings.music], [ui.settingsEffects, settings.effects], [ui.settingsMotion, reduced],
@@ -394,8 +402,12 @@ element('replay-first-run').addEventListener('click', () => {
 })
 systemMotion.addEventListener('change', renderSettings)
 
-document.addEventListener('visibilitychange', () => { if (document.hidden) sound.suspend() })
-window.addEventListener('pagehide', () => sound.suspend())
+function suspendFeedback() {
+  interruptDiceFeedback()
+  sound.suspend()
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) suspendFeedback() })
+window.addEventListener('pagehide', suspendFeedback)
 function resumeAudio(event: Event) {
   if (event.isTrusted && !document.hidden) sound.resumeOnGesture()
 }
@@ -2172,6 +2184,7 @@ function renderFirstRun(run: Ascent) {
 function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) {
   stopDiceMotion?.()
   stopPlacementMotion?.()
+  stopRerollMotion?.()
   if (!ascent) return
   holdHelp.hidden = true
   const { battle, fight, enemy, maxHp, unlocks, newUnlock, route } = ascent
@@ -2263,9 +2276,8 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
       ui.unlockHeading.innerHTML = `${icon(unlock.icon)}${unlock.label}`
       ui.unlockReveal.innerHTML = `<span class="companion-tile" aria-hidden="true">${icon(unlock.icon)}<i class="ego-shell left"></i><i class="ego-shell right"></i></span>`
     } else {
-      const faces = [2, 4, 1, 3, 6, 5].map((face) => `<span>${face}</span>`).join('')
       ui.unlockHeading.innerHTML = `${icon('unlock')}해금`
-      ui.unlockReveal.innerHTML = `<div class="die-net" aria-hidden="true">${faces}</div><span class="unlock-value">${icon(unlock.icon)}<strong>${unlock.value}</strong></span>`
+      ui.unlockReveal.innerHTML = `${unlockPattern('straight', 3)}<span class="unlock-value">${icon(unlock.icon)}<strong>${unlock.value}</strong></span>`
     }
     ui.unlockReveal.setAttribute('aria-label', revealLabel)
     ui.feedback.textContent = revealLabel
@@ -2333,7 +2345,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.encounter.classList.toggle('gimmick-intro', !ui.planning.hidden && !!gimmick &&
     !firstRun.includes(ascent) && firstRun.needsSpace(`gimmick-${gimmick}`))
   arena.refresh(battle, enemy.id, floor)
-  if (rollTurn && !ui.planning.hidden && !reducedMotion()) {
+  if (rollTurn && !ui.planning.hidden && !document.hidden && !reducedMotion()) {
     const ego = companionDieIndex(battle)
     stopDiceMotion = playDiceMotion(ui.encounter, battle.dice.map((face, index) => ({
       button: diceButtons[index], face, ego: index === ego,
@@ -2342,16 +2354,16 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
       diceButtons.forEach(die => die.dispatchEvent(new Event('die-landed')))
       if (document.activeElement === ui.planning) focusPhase()
     }, (cue, index, companion) => {
-      if (cue === 'land') sound.play('dice-roll', 1 + index * .05, index === 0 ? .17 : .075, .052)
-      if (cue === 'bounce') sound.play('rebound', 1 + index * .06, index === 0 ? .13 : .045)
+      if (cue === 'land') sound.contact('die-corner', 1 + index * .035, index === 0 ? .27 : .11)
+      if (cue === 'bounce' && index === 0) sound.contact('die-rebound', 1, .22)
       if (cue === 'seat') {
-        if (index === 0) sound.play('seat', 1, .09)
-        if (companion) sound.play('hum', 1, .08)
+        if (index === 0) sound.contact('seat', 1, .09)
+        if (companion) sound.contact('hum', 1, .08)
       }
-    }, animationSpeed())
+    }, animationSpeed(), diceFeedback.signal)
   } else if (rollTurn && !ui.planning.hidden) {
-    sound.play('seat', 1, .09)
-    if (battle.fourthDieUnlocked) sound.play('hum', 1, .065)
+    sound.contact('seat', 1, .09)
+    if (companionDieIndex(battle) !== null) sound.contact('hum', 1, .065)
   }
   if (presentation === 'normal') renderFirstRun(ascent)
 }
@@ -2367,6 +2379,7 @@ function refreshLobbyActions() {
 }
 
 function resetPresentation() {
+  interruptDiceFeedback()
   itemControl = undefined
   dockItem = undefined
   firstRun.clear()
@@ -2519,9 +2532,8 @@ function place(indices: readonly number[], zone: DropZone) {
   let battle = before
   for (const index of indices) if (canPlaceMetaDie(battle, index, slot)) battle = assignDie(battle, index, slot)
   const moved = indices.filter((index) => battle.slots[index] !== before.slots[index])
-  for (const i of moved) diceButtons[i].getAnimations().filter(a => a.id === 'reroll').forEach(a => a.cancel())
   const seat = () => {
-    sound.play(slot ? 'dice-place' : 'seat', slot ? 1 : 1.25, slot ? .19 : .13)
+    sound.contact(slot ? 'dice-place' : 'seat', slot ? 1 : 1.25, slot ? .19 : .13)
     feel.pulse(ui.dice[zone], slot ? 2 : -2)
   }
   const scene = ui.planning.getBoundingClientRect()
@@ -2538,7 +2550,7 @@ function place(indices: readonly number[], zone: DropZone) {
   if (moved.length) render()
   else refreshSelection(ascent)
   if (animated.length) {
-    stopPlacementMotion = playPlacementMotion(ui.planning, animated, () => { stopPlacementMotion = undefined }, seat, animationSpeed())
+    stopPlacementMotion = playPlacementMotion(ui.planning, animated, () => { stopPlacementMotion = undefined }, seat, animationSpeed(), diceFeedback.signal)
   } else if (moved.length) seat()
   const guideTarget = ui.planning.querySelector<HTMLElement>('[data-first-run-target]:is(.die, #resolve)')
   const unassigned = battle.slots.indexOf(null)
@@ -2575,28 +2587,25 @@ for (const zone of ['pool', ...combatSlots] as const) {
   })
 }
 function useReroll(extra: boolean) {
-  if (ui.guide.open || exchangeBusy || !ascent) return
+  if (ui.guide.open || exchangeBusy || stopDiceMotion || !ascent) return
   const before = ascent.battle
-  const indices = [...selected].filter(index => canReroll(before, index))
   const seal = enemyIntentAt(before).mechanic
   const rerolled = rerollSelectedDice(ascent.battle, selected, extra)
   if (!rerolled) return
   ascent = { ...ascent, battle: rerolled.battle }
   saveCurrent()
   render()
-  sound.play('dice-roll', 1.2, .13, effectDuration(120) / 1000)
-  for (const index of indices) {
-    const die = diceButtons[index]
-    const animation = feel.animate(die, [{ transform: 'none' }, { transform: 'translateY(-5px) rotate(-15deg)' },
-      { transform: 'translateY(-2px) rotate(10deg)' }, { transform: 'none' }], 125,
-      () => {
-        if (index === indices[0]) sound.play('rebound')
-        if (seal?.kind === 'seal' && before.dice[index] !== seal.value && rerolled.battle.dice[index] === seal.value) {
-          dieStatusCue(rerolled.battle, index, 'stamp')
-        }
-      })
-    animation.id = 'reroll'
+  const contact = () => {
+    sound.contact('die-rebound', 1.08, .22)
+    for (const index of rerolled.indices) {
+      if (seal?.kind === 'seal' && before.dice[index] !== seal.value && rerolled.battle.dice[index] === seal.value) {
+        dieStatusCue(rerolled.battle, index, 'stamp')
+      }
+    }
   }
+  if (reducedMotion()) contact()
+  else stopRerollMotion = playRerollMotion(rerolled.indices.map(index => ({ button: diceButtons[index], from: before.dice[index] })),
+    animationSpeed(), diceFeedback.signal, contact, () => { stopRerollMotion = undefined })
   if (rerolled.battle.loot?.reserveRoll) ui.treasureControls.querySelector('button')?.focus()
   else diceButtons[rerolled.focusIndex].focus()
 }
@@ -2686,7 +2695,8 @@ function lockExchange(locked: boolean) {
   ui.returnLobby.disabled = true
 }
 
-async function showEgoPlacement(ego: NonNullable<Exchange['ego']>) {
+async function showEgoPlacement(ego: NonNullable<Exchange['ego']>, signal: AbortSignal) {
+  if (signal.aborted || document.hidden) return
   const { slot, face } = ego
   const center = (element: HTMLElement) => {
     const { x, y, width, height } = element.getBoundingClientRect()
@@ -2703,18 +2713,25 @@ async function showEgoPlacement(ego: NonNullable<Exchange['ego']>) {
   egoPlacement.style.top = `${y}px`
   egoPlacement.innerHTML = `<strong>${face}</strong><small>에고 → ${label}</small>`
   egoPlacement.hidden = false
-  sound.play('hum', 1, .065)
-  if (motion) {
-    const dx = target.x - origin.x
-    const dy = target.y - origin.y
-    egoPlacement.animate([
-      { transform: 'translate(0, 0) rotate(-15deg)' },
-      { transform: `translate(${dx * .46}px, ${dy * .46 - 26}px) rotate(13deg)`, offset: .46 },
-      { transform: `translate(${dx}px, ${dy}px) rotate(0)` },
-    ], { duration: effectDuration(400), easing: 'cubic-bezier(.22,.61,.36,1)', fill: 'forwards' })
+  sound.contact('die-rebound', 1.18, .15)
+  const dx = target.x - origin.x
+  const dy = target.y - origin.y
+  const flight = egoPlacement.animate(motion ? [
+    { transform: 'translate(0, 0) rotate(-15deg)' },
+    { transform: `translate(${dx * .46}px, ${dy * .46 - 26}px) rotate(13deg)`, offset: .46 },
+    { transform: `translate(${dx}px, ${dy}px) rotate(0)` },
+  ] : [{}], { duration: effectDuration(motion ? 400 : 130), easing: 'cubic-bezier(.22,.61,.36,1)', fill: 'forwards' })
+  const cancel = () => flight.cancel()
+  signal.addEventListener('abort', cancel, { once: true })
+  try {
+    await flight.finished
+    if (!signal.aborted) sound.contact('seat', 1, .09)
+  } catch { /* A cancelled flight has no audible arrival. */ }
+  finally {
+    signal.removeEventListener('abort', cancel)
+    egoPlacement.hidden = true
+    flight.cancel()
   }
-  await wait(motion ? 400 : 130)
-  egoPlacement.hidden = true
 }
 
 async function showUnlockAwakening(hand: Hand) {
@@ -2748,6 +2765,8 @@ ui.resolve.addEventListener('click', async () => {
   itemControl = undefined
   dockItem = undefined
   let next = resolved
+  stopRerollMotion?.()
+  const feedback = diceFeedback.signal
   turnSignals.abort()
   turnSignals = new AbortController()
   feel.clear()
@@ -2764,7 +2783,7 @@ ui.resolve.addEventListener('click', async () => {
   clearExchange()
   const { phase, lastExchange } = resolved.battle
   try {
-    if (lastExchange?.ego) await showEgoPlacement(lastExchange.ego)
+    if (lastExchange?.ego) await showEgoPlacement(lastExchange.ego, feedback)
     next = firstRun.opening(noteMetaVictory(resolved), before.turn)
     ascent = next
     saveCurrent()
@@ -2799,7 +2818,11 @@ ui.resolve.addEventListener('click', async () => {
             { duration: effectDuration(190), easing: 'ease-out', fill: 'forwards' })
         }
       }
-      sound.play('unlock')
+      if (next.newUnlock === 'straight') {
+        if (!feedback.aborted && !document.hidden) {
+          playStraightPhrase(ui.unlockReveal, animationSpeed(), feedback, pitch => sound.contact('die-note', pitch, .23))
+        }
+      } else sound.play('unlock')
       await wait(next.newUnlock === 'triple' ? companionAwakenDuration : unlockDuration)
     } else if (phase === 'won') {
       await wait(reducedMotion() ? 320 : damageDuration)
@@ -2808,7 +2831,7 @@ ui.resolve.addEventListener('click', async () => {
     egoPlacement.hidden = true
     ui.intent.classList.remove('parry-in-progress')
     lockExchange(false)
-    render('normal', next.battle.turn !== before.turn)
+    render('normal', next.battle.turn !== before.turn && !feedback.aborted)
     if (before.turn !== next.battle.turn && !ui.planning.hidden) turnCues(before, true)
     finishCues(previous, next)
     resumeCounterOrFocus()

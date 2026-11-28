@@ -8,7 +8,7 @@ export function rerollSelectedDice(battle: YachtBattle, selected: Set<number>, e
   const rerolled = extra ? spendExtraReroll(battle, indices[0]) : rerollYachtDice(battle, indices)
   if (rerolled === battle) return null
   selected.clear()
-  return { battle: rerolled, focusIndex: indices[0] }
+  return { battle: rerolled, indices, focusIndex: indices[0] }
 }
 
 export type DropZone = 'pool' | Slot

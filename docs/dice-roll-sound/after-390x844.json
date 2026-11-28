@@ -1,0 +1,277 @@
+{
+  "seed": 7,
+  "browserVersion": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36 Edg/158.0.0.0",
+  "width": 390,
+  "height": 844,
+  "frames": 156,
+  "durationMs": 6484,
+  "sampleRate": 48000,
+  "peakDbFS": -14.6,
+  "finalDice": [
+    5,
+    1,
+    2
+  ],
+  "finalFocus": "주사위 1, 5, 미배치",
+  "unlocks": [
+    "straight"
+  ],
+  "rolls": [
+    {
+      "startMs": 853,
+      "duration": 664,
+      "firstDustMs": 1167,
+      "secondDustMs": 1367
+    },
+    {
+      "startMs": 877,
+      "duration": 664,
+      "firstDustMs": 1183,
+      "secondDustMs": 1383
+    },
+    {
+      "startMs": 901,
+      "duration": 664,
+      "firstDustMs": 1217,
+      "secondDustMs": 1417
+    },
+    {
+      "startMs": 5310,
+      "duration": 664,
+      "firstDustMs": 5616,
+      "secondDustMs": 5816
+    },
+    {
+      "startMs": 5334,
+      "duration": 664,
+      "firstDustMs": 5633,
+      "secondDustMs": 5850
+    },
+    {
+      "startMs": 5358,
+      "duration": 664,
+      "firstDustMs": 5666,
+      "secondDustMs": 5866
+    }
+  ],
+  "sounds": [
+    {
+      "name": "die-corner.wav",
+      "rate": 1,
+      "ms": 1169,
+      "filled": 0
+    },
+    {
+      "name": "die-corner.wav",
+      "rate": 1.035,
+      "ms": 1186,
+      "filled": 0
+    },
+    {
+      "name": "die-corner.wav",
+      "rate": 1.07,
+      "ms": 1219,
+      "filled": 0
+    },
+    {
+      "name": "die-rebound.wav",
+      "rate": 1,
+      "ms": 1369,
+      "filled": 0
+    },
+    {
+      "name": "seat.wav",
+      "rate": 1,
+      "ms": 1985,
+      "filled": 0
+    },
+    {
+      "name": "die-rebound.wav",
+      "rate": 1.08,
+      "ms": 2802,
+      "filled": 0
+    },
+    {
+      "name": "dice-place.mp3",
+      "rate": 1,
+      "ms": 3318,
+      "filled": 0
+    },
+    {
+      "name": "die-note.wav",
+      "rate": 0.79,
+      "ms": 4645,
+      "filled": 1
+    },
+    {
+      "name": "die-note.wav",
+      "rate": 1,
+      "ms": 4751,
+      "filled": 2
+    },
+    {
+      "name": "die-note.wav",
+      "rate": 1.27,
+      "ms": 4852,
+      "filled": 3
+    },
+    {
+      "name": "die-corner.wav",
+      "rate": 1,
+      "ms": 5619,
+      "filled": 3
+    },
+    {
+      "name": "die-corner.wav",
+      "rate": 1.035,
+      "ms": 5635,
+      "filled": 3
+    },
+    {
+      "name": "die-corner.wav",
+      "rate": 1.07,
+      "ms": 5669,
+      "filled": 3
+    },
+    {
+      "name": "die-rebound.wav",
+      "rate": 1,
+      "ms": 5818,
+      "filled": 3
+    },
+    {
+      "name": "seat.wav",
+      "rate": 1,
+      "ms": 6434,
+      "filled": 3
+    }
+  ],
+  "samples": [
+    {
+      "turn": 1,
+      "die": 1,
+      "part": "land",
+      "idealMs": 1152,
+      "paintMs": 1167,
+      "audioCallMs": 1169,
+      "audioMinusPaintMs": 2.5
+    },
+    {
+      "turn": 1,
+      "die": 1,
+      "part": "bounce",
+      "idealMs": 1358,
+      "paintMs": 1367,
+      "audioCallMs": 1369,
+      "audioMinusPaintMs": 2.4
+    },
+    {
+      "turn": 1,
+      "die": 2,
+      "part": "land",
+      "idealMs": 1176,
+      "paintMs": 1183,
+      "audioCallMs": 1186,
+      "audioMinusPaintMs": 2.5
+    },
+    {
+      "turn": 1,
+      "die": 3,
+      "part": "land",
+      "idealMs": 1200,
+      "paintMs": 1217,
+      "audioCallMs": 1219,
+      "audioMinusPaintMs": 2.6
+    },
+    {
+      "turn": 2,
+      "die": 1,
+      "part": "land",
+      "idealMs": 5609,
+      "paintMs": 5616,
+      "audioCallMs": 5619,
+      "audioMinusPaintMs": 2.3
+    },
+    {
+      "turn": 2,
+      "die": 1,
+      "part": "bounce",
+      "idealMs": 5815,
+      "paintMs": 5816,
+      "audioCallMs": 5818,
+      "audioMinusPaintMs": 1.8
+    },
+    {
+      "turn": 2,
+      "die": 2,
+      "part": "land",
+      "idealMs": 5633,
+      "paintMs": 5633,
+      "audioCallMs": 5635,
+      "audioMinusPaintMs": 2.4
+    },
+    {
+      "turn": 2,
+      "die": 3,
+      "part": "land",
+      "idealMs": 5657,
+      "paintMs": 5666,
+      "audioCallMs": 5669,
+      "audioMinusPaintMs": 2.6
+    }
+  ],
+  "ready": [
+    {
+      "dice": [
+        1,
+        1,
+        1
+      ],
+      "focus": "die-0",
+      "msFromThrow": 1152
+    },
+    {
+      "dice": [
+        5,
+        1,
+        2
+      ],
+      "focus": "die-0",
+      "msFromThrow": 1142.7
+    }
+  ],
+  "taps": [
+    {
+      "button": "die-0",
+      "ms": 2463
+    },
+    {
+      "button": "die-1",
+      "ms": 2562
+    },
+    {
+      "button": "reroll",
+      "ms": 2657
+    },
+    {
+      "button": "die-0",
+      "ms": 2991
+    },
+    {
+      "button": "die-1",
+      "ms": 3059
+    },
+    {
+      "button": "die-2",
+      "ms": 3126
+    },
+    {
+      "button": "assign-guard",
+      "ms": 3190
+    },
+    {
+      "button": "resolve",
+      "ms": 3523
+    }
+  ]
+}
