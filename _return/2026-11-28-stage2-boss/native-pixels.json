@@ -1,0 +1,506 @@
+[
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "ready",
+    "colors": 13,
+    "opaque": 607,
+    "isolated": 269,
+    "isolatedPercent": 44.32
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "anticipate",
+    "colors": 14,
+    "opaque": 606,
+    "isolated": 297,
+    "isolatedPercent": 49.01
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "approach",
+    "colors": 12,
+    "opaque": 598,
+    "isolated": 293,
+    "isolatedPercent": 49
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "contact",
+    "colors": 12,
+    "opaque": 608,
+    "isolated": 250,
+    "isolatedPercent": 41.12
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "follow",
+    "colors": 13,
+    "opaque": 595,
+    "isolated": 245,
+    "isolatedPercent": 41.18
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "reload",
+    "colors": 13,
+    "opaque": 567,
+    "isolated": 246,
+    "isolatedPercent": 43.39
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "repeat-contact",
+    "colors": 14,
+    "opaque": 595,
+    "isolated": 232,
+    "isolatedPercent": 38.99
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "special-contact",
+    "colors": 11,
+    "opaque": 583,
+    "isolated": 242,
+    "isolatedPercent": 41.51
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "hit",
+    "colors": 14,
+    "opaque": 602,
+    "isolated": 264,
+    "isolatedPercent": 43.85
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "heavy-hit",
+    "colors": 13,
+    "opaque": 629,
+    "isolated": 282,
+    "isolatedPercent": 44.83
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "fall",
+    "colors": 13,
+    "opaque": 584,
+    "isolated": 231,
+    "isolatedPercent": 39.55
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "down",
+    "colors": 13,
+    "opaque": 559,
+    "isolated": 240,
+    "isolatedPercent": 42.93
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "step-plant",
+    "colors": 14,
+    "opaque": 617,
+    "isolated": 279,
+    "isolatedPercent": 45.22
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "step-stride",
+    "colors": 13,
+    "opaque": 625,
+    "isolated": 266,
+    "isolatedPercent": 42.56
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "rear-ready",
+    "colors": 13,
+    "opaque": 395,
+    "isolated": 184,
+    "isolatedPercent": 46.58
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss",
+    "pose": "rear-anticipate",
+    "colors": 12,
+    "opaque": 402,
+    "isolated": 192,
+    "isolatedPercent": 47.76
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "ready",
+    "colors": 12,
+    "opaque": 838,
+    "isolated": 82,
+    "isolatedPercent": 9.79
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "anticipate",
+    "colors": 12,
+    "opaque": 855,
+    "isolated": 84,
+    "isolatedPercent": 9.82
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "approach",
+    "colors": 12,
+    "opaque": 865,
+    "isolated": 76,
+    "isolatedPercent": 8.79
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "contact",
+    "colors": 12,
+    "opaque": 910,
+    "isolated": 58,
+    "isolatedPercent": 6.37
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "follow",
+    "colors": 12,
+    "opaque": 887,
+    "isolated": 71,
+    "isolatedPercent": 8
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "reload",
+    "colors": 12,
+    "opaque": 815,
+    "isolated": 67,
+    "isolatedPercent": 8.22
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "repeat-contact",
+    "colors": 12,
+    "opaque": 853,
+    "isolated": 55,
+    "isolatedPercent": 6.45
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "special-contact",
+    "colors": 12,
+    "opaque": 830,
+    "isolated": 67,
+    "isolatedPercent": 8.07
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "hit",
+    "colors": 12,
+    "opaque": 827,
+    "isolated": 68,
+    "isolatedPercent": 8.22
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "heavy-hit",
+    "colors": 12,
+    "opaque": 917,
+    "isolated": 79,
+    "isolatedPercent": 8.62
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "fall",
+    "colors": 12,
+    "opaque": 793,
+    "isolated": 60,
+    "isolatedPercent": 7.57
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "down",
+    "colors": 12,
+    "opaque": 709,
+    "isolated": 68,
+    "isolatedPercent": 9.59
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "step-plant",
+    "colors": 12,
+    "opaque": 839,
+    "isolated": 74,
+    "isolatedPercent": 8.82
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "step-stride",
+    "colors": 12,
+    "opaque": 779,
+    "isolated": 67,
+    "isolatedPercent": 8.6
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "rear-ready",
+    "colors": 12,
+    "opaque": 328,
+    "isolated": 40,
+    "isolatedPercent": 12.2
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss",
+    "pose": "rear-anticipate",
+    "colors": 12,
+    "opaque": 387,
+    "isolated": 50,
+    "isolatedPercent": 12.92
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss-special",
+    "pose": "charge-set",
+    "colors": 13,
+    "opaque": 464,
+    "isolated": 186,
+    "isolatedPercent": 40.09
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss-special",
+    "pose": "charge-peak",
+    "colors": 13,
+    "opaque": 475,
+    "isolated": 212,
+    "isolatedPercent": 44.63
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss-special",
+    "pose": "charge-approach",
+    "colors": 12,
+    "opaque": 494,
+    "isolated": 226,
+    "isolatedPercent": 45.75
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss-special",
+    "pose": "charge-contact",
+    "colors": 14,
+    "opaque": 454,
+    "isolated": 208,
+    "isolatedPercent": 45.81
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss-special",
+    "pose": "charge-follow",
+    "colors": 14,
+    "opaque": 543,
+    "isolated": 249,
+    "isolatedPercent": 45.86
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss-special",
+    "pose": "weak-set",
+    "colors": 13,
+    "opaque": 487,
+    "isolated": 226,
+    "isolatedPercent": 46.41
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss-special",
+    "pose": "weak-contact",
+    "colors": 14,
+    "opaque": 512,
+    "isolated": 226,
+    "isolatedPercent": 44.14
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss-special",
+    "pose": "interrupted",
+    "colors": 14,
+    "opaque": 524,
+    "isolated": 267,
+    "isolatedPercent": 50.95
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss-special",
+    "pose": "interrupted-knee",
+    "colors": 13,
+    "opaque": 475,
+    "isolated": 203,
+    "isolatedPercent": 42.74
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss-special",
+    "pose": "recover-start",
+    "colors": 14,
+    "opaque": 497,
+    "isolated": 202,
+    "isolatedPercent": 40.64
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss-special",
+    "pose": "recover-knee",
+    "colors": 13,
+    "opaque": 497,
+    "isolated": 229,
+    "isolatedPercent": 46.08
+  },
+  {
+    "build": "4cde95d",
+    "id": "upper-boss-special",
+    "pose": "recover-end",
+    "colors": 14,
+    "opaque": 531,
+    "isolated": 228,
+    "isolatedPercent": 42.94
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss-special",
+    "pose": "charge-set",
+    "colors": 12,
+    "opaque": 711,
+    "isolated": 53,
+    "isolatedPercent": 7.45
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss-special",
+    "pose": "charge-peak",
+    "colors": 11,
+    "opaque": 706,
+    "isolated": 42,
+    "isolatedPercent": 5.95
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss-special",
+    "pose": "charge-approach",
+    "colors": 12,
+    "opaque": 686,
+    "isolated": 64,
+    "isolatedPercent": 9.33
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss-special",
+    "pose": "charge-contact",
+    "colors": 12,
+    "opaque": 769,
+    "isolated": 68,
+    "isolatedPercent": 8.84
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss-special",
+    "pose": "charge-follow",
+    "colors": 11,
+    "opaque": 802,
+    "isolated": 72,
+    "isolatedPercent": 8.98
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss-special",
+    "pose": "weak-set",
+    "colors": 12,
+    "opaque": 757,
+    "isolated": 75,
+    "isolatedPercent": 9.91
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss-special",
+    "pose": "weak-contact",
+    "colors": 12,
+    "opaque": 789,
+    "isolated": 76,
+    "isolatedPercent": 9.63
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss-special",
+    "pose": "interrupted",
+    "colors": 12,
+    "opaque": 744,
+    "isolated": 62,
+    "isolatedPercent": 8.33
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss-special",
+    "pose": "interrupted-knee",
+    "colors": 12,
+    "opaque": 816,
+    "isolated": 64,
+    "isolatedPercent": 7.84
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss-special",
+    "pose": "recover-start",
+    "colors": 12,
+    "opaque": 867,
+    "isolated": 69,
+    "isolatedPercent": 7.96
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss-special",
+    "pose": "recover-knee",
+    "colors": 11,
+    "opaque": 841,
+    "isolated": 74,
+    "isolatedPercent": 8.8
+  },
+  {
+    "build": "candidate",
+    "id": "upper-boss-special",
+    "pose": "recover-end",
+    "colors": 12,
+    "opaque": 838,
+    "isolated": 62,
+    "isolatedPercent": 7.4
+  }
+]
