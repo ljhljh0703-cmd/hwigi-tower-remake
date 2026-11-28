@@ -15,11 +15,12 @@ function enumerateAllocations(diceCount: number, slots: readonly Slot[]): Slot[]
 
 const allocations = [2, 3, 4].map((count) => enumerateAllocations(count, combatSlots))
 
-function allocationsFor(battle: YachtBattle): readonly Slot[][] {
+export function legalYachtAllocations(battle: YachtBattle): readonly Slot[][] {
   const plans = allocations[battle.dice.length - 2]
   const charge = battle.metaTurn?.chargeDie
   return charge === undefined ? plans : plans.filter((plan) => plan[charge] === 'attack')
 }
+const allocationsFor = legalYachtAllocations
 
 const carriedHealthWeight = 1.8
 

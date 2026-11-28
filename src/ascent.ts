@@ -1,4 +1,4 @@
-import { enemyForMapNode, generateAscentMap, MAP_FLOORS, MAP_REWARD_CHANNEL, MAP_START, nextMapNodes, victoryCoins } from './ascent-map.ts'
+import { enemyForMapNode, generateAscentMap, MAP_FLOORS, MAP_REWARD_CHANNEL, MAP_START, mapSummit, nextMapNodes, UPPER_FLOOR, victoryCoins } from './ascent-map.ts'
 import type { AscentMap, MapNode, MapRules } from './ascent-map.ts'
 import { BOSS_RELICS, isBossRelic, SEVEN_SCEPTER_HEAL } from './boss-relic.ts'
 import { draw, PLAYER_HP } from './combat.ts'
@@ -10,10 +10,11 @@ import type { RunMeta } from './meta-progress.ts'
 import { BANDAGE_HEAL, BANDAGE_THRESHOLD, ELITE_KEEP_COINS, RELICS, isLegacyReward, isRelic } from './rewards.ts'
 import type { Reward, RewardChoice } from './rewards.ts'
 import { grantTreasure, shopPrice, treasureOffers } from './map-treasure.ts'
-import { ARTIFACT_SLOTS, emptyTreasure, isArtifact, nextTreasureBattle } from './treasure.ts'
+import { ARTIFACT_SLOTS, changeCount, emptyTreasure, isArtifact, nextTreasureBattle } from './treasure.ts'
 import type { ArtifactOptions, CounterChoice, Treasure } from './treasure.ts'
 import { activateYachtHand, resolveYachtTurn, spinYachtCounter, startYachtBattle } from './yacht-combat.ts'
 import type { Hand, YachtBattle } from './yacht-combat.ts'
+import { startFormation } from './upper-combat.ts'
 
 export const FIGHT_COUNT = ASCENT_ENEMIES.length
 const REWARD_ORDER_CHANNEL = 30
@@ -22,7 +23,7 @@ export interface MapProgress {
   readonly map: AscentMap
   readonly completed: readonly number[]
   readonly node: number | null
-  readonly screen: 'map' | 'battle' | 'reward' | 'return' | 'rest' | 'event' | 'shop' | 'finished'
+  readonly screen: 'map' | 'battle' | 'reward' | 'return' | 'rest' | 'event' | 'shop' | 'upper-choice' | 'finished'
   readonly offers?: readonly Reward[]
   readonly coins?: number
   readonly shopPurchase?: Treasure
@@ -65,8 +66,8 @@ export function beginAscent(seed: number, perk?: StartPerk, parity: Parity = 'od
   }
 }
 
-export function beginMapAscent(seed: number, perk?: StartPerk, parity: Parity = 'odd', rules: MapRules = 1, meta?: RunMeta): Ascent {
-  const map = generateAscentMap(seed, rules)
+export function beginMapAscent(seed: number, perk?: StartPerk, parity: Parity = 'odd', rules: MapRules = 1, meta?: RunMeta, upper = false): Ascent {
+  const map = generateAscentMap(seed, rules, upper && rules === 7)
   const first = map.nodes[0]
   const enemy = enemyForMapNode(first, rules)!
   const eligible = !isMetaPerk(perk) || rules === 7 && meta?.pool.includes(metaFloorForCard(perk)!)
@@ -83,6 +84,12 @@ export function beginMapAscent(seed: number, perk?: StartPerk, parity: Parity = 
 export function availableMapNodes({ route }: Ascent): readonly MapNode[] {
   if (!route) return []
   return nextMapNodes(route.map, route.node ?? route.completed.at(-1) ?? MAP_START)
+}
+
+export function chooseUpperAscent(ascent: Ascent, climb: boolean): Ascent {
+  const { route } = ascent
+  if (route?.screen !== 'upper-choice') return ascent
+  return { ...ascent, route: { ...route, screen: climb ? 'map' : 'finished' } }
 }
 
 function enterBattle(ascent: Ascent, enemy: Ascent['enemy'], fightSeed: number): Ascent {
@@ -108,12 +115,23 @@ export function enterMapNode(ascent: Ascent, id: number): Ascent {
   if (!node) return ascent
   const enemy = enemyForMapNode(node, route.map.rules)
   const next = enemy ? enterBattle(ascent, enemy, node.battleSeed) : { ...ascent, newUnlock: null }
-  if (enemy) return { ...next, route: { ...route, node: id, screen: 'battle' } }
+  if (enemy) {
+    const formation = startFormation(node)
+    let { battle } = next
+    if (formation) battle = { ...battle, formation }
+    if (node.floor === UPPER_FLOOR) {
+      const loot = battle.loot!
+      const amount = battle.bossRelic?.id === 'revived-heart' ? 3 : 6
+      battle = { ...battle, playerHp: Math.min(next.maxHp, battle.playerHp + amount),
+        loot: { ...loot, consumables: changeCount(loot.consumables!, 'tuning', 1) } }
+    }
+    return { ...next, battle, route: { ...route, node: id, screen: 'battle' } }
+  }
   const screen = node.kind === 'event' || node.kind === 'shop' ? node.kind : 'rest'
   return { ...next, route: { ...route, node: id, screen, ...(route.map.rules >= 2 && { offers: treasureOffers(ascent, node) }) } }
 }
 
-function completeMapNode(route: MapProgress, screen: 'return' | 'map' | 'finished'): MapProgress {
+function completeMapNode(route: MapProgress, screen: 'return' | 'map' | 'upper-choice' | 'finished'): MapProgress {
   const { offers: _offers, ...progress } = route
   return { ...progress, node: null, completed: [...route.completed, route.node!], screen }
 }
@@ -140,7 +158,10 @@ function settleBattle(ascent: Ascent): Ascent {
   if (battle.phase === 'lost') return { ...ascent, route: { ...route, screen: 'finished', ...wallet } }
   if (battle.phase !== 'won') return ascent
   const node = route.map.byId[route.node]
-  if (node.floor === MAP_FLOORS) {
+  if (node.floor === MAP_FLOORS && route.map.upper) {
+    return { ...ascent, route: completeMapNode(route, 'upper-choice') }
+  }
+  if (node.floor === mapSummit(route.map)) {
     return { ...ascent, route: { ...completeMapNode(route, 'finished'), ...wallet } }
   }
   const refill = battle.bossRelic?.id === 'healing-scepter' && (node.kind === 'fight' || node.kind === 'elite')
@@ -179,7 +200,7 @@ export function spinAscentCounter(ascent: Ascent, choice?: CounterChoice): Ascen
 export function rewardOffers(ascent: Ascent): readonly Reward[] {
   const { battle, fight, seed, rewardChoice, route } = ascent
   if (route?.screen === 'shop') return (route.offers ?? []).filter(item =>
-    !route.shopReceipts?.some(receipt => receipt.node === route.node && receipt.item === item))
+    !route.shopReceipts?.some(receipt => receipt.node === route.node && (route.map.byId[receipt.node].floor === 16 || receipt.item === item)))
   if (route) return route.screen !== 'return' ? route.offers ?? [] : []
   if (battle.phase !== 'won' || fight === FIGHT_COUNT || rewardChoice) return []
   return rewardCandidates(battle, draw(seed, fight, REWARD_ORDER_CHANNEL))

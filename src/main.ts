@@ -1,10 +1,11 @@
 import { FeelEffects } from './feel-effects.ts'
 import {
-  ascentFinished, availableMapNodes, beginMapAscent, canKeepEliteArtifacts, enterMapNode, FIGHT_COUNT, nextAscentFight, resolveAscentTurn,
+  ascentFinished, availableMapNodes, beginMapAscent, canKeepEliteArtifacts, chooseUpperAscent, enterMapNode, FIGHT_COUNT, nextAscentFight, resolveAscentTurn,
   returnToMap, rewardOffers, spinAscentCounter, takeAscentReward,
 } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
-import { CURRENT_MAP_RULES, enemyForMapNode, MAP_FLOORS, MAP_RULES } from './ascent-map.ts'
+import { CURRENT_MAP_RULES, enemyForMapNode, MAP_FLOORS, MAP_RULES, UPPER_SUMMIT } from './ascent-map.ts'
+import { UpperView } from './upper-view.ts'
 import { perkDisplayName, rewardDisplayName } from './display-names.ts'
 import { enemyBadge, enemyNameplate, ENEMY_CODEX, TOWER_REGIONS, towerRegion } from './enemy-codex.ts'
 import { bossRelicText, isBossRelic, SEVEN_BOSS_RELICS, SEVEN_EMPEROR_SHIELD_CAP } from './boss-relic.ts'
@@ -420,7 +421,16 @@ function noteMetaStage(run: Ascent, floor: number, finished = false) {
 }
 
 function noteMetaVictory(run: Ascent) {
-  return run.route?.screen === 'finished' && run.battle.phase === 'won' ? noteMetaStage(run, MAP_FLOORS, true) : run
+  const { route, battle } = run
+  if (battle.phase !== 'won') return run
+  if (route?.screen === 'upper-choice' || route?.screen === 'finished' && route.completed.length === MAP_FLOORS) {
+    return noteMetaStage(run, MAP_FLOORS, true)
+  }
+  if (route?.screen === 'finished' && route.completed.length === UPPER_SUMMIT && !metaProgress.upperSeal) {
+    metaProgress = { ...metaProgress, upperSeal: true }
+    writeMetaProgress(metaProgress)
+  }
+  return run
 }
 
 function refreshMetaCount() {
@@ -530,6 +540,9 @@ ui.bladeMeter.addEventListener('click', (event) => {
 window.addEventListener('resize', () => { holdHelp.hidden = true })
 
 const arena = new Arena(element('arena'), ui.encounter, ui.intent, ui.inventory)
+const upperView = new UpperView(arena, ui.encounter, sound, wait, reducedMotion)
+const finishLower = element<HTMLButtonElement>('finish-lower')
+let recapNode: number | null = null
 
 const diceButtons = Array.from({ length: DIE_COUNT + 1 }, (_, index) => {
   const button = document.createElement('button')
@@ -1516,7 +1529,7 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   const atShop = room?.kind === 'shop' && (run.route?.map.rules ?? 0) >= 3
   ui.rewardPanel.classList.toggle('multi-shop', Boolean(atShop && seven))
   const eventName = room?.event === 'medicine' ? '무너진 약상자' : room?.event === 'pulley' ? '녹슨 도르래' : '빈 깃대'
-  ui.rewardHeading.innerHTML = bossReward ? '보스 유물 선택' : atRoom ? `${icon(MAP_NODE_ICONS[room.kind])} ${room.kind === 'event' ? eventName : room.kind === 'rest' ? '11층 휴식' : atShop ? '상인' : '장터 경유'}` : eliteReward && seven ? '강적 유물 선택' : '전투 보상'
+  ui.rewardHeading.innerHTML = bossReward ? '보스 유물 선택' : atRoom ? `${icon(MAP_NODE_ICONS[room.kind])} ${room.kind === 'event' ? eventName : room.kind === 'rest' ? `${room.floor}층 휴식` : atShop ? '상인' : '장터 경유'}` : eliteReward && seven ? '강적 유물 선택' : '전투 보상'
   ui.eliteCapacity.hidden = !eliteReward && !(atShop && seven)
   if (!ui.eliteCapacity.hidden) ui.eliteCapacity.innerHTML = `${icon('map-reward')}유물 ${equipped.length}/${ARTIFACT_SLOTS}`
   if (room?.kind === 'rest') ui.rewardHeading.insertAdjacentHTML('beforeend', '<span class="rest-ember" aria-hidden="true"></span>')
@@ -1533,6 +1546,14 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
     flag: '깃대에 묶인 유물을 풀려면 체력을 써야 합니다.',
   }
   ui.rewardContext.replaceChildren()
+  if (room?.kind === 'rest' && metaProgress.upperSeal && (!metaProgress.upperRecapSeen || recapNode === room.id)) {
+    recapNode = room.id
+    ui.rewardContext.textContent = '지난 등반에서 격문을 지나 상층 인장을 새겼습니다.'
+    if (!metaProgress.upperRecapSeen) {
+      metaProgress = { ...metaProgress, upperRecapSeen: true }
+      writeMetaProgress(metaProgress)
+    }
+  }
   if (room?.event) ui.rewardContext.textContent = eventContext[room.event]
   if (canKeep) {
     ui.artifactStrip.hidden = true
@@ -2201,7 +2222,8 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   const atMap = presentation === 'normal' && route?.screen === 'map'
   const atRest = presentation === 'normal' && route?.screen === 'rest'
   const atTreasureRoom = route && route.map.rules >= 2 && (atRest || route.screen === 'event' || route.screen === 'shop')
-  const between = route ? route.screen === 'return' || atRest : phase === 'won' && fight < FIGHT_COUNT
+  const upperChoice = route?.screen === 'upper-choice'
+  const between = route ? route.screen === 'return' || atRest || upperChoice : phase === 'won' && fight < FIGHT_COUNT
   const finished = ascentFinished(ascent)
   const offers = presentation === 'normal' ? rewardOffers(ascent) : []
   const atRewards = presentation === 'normal' && (route ? route.screen === 'reward' || atTreasureRoom : offers.length > 0)
@@ -2229,9 +2251,9 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.encounter.setAttribute('aria-label', defeated ? '돌바닥에 쓰러진 회귀자의 마지막 전장' : '전장')
   ui.fight.hidden = atMap
   const floor = route ? (route.node === null ? route.completed.length + Number(atMap) : route.map.byId[route.node].floor) : fight
-  const floors = route ? MAP_FLOORS : FIGHT_COUNT
+  const floors = route ? route.map.upper && floor > MAP_FLOORS ? UPPER_SUMMIT : MAP_FLOORS : FIGHT_COUNT
   ui.gameOver.hidden = !defeated
-  if (defeated) ui.defeatFloor.textContent = `${floor}층에서 ${battle.lastExchange?.defeatedByThorns ? '가시에 찔려 ' : ''}쓰러졌습니다.`
+  if (defeated) ui.defeatFloor.textContent = `${floor}층에서 ${battle.lastExchange?.defeatedByThorns ? '가시에 찔려 ' : ''}쓰러졌습니다.${floor > MAP_FLOORS ? ' 하층 완주 · 상층 미완주' : ''}`
   const reveal = element('meta-reveal')
   const opened = ascent.meta?.opened ?? []
   reveal.hidden = !finished || presentation !== 'normal' || !opened.length
@@ -2266,12 +2288,13 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   const totals = yachtAllocationTotals(battle)
   ui.encounterName.hidden = ui.encounter.hidden
   ui.encounterName.textContent = enemyNameplate(enemy.id, route?.map.rules ?? MAP_RULES)
+  upperView.render(battle)
   renderIntent(battle, totals, enemy.id)
   renderEnemyStatus(battle)
   updateVital(ui.enemyHp, ui.enemyTotal, enemyHp, enemy.hp)
   ui.escortGuard.hidden = !battle.escort || enemyHp <= 0
   ui.encounter.classList.toggle('escort-room', enemy.id === 'escort')
-  ui.encounter.classList.toggle('boss-room', enemy.id === 'boss')
+  ui.encounter.classList.toggle('boss-room', enemy.id === 'boss' && !battle.formation)
   ui.enemyHp.closest('.vital')?.querySelector('label use')?.setAttribute('href', enemy.id === 'boss' ? '#icon-crown' : '#icon-heart')
   if (battle.escort) updateEscortVital(battle.escort.hp)
   ui.newUnlock.hidden = !atUnlock
@@ -2339,15 +2362,18 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
     ui.eventFloor.innerHTML = `<strong>${floor}/${floors}</strong><span>${icon('heart')}${playerHp}/${maxHp}</span>`
     ui.eventFloor.setAttribute('aria-label', `${floor}층 정비, 체력 ${playerHp}/${maxHp}`)
   } else {
-    ui.eventFloor.innerHTML = between
+    ui.eventFloor.innerHTML = between && !upperChoice
       ? `<span>${floor}/${floors}</span>${icon('next')}<strong>${floor + 1}/${floors}</strong>` : `<strong>${wins}/${floors}</strong>`
     ui.eventFloor.setAttribute('aria-label', between ? `${floor}층에서 ${floor + 1}층으로` : `${floors}층 중 ${wins}층 통과`)
   }
   ui.ascentEvent.classList.toggle('finished', finished)
-  ui.result.hidden = !atEvent || !finished
+  ui.result.hidden = !atEvent || (!finished && !upperChoice)
+  ui.result.textContent = upperChoice ? '하층 완주' : route?.map.upper
+    ? wins === UPPER_SUMMIT ? '하층 완주 · 상층 완주' : '하층 완주 · 상층 미진입' : '성공'
   ui.completionSeal.hidden = !atEvent || !finished || phase !== 'won'
   ui.next.hidden = !between || !atEvent
-  ui.next.innerHTML = route ? `다음 층 ${icon('next')}` : `다음 전투 ${icon('next')}`
+  ui.next.innerHTML = upperChoice ? `13층으로 ${icon('next')}` : route ? `다음 층 ${icon('next')}` : `다음 전투 ${icon('next')}`
+  finishLower.hidden = !upperChoice || !atEvent
   ui.retry.hidden = !finished
   refreshDice(battle, totals, unlocks)
   const gimmick = ui.encounter.dataset.gimmick
@@ -2379,6 +2405,8 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
 
 function refreshLobbyActions() {
   refreshMetaCount()
+  const seal = element('lobby-upper-seal')
+  seal.hidden = !metaProgress.upperSeal
   const { checkpoint, invalidMap } = readAscentSave()
   const hasSave = checkpoint !== null
   if (checkpoint) arena.prime(checkpoint.ascent.enemy.id)
@@ -2406,6 +2434,7 @@ function showLobby(focus = false) {
   stopPlacementMotion?.()
   renderCoins()
   ascent = null
+  recapNode = null
   chosenReward = undefined
   artifactOptions = {}
   selected.clear()
@@ -2430,6 +2459,7 @@ function showPerks() {
   stopPlacementMotion?.()
   renderCoins()
   ascent = null
+  recapNode = null
   chosenReward = undefined
   artifactOptions = {}
   selected.clear()
@@ -2464,7 +2494,7 @@ function showPerks() {
   }
   const begin = (event: MouseEvent, perk: StartPerk, parity?: Parity) => {
     if (event.isTrusted) sound.activate()
-    ascent = beginMapAscent(seed, perk, parity, CURRENT_MAP_RULES, snapshot)
+    ascent = beginMapAscent(seed, perk, parity, CURRENT_MAP_RULES, snapshot, true)
     presenceRun = null
     rememberUnlockCue(presenceKey, '')
     firstRun.start(seed)
@@ -2528,6 +2558,7 @@ function perkButton(symbol: string, name: string, description: string) {
 
 function refreshSelection(run: Ascent) {
   refreshDice(run.battle, yachtAllocationTotals(run.battle), run.unlocks)
+  upperView.render(run.battle)
   renderRewardStrip(run.battle, false)
   renderTreasureControls(run.battle, true)
 }
@@ -2787,11 +2818,23 @@ ui.resolve.addEventListener('click', async () => {
   clearExchange()
   const { phase, lastExchange } = resolved.battle
   try {
+    const immediatelySaved = before.formation || resolved.route?.screen === 'upper-choice'
+    if (immediatelySaved) {
+      next = firstRun.opening(noteMetaVictory(resolved), before.turn)
+      ascent = next
+      saveCurrent()
+    }
     if (lastExchange?.ego) await showEgoPlacement(lastExchange.ego)
-    next = firstRun.opening(noteMetaVictory(resolved), before.turn)
-    ascent = next
-    saveCurrent()
-    if (lastExchange) await showExchange(before, next.battle, lastExchange)
+    if (!immediatelySaved) {
+      next = firstRun.opening(noteMetaVictory(resolved), before.turn)
+      ascent = next
+      saveCurrent()
+    }
+    if (before.formation) await upperView.play(before, next.battle, false, (damage, hp) => {
+      updatePlayerVital(hp)
+      if (damage) showDamage({ target: 'player', damage, defeated: hp === 0 && phase === 'lost' })
+    })
+    else if (lastExchange) await showExchange(before, next.battle, lastExchange)
     if (phase !== 'lost' && (next.battle.turn !== before.turn || next.newUnlock)) {
       await arena.finishExchange()
       clearDamage(Boolean(next.newUnlock) && reducedMotion())
@@ -2831,8 +2874,14 @@ ui.resolve.addEventListener('click', async () => {
   } finally {
     egoPlacement.hidden = true
     ui.intent.classList.remove('parry-in-progress')
-    lockExchange(false)
-    render('normal', next.battle.turn !== before.turn)
+    const retreat = next.battle.turn !== before.turn && next.battle.formation?.movedBack
+    if (retreat) {
+      render('normal')
+      try { await upperView.retreat(next.battle) } finally { lockExchange(false) }
+    } else {
+      lockExchange(false)
+      render('normal', next.battle.turn !== before.turn)
+    }
     if (before.turn !== next.battle.turn && !ui.planning.hidden) turnCues(before, true)
     finishCues(previous, next)
     resumeCounterOrFocus()
@@ -2884,7 +2933,8 @@ function turnCues(before: YachtBattle | undefined, changedTurn: boolean) {
   if (!ascent || ui.planning.hidden || ui.encounter.hidden) return
   const b = ascent.battle
   const intent = enemyIntentAt(b)
-  if (intent.id === 'charge') {
+  if (b.formation?.bossStep === 'prepare' && b.formation.heavy !== 'cancelled') sound.play('charge')
+  else if (intent.id === 'charge') {
     sound.play('charge')
     arena.settlePose(ascent.enemy.id === 'boss' ? 'charge-set' : 'anticipate')
   } else if (intent.id === 'knockdown') arena.settlePose(ascent.enemy.id === 'boss' ? 'knee-down' : 'fall')
@@ -2937,8 +2987,11 @@ async function playCounter(choice?: CounterChoice) {
   } finally {
     commit()
     ascent = checkpoint
-    render('normal', !pending && next.phase === 'assign')
+    const retreat = !pending && next.turn !== before.turn && next.formation?.movedBack
+    if (retreat) lockExchange(true)
+    render('normal', !retreat && !pending && next.phase === 'assign')
     if (!pending) {
+      if (retreat) try { await upperView.retreat(next) } finally { lockExchange(false) }
       if (next.turn !== before.turn && !ui.planning.hidden) turnCues(before, true)
       finishCues(previous, checkpoint)
     }
@@ -2969,6 +3022,7 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
     if (animate) sound.play('roulette-ratchet', animationSpeed(), .23)
     const recast = choice === 'coin' ? yachtCounterSlot(before, true) : undefined
     const landed = recast === undefined ? reward : { slot: recast, ...displayedCounterRewards(before)[recast] }
+    if (before.formation) commit()
     await roulette.reveal(landed, animate, () => {}, animationSpeed() * 1.24, angle)
     sound.play('roulette-latch', 1, .37)
     commit()
@@ -2977,6 +3031,19 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
   } else commit()
   if (next.loot?.counter) return
   ui.counterPanel.hidden = true
+  if (before.formation) {
+    if (companionJoint && animate) {
+      ui.companionFlight.style.setProperty('--flight-x', ui.encounter.style.getPropertyValue('--enemy-x'))
+      ui.companionFlight.style.setProperty('--flight-y', 'calc(var(--ground) - 20px)')
+      ui.companionFlight.style.setProperty('--flight-duration', `${effectDuration(companionFlightDuration)}ms`)
+      ui.companionFlight.hidden = false
+      await wait(companionImpactTime)
+    }
+    await upperView.play(before, next, true, () => {}, companionJoint)
+    ui.companionFlight.hidden = true
+    if (next.lastExchange?.crownTriggered) sound.play('latch', .66)
+    return
+  }
   const choreographed = animate && !companionJoint && !escortDealt && dealt > 0 && arena.beginGolemCounter(next.enemyHp === 0)
   if (!choreographed) clearExchange()
   if (choreographed) {
@@ -3110,12 +3177,20 @@ function showEnteredRoom() {
 }
 ui.next.addEventListener('click', () => {
   if (exchangeBusy || !ascent || rewardOffers(ascent).length) return
-  const next = ascent.route ? returnToMap(ascent) : nextAscentFight(ascent)
+  const next = ascent.route?.screen === 'upper-choice' ? chooseUpperAscent(ascent, true)
+    : ascent.route ? returnToMap(ascent) : nextAscentFight(ascent)
   if (ascent === next) return
   clearExchange()
   ascent = next
   saveCurrent()
   render('normal', true)
+  focusPhase()
+})
+finishLower.addEventListener('click', () => {
+  if (!ascent || exchangeBusy || ascent.route?.screen !== 'upper-choice') return
+  ascent = chooseUpperAscent(ascent, false)
+  saveCurrent()
+  render()
   focusPhase()
 })
 ui.retry.addEventListener('click', showPerks)

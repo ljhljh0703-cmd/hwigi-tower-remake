@@ -5,6 +5,17 @@ export const TOWER_REGIONS = {
   halls: { range: [1, 4], name: '무너진 회랑', mood: '깨진 돌벽으로 막힌 작은 아치 문과 기둥의 붉은 표식만이 남은 서늘한 하층 회랑.' },
   vault: { range: [5, 8], name: '사슬의 석실', mood: '천장에 쇠사슬이 드리워지고 굵은 돌버팀목이 사방을 억누르는 어둡고 무거운 석실.' },
   sanctuary: { range: [9, 12], name: '각인의 성소', mood: '거대한 원형 돌무늬를 품은 높은 아치와 풍화된 붉은 흉터가 내려다보는 정상의 성소.' },
+  stairs: { range: [13, 14], name: '좁은 계단', mood: '하층을 지나 경비 통로로 오르는 길.' },
+  corridor: { range: [15, 17], name: '경비 통로', mood: '파수대가 전후로 길을 막고 있다.' },
+  gate: { range: [18, 19], name: '격문', mood: '상층 끝에서 길을 닫고 있는 격문.' },
+} as const
+
+export const UPPER_ENEMIES = {
+  dash: { name: '?', lineage: '탑의 산물', role: '돌진' },
+  support: { name: '?', lineage: '갇힌 자', role: '지원' },
+  shield: { name: '?', lineage: '파수', role: '방패' },
+  guard: { name: '?', lineage: '파수', role: '호위' },
+  gatekeeper: { name: '?', lineage: '갇힌 자', role: '보스' },
 } as const
 
 export function towerRegion(floor: number) {

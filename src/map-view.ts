@@ -7,6 +7,7 @@ import { enemyBadge } from './enemy-codex.ts'
 import type { AscentEnemyId } from './enemy-roster.ts'
 import { SHOP_PRICES } from './map-treasure.ts'
 import { icon, pixelIcon } from './icons.ts'
+import { formationActions, livingEnemies } from './upper-combat.ts'
 
 export const MAP_NODE_ICONS: Record<MapNodeKind, string> = {
   fight: 'sword', elite: 'map-elite', rest: 'map-rest', boss: 'map-boss', event: 'map-event', shop: 'map-shop',
@@ -23,7 +24,7 @@ export function enemyPortrait(enemy: string, className: string) {
 
 function firstAttack(room: Ascent) {
   const intent = enemyIntentAt(room.battle)
-  const { totalDamage } = attackFor(room.battle, intent)
+  const { totalDamage } = room.battle.formation ? formationActions(room.battle.formation) : attackFor(room.battle, intent)
   return `<span aria-label="첫 턴 공격 ${totalDamage}">${icon(totalDamage > 0 ? 'sword' : 'charge')}${totalDamage}</span>`
 }
 
@@ -81,7 +82,7 @@ export class ForkView {
     this.choice.setAttribute('aria-pressed', 'true')
     if (room.route?.screen === 'battle') {
       const { battle, enemy } = room
-      const name = enemyBadge(enemy.id, ascent.route!.map.rules).label
+      const name = battle.formation ? `전위·후위 ${livingEnemies(battle.formation).length}마리` : enemyBadge(enemy.id, ascent.route!.map.rules).label
       this.previewContent.innerHTML = `${enemyPortrait(enemy.id, 'fork-preview-portrait')}
         <div><strong>${name}</strong><div class="fork-preview-stats">
           <span aria-label="적 체력 ${battle.enemyHp}">${icon('heart')}${battle.enemyHp}</span>
@@ -100,15 +101,17 @@ export class ForkView {
     const route = ascent.route!
     const last = route.completed.at(-1)
     const currentFloor = last === undefined ? 0 : route.map.byId[last].floor
-    const floors = Array.from({ length: 12 }, (_, index) => 12 - index)
+    const summit = route.map.upper && currentFloor >= 12 ? 19 : 12
+    const bottom = summit === 19 ? 12 : 1
+    const floors = Array.from({ length: summit - bottom + 1 }, (_, index) => summit - index)
     const x = (node: MapNode) => 30 + node.lane * 40
-    const y = (node: MapNode) => 9 + (12 - node.floor) * 18
-    const paths = route.map.nodes.flatMap(node => node.next.map(id => {
+    const y = (node: MapNode) => 9 + (summit - node.floor) * 18
+    const paths = route.map.nodes.filter(node => node.floor >= bottom && node.floor < summit).flatMap(node => node.next.map(id => {
       const next = route.map.byId[id]
       return `<line x1="${x(node)}" y1="${y(node)}" x2="${x(next)}" y2="${y(next)}"></line>`
     })).join('')
     this.map.innerHTML = `<span class="tower-position">${last === undefined ? '입구' : `${route.map.byId[last].floor}층 통과`}</span>
-      <div class="tower-grid"><svg class="tower-paths" viewBox="0 0 140 216" preserveAspectRatio="none" aria-hidden="true">${paths}</svg>
+      <div class="tower-grid"><svg class="tower-paths" viewBox="0 0 140 ${floors.length * 18}" preserveAspectRatio="none" aria-hidden="true">${paths}</svg>
       ${floors.map(floor => `<div class="tower-floor" aria-label="${floor}층"><span>${floor}</span>${route.map.nodes.filter(node => node.floor === floor).map(node => {
         const special = node.enemyId === 'chain-warden' || node.kind === 'boss' ? 'boss' : node.kind
         const state = node.id === last ? 'current' : route.completed.includes(node.id) ? 'visited' : nodes.includes(node) ? 'next' : node.floor <= currentFloor ? 'passed' : ''
@@ -130,7 +133,8 @@ export class ForkView {
       const entered = enterMapNode(ascent, node.id)
       const enemy = entered.route?.screen === 'battle' ? entered.enemy : undefined
       const rulesSix = rules >= 6
-      const label = rulesSix && node.enemyId ? enemyBadge(node.enemyId, rules).label : undefined
+      const formation = entered.battle.formation
+      const label = formation ? `전위·후위 ${livingEnemies(formation).length}마리` : rulesSix && node.enemyId ? enemyBadge(node.enemyId, rules).label : undefined
       const reward = rulesSix && node.kind === 'elite' ? `<span class="fork-relic" role="img" aria-label="유물 보상">${icon('map-relic')}</span>` : ''
       const hint = enemy ? `<span class="fork-hint"><span aria-label="${label ? `${label}, ` : ''}적 체력 ${enemy.hp}">${icon('heart')}${enemy.hp}</span>${firstAttack(entered)}</span>`
         : node.kind === 'shop' && ascent.route!.map.rules >= 3

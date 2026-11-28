@@ -76,6 +76,8 @@ function sevenTreasureOffers(run: Ascent, node: MapNode, legacyMixedPool: boolea
   const rareSlot = draw(run.seed, node.id, 95) % 4 === 0
   if (node.kind === 'shop' || node.event === 'flag') {
     const { common, rare, bonus } = sevenArtifactOffers(run, node, legacyMixedPool)
+    if (node.floor === 16) return ['kit', ...common.slice(0, 1), ...rare.slice(0, 1),
+      ...(['common', 'rare'] as const).flatMap(rarity => bonus.find(id => treasureRarity(id) === rarity) ?? [])]
     const artifact = rareSlot ? rare[0] ?? common[0] : common[0] ?? rare[0]
     const extra = bonus.find((id) => treasureRarity(id) === (rareSlot ? 'rare' : 'common'))
     const stock: Treasure[] = node.kind === 'shop' ? ['kit', COMMON_CONSUMABLES[draw(run.seed, node.id, 108) % COMMON_CONSUMABLES.length]] : []
@@ -138,7 +140,7 @@ export function treasureEnabled(run: Ascent, choice: Treasure): boolean {
   const cost = treasureCost(room, choice)
   if (cost && hp <= cost) return false
   if (room?.kind === 'shop' && ((run.route?.coins ?? 0) < shopPrice(choice, run.route?.map.rules) ||
-    run.route?.shopReceipts?.some(receipt => receipt.node === room.id && receipt.item === choice))) return false
+    run.route?.shopReceipts?.some(receipt => receipt.node === room.id && (room.floor === 16 || receipt.item === choice)))) return false
   if (healingForRun(run, choice, room) && hp >= run.maxHp) return false
   return (run.route?.offers ?? []).includes(choice)
 }

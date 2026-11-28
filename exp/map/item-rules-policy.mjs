@@ -7,8 +7,9 @@ import { isMetaArtifact, META_VALUES } from '../../src/meta-unlocks.ts'
 import { bloodHealing, draftMetaDie, transferMetaPip } from '../../src/meta-combat.ts'
 import { availableCounterChoices, counterDamage, mirrorCounterDamage, toggleArtifact } from '../../src/treasure-combat.ts'
 import { chooseEgoOutcome, displayedCounterRewards, egoFaces, forecastYacht, hasAutomaticEgo, nextYachtReroll, previewYachtHand, rerollYachtDice, spendExtraReroll } from '../../src/yacht-combat.ts'
-import { chooseAllocation, chooseReroll } from '../../src/yacht-policy.ts'
+import { legalYachtAllocations, chooseAllocation, chooseReroll } from '../../src/yacht-policy.ts'
 import { planAscentTurn } from '../level.mjs'
+import { effectiveCounterLimit } from '../../src/upper-combat.ts'
 
 const consumableOrder = ['clash-seal', 'weight', 'tuning', 'buckle', 'spacer', 'wedge', 'advance-knot', 'twin-mold', 'reserve-gauge', 'coin']
 const artifactOrder = ['incomplete', 'banner', 'hourglass', 'horn', 'overflow', 'mirror', 'scabbard', 'pip-ring',
@@ -45,18 +46,21 @@ export function pickSevenTreasure(run, considerUnlocked = true) {
 }
 
 function score(battle, egoOutcome) {
-  const { dealt, damage, counter, escortDealt, chargeBroken } = egoOutcome?.forecast ?? forecastYacht(battle)
+  const { dealt, damage, counter, escortDealt, chargeBroken, upper } = egoOutcome?.forecast ?? forecastYacht(battle)
   if (damage >= battle.playerHp && (battle.bossRelic?.id !== 'revived-heart' || battle.bossRelic.heartUsed)) return dealt - 1000
   const healing = Math.min(22 - battle.playerHp + damage, bloodHealing(battle, battle.dice))
   if (dealt >= battle.enemyHp) return 130 + battle.playerHp - damage + healing
-  const roulette = counter ? displayedCounterRewards(battle).reduce((sum, card) => sum + card.damage, 0) / 6 : 0
+  const limit = upper && counter ? effectiveCounterLimit(upper.formation) : Infinity
+  const roulette = counter ? displayedCounterRewards(battle).reduce((sum, card) => sum + Math.min(card.damage, limit), 0) / 6 : 0
   const hand = (egoOutcome ? egoOutcome.hand : previewYachtHand(battle))?.hand
   const unlock = hand === 'triple' && !battle.fourthDieUnlocked ? 14
     : hand === 'straight' && !battle.extraRerollAvailable && !battle.extraRerollSpent ? 5 : 0
-  return dealt + escortDealt * .8 + roulette + unlock + Number(chargeBroken) * 4 - damage * 4 + (battle.playerHp + healing) * 1.2
+  const promotion = upper ? upper.exchange.direct.filter(contact => contact.hp === 0).length * 4 : 0
+  return dealt + escortDealt * .8 + roulette + unlock + promotion + Number(chargeBroken) * 4 - damage * 4 + (battle.playerHp + healing) * 1.2
 }
 
 function planForUnrolledEgo(plan, unlocks) {
+  if (plan.formation) return bestUpperLayout(plan, unlocks)
   if (!hasAutomaticEgo(plan)) return plan
   const faces = egoFaces(plan)
   const layouts = [plan.slots, chooseAllocation(plan, 'adaptive'), plan.dice.map(() => 'attack')]
@@ -72,6 +76,24 @@ function planForUnrolledEgo(plan, unlocks) {
       const outcome = chooseEgoOutcome(candidate, face, unlocks)
       return sum + score(outcome.battle, outcome)
     }, 0)
+    if (value > bestScore) {
+      best = candidate
+      bestScore = value
+    }
+  }
+  return best
+}
+
+function bestUpperLayout(battle, unlocks) {
+  const faces = hasAutomaticEgo(battle) ? egoFaces(battle) : []
+  let best
+  let bestScore = -Infinity
+  for (const slots of legalYachtAllocations(battle)) {
+    const candidate = { ...battle, slots }
+    const value = faces.length ? faces.reduce((sum, face) => {
+      const outcome = chooseEgoOutcome(candidate, face, unlocks)
+      return sum + score(outcome.battle, outcome)
+    }, 0) / faces.length : score(candidate)
     if (value > bestScore) {
       best = candidate
       bestScore = value

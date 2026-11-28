@@ -1,6 +1,7 @@
 import { draw } from './combat.ts'
 import { ASCENT_ENEMIES, CHAIN_WARDEN, MAP_ENEMIES, RULES_SIX_ENEMIES } from './enemy-roster.ts'
 import type { AscentEnemyId, enemyForFight } from './enemy-roster.ts'
+import { upperEnemyForNode } from './upper-combat.ts'
 
 export const MAP_RULES = 1
 export type MapRules = 1 | 2 | 3 | 4 | 5 | 6 | 7
@@ -8,6 +9,8 @@ export const CURRENT_MAP_RULES = 7
 export const MAP_START = 0
 export const MAP_FLOORS = 12
 export const MAP_FIGHTS = MAP_FLOORS - 1
+export const UPPER_FLOOR = 13
+export const UPPER_SUMMIT = 19
 export const MAP_REWARD_CHANNEL = 84
 
 export type MapNodeKind = 'fight' | 'elite' | 'rest' | 'boss' | 'event' | 'shop'
@@ -31,6 +34,7 @@ export interface MapNode {
 
 export interface AscentMap {
   readonly rules: MapRules
+  readonly upper?: true
   readonly nodes: readonly MapNode[]
   readonly byId: Readonly<Record<number, MapNode>>
 }
@@ -40,6 +44,11 @@ const stageOneFloors: readonly (readonly MapNodeKind[])[] = [
   ['fight', 'elite'], ['fight', 'fight'], ['fight', 'fight'], ['fight', 'elite'],
   ['fight', 'fight'], ['fight', 'elite'], ['rest'], ['boss'],
 ]
+const stageTwoFloors = [['fight'], ['fight'], ['fight', 'elite'], ['shop'], ['fight', 'elite'], ['rest'], ['boss']] as const
+
+export function mapSummit(map: AscentMap) {
+  return map.upper ? UPPER_SUMMIT : MAP_FLOORS
+}
 const normalEnemies = [['lock', 'freeze'], ['thorns', 'rage']] as const
 const eliteEnemies = ['reaction', 'vitality', 'escort'] as const
 const roster = [...ASCENT_ENEMIES.flat(), ...MAP_ENEMIES]
@@ -53,7 +62,7 @@ function forkKinds(seed: number, floor: number, rules: MapRules): readonly MapNo
   return ['fight', 'elite']
 }
 
-export function generateAscentMap(seed: number, rules: MapRules = MAP_RULES): AscentMap {
+export function generateAscentMap(seed: number, rules: MapRules = MAP_RULES, upper = false): AscentMap {
   const diagonal = draw(seed, 0, 80) % 2
   const eliteStart = draw(seed, 0, 86) % eliteEnemies.length
   let eliteIndex = 0
@@ -75,7 +84,7 @@ export function generateAscentMap(seed: number, rules: MapRules = MAP_RULES): As
         ? floor === (rules >= 6 ? 8 : 6) ? 'shield-soldier' : floor === 9 ? 'seal-sentinel' : baseEnemy
         : replacement === 1 && floor === 10 && kind === 'elite' ? 'iron-knight' : baseEnemy
       const nextBase = (floor + 1) * 4
-      const next = floor === MAP_FLOORS ? [] : floor >= 10 || (rules >= 6 && floor === 5) ? [nextBase + 2]
+      const next = floor === MAP_FLOORS && !upper ? [] : floor >= 10 || (rules >= 6 && floor === 5) ? [nextBase + 2]
         : rules >= 4 || lane === 2 ? [nextBase, nextBase + 1]
           : lane === (floor + diagonal) % 2 ? [nextBase, nextBase + 1] : [nextBase + lane]
       const eventOrder = rules >= 4 ? draw(seed, floor, 87) : draw(seed, 0, 87) + Number(floor === 9)
@@ -83,7 +92,15 @@ export function generateAscentMap(seed: number, rules: MapRules = MAP_RULES): As
       return { id, floor, lane, kind, ...(enemyId && { enemyId }), ...(event && { event }), battleSeed: draw(seed, id, 83), next }
     })
   })
-  return { rules, nodes, byId: Object.fromEntries(nodes.map((node) => [node.id, node])) }
+  if (upper) nodes.push(...stageTwoFloors.flatMap((kinds, index) => kinds.map((kind, position): MapNode => {
+    const floor = UPPER_FLOOR + index
+    const lane = kinds.length === 1 ? 2 : position as 0 | 1
+    const id = floor * 4 + lane
+    const enemyId = kind === 'boss' ? 'boss' : kind === 'shop' || kind === 'rest' ? undefined : floor === UPPER_FLOOR ? 'rage' : 'shield-soldier'
+    const next = (stageTwoFloors[index + 1] ?? []).map((_, slot, row) => (floor + 1) * 4 + (row.length === 1 ? 2 : slot))
+    return { id, floor, lane, kind, enemyId, battleSeed: draw(seed, id, 83), next }
+  })))
+  return { rules, ...(upper && { upper: true }), nodes, byId: Object.fromEntries(nodes.map((node) => [node.id, node])) }
 }
 
 export function nextMapNodes(map: AscentMap, current: number): readonly MapNode[] {
@@ -101,6 +118,7 @@ export function mapPathIsValid(map: AscentMap, path: readonly number[]): boolean
 }
 
 export function enemyForMapNode(node: MapNode, rules: MapRules): ReturnType<typeof enemyForFight> | undefined {
+  if (node.floor >= UPPER_FLOOR) return upperEnemyForNode(node)
   if (node.enemyId === 'chain-warden') return CHAIN_WARDEN
   const original = roster.find(({ id }) => id === node.enemyId)
   if (!original) return undefined

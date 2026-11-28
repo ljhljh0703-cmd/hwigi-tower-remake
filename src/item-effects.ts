@@ -6,6 +6,8 @@ import { META_VALUES } from './meta-unlocks.ts'
 import { artifactReady, changeCount } from './treasure.ts'
 import type { ArmedConsumable, Artifact, Consumable, Treasure, TreasureState } from './treasure.ts'
 import type { YachtBattle } from './yacht-combat.ts'
+import { damageFormation } from './upper-combat.ts'
+import type { forecastFormation } from './upper-combat.ts'
 
 export function consumableReady(loot: TreasureState | undefined, id: Consumable) {
   return Boolean(!loot?.consumableUsed && loot?.consumables?.[id])
@@ -107,11 +109,13 @@ export function boostSevenAllocation(battle: YachtBattle, totals: SlotTotals, sl
 
 type SevenAllocation = { totals: SlotTotals; item?: ArmedConsumable; banner?: number; whetstone?: number; scabbard?: number }
 
-export function forecastSevenTreasure(battle: YachtBattle, base: ReturnType<typeof forecast>, allocation: SevenAllocation, emperor: boolean) {
+export function forecastSevenTreasure(battle: YachtBattle, base: ReturnType<typeof forecast>, allocation: SevenAllocation, emperor: boolean,
+  upper?: ReturnType<typeof forecastFormation>) {
   const { triggered: _triggered, mirrorDamage, overflowDamage, ...inventory } = battle.loot!
   let loot: TreasureState = inventory
   let { hits, damage } = base
   let inflicted = { dealt: base.dealt, escortDealt: base.escortDealt }
+  let delayedDamage: ReturnType<typeof damageFormation> | undefined
   const block = (amount: number) => {
     if (base.dealt >= battle.enemyHp) return false
     let remaining = amount
@@ -132,7 +136,7 @@ export function forecastSevenTreasure(battle: YachtBattle, base: ReturnType<type
   const carried = allocation.scabbard ?? 0
   if (carried) loot = trigger({ ...loot, scabbard: undefined }, 'scabbard')
   if (loot.equipped.includes('scabbard') && base.dealt >= battle.enemyHp) {
-    const excess = allocation.totals.attack - carried - battle.enemyHp - (battle.escort?.hp ?? 0)
+    const excess = allocation.totals.attack - carried - (upper?.direct.cost ?? battle.enemyHp + (battle.escort?.hp ?? 0))
     if (excess > 0) loot = { ...loot, scabbard: Math.min(META_VALUES.scabbardCap, excess) }
   }
   if (battle.turn === 1 && loot.prepared.whetstone) {
@@ -140,13 +144,16 @@ export function forecastSevenTreasure(battle: YachtBattle, base: ReturnType<type
     loot = { ...loot, prepared }
     if (allocation.whetstone) loot = trigger(loot, 'whetstone')
   }
-  if (damage < battle.playerHp && base.dealt < battle.enemyHp) {
+  if ((upper || damage < battle.playerHp) && base.dealt < battle.enemyHp) {
     const delayed = Math.max(mirrorDamage ?? 0, overflowDamage ?? 0)
     if (delayed && allocation.totals.attack > 0 && (base.dealt > 0 || base.escortDealt > 0)) {
-      inflicted = splitEnemyDamage(battle, delayed, inflicted)
+      if (upper) {
+        delayedDamage = damageFormation(upper.enemy.formation, delayed)
+        inflicted = { ...inflicted, dealt: inflicted.dealt + delayedDamage.dealt }
+      } else inflicted = splitEnemyDamage(battle, delayed, inflicted)
       loot = trigger(loot, delayed === mirrorDamage ? 'mirror' : 'overflow')
     }
-    if (inflicted.dealt < battle.enemyHp) {
+    if (inflicted.dealt < battle.enemyHp && damage < battle.playerHp) {
       if (base.incoming.totalDamage > 0 && allocation.totals.guard > base.incoming.totalDamage && artifactReady(loot, 'overflow')) {
         const surplus = allocation.totals.guard - base.incoming.totalDamage
         loot = { ...spendSevenArtifact(loot, 'overflow'), overflowDamage: Math.min(SEVEN_ITEM_VALUES.overflowCap, surplus) }
@@ -156,5 +163,5 @@ export function forecastSevenTreasure(battle: YachtBattle, base: ReturnType<type
       }
     }
   }
-  return { ...base, ...inflicted, hits, damage, loot }
+  return { ...base, ...inflicted, hits, damage, loot, ...(delayedDamage && { delayedDamage }) }
 }

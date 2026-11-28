@@ -11,6 +11,8 @@ export interface MetaProgress {
   readonly generation: number
   readonly unlocked: readonly MetaFloor[]
   readonly seen: readonly MetaPerk[]
+  readonly upperSeal?: true
+  readonly upperRecapSeen?: true
 }
 
 export interface RunMeta {
@@ -33,6 +35,8 @@ export function loadMetaProgress(storage?: Pick<Storage, 'getItem'>): MetaProgre
   try {
     const value = JSON.parse((storage ?? globalThis.localStorage).getItem(META_SAVE_KEY) ?? 'null') as Partial<MetaProgress> | null
     if (value?.version === 1 && generation(value.generation) && floors(value.unlocked) && Array.isArray(value.seen) &&
+      (value.upperSeal === undefined || value.upperSeal === true) &&
+      (value.upperRecapSeen === undefined || value.upperSeal === true && value.upperRecapSeen === true) &&
       new Set(value.seen).size === value.seen.length && value.seen.every((id) => isMetaPerk(id) && value.unlocked!.includes(metaFloorForCard(id)!))) {
       return value as MetaProgress
     }
@@ -71,7 +75,7 @@ export function openMetaStage(run: Ascent, progress: MetaProgress, floor: number
   const meta = resumed.run.meta
   if (!meta || !isMetaFloor(floor) || (floor === 12) !== completed || resumed.progress.unlocked.includes(floor)) return resumed
   const route = run.route
-  if (completed ? route?.screen !== 'finished' || route.completed.length !== 12 || run.battle.phase !== 'won'
+  if (completed ? (route?.screen !== 'finished' && route?.screen !== 'upper-choice') || route.completed.length !== 12 || run.battle.phase !== 'won'
     : route?.node == null || route.map.byId[route.node]?.floor !== floor) return resumed
   const unlocked = ALL_META_FLOORS.filter((stage) => stage === floor || resumed.progress.unlocked.includes(stage))
   const opened = [...meta.opened, floor]

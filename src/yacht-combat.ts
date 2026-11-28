@@ -20,6 +20,8 @@ import { bloodDieFor, bloodHealing, canPlaceMetaDie, linkedFaces, metaAllocation
 import type { MetaTurn } from './meta-combat.ts'
 import { META_VALUES } from './meta-unlocks.ts'
 import { canSelectItemDie } from './item-effects.ts'
+import { damageFormation, effectiveCounterLimit, forecastFormation, livingEnemies, openFormation } from './upper-combat.ts'
+import type { Formation, FormationExchange } from './upper-combat.ts'
 
 export type Hand = 'triple' | 'straight'
 type EgoPlacement = NonNullable<Exchange['ego']>
@@ -47,6 +49,8 @@ export interface YachtBattle extends Battle {
   readonly bossRelic?: BossRelicState
   readonly crownUsed?: true
   readonly metaTurn?: MetaTurn
+  readonly formation?: Formation
+  readonly formationExchange?: FormationExchange
 }
 
 const FOURTH_DIE_CHANNEL = 8
@@ -289,7 +293,9 @@ function plannedAllocation(battle: YachtBattle, slots = battle.slots, dice = bat
     if (battle.loot?.consumableArmed === 'spacer') {
       const active = gimmick === undefined ? yachtGimmick(battle, slots, dice) : gimmick
       const board = active?.kind === 'retreat' && active.ready ? { ...battle, escort: undefined } : battle
-      const { dealt, incoming } = forecast(board, slots, dice, powered, active?.kind === 'reflect' && active.ready ? 'reflect' : undefined)
+      const upper = battle.formation && forecastFormation(battle.formation, powered)
+      const { dealt, incoming } = upper ? { dealt: upper.direct.dealt, incoming: upper.enemy }
+        : forecast(board, slots, dice, powered, active?.kind === 'reflect' && active.ready ? 'reflect' : undefined)
       if (dealt < battle.enemyHp && incoming.totalDamage > 0 && powered.guard === incoming.totalDamage + 1) {
         return { ...boost, totals: { ...powered, guard: powered.guard - 1 }, scabbard, item: 'spacer' as const }
       }
@@ -304,7 +310,8 @@ export function yachtAllocationTotals(battle: YachtBattle, slots = battle.slots,
   return plannedAllocation(battle, slots, dice).totals
 }
 
-type YachtForecast = ReturnType<typeof forecast> & { usedRelics: Relic[]; loot?: TreasureState; theftThreshold?: number; eraseCritical?: boolean }
+type YachtForecast = ReturnType<typeof forecast> & { usedRelics: Relic[]; loot?: TreasureState; theftThreshold?: number; eraseCritical?: boolean
+  upper?: { formation: Formation; exchange: FormationExchange } }
 
 export const GIMMICK_REQUIREMENTS = {
   trip: { slot: 'attack', face: 1, name: '발목 걸기' },
@@ -336,6 +343,23 @@ export function forecastYacht(battle: YachtBattle, slots = battle.slots, dice = 
   const allocation = plannedAllocation(battle, slots, dice, gimmick)
   const { totals } = allocation
   const emperor = emperorShieldActive(battle)
+  if (battle.formation) {
+    const upper = forecastFormation(battle.formation, totals)
+    const inflicted = { dealt: upper.direct.dealt, escortDealt: 0 }
+    const intent = enemyIntentAt(battle)
+    const base: ReturnType<typeof forecast> = {
+      ...inflicted, opening: inflicted, reflected: { dealt: 0, escortDealt: 0 }, intent,
+      incoming: { name: intent.name, totalDamage: upper.enemy.totalDamage,
+        hits: upper.enemy.actions.flatMap(action => 'hit' in action ? [action.hit.amount] : []) },
+      chargeBroken: upper.direct.chargeBroken, hits: upper.hits, damage: upper.damage, retaliation: 0, counter: upper.counter,
+    }
+    const { delayedDamage, ...result } = battle.loot
+      ? forecastSevenTreasure(battle, base, allocation, emperor, upper) : { ...base, delayedDamage: undefined }
+    const survives = turnSurvives(battle, result.damage)
+    return { ...result, counter: base.counter && result.dealt < battle.enemyHp && survives, usedRelics: [],
+      upper: { formation: delayedDamage?.formation ?? upper.enemy.formation,
+        exchange: { direct: upper.direct.contacts, actions: upper.enemy.actions, delayed: delayedDamage?.contacts ?? [] } } }
+  }
   const suppress = gimmick?.ready && gimmick.kind === 'reflect' ? 'reflect' : emperor && !battle.itemsSeven ? EMPEROR_SHIELD_CAP : undefined
   const base = forecast(battle, slots, dice, totals, suppress)
   if (battle.itemsSeven && battle.loot) return { ...forecastSevenTreasure(battle, base, allocation, emperor), usedRelics: [] }
@@ -447,19 +471,27 @@ export function chooseEgoOutcome(battle: YachtBattle, face: number,
   const options = ['attack', 'guard', 'rest'] as const
   let best: { slot: EgoPlacement['slot']; battle: YachtBattle; forecast: YachtForecast; hand: UsedHand | null } | undefined
   let bestScore = -Infinity
+  let bestSurvives = false
   for (const slot of options) {
     const candidate = withEgoDie(battle, { face, slot })
     const fc = forecastYacht(candidate)
-    const hand = turnHand(candidate, candidate.dice, fc.counter)
+    const hand = turnHand(candidate, candidate.dice, fc.counter) ?? (fc.upper &&
+      hasIncompletePair({ ...candidate, slots: metaAllocationSlots(candidate) }) ? { hand: 'triple', slot: 'attack' } as const : null)
     const rewards = fc.counter ? displayedCounterRewards(candidate) : []
-    const counterDamage = rewards.reduce((sum, { damage }) => sum + damage, 0) / COUNTER_REWARDS.length
-    const score = Number(fc.dealt >= battle.enemyHp) * 1000 + Number(fc.counter) * (400 + counterDamage) +
+    const limit = fc.upper && fc.counter ? effectiveCounterLimit(fc.upper.formation) : Infinity
+    const expected = rewards.reduce((sum, { damage }) => sum +
+      Math.min(damage, limit), 0) / COUNTER_REWARDS.length
+    const defeated = fc.upper?.exchange.direct.filter(contact => contact.hp === 0).length ?? 0
+    const offense = fc.upper ? fc.opening.dealt === battle.enemyHp ? 1000 : defeated * 180 : Number(fc.dealt >= battle.enemyHp) * 1000
+    const survives = !fc.upper || turnSurvives(candidate, fc.damage)
+    const score = offense + Number(fc.counter) * (400 + expected) +
       Number(Boolean(hand && !unlocks.includes(hand.hand))) * 250 -
-      (fc.damage - fc.retaliation) * 30 * (battle.playerHp <= 8 ? 2 : 1) + fc.dealt * 10 +
+      (fc.damage - fc.retaliation) * 30 * (battle.playerHp <= 8 ? 2 : 1) + (fc.upper ? fc.opening.dealt : fc.dealt) * 10 +
       Number(fc.chargeBroken) * 200 - fc.retaliation * 30
-    if (score > bestScore) {
+    if (survives && !bestSurvives || survives === bestSurvives && score > bestScore) {
       best = { slot, battle: candidate, forecast: fc, hand }
       bestScore = score
+      bestSurvives = survives
     }
   }
   return best!
@@ -610,6 +642,10 @@ function damageToStolenDie(battle: YachtBattle, dealt: number) {
   return { remaining: battle.stolenDie.remaining - dealt }
 }
 
+function turnSurvives(battle: YachtBattle, damage: number) {
+  return damage < battle.playerHp || battle.bossRelic?.id === 'revived-heart' && !battle.bossRelic.heartUsed
+}
+
 export function resolveYachtTurn(battle: YachtBattle, unlocks?: readonly Hand[]): { battle: YachtBattle; hand: UsedHand | null } {
   if (!canResolveYachtTurn(battle)) {
     return { battle, hand: null }
@@ -666,6 +702,9 @@ export function resolveYachtTurn(battle: YachtBattle, unlocks?: readonly Hand[])
     ...(ego && { slots: battle.slots.slice(0, originalLength) }),
     playerHp,
     enemyHp,
+    ...(result.upper && { formation: result.counter ? { ...result.upper.formation,
+      counterOrder: livingEnemies(result.upper.formation).map(enemy => enemy.id) } : result.upper.formation,
+      formationExchange: result.upper.exchange }),
     ...(heartRevived && { bossRelic: { id: 'revived-heart', heartUsed: true } }),
     ...(activated === 'armor' && enemyHp > 0 && { armorBroken: true }),
     ...(interruptedBefore && activated === undefined && interruptedBefore.kind === 'trip' &&
@@ -702,7 +741,7 @@ export function resolveYachtTurn(battle: YachtBattle, unlocks?: readonly Hand[])
   if (enemyHp === 0) return { battle: expireBattleTreasure({ ...resolved, phase: 'won' }), hand }
   if (planned.counter) return { battle: { ...resolved, phase: 'counter' }, hand }
   const next = { ...resolved, ...openTurn(battle.seed, battle.turn + 1) }
-  return { battle: openYachtDice(next), hand }
+  return { battle: openYachtDice(next.formation ? { ...next, formation: openFormation(next.formation, next.turn) } : next), hand }
 }
 
 export function spinYachtCounter(battle: YachtBattle, choice?: CounterChoice): YachtBattle {
@@ -710,6 +749,7 @@ export function spinYachtCounter(battle: YachtBattle, choice?: CounterChoice): Y
   const rewards = yachtCounterRewards(battle)
   let loot = battle.loot
   let spun: Battle
+  let upperCounter: ReturnType<typeof damageFormation> | undefined
   if (loot) {
     const slot = yachtCounterSlot(battle)
     const rolled = loot.counter ?? { slot, ...rewards[slot] }
@@ -721,7 +761,8 @@ export function spinYachtCounter(battle: YachtBattle, choice?: CounterChoice): Y
     }
     const result = battle.itemsSeven ? settleSevenCounter(battle, loot, rolled, choice) : settleTreasureCounter(battle, rolled, choice ?? 'now')
     loot = result.loot
-    spun = applyCounterResult(battle, { ...result.counter, damage: result.damage })
+    if (battle.formation) upperCounter = damageFormation(battle.formation, result.damage, false, battle.formation.counterOrder)
+    spun = applyCounterResult(battle, { ...result.counter, damage: upperCounter?.dealt ?? result.damage })
     spun = { ...spun, lastExchange: { ...spun.lastExchange!, counter: result.counter } }
   } else spun = spinCounter(battle, rewards)
   if (spun === battle) return battle
@@ -730,18 +771,25 @@ export function spinYachtCounter(battle: YachtBattle, choice?: CounterChoice): Y
   const stolenDie = damageToStolenDie(battle, battle.enemyHp - spun.enemyHp)
   const perk = battle.perk
   const crownTriggered = battle.bossRelic?.id === 'brake-crown' && !battle.crownUsed && spun.turn > battle.turn
-  const next = {
+  let next: YachtBattle = {
     ...rest,
     ...(loot && { loot }),
     ...(choice === 'recover-reroll' && { extraRerollAvailable: true, extraRerollSpent: undefined }),
     ...(stolenDie && { stolenDie }),
     ...(crownTriggered && {
       crownUsed: true as const,
-      interrupted: { turn: spun.turn, kind: 'topple' as const },
+      ...(!battle.formation && { interrupted: { turn: spun.turn, kind: 'topple' as const } }),
       lastExchange: { ...spun.lastExchange!, crownTriggered: true as const },
     }),
     ...(perk?.kind === 'counter' && { perk: battle.itemsSeven ? { ...perk, growth: Math.min(SEVEN_ITEM_VALUES.counterLimit, perk.growth + SEVEN_ITEM_VALUES.counterStep) }
       : { ...perk, rewards, growth: perk.growth + START_PERKS.counter.step } }),
+  }
+  if (upperCounter) {
+    const { counterOrder, ...settled } = upperCounter.formation
+    const formation = crownTriggered ? { ...settled,
+      enemies: settled.enemies.map(enemy => enemy.id === counterOrder?.[0] ? { ...enemy, toppled: true as const } : enemy) } : settled
+    next = { ...next, formation: next.turn > battle.turn ? openFormation(formation, next.turn) : formation,
+      formationExchange: { ...battle.formationExchange!, counter: upperCounter.contacts } }
   }
   return next.turn > battle.turn ? openYachtDice(next) : expireBattleTreasure(next)
 }
