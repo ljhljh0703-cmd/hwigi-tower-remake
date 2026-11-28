@@ -35,9 +35,13 @@ jobs:
       - run: npx playwright install --with-deps --only-shell chromium
       - run: sudo apt-get install -y fonts-noto-cjk
       - run: fc-match ':family=Noto Sans CJK KR:lang=ko'
+      - run: fc-match -s ':lang=ko' | head -3
       - run: npm run smoke -- --workers 2
+        env:
+          # Actual hero/boss scenes (including the 320 wide-forecast layout) for review.
+          HWIGI_HERO_SHOTS: test-results/hero-shots
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: always()
         with:
           name: combat-art-smoke-${{ github.sha }}
           path: test-results/

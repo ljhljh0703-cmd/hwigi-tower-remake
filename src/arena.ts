@@ -396,12 +396,36 @@ export class Arena {
     let headY = ground - (enemyMetric.footY - enemyMetric.head) * foe.scale / this.density
     const half = intentWidth / 2
     let center = Math.max(half + gap, Math.min(x(enemy), stage.width - half - gap))
+    let lowest = top
     if (enemy === boss && this.battle) {
       const intent = enemyIntentAt(this.battle)
       const { cell, atlas } = atlasCell(readyFrame(boss.name, intent, this.battle.erasedStrikeTurn === this.battle.turn))
       headY = ground - (atlas.pivot[1] - cell.bounds[1]) * foe.scale / this.density
       const left = canvasLeft + (this.atlasFoot(boss) + (cell.bounds[0] - atlas.pivot[0]) * foe.scale) / this.density
-      if (headY - intentHeight - gap < top && left >= intentWidth + gap * 2) center = left - half - gap
+      if (headY - intentHeight - gap < top) {
+        if (left >= intentWidth + gap * 2) center = left - half - gap
+        else {
+          // Too wide to stand beside the painted ink (the sword tip included), e.g. with a
+          // wider system font. Use the band above the boss's head between the rectangles
+          // actually occupied there (relic rail, boss name) at full type size.
+          const above = headY - intentHeight - gap
+          const local = (r: DOMRect) => ({ left: r.left - stage.left, right: r.right - stage.left, top: r.top - stage.top, bottom: r.bottom - stage.top })
+          const name = this.encounter.querySelector<HTMLElement>('#encounter-name')?.getBoundingClientRect()
+          const wanted = Math.max(half + gap, Math.min(x(enemy), stage.width - half - gap))
+          let low = gap, high = stage.width - gap
+          for (const r of [rail, name]) {
+            if (!r?.width || !r.height) continue
+            const box = local(r)
+            if (box.bottom + gap <= above || box.top - gap >= headY - gap) continue
+            if (box.left + (box.right - box.left) / 2 < wanted) low = Math.max(low, box.right + gap)
+            else high = Math.min(high, box.left - gap)
+          }
+          if (above >= gap && high - low >= intentWidth) {
+            center = Math.max(low + half, Math.min(wanted, high - half))
+            lowest = above
+          }
+        }
+      }
     }
     this.encounter.style.setProperty('--intent-center', `${center}px`)
     if (!formation) for (const actor of actors) {
@@ -412,7 +436,7 @@ export class Arena {
       const spans = x(actor) - left * scale / this.density < center + half && x(actor) + right * scale / this.density > center - half
       if (spans) headY = Math.min(headY, ground - (metric.footY - metric.head) * scale / this.density)
     }
-    const intentTop = Math.max(top, headY - intentHeight - gap)
+    const intentTop = Math.max(lowest, headY - intentHeight - gap)
     this.encounter.style.setProperty('--intent-top', `${intentTop}px`)
     this.intentBottom = (intentTop + intentHeight - canvasTop) * this.density
     this.encounter.style.setProperty('--inventory-clearance', `${top}px`)
