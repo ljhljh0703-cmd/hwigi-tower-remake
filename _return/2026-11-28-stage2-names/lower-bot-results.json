@@ -1,0 +1,584 @@
+{
+  "public": "81484c7ac032d5b06c25f030e037888478882d96",
+  "comparedStage": "7953e83",
+  "sample": 32768,
+  "wins": 22350,
+  "rows": [
+    {
+      "first": 8192,
+      "route": "safe",
+      "unlocks": "none",
+      "count": 4096,
+      "lower": {
+        "won": 2984,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 107,
+            "turns": 17501
+          },
+          {
+            "entered": 3989,
+            "lost": 33,
+            "turns": 13374
+          },
+          {
+            "entered": 3956,
+            "lost": 63,
+            "turns": 9165
+          },
+          {
+            "entered": 3893,
+            "lost": 27,
+            "turns": 7995
+          },
+          {
+            "entered": 3866,
+            "lost": 81,
+            "turns": 8530
+          },
+          {
+            "entered": 3785,
+            "lost": 123,
+            "turns": 18568
+          },
+          {
+            "entered": 3662,
+            "lost": 42,
+            "turns": 5670
+          },
+          {
+            "entered": 3620,
+            "lost": 8,
+            "turns": 3334
+          },
+          {
+            "entered": 3612,
+            "lost": 7,
+            "turns": 4736
+          },
+          {
+            "entered": 3605,
+            "lost": 6,
+            "turns": 4969
+          },
+          {
+            "entered": 3599,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3599,
+            "lost": 615,
+            "turns": 31531
+          }
+        ],
+        "fingerprint": "f829f28b53384d2bc32dda94034fb717a49463a2028e93a82095bda705e0219e"
+      }
+    },
+    {
+      "first": 8192,
+      "route": "safe",
+      "unlocks": "all",
+      "count": 4096,
+      "lower": {
+        "won": 2894,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 99,
+            "turns": 16839
+          },
+          {
+            "entered": 3997,
+            "lost": 33,
+            "turns": 13112
+          },
+          {
+            "entered": 3964,
+            "lost": 48,
+            "turns": 8856
+          },
+          {
+            "entered": 3916,
+            "lost": 20,
+            "turns": 7875
+          },
+          {
+            "entered": 3896,
+            "lost": 66,
+            "turns": 8406
+          },
+          {
+            "entered": 3830,
+            "lost": 93,
+            "turns": 18663
+          },
+          {
+            "entered": 3737,
+            "lost": 46,
+            "turns": 5848
+          },
+          {
+            "entered": 3691,
+            "lost": 8,
+            "turns": 3406
+          },
+          {
+            "entered": 3683,
+            "lost": 6,
+            "turns": 4780
+          },
+          {
+            "entered": 3677,
+            "lost": 2,
+            "turns": 5014
+          },
+          {
+            "entered": 3675,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3675,
+            "lost": 781,
+            "turns": 31928
+          }
+        ],
+        "fingerprint": "ff1e0fd3ed540844c7d643f3962d1cdcd88793f2aa9f099536eaa022e7b14a4f"
+      }
+    },
+    {
+      "first": 8192,
+      "route": "elite",
+      "unlocks": "none",
+      "count": 4096,
+      "lower": {
+        "won": 2678,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 107,
+            "turns": 17501
+          },
+          {
+            "entered": 3989,
+            "lost": 62,
+            "turns": 11928
+          },
+          {
+            "entered": 3927,
+            "lost": 132,
+            "turns": 8370
+          },
+          {
+            "entered": 3795,
+            "lost": 106,
+            "turns": 7388
+          },
+          {
+            "entered": 3689,
+            "lost": 123,
+            "turns": 6905
+          },
+          {
+            "entered": 3566,
+            "lost": 309,
+            "turns": 15616
+          },
+          {
+            "entered": 3257,
+            "lost": 40,
+            "turns": 4531
+          },
+          {
+            "entered": 3217,
+            "lost": 9,
+            "turns": 2911
+          },
+          {
+            "entered": 3208,
+            "lost": 21,
+            "turns": 4695
+          },
+          {
+            "entered": 3187,
+            "lost": 6,
+            "turns": 4553
+          },
+          {
+            "entered": 3181,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3181,
+            "lost": 503,
+            "turns": 24267
+          }
+        ],
+        "fingerprint": "3b141e6b82aeb92ec6163d9596e2758fcfa298e2771d95bb8b1fa39ae77789f6"
+      }
+    },
+    {
+      "first": 8192,
+      "route": "elite",
+      "unlocks": "all",
+      "count": 4096,
+      "lower": {
+        "won": 2662,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 99,
+            "turns": 16839
+          },
+          {
+            "entered": 3997,
+            "lost": 53,
+            "turns": 11348
+          },
+          {
+            "entered": 3944,
+            "lost": 104,
+            "turns": 8171
+          },
+          {
+            "entered": 3840,
+            "lost": 88,
+            "turns": 7331
+          },
+          {
+            "entered": 3752,
+            "lost": 77,
+            "turns": 6778
+          },
+          {
+            "entered": 3675,
+            "lost": 275,
+            "turns": 16224
+          },
+          {
+            "entered": 3400,
+            "lost": 25,
+            "turns": 4525
+          },
+          {
+            "entered": 3375,
+            "lost": 8,
+            "turns": 3082
+          },
+          {
+            "entered": 3367,
+            "lost": 16,
+            "turns": 5032
+          },
+          {
+            "entered": 3351,
+            "lost": 8,
+            "turns": 4814
+          },
+          {
+            "entered": 3343,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3343,
+            "lost": 681,
+            "turns": 26094
+          }
+        ],
+        "fingerprint": "bf4fe0717e12586d09c71ed6e7acc8d217f85d101783036b6f6f7fb81b207bdc"
+      }
+    },
+    {
+      "first": 12288,
+      "route": "safe",
+      "unlocks": "none",
+      "count": 4096,
+      "lower": {
+        "won": 2945,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 97,
+            "turns": 17393
+          },
+          {
+            "entered": 3999,
+            "lost": 44,
+            "turns": 13444
+          },
+          {
+            "entered": 3955,
+            "lost": 69,
+            "turns": 8968
+          },
+          {
+            "entered": 3886,
+            "lost": 25,
+            "turns": 7874
+          },
+          {
+            "entered": 3861,
+            "lost": 73,
+            "turns": 8526
+          },
+          {
+            "entered": 3788,
+            "lost": 115,
+            "turns": 18572
+          },
+          {
+            "entered": 3673,
+            "lost": 56,
+            "turns": 5761
+          },
+          {
+            "entered": 3617,
+            "lost": 6,
+            "turns": 3305
+          },
+          {
+            "entered": 3611,
+            "lost": 12,
+            "turns": 4810
+          },
+          {
+            "entered": 3599,
+            "lost": 4,
+            "turns": 4868
+          },
+          {
+            "entered": 3595,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3595,
+            "lost": 650,
+            "turns": 31449
+          }
+        ],
+        "fingerprint": "792abb0feee94e8504d6899dcc7d5c56dd605222fd52a1ecc1a3ed74876290cd"
+      }
+    },
+    {
+      "first": 12288,
+      "route": "safe",
+      "unlocks": "all",
+      "count": 4096,
+      "lower": {
+        "won": 2827,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 102,
+            "turns": 16958
+          },
+          {
+            "entered": 3994,
+            "lost": 45,
+            "turns": 13171
+          },
+          {
+            "entered": 3949,
+            "lost": 72,
+            "turns": 8986
+          },
+          {
+            "entered": 3877,
+            "lost": 25,
+            "turns": 7755
+          },
+          {
+            "entered": 3852,
+            "lost": 76,
+            "turns": 8484
+          },
+          {
+            "entered": 3776,
+            "lost": 98,
+            "turns": 18402
+          },
+          {
+            "entered": 3678,
+            "lost": 51,
+            "turns": 5791
+          },
+          {
+            "entered": 3627,
+            "lost": 6,
+            "turns": 3300
+          },
+          {
+            "entered": 3621,
+            "lost": 6,
+            "turns": 4727
+          },
+          {
+            "entered": 3615,
+            "lost": 2,
+            "turns": 4887
+          },
+          {
+            "entered": 3613,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3613,
+            "lost": 786,
+            "turns": 31580
+          }
+        ],
+        "fingerprint": "8627b472789a05739d182150f38783cd393cce11a201080a7bc9e5c1ecfd7f39"
+      }
+    },
+    {
+      "first": 12288,
+      "route": "elite",
+      "unlocks": "none",
+      "count": 4096,
+      "lower": {
+        "won": 2705,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 97,
+            "turns": 17393
+          },
+          {
+            "entered": 3999,
+            "lost": 65,
+            "turns": 12164
+          },
+          {
+            "entered": 3934,
+            "lost": 97,
+            "turns": 8239
+          },
+          {
+            "entered": 3837,
+            "lost": 113,
+            "turns": 7320
+          },
+          {
+            "entered": 3724,
+            "lost": 119,
+            "turns": 6969
+          },
+          {
+            "entered": 3605,
+            "lost": 269,
+            "turns": 15870
+          },
+          {
+            "entered": 3336,
+            "lost": 56,
+            "turns": 4585
+          },
+          {
+            "entered": 3280,
+            "lost": 15,
+            "turns": 3038
+          },
+          {
+            "entered": 3265,
+            "lost": 14,
+            "turns": 4769
+          },
+          {
+            "entered": 3251,
+            "lost": 6,
+            "turns": 4622
+          },
+          {
+            "entered": 3245,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3245,
+            "lost": 540,
+            "turns": 24590
+          }
+        ],
+        "fingerprint": "0d95400a2fd7cb36b91742832817e316111b416dff33eace298beca47c332ce9"
+      }
+    },
+    {
+      "first": 12288,
+      "route": "elite",
+      "unlocks": "all",
+      "count": 4096,
+      "lower": {
+        "won": 2655,
+        "floors": [
+          {
+            "entered": 4096,
+            "lost": 102,
+            "turns": 16958
+          },
+          {
+            "entered": 3994,
+            "lost": 51,
+            "turns": 11507
+          },
+          {
+            "entered": 3943,
+            "lost": 80,
+            "turns": 8068
+          },
+          {
+            "entered": 3863,
+            "lost": 86,
+            "turns": 7061
+          },
+          {
+            "entered": 3777,
+            "lost": 103,
+            "turns": 6914
+          },
+          {
+            "entered": 3674,
+            "lost": 255,
+            "turns": 16102
+          },
+          {
+            "entered": 3419,
+            "lost": 37,
+            "turns": 4601
+          },
+          {
+            "entered": 3382,
+            "lost": 12,
+            "turns": 2961
+          },
+          {
+            "entered": 3370,
+            "lost": 12,
+            "turns": 4971
+          },
+          {
+            "entered": 3358,
+            "lost": 7,
+            "turns": 4855
+          },
+          {
+            "entered": 3351,
+            "lost": 0,
+            "turns": 0
+          },
+          {
+            "entered": 3351,
+            "lost": 696,
+            "turns": 26217
+          }
+        ],
+        "fingerprint": "80668df6820b861fbc93aaa1044081c435df35eb7d027d279872437ca902d8a9"
+      }
+    }
+  ]
+}

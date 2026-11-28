@@ -40,7 +40,7 @@ export class UpperView {
     this.readout.innerHTML = `<div class="upper-goal">${guardLabel}</div>
       ${alive.map(({ id }, lane) => {
         const enemy = formation.enemies.find(entry => entry.id === id)!
-        const name = UPPER_ENEMIES[id]
+        const { name } = UPPER_ENEMIES[id]
         const position = lane ? '뒤' : '앞'
         const hits = (enemy.hp && !missed.has(id) ? visibleActions : facing.actions).flatMap(action => 'hit' in action && action.hit.id === id ? [action.hit] : [])
         const aiding = helpers.find(action => action.from === id)
@@ -50,12 +50,12 @@ export class UpperView {
           : enemy.action.pose === 'cancelled' ? '중단' : enemy.action.pose === 'rest' ? '자세 회복' : '대기'
         const opponent = aiding && alive.findIndex(entry => entry.id === aiding.to)
         return `<div class="upper-card" data-role="${id}" data-lane="${lane}" style="--lane-x:${lanes[lane] * 100}%" ${target === id ? 'data-counter-target' : ''}>
-          <strong class="upper-position" aria-label="${position} ${name.name}, ${name.role}"><span role="img" aria-label="${position}">${icon(lane ? 'formation-rear' : 'formation-front')}</span>${name.name}</strong>
+          <strong class="upper-name">${name}</strong>
           <span class="upper-hp" aria-label="체력 ${enemy.hp}/${enemy.maxHp}">${icon('heart')}${enemy.hp}<small>/${enemy.maxHp}</small></span>
-          <span class="upper-intent" ${missed.has(id) ? 'data-cancelled' : ''}>${hits.length ? hits.map(action =>
+          <span class="upper-intent"><span class="upper-position" role="img" aria-label="${position}">${icon(lane ? 'formation-rear' : 'formation-front')}</span><span class="upper-action" ${missed.has(id) ? 'data-cancelled' : ''}>${hits.length ? hits.map(action =>
             `<b>${action.amount}${action.boosted ? '<i aria-label="지원 적용">↑</i>' : ''}</b>`).join('') :
             aiding ? `<span title="${opponent === 0 ? '전위' : '후위'}의 다음 첫 피해 +2">지원 ↖</span>`
-              : `<span>${stance}</span>`}${aided ? '<small title="지원 대상">↑</small>' : ''}</span>
+              : `<span>${stance}</span>`}${aided ? '<small title="지원 대상">↑</small>' : ''}</span></span>
           ${predicted ? `<span class="upper-preview" aria-label="${predicted.pierce ? '관통 ' : ''}예상 피해 ${predicted.amount}">${predicted.pierce ? '↪' : '−'}${predicted.amount}</span>` : ''}
           ${damage?.id === id ? `<output class="upper-damage">−${damage.amount}</output>` : ''}
         </div>`

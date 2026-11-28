@@ -134,12 +134,14 @@ async function inFrame(page, selectors) {
     expect(item.x + item.width).toBeLessThanOrEqual(width)
     expect(item.y + item.height).toBeLessThanOrEqual(height)
   }
-  const healthMargins = await page.locator('.upper-card').evaluateAll(nodes => nodes.map(node => {
+  const margins = await page.locator('.upper-card').evaluateAll(nodes => nodes.flatMap(node => {
     const card = node.getBoundingClientRect()
-    const hp = node.querySelector('.upper-hp').getBoundingClientRect()
-    return { role: node.dataset.role, left: hp.left - card.left, right: card.right - hp.right }
+    return [...node.querySelectorAll('.upper-name, .upper-hp, .upper-intent')].map(element => {
+      const box = element.getBoundingClientRect()
+      return { label: `${node.dataset.role} ${element.className}`, left: box.left - card.left, right: card.right - box.right }
+    })
   }))
-  for (const { role, left, right } of healthMargins) expect(Math.min(left, right), role).toBeGreaterThan(0)
+  for (const { label, left, right } of margins) expect(Math.min(left, right), label).toBeGreaterThan(0)
   const cards = await page.locator('.upper-card').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().toJSON()))
   if (cards.length && await page.locator('#planning').isVisible()) {
     const planning = await page.locator('#planning').boundingBox()
@@ -170,9 +172,15 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   await page.locator('#fork-options button').tap()
   await expect(page.locator('#fork-preview .fork-preview-portrait')).toHaveAttribute('src', /upper-dash-idle\.png$/)
   await page.locator('#enter-room').tap()
+  const floor = page.locator('#room-floor')
+  await expect(floor).toBeVisible()
+  await expect(floor).toHaveText('13층 — 부서진 돌계단')
+  await photo(page, '13-room-entry')
   await expect(page.locator('#room-transition')).toBeHidden()
   await expect(card(page, 'dash')).toHaveAttribute('data-lane', '0')
   await expect(card(page, 'support')).toHaveAttribute('data-lane', '1')
+  await expect(card(page, 'dash').locator('.upper-name')).toHaveText('석판 사냥개')
+  await expect(card(page, 'support').locator('.upper-name')).toHaveText('갈고리 도적')
   await expect(goal(page)).toContainText('4')
   await expect.poll(async () => (await save(page)).ascent.battle.playerHp).toBe(18)
   await expect.poll(async () => (await save(page)).ascent.battle.loot.consumables.tuning).toBe(1)
@@ -186,7 +194,7 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   await photo(page, '13-turn1-formation')
 
   await resume(page, withDice(atFloor(13), [6, 4, 2], allAttack))
-  await expect(card(page, 'dash').locator('.upper-intent')).toHaveAttribute('data-cancelled', '')
+  await expect(card(page, 'dash').locator('.upper-action')).toHaveAttribute('data-cancelled', '')
   await expect(card(page, 'support').locator('.upper-preview')).toHaveText('↪2')
   await nextTurn(page).tap()
   await expect(card(page, 'dash').locator('.upper-damage')).toHaveText('−10')
@@ -265,6 +273,7 @@ test('17층 세 마리와 지원, 14층 교대·취소, 19층 강타·약화 및
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   await resume(page, atFloor(17, 'elite'))
+  await expect(page.locator('.upper-name')).toHaveText(['돌벽 보초', '석판 사냥개', '갈고리 도적'])
   await expect(goal(page)).toContainText('16')
   await expect(card(page, 'dash').locator('.upper-intent')).toContainText('8')
   await expect(card(page, 'support').locator('.upper-intent')).toContainText('지원')
@@ -288,11 +297,30 @@ test('17층 세 마리와 지원, 14층 교대·취소, 19층 강타·약화 및
   }
 
   await resume(page, atFloor(19))
+  await expect(page.locator('.upper-name')).toHaveText(['돌벽 보초', '창살의 죄수'])
   await expect(card(page, 'gatekeeper')).toHaveAttribute('data-lane', '1')
   await expect(goal(page)).toContainText('16')
   await inFrame(page, ['.upper-goal', '.upper-card[data-role="guard"]', '.upper-card[data-role="gatekeeper"]', '#resolve'])
   await verifyFormationArt(page, ['upper-shield', 'upper-boss'])
   await photo(page, '19-turn1-guarded-boss')
+
+  await page.locator('#help').tap()
+  const guide = page.locator('#battle-guide')
+  await guide.getByRole('tab', { name: '적', exact: true }).tap()
+  const codex = guide.locator('#guide-enemies')
+  const upperEntries = codex.locator('[data-enemy^="upper-"]')
+  await expect(upperEntries.locator('dt strong')).toHaveText(['석판 사냥개', '갈고리 도적', '돌벽 보초', '창살의 죄수'])
+  await expect(codex.locator('[data-enemy="upper-boss"] dd small')).toHaveText('갇힌 자 · 열아홉째 층의 붉은 망치')
+  for (const [label, region] of [['stairs', '부서진 돌계단'], ['corridor', '성벽 통로'], ['gate', '닫힌 관문']]) {
+    const section = codex.locator('section').filter({ has: page.getByRole('heading', { name: new RegExp(region) }) })
+    await expect(section.locator('p')).not.toBeEmpty()
+    for (const portrait of await section.locator('img').all()) {
+      await expect.poll(() => portrait.evaluate(image => image.naturalWidth)).toBeGreaterThan(0)
+    }
+    await section.locator('h3').evaluate(heading => heading.scrollIntoView({ block: 'start' }))
+    await photo(page, `codex-${label}`)
+  }
+  await guide.getByRole('button', { name: '닫기' }).tap()
 
   for (const power of [11, 12]) {
     let run = withFormation(atFloor(19), [0, 64])

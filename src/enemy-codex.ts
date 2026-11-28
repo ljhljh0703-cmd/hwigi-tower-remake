@@ -1,21 +1,14 @@
 import type { MapRules } from './ascent-map.ts'
 import type { AscentEnemyId } from './enemy-roster.ts'
+import type { UpperRole } from './upper-combat.ts'
 
 export const TOWER_REGIONS = {
   halls: { range: [1, 4], name: '무너진 회랑', mood: '깨진 돌벽으로 막힌 작은 아치 문과 기둥의 붉은 표식만이 남은 서늘한 하층 회랑.' },
   vault: { range: [5, 8], name: '사슬의 석실', mood: '천장에 쇠사슬이 드리워지고 굵은 돌버팀목이 사방을 억누르는 어둡고 무거운 석실.' },
   sanctuary: { range: [9, 12], name: '각인의 성소', mood: '거대한 원형 돌무늬를 품은 높은 아치와 풍화된 붉은 흉터가 내려다보는 정상의 성소.' },
-  stairs: { range: [13, 14], name: '좁은 계단', mood: '하층을 지나 경비 통로로 오르는 길.' },
-  corridor: { range: [15, 17], name: '경비 통로', mood: '파수대가 전후로 길을 막고 있다.' },
-  gate: { range: [18, 19], name: '격문', mood: '상층 끝에서 길을 닫고 있는 격문.' },
-} as const
-
-export const UPPER_ENEMIES = {
-  dash: { name: '?', lineage: '탑의 산물', role: '돌진' },
-  support: { name: '?', lineage: '갇힌 자', role: '지원' },
-  shield: { name: '?', lineage: '파수', role: '방패' },
-  guard: { name: '?', lineage: '파수', role: '호위' },
-  gatekeeper: { name: '?', lineage: '갇힌 자', role: '보스' },
+  stairs: { range: [13, 14], name: '부서진 돌계단', mood: '12층 문 너머로 이어지며 깨진 석판과 붉은 녹이 틈마다 배어 나오는 차가운 상층 오르막.' },
+  corridor: { range: [15, 17], name: '성벽 통로', mood: '두꺼운 돌벽 사이로 수비병이 앞을 가로막고 어둠 속 두건 쓴 그림자가 그 뒤를 엿보는 좁은 통로.' },
+  gate: { range: [18, 19], name: '닫힌 관문', mood: '무거운 문짝이 굳게 걸린 채 돌먼지와 끊어진 사슬의 기운만이 감도는 상층 끝자락.' },
 } as const
 
 export function towerRegion(floor: number) {
@@ -36,6 +29,28 @@ type EnemyEntry = {
   readonly six?: Badge
   readonly oldNameplate?: string
 }
+
+const upperShield = {
+  name: '돌벽 보초', lineage: '파수', region: 'corridor', icon: 'shield',
+  lore: '검은 사각 눈구멍이 뚫린 투구와 깨진 어깨 갑주 아래로 녹슨 쇠띠 두른 계단형 돌방패를 세우고 길을 막는 파수.',
+} as const satisfies EnemyEntry
+
+export const UPPER_ENEMIES = {
+  dash: {
+    name: '석판 사냥개', lineage: '탑의 산물', region: 'stairs', icon: 'sword',
+    lore: '부서진 계단 석판이 겹쳐 뭉친 몸과 쐐기 같은 앞발 사이로 녹슨 붉은 어깨 틈을 드러낸 채 낮게 몰아치는 짐승.',
+  },
+  support: {
+    name: '갈고리 도적', lineage: '갇힌 자', region: 'stairs', icon: 'escort',
+    lore: '검은 두건과 찢어진 짧은 망토를 두른 채 동료 뒤에서 손짓으로 기세를 돋우다 쇠갈고리를 휘두르는 자.',
+  },
+  shield: upperShield,
+  guard: upperShield,
+  gatekeeper: {
+    name: '창살의 죄수', title: '열아홉째 층의 붉은 망치', lineage: '갇힌 자', region: 'gate', icon: 'charge',
+    lore: '돌가루 낀 너덜한 망토와 창살 두건 아래 끊어진 손목 쇠고리를 달고 붉은 쇠띠 감은 각진 돌망치를 휘두르는 죄수.',
+  },
+} as const satisfies Record<UpperRole, EnemyEntry>
 
 export const ENEMY_CODEX: Readonly<Record<string, EnemyEntry> & Record<CodexEnemyId, EnemyEntry>> = {
   thorns: {
@@ -110,6 +125,10 @@ export const ENEMY_CODEX: Readonly<Record<string, EnemyEntry> & Record<CodexEnem
     lore: '왼쪽 어깨에 탑의 붉은 표식을 진 채 거대한 검과 돌기둥으로 정상 문을 지키는 옛 황제.',
     mechanic: '넘어뜨리기 예고 중 공격에 3을 놓으면 다음 턴에 쉽니다.',
   },
+  'upper-dash': UPPER_ENEMIES.dash,
+  'upper-support': UPPER_ENEMIES.support,
+  'upper-shield': UPPER_ENEMIES.shield,
+  'upper-boss': UPPER_ENEMIES.gatekeeper,
 }
 
 export function enemyBadge(id: CodexEnemyId, rules: MapRules): Badge {

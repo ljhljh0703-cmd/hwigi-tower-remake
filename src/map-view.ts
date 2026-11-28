@@ -16,6 +16,7 @@ const names: Record<MapNodeKind, string> = {
   fight: '전투', elite: '강적', rest: '휴식', boss: '보스', event: '이벤트', shop: '상인',
 }
 export function enemyPortrait(enemy: string, className: string) {
+  if (Object.values(upperSprites).includes(enemy)) return spritePortrait(enemy, className)
   const sprite = enemy === 'escort-guard' ? ESCORT_SPRITE : ENEMY_SPRITES[enemy as AscentEnemyId]
   return sprite ? spritePortrait(sprite.name, className) : ''
 }

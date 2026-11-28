@@ -2665,7 +2665,7 @@ main[data-screen='defeat'] {
   display: grid;
   justify-items: center;
   align-content: start;
-  inline-size: 54px;
+  inline-size: 64px;
   padding: 2px 3px;
   color: #fff2d5;
   background: #28231ff5;
@@ -2678,19 +2678,19 @@ main[data-screen='defeat'] {
 .upper-card:not([data-lane='0']) { inset-block-start: calc(var(--ground, 130px) - var(--upper-tier, 35px) + 3px); border-color: #8f897e; }
 .upper-card[data-role='gatekeeper'] { color: #ffe6ac; inline-size: 76px; }
 .upper-card[data-role='gatekeeper'] .upper-hp { font-size: .85rem; gap: 2px; }
-.upper-position { display: flex; align-items: center; gap: 3px; }
-.upper-position > span { display: flex; color: #fdd390; font-size: .95rem; }
-.upper-card:not([data-lane='0']) .upper-position > span { color: #c9c9b5; }
+.upper-name { white-space: nowrap; }
+.upper-position { display: flex; color: #fdd390; font-size: .8rem; }
+.upper-card:not([data-lane='0']) .upper-position { color: #c9c9b5; }
 .upper-card[data-counter-target] { outline: 2px solid #f0cb82; outline-offset: 2px; }
-.upper-hp, .upper-intent { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+.upper-hp, .upper-intent, .upper-action { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
 .upper-hp { font: .92rem/1.15 ui-monospace, monospace; gap: 2px; margin: 2px 0; }
 .upper-hp > small { color: #d3c3ac; font-size: .67rem; }
 .upper-hp .icon { color: #f2ab91; inline-size: 12px; block-size: 12px; flex: none; }
 .upper-intent { min-block-size: 15px; color: #f8ca83; }
-.upper-intent > b { min-inline-size: 12px; text-align: center; border: 1px solid #806747; background: #392c20; }
-.upper-intent > b i { color: #c8e6aa; font-style: normal; }
-.upper-intent > small { color: #c8e6aa; }
-.upper-intent[data-cancelled] { text-decoration: line-through; opacity: .75; }
+.upper-action > b { min-inline-size: 12px; text-align: center; border: 1px solid #806747; background: #392c20; }
+.upper-action > b i { color: #c8e6aa; font-style: normal; }
+.upper-action > small { color: #c8e6aa; }
+.upper-action[data-cancelled] { text-decoration: line-through; opacity: .75; }
 .upper-preview { color: #fef5c8; min-block-size: 13px; }
 .upper-damage {
   position: absolute;
@@ -2718,7 +2718,7 @@ main[data-screen='defeat'] {
 }
 
 @media (min-width: 361px) {
-  .upper-card { inline-size: 61px; }
+  .upper-card { inline-size: 70px; }
 }
 
 @media (max-height: 620px) {
@@ -2729,8 +2729,8 @@ main[data-screen='defeat'] {
   .upper-field .upper-goal { inset-block-start: -5px; padding-block: 3px; }
   .upper-field #encounter-name ~ #ego-notices { inset-block-start: 40px; max-inline-size: 68px; }
   .upper-field #ego-presence { padding: 2px 3px; gap: 2px; font-size: .7rem; }
-  .upper-card { inline-size: 52px; padding-block: 1px; }
-  .upper-hp, .upper-intent { gap: 2px; }
+  .upper-card { padding-block: 1px; }
+  .upper-hp, .upper-intent, .upper-action { gap: 2px; }
   .upper-hp { margin-block: 1px; font-size: 12px; }
   .upper-hp > small { font-size: 9px; }
   .upper-hp .icon { inline-size: 10px; block-size: 10px; }

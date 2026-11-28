@@ -45,7 +45,7 @@ test('규칙판 7 이름을 층 진입·전투·도감·보상에 표시하고 �
   const guide = page.locator('#battle-guide')
   await guide.getByRole('tab', { name: '적', exact: true }).tap()
   const enemies = guide.locator('#guide-enemies')
-  await expect(enemies.locator('[data-enemy]')).toHaveCount(13)
+  await expect(enemies.locator('[data-enemy]')).toHaveCount(17)
   await expect(enemies.locator('[data-enemy="boss"]')).toContainText('열두째 층의 문지기')
   await expect(enemies.locator('[data-enemy="escort-guard"]')).toContainText('작은 시종')
   const lore = enemies.locator('[data-enemy="chain-warden"]')
