@@ -106,18 +106,22 @@ const upperActorLanes = (count: number, wide: boolean) => count === 3
   ? wide ? [.31, .631, .914] : [.347, .656, .920]
   : upperCardLanes(count)
 const upperTier = (width: number) => width >= 344 ? 60 : 35
-const upperEnemyScale = (id: UpperRole, lane: number, wide: boolean, px: number) =>
-  (4 + Number(wide) - Number(lane > 0 || id === 'gatekeeper')) * px
+function upperEnemyScale(id: UpperRole, lane: number, wide: boolean, density: number) {
+  const scale = 4 + Number(wide) - Number(lane > 0 || id === 'gatekeeper')
+  // Rounding the density up before scaling can consume the adjacent actor's lane.
+  return Math.max(1, Math.floor(scale * Math.min(density, Math.round(density))))
+}
 // Leftmost opaque pixel relative to the foot in poses that extend past idle.
 const upperHeroOverhang: Record<string, number> = {
   'attack-prepare': 14, step: 4, attack: 20, 'attack-follow': 19, hit: 9,
 }
 
-function layoutUpperEnemies(roles: readonly UpperRole[], width: number, wide: boolean, px: number, playerRight: number) {
+function layoutUpperEnemies(roles: readonly UpperRole[], width: number, wide: boolean, density: number, playerRight: number) {
+  const px = Math.max(1, Math.round(density))
   const lanes = upperActorLanes(roles.length, wide)
   const widths = roles.map((id, lane) => {
     const { cell } = atlasCell(frame(upperSprites[id], lane ? 'rear-ready' : 'ready'))
-    return cell.bounds[2] * upperEnemyScale(id, lane, wide, px)
+    return cell.bounds[2] * upperEnemyScale(id, lane, wide, density)
   })
   const rightEdge = width - 4 * px
   let remaining = widths.reduce((total, item) => total + item, 0)
@@ -395,7 +399,7 @@ export class Arena {
       const edge = 4 * px + hero.restReach![0] * player.scale
       player.foot = zoom > 1 ? Math.max(edge, Math.round(this.canvas.width * .18)) : edge
       const foes = livingEnemies(upper).map(enemy => enemy.id)
-      const [front] = layoutUpperEnemies(foes, this.canvas.width, tier === 60, px, player.foot + hero.restReach![1] * player.scale)
+      const [front] = layoutUpperEnemies(foes, this.canvas.width, tier === 60, this.density, player.foot + hero.restReach![1] * player.scale)
       if (front !== undefined) enemyX = canvasLeft + front / this.density
       this.encounter.style.setProperty('--upper-tier', `${tier}px`)
     }
@@ -800,7 +804,7 @@ export class Arena {
     const previous = motion?.from && livingEnemies(motion.from)
     const { foot: heroX, scale: heroScale } = this.placements.get(hero)!
     const layout = (roles: readonly UpperRole[]) =>
-      layoutUpperEnemies(roles, canvas.width, wide, px, heroX + hero.restReach![1] * heroScale)
+      layoutUpperEnemies(roles, canvas.width, wide, density, heroX + hero.restReach![1] * heroScale)
     const settled = layout(foes.map(enemy => enemy.id))
     const starting = previous ? layout(previous.map(enemy => enemy.id)) : settled
     const getY = (lane: number) => floor - (lane ? upper : 0)
@@ -812,7 +816,7 @@ export class Arena {
         y: Math.round(getY(old) + (getY(index) - getY(old)) * shiftProgress), old }
     }
     // The boss has denser front art and its own compact rear cells.
-    const selectScale = (id: UpperRole, index: number) => upperEnemyScale(id, index, wide, px)
+    const selectScale = (id: UpperRole, index: number) => upperEnemyScale(id, index, wide, density)
     const centerOffset = (cell: ReturnType<typeof atlasCell>['cell'], pivot: number[], scale: number) =>
       Math.round((cell.bounds[0] + cell.bounds[2] / 2 - pivot[0]) * scale)
     if (foes.length) {

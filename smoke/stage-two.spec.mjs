@@ -78,7 +78,7 @@ async function verifyBossPixels(page, sheet, pose) {
   }
 }
 
-async function verifyFormationArt(page, sheets) {
+async function readFormationArt(page, sheets) {
   await expect.poll(async () => (await page.evaluate(() => window.upperSpriteDraws ?? []))
     .filter(draw => sheets.includes(draw.sheet)).length).toBe(sheets.length)
   const draws = await page.evaluate(() => window.upperSpriteDraws)
@@ -94,7 +94,18 @@ async function verifyFormationArt(page, sheets) {
     const [left, top, bodyWidth, height] = frame.bounds.map(value => value * scale)
     return { left: x + left, top: y + top, right: x + left + bodyWidth, bottom: y + top + height, height, scale }
   })
-  const [front, ...rear] = boxes
+  for (const [index, box] of boxes.entries()) {
+    expect(box.left).toBeGreaterThanOrEqual(0)
+    expect(box.top).toBeGreaterThanOrEqual(0)
+    expect(box.right).toBeLessThanOrEqual(field.width)
+    expect(box.bottom).toBeLessThan(field.height)
+    for (const neighbor of boxes.slice(index + 1)) expect(box.right).toBeLessThanOrEqual(neighbor.left)
+  }
+  return boxes
+}
+
+async function verifyFormationArt(page, sheets) {
+  const [front, ...rear] = await readFormationArt(page, sheets)
   const hero = await verifyHeroOnFloor(page)
   expect(hero.right).toBeLessThanOrEqual(front.left)
   expect(front.height).toBeGreaterThanOrEqual(95)
@@ -103,13 +114,6 @@ async function verifyFormationArt(page, sheets) {
     expect(back.height).toBeGreaterThanOrEqual(front.height * .75 - 1)
     expect(back.height).toBeLessThanOrEqual(front.height * .85 + 1)
     expect(front.bottom - back.bottom).toBeGreaterThanOrEqual(30)
-  }
-  for (const [index, box] of boxes.entries()) {
-    expect(box.left).toBeGreaterThanOrEqual(0)
-    expect(box.top).toBeGreaterThanOrEqual(0)
-    expect(box.right).toBeLessThanOrEqual(field.width)
-    expect(box.bottom).toBeLessThan(field.height)
-    for (const neighbor of boxes.slice(index + 1)) expect(box.right).toBeLessThanOrEqual(neighbor.left)
   }
   await expect(page.locator('.upper-card[data-lane="0"] .upper-position use')).toHaveAttribute('href', '#icon-formation-front')
   await expect(page.locator('.upper-card[data-lane="1"] .upper-position use')).toHaveAttribute('href', '#icon-formation-rear')
@@ -138,6 +142,18 @@ test('the upper-floor hero uses the lower-floor pixel scale and stands on the ar
   const { scale } = await verifyHeroOnFloor(page)
   await resume(page, atFloor(19))
   await verifyHeroOnFloor(page, scale)
+})
+
+test.describe('upper arena with fractional pixel density', () => {
+  test.use({ deviceScaleFactor: 1.5 })
+  test('the three-enemy formation leaves room for the full-size hero', async ({ page }) => {
+    await resume(page, atFloor(12))
+    const { scale } = await verifyHeroOnFloor(page, 5)
+    await resume(page, atFloor(17, 'elite'))
+    const [front] = await readFormationArt(page, ['upper-shield', 'upper-dash', 'upper-support'])
+    const hero = await verifyHeroOnFloor(page, scale)
+    expect(hero.right).toBeLessThanOrEqual(front.left)
+  })
 })
 
 async function photo(page, label) {
