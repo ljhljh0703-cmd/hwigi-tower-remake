@@ -52,7 +52,7 @@ main {
 h1, h2, p { margin: 0; }
 
 h1, h2,
-#intent strong, .slot-total > strong, .die-face, .die-net, .unlock-value strong,
+#intent strong, .slot-total > strong, .die-face, .unlock-value strong,
 #counter-damage, #event-floor > strong, #turn,
 :is(#player-total, #enemy-total, #escort-guard-total), .damage-number {
   font-family: var(--display-font);
@@ -1759,6 +1759,21 @@ button.die:disabled { background: transparent; }
 
 .slot .dice-row { row-gap: 12px; }
 .die-arriving { visibility: hidden; }
+/* The preview occupies the landing strip. Keep its reserved space until
+   the rolled faces reach their buttons and can actually form a hand. */
+#planning:has(.die-arriving) .unlock-chip { visibility: hidden; }
+.die[data-reroll-from] .die-face { font-size: 0; }
+.die[data-reroll-from]::after {
+  content: attr(data-reroll-from);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #282720;
+  font: 800 1.28rem/1 var(--display-font);
+  pointer-events: none;
+}
+.die.companion-die[data-reroll-from]::after { color: #f4ebd8; }
 .die-placing :is(.die-face, .die-indicators) { opacity: 0; }
 #planning:focus { outline: none; }
 
@@ -1791,9 +1806,12 @@ button.die:disabled { background: transparent; }
   inline-size: 3px;
   block-size: 3px;
   background: #ddac66;
-  box-shadow: 8px -2px #cca265, -8px 2px #b58e54, 14px 3px #8b7042, -13px -4px #9e7c4c;
+  translate: -50% -100%;
+  transform-origin: bottom center;
+  box-shadow: 8px -2px #cca265, -8px -1px #b58e54, 14px -1px #8b7042, -13px -4px #9e7c4c;
   opacity: 0;
 }
+.dice-roll-dust.small { inline-size: 2px; block-size: 2px; box-shadow: -5px -2px #b58e54, 5px -1px #cca265; }
 
 #locked-die { display: grid; place-content: center; justify-items: center; order: 1; cursor: help; }
 #locked-die .companion-closed { inline-size: 20px; block-size: 20px; }
@@ -2316,29 +2334,8 @@ button.die:disabled { background: transparent; }
   55% { scale: 1.04; }
 }
 
-.die-net {
-  display: grid;
-  --face-size: clamp(35px, 7.5vw, 55px);
-  grid-template: repeat(3, var(--face-size)) / repeat(4, var(--face-size));
-  grid-template-areas: '. north . .' 'west center east far' '. south . .';
-  gap: 2px;
-}
-
-.die-net span {
-  display: grid;
-  place-items: center;
-  background: url('/art/ui/combat-controls/bone.png') center top / 100% 200% no-repeat;
-  color: #252423;
-  font-size: clamp(1.2rem, 3vw, 1.6rem);
-  font-weight: 750;
-}
-
-.die-net span:nth-child(1) { grid-area: north; }
-.die-net span:nth-child(2) { grid-area: west; }
-.die-net span:nth-child(3) { grid-area: center; }
-.die-net span:nth-child(4) { grid-area: east; }
-.die-net span:nth-child(5) { grid-area: far; }
-.die-net span:nth-child(6) { grid-area: south; }
+#unlock-reveal .unlock-pattern { gap: 5px; font-size: clamp(24px, 7vw, 38px); }
+#unlock-reveal .unlock-pattern i[data-filled='true'] { background: url('/art/ui/combat-controls/bone.png') center top / 100% 200% no-repeat; }
 .unlock-value { display: flex; align-items: center; gap: 4px; font-size: clamp(1.55rem, 5vw, 2.8rem); }
 
 .companion-reveal .companion-tile {
