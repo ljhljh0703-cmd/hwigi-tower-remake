@@ -6,7 +6,8 @@ import { COUNTER_REWARDS, DIE_COUNT, PLAYER_HP } from './combat.ts'
 import { enemyForFight } from './enemy-roster.ts'
 import { SEVEN_ITEM_VALUES } from './item-values.ts'
 import { isRunMeta } from './meta-progress.ts'
-import { isMetaPerk, metaFloorForCard } from './meta-unlocks.ts'
+import { isMetaFloor, isMetaPerk, metaFloorForCard } from './meta-unlocks.ts'
+import type { MetaFloor } from './meta-unlocks.ts'
 import { BANDAGE_HEAL, ELITE_KEEP_COINS, isLegacyReward, isRelic, isReward, relicReady } from './rewards.ts'
 import type { CombatRewards, Reward, RewardChoice } from './rewards.ts'
 import { shopPrice, treasureOffers } from './map-treasure.ts'
@@ -25,7 +26,10 @@ const LEGACY_VERSION = 1
 const MAP_VERSION = 2
 const UPPER_VERSION = 3
 
+export type UnlockNotice = Hand | MetaFloor
+
 export interface AscentSave {
+  readonly unlockNotices?: readonly UnlockNotice[]
   readonly ascent: Ascent
   readonly selected: readonly number[]
   readonly rewardPreview?: Reward
@@ -381,7 +385,11 @@ function readCheckpoint(raw: unknown): AscentSave | null {
   if (nodePreview !== undefined && !(mapped?.route.screen === 'map' && integer(nodePreview) && mapped.route.map.byId[nodePreview])) return null
   const { artifactOptions } = raw
   if (artifactOptions !== undefined && !(rulesTwo && previewAvailable && isArtifact(rewardPreview) && artifactOptionsRecord(artifactOptions, seven))) return null
-  return ascentFinished(ascent) ? null : { ascent, selected: selected.filter(index => index < dice.length), ...(previewAvailable && { rewardPreview }), ...(typeof nodePreview === 'number' && { nodePreview }), ...(artifactOptions && { artifactOptions }) }
+  const unlockNotices = Array.isArray(raw.unlockNotices)
+    ? [...new Set(raw.unlockNotices.filter((value): value is UnlockNotice =>
+      hand(value) ? value === newUnlock && battle.phase !== 'lost' : isMetaFloor(value) && Boolean(meta?.opened.includes(value))))]
+    : []
+  return ascentFinished(ascent) && !unlockNotices.length ? null : { ascent, ...(unlockNotices.length && { unlockNotices }), selected: selected.filter(index => index < dice.length), ...(previewAvailable && { rewardPreview }), ...(typeof nodePreview === 'number' && { nodePreview }), ...(artifactOptions && { artifactOptions }) }
 }
 
 export function loadAscentSave(storage?: SaveStorage): AscentSave | null {
@@ -408,10 +416,10 @@ export function clearAscentSave(storage?: Pick<Storage, 'removeItem'>) {
   }
 }
 
-export function writeAscentSave({ ascent, selected, rewardPreview, nodePreview, artifactOptions }: AscentSave, storage?: SaveStorage) {
+export function writeAscentSave({ ascent, selected, rewardPreview, nodePreview, artifactOptions, unlockNotices }: AscentSave, storage?: SaveStorage) {
   try {
     const store = storage ?? globalThis.localStorage
-    if (ascentFinished(ascent)) {
+    if (ascentFinished(ascent) && !unlockNotices?.length) {
       store.removeItem(ASCENT_SAVE_KEY)
       return
     }
@@ -426,6 +434,7 @@ export function writeAscentSave({ ascent, selected, rewardPreview, nodePreview, 
     }
     store.setItem(ASCENT_SAVE_KEY, JSON.stringify({
       version: route?.map.upper ? UPPER_VERSION : route ? MAP_VERSION : LEGACY_VERSION, selected, rewardPreview, nodePreview, artifactOptions,
+      ...(unlockNotices?.length && { unlockNotices }),
       ascent: { seed, fight, unlocks, newUnlock, rewardChoice, battle: savedBattle, route: savedRoute, meta },
     }))
   } catch {

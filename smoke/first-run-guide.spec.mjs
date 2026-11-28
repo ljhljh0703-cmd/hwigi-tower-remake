@@ -443,16 +443,20 @@ test('주사위판의 해금 신호로 같은 눈 셋을 깨운 뒤 에고를 �
   await unlock.evaluate(element => {
     window.unlockPresented = false
     const observer = new MutationObserver(() => {
-      if (element.hidden || !element.getClientRects().length) return
+      if (!element.open) return
       window.unlockPresented = true
       observer.disconnect()
     })
-    observer.observe(element, { attributeFilter: ['hidden'] })
+    observer.observe(element, { attributeFilter: ['open'] })
   })
   await page.locator('#resolve').tap()
   await expect(ego).toHaveAttribute('data-awakening', '')
   await photo('awakening')
   await expect.poll(() => page.evaluate(() => window.unlockPresented)).toBe(true)
+  await expect(unlock).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(unlock).toBeVisible()
+  await page.locator('#confirm-unlock').tap()
   await expect(unlock).toBeHidden()
   await expect(ego).toBeVisible()
   await expect(page.locator('#pool-dice .die-arriving')).toHaveCount(0)

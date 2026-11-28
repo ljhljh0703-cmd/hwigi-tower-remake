@@ -360,12 +360,6 @@
           </div>
         </section>
 
-        <section id="new-unlock" class="event-panel" aria-labelledby="unlock-heading" hidden>
-          <h2 id="unlock-heading"></h2>
-          <div id="unlock-reveal" role="img"></div>
-          <p id="companion-awaken-line" class="companion-line" role="status" hidden></p>
-        </section>
-
         <section id="reward-panel" aria-labelledby="reward-heading" hidden>
           <header class="reward-header">
             <h2 id="reward-heading">전투 보상</h2>
@@ -420,6 +414,12 @@
     <p id="first-run-status" class="sr-only" role="status"></p>
     <p id="hold-help" role="tooltip" hidden></p>
     <div id="ego-placement" class="companion-tile" role="status" hidden></div>
+    <dialog id="new-unlock" aria-labelledby="unlock-heading">
+      <h2 id="unlock-heading"></h2>
+      <div id="unlock-reveal" role="img"></div>
+      <p id="unlock-benefit"></p>
+      <form method="dialog"><button id="confirm-unlock" class="primary" autofocus>확인</button></form>
+    </dialog>
     <dialog id="unlock-conditions" aria-label="주사위 해금 조건">
       <form method="dialog"><button class="icon-button" aria-label="닫기" autofocus>×</button></form>
       <div class="unlock-diagram">

@@ -95,15 +95,16 @@ export async function rollStraight(page) {
   await page.evaluate(() => {
     const panel = document.querySelector('#new-unlock')
     const observer = new MutationObserver(() => {
-      if (!panel.hidden) {
+      if (panel.open) {
         window.straightShown = true
         observer.disconnect()
       }
     })
-    observer.observe(panel, { attributeFilter: ['hidden'] })
+    observer.observe(panel, { attributeFilter: ['open'] })
   })
   await page.locator('#resolve').tap()
   await page.waitForFunction(() => window.straightShown)
+  await page.locator('#confirm-unlock').tap()
   await page.locator('#new-unlock').waitFor({ state: 'hidden' })
   await page.locator('.die-arriving').first().waitFor({ state: 'detached' })
 }

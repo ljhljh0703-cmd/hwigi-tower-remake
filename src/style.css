@@ -2682,3 +2682,22 @@ main[data-screen='defeat'] {
     column-gap: 1px;
   }
 }
+
+#new-unlock {
+  color: var(--ink);
+  background: #292621;
+  border: 2px solid #9b7958;
+  width: min(390px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 18px;
+  text-align: center;
+}
+#new-unlock::backdrop { background: #141210ba; }
+#new-unlock h2 { color: #f7dfba; justify-content: center; }
+#new-unlock p { margin: 6px 0 12px; line-height: 1.5; word-break: keep-all; }
+#new-unlock p:empty { display: none; }
+#confirm-unlock { min-width: 8rem; }
+#unlock-reveal.meta-unlock-cards { display: grid; gap: 8px; margin-block: 10px; }
+.unlock-meta-card { display: grid; grid-template-columns: 36px 1fr; align-items: center; gap: 2px 8px; padding: 8px; border: 1px solid #896951; text-align: left; }
+.unlock-meta-card .pixel-icon { width: 32px; height: 32px; }
+#new-unlock .unlock-meta-card p { grid-column: 2; margin: 0; font-size: .88rem; }

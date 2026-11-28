@@ -10,6 +10,7 @@ import { perkDisplayName, rewardDisplayName } from './display-names.ts'
 import { enemyBadge, enemyNameplate, ENEMY_CODEX, TOWER_REGIONS, towerRegion } from './enemy-codex.ts'
 import { bossRelicText, isBossRelic, SEVEN_BOSS_RELICS, SEVEN_EMPEROR_SHIELD_CAP } from './boss-relic.ts'
 import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, writeAscentSave } from './ascent-save.ts'
+import type { UnlockNotice } from './ascent-save.ts'
 import { Arena, battleImpactTier, heavyStrike } from './arena.ts'
 import { fracture } from './body-fragments.ts'
 import { impactMaterial, upperMaterials } from './impact-material.ts'
@@ -41,7 +42,7 @@ import { collectorBonus, offerPerks, START_PERK_CARDS, START_PERKS } from './per
 import type { Parity, StartPerk } from './perks.ts'
 import { isMetaArtifact, META_ARTIFACTS, META_PERKS, META_VALUES } from './meta-unlocks.ts'
 import { loadMetaProgress, markMetaOffers, META_CARD_COUNT, META_SAVE_KEY, openMetaStage, resetMetaProgress, resumeMetaRun, snapshotMeta, writeMetaProgress } from './meta-progress.ts'
-import { metaGuideContent, metaRevealContent } from './meta-view.ts'
+import { metaGuideContent, metaNoticeContent, metaRevealContent } from './meta-view.ts'
 import { bloodDieFor, bloodHealing, canPlaceMetaDie, draftMetaDie, transferMetaPip } from './meta-combat.ts'
 import {
   bladeChargePreview, canReroll, canResolveYachtTurn, canUseExtraReroll, displayedCounterRewards, previewUnlockProgress, toggleYachtWedge, tuneYachtDie, yachtAllocationTotals,
@@ -98,7 +99,6 @@ const ui = {
   activePerk: element('active-perk'),
   bladeMeter: element('blade-meter'),
   companionFlight: element('companion-flight'),
-  companionAwakenLine: element('companion-awaken-line'),
   companionSleepLine: element('companion-sleep-line'),
   turn: element('turn'),
   help: element<HTMLButtonElement>('help'),
@@ -124,7 +124,8 @@ const ui = {
   parry: element('parry-cue'),
   unlockImpact: element('unlock-impact'),
   awakening: element('awakening'),
-  newUnlock: element('new-unlock'),
+  newUnlock: element<HTMLDialogElement>('new-unlock'),
+  unlockBenefit: element('unlock-benefit'),
   unlockHeading: element('unlock-heading'),
   unlockReveal: element('unlock-reveal'),
   ownedUnlocks: element('owned-unlocks'),
@@ -281,6 +282,7 @@ const gimmickEffects = {
 } satisfies Record<Gimmick, { icon: string; value?: string; intro: string; help: string }>
 
 let ascent: Ascent | null = null
+let unlockNotices: UnlockNotice[] = []
 let chosenReward: Reward | undefined
 let artifactOptions: ArtifactOptions = {}
 let itemControl: 'tuning' | 'twin-mold' | 'hourglass' | 'die-latch' | 'pip-ring' | 'blood-grip' | 'linked-cup' | undefined
@@ -418,13 +420,16 @@ window.addEventListener('keydown', resumeAudio, true)
 
 function saveCurrent(checkpoint = ascent) {
   if (checkpoint) writeAscentSave({
-    ascent: checkpoint, selected: [...selected], rewardPreview: chosenReward,
+    ascent: checkpoint, unlockNotices, selected: [...selected], rewardPreview: chosenReward,
     ...(isArtifact(chosenReward) && { artifactOptions }),
   })
 }
 
 function noteMetaStage(run: Ascent, floor: number, finished = false) {
   const next = openMetaStage(run, metaProgress, floor, finished)
+  if (next.run.meta?.opened.length && next.run.meta.opened !== run.meta?.opened) {
+    unlockNotices.push(next.run.meta.opened.at(-1)!)
+  }
   if (next.progress !== metaProgress) {
     metaProgress = next.progress
     writeMetaProgress(metaProgress)
@@ -443,6 +448,34 @@ function noteMetaVictory(run: Ascent) {
     writeMetaProgress(metaProgress)
   }
   return run
+}
+
+ui.newUnlock.addEventListener('cancel', event => event.preventDefault())
+
+function confirmUnlock() {
+  return new Promise<void>(resolve => {
+    ui.newUnlock.addEventListener('close', () => {
+      unlockNotices.shift()
+      saveCurrent()
+      resolve()
+    }, { once: true })
+    ui.newUnlock.showModal()
+  })
+}
+
+async function showPendingUnlocks() {
+  while (unlockNotices.length) {
+    const notice = unlockNotices[0]
+    if (typeof notice === 'number') {
+      ui.unlockHeading.textContent = `${notice}층 · 영구 해금`
+      ui.unlockBenefit.textContent = ''
+      ui.unlockReveal.className = 'meta-unlock-cards'
+      ui.unlockReveal.removeAttribute('role')
+      ui.unlockReveal.removeAttribute('aria-label')
+      ui.unlockReveal.innerHTML = metaNoticeContent(notice)
+    } else render('unlock')
+    await confirmUnlock()
+  }
 }
 
 function refreshMetaCount() {
@@ -995,8 +1028,6 @@ const chipDelay = 350
 const parryDuration = 120
 let guardCueTimer: number | undefined
 const unlockImpactDuration = 300
-const unlockDuration = 650
-const companionAwakenDuration = 520
 const companionFlightDuration = 500
 const companionImpactTime = 350
 const incomingContact = 152
@@ -2296,17 +2327,19 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.encounter.classList.toggle('boss-room', enemy.id === 'boss' && !battle.formation)
   ui.enemyHp.closest('.vital')?.querySelector('label use')?.setAttribute('href', enemy.id === 'boss' ? '#icon-crown' : '#icon-heart')
   if (battle.escort) updateEscortVital(battle.escort.hp)
-  ui.newUnlock.hidden = !atUnlock
-  showCompanionLine(ui.companionAwakenLine, atUnlock && newUnlock === 'triple' ? COMPANION_LINES.awaken : '')
   if (atUnlock) {
     const unlock = unlockInfo[newUnlock]
-    ui.unlockReveal.classList.toggle('companion-reveal', newUnlock === 'triple')
+    ui.unlockReveal.className = newUnlock === 'triple' ? 'companion-reveal' : ''
+    ui.unlockReveal.setAttribute('role', 'img')
+    ui.unlockBenefit.textContent = newUnlock === 'triple'
+      ? battle.itemsSeven ? '턴 끝에 스스로 굴려 공격 또는 방어를 돕습니다.' : '에고 주사위가 매 턴 하나 더 나옵니다.'
+      : '전투마다 주사위를 한 번 더 굴릴 수 있습니다.'
     const revealLabel = newUnlock === 'triple' ? `${unlock.label} 깨어남` : `${unlock.label} 해금`
     if (newUnlock === 'triple') {
       ui.unlockHeading.innerHTML = `${icon(unlock.icon)}${unlock.label}`
       ui.unlockReveal.innerHTML = `<span class="companion-tile" aria-hidden="true">${icon(unlock.icon)}<i class="ego-shell left"></i><i class="ego-shell right"></i></span>`
     } else {
-      ui.unlockHeading.innerHTML = `${icon('unlock')}해금`
+      ui.unlockHeading.innerHTML = `${icon('unlock')}${unlockNames.straight}`
       ui.unlockReveal.innerHTML = `${unlockPattern('straight', 3)}<span class="unlock-value">${icon(unlock.icon)}<strong>${unlock.value}</strong></span>`
     }
     ui.unlockReveal.setAttribute('aria-label', revealLabel)
@@ -2424,6 +2457,7 @@ function showLobby(focus = false) {
   stopPlacementMotion?.()
   renderCoins()
   ascent = null
+  unlockNotices = []
   recapNode = null
   chosenReward = undefined
   artifactOptions = {}
@@ -2801,6 +2835,7 @@ ui.resolve.addEventListener('click', async () => {
   selected.clear()
   clearExchange()
   const { phase, lastExchange } = resolved.battle
+  if (phase !== 'lost' && resolved.newUnlock) unlockNotices.push(resolved.newUnlock)
   try {
     const immediatelySaved = before.formation || resolved.route?.screen === 'upper-choice'
     if (immediatelySaved) {
@@ -2843,6 +2878,7 @@ ui.resolve.addEventListener('click', async () => {
       }
       clearDamage()
       render('unlock')
+      const confirmed = confirmUnlock()
       if (next.newUnlock === 'triple' && !reducedMotion()) {
         // Reveal the first slice of the face and strike the opening chime together.
         for (const shell of Array.from(ui.unlockReveal.querySelectorAll<HTMLElement>('.ego-shell'))) {
@@ -2855,13 +2891,14 @@ ui.resolve.addEventListener('click', async () => {
           playStraightPhrase(ui.unlockReveal, animationSpeed(), feedback, pitch => sound.contact('die-note', pitch, .23))
         }
       } else sound.play('unlock')
-      await wait(next.newUnlock === 'triple' ? companionAwakenDuration : unlockDuration)
+      await confirmed
     } else if (phase === 'won') {
       await wait(reducedMotion() ? 320 : damageDuration)
     }
   } finally {
     egoPlacement.hidden = true
     ui.intent.classList.remove('parry-in-progress')
+    await showPendingUnlocks()
     const retreat = next.battle.turn !== before.turn && next.battle.formation?.movedBack
     if (retreat && !feedback.aborted) {
       render('normal')
@@ -2982,6 +3019,7 @@ async function playCounter(choice?: CounterChoice, stoppedAngle?: number) {
   } finally {
     commit()
     ascent = checkpoint
+    await showPendingUnlocks()
     const retreat = !pending && next.turn !== before.turn && next.formation?.movedBack
     if (retreat) lockExchange(true)
     render('normal', !retreat && !pending && next.phase === 'assign')
@@ -3150,15 +3188,24 @@ function enterFork(id: number) {
   chosenDoor?.setAttribute('data-chosen', '')
   const entrance = chosenDoor?.querySelector<HTMLElement>('.fork-art')
   if (next.route && entrance && (next.route.screen === 'battle' || next.battle.itemsSeven)) {
-    void transitionToBattle(room, entrance, showEnteredRoom, focusPhase, next.route.map.byId[id].floor)
+    void transitionToBattle(room, entrance, showEnteredRoom, readyEnteredRoom, next.route.map.byId[id].floor)
   } else {
     showEnteredRoom()
-    focusPhase()
+    void readyEnteredRoom()
   }
 }
 
+async function readyEnteredRoom() {
+  if (unlockNotices.length) {
+    await showPendingUnlocks()
+    render('normal', true)
+    turnCues(undefined, false)
+  }
+  focusPhase()
+}
+
 function showEnteredRoom() {
-  render('normal', true)
+  render('normal', !unlockNotices.length)
   const floor = ui.encounter.hidden ? ui.rewardHeading : ui.encounter
   const ground = floor.getBoundingClientRect()
   const dust = feel.layer(new DOMRect(ground.x + (ui.encounter.hidden ? ground.width / 2 : parseFloat(ui.encounter.style.getPropertyValue('--player-x')) || ground.width / 3),
@@ -3169,7 +3216,7 @@ function showEnteredRoom() {
     sound.play('ember')
     if (ember) feel.animate(ember, [{ transform: 'scale(.7)' }, { transform: 'scale(1.22)' }, { transform: 'none' }], 180)
   }
-  turnCues(undefined, false)
+  if (!unlockNotices.length) turnCues(undefined, false)
 }
 ui.next.addEventListener('click', () => {
   if (exchangeBusy || !ascent || rewardOffers(ascent).length) return
@@ -3203,17 +3250,27 @@ ui.continueAscent.addEventListener('click', (event) => {
     metaProgress = resumed.progress
     writeMetaProgress(metaProgress)
   }
-  ascent = returnToMap(resumed.run)
+  unlockNotices = [...(checkpoint.unlockNotices ?? [])].filter(notice =>
+    typeof notice !== 'number' || resumed.run.meta?.opened.includes(notice))
+  ascent = unlockNotices.length ? resumed.run : returnToMap(resumed.run)
+  const resume = async () => {
+    if (unlockNotices.length) {
+      await showPendingUnlocks()
+      ascent = returnToMap(ascent!)
+      render()
+    }
+    resumeCounterOrFocus()
+  }
   chosenReward = checkpoint.rewardPreview
   artifactOptions = checkpoint.artifactOptions ?? {}
   selected.clear()
   for (const index of checkpoint.selected) selected.add(index)
   if (event.isTrusted) sound.activate()
   if (ascent.route?.screen === 'battle' || (!ascent.route && ascent.battle.phase !== 'won')) {
-    void transitionToBattle(ui.lobby.querySelector<HTMLElement>('.lobby-scene')!, ui.continueAscent, () => render(), resumeCounterOrFocus)
+    void transitionToBattle(ui.lobby.querySelector<HTMLElement>('.lobby-scene')!, ui.continueAscent, () => render(), resume)
   } else {
     render()
-    resumeCounterOrFocus()
+    void resume()
   }
 })
 ui.newAscent.addEventListener('click', () => {

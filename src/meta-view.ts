@@ -26,3 +26,12 @@ export function metaRevealContent(opened: readonly MetaFloor[]) {
       <span>${itemIcon(META_ARTIFACTS[artifact].icon)}${rewardDisplayName(artifact, true)}</span>
     </li>`).join('')
 }
+
+export function metaNoticeContent(floor: MetaFloor) {
+  const stage = META_STAGES.find(stage => stage.floor === floor)!
+  return [
+    { ...META_PERKS[stage.perk], name: perkDisplayName(stage.perk, true) },
+    { ...META_ARTIFACTS[stage.artifact], name: rewardDisplayName(stage.artifact, true) },
+  ].map(({ name, icon: symbol, description }) =>
+    `<div class="unlock-meta-card">${itemIcon(symbol)}<strong>${name}</strong><p>${description}</p></div>`).join('')
+}
