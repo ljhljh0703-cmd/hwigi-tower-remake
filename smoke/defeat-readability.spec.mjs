@@ -207,16 +207,20 @@ test('정확 방어 뒤 룰렛이 멈춘 전장에서 골렘 반격 격파까지
     enemyHp: 1, dice: [1, 3, 5], slots: ['guard', 'guard', 'guard'],
   }))
   await page.evaluate(observeBreak)
-  await page.clock.install()
-  await page.locator('#resolve').tap()
+  await stopAtContact(page, 1)
   const panel = page.locator('#counter-panel')
-  await expect(panel).toHaveAttribute('data-roll-state', 'spinning')
+  async function advanceToRollState(state) {
+    await expect.poll(async () => {
+      await page.clock.runFor(32)
+      return panel.getAttribute('data-roll-state')
+    }, { intervals: [0], timeout: 10000 }).toBe(state)
+  }
+  await advanceToRollState('spinning')
   const canvas = page.locator('#arena canvas')
   const held = await canvas.evaluate(el => el.toDataURL())
-  await expect(panel).toHaveAttribute('data-roll-state', 'locked')
+  await advanceToRollState('locked')
   expect(await canvas.evaluate(el => el.toDataURL())).toBe(held)
   await expect(page.locator('#enemy-hp')).toHaveJSProperty('value', 1)
-  await page.clock.pauseAt(await page.evaluate(() => Date.now() + 32))
   for (let i = 0; i < 110 && !await page.locator('#enemy-damage span').count(); i++) await page.clock.runFor(8)
   const frames = await sample(page, info, 'counter', [16, 112, 136, 160, 211, 340, 560])
   checkComposition(frames)

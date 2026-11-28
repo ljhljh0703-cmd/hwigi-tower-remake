@@ -303,7 +303,7 @@
           <div id="thumb-items" role="group" aria-label="전투 아이템" hidden></div>
           <div class="pool" data-dice-zone="pool">
             <button id="pool-help" type="button" aria-label="놓을 주사위를 여기에서 골라요." data-hold-help>
-              <svg class="icon" aria-hidden="true"><use href="#icon-die"/></svg>
+              <img class="icon" src="./art/ui/icons/icon-die.png" alt="">
             </button>
             <div id="pool-dice" class="dice-row">
               <span id="locked-die" class="die unlock-hint" role="button" tabindex="0" aria-label="에고 주사위 해금 조건" aria-haspopup="dialog" aria-controls="unlock-conditions">
@@ -314,7 +314,7 @@
             </div>
             <span class="pool-return" aria-label="놓은 주사위를 클릭하거나 탭하면 배치를 빼요. 키보드로는 주사위를 고른 뒤 이 화살표를 누르세요." data-hold-help>
               <button id="assign-pool" type="button" aria-label="선택한 주사위 배치 빼기">
-                <svg class="icon" aria-hidden="true"><use href="#icon-return"/></svg>
+                <img class="icon" src="./art/ui/icons/icon-return.png" alt="">
               </button>
             </span>
           </div>
@@ -322,7 +322,7 @@
             <section class="slot" aria-label="공격 칸" data-dice-zone="attack">
               <div class="attack-heading">
                 <button id="assign-attack" type="button" class="slot-target">
-                  <span><svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg>공격 <span id="attack-multiplier" hidden></span></span>
+                  <span><img class="icon" src="./art/ui/icons/icon-sword.png" alt="">공격 <span id="attack-multiplier" hidden></span></span>
                   <span class="slot-total"><strong id="attack-total">0</strong><small id="attack-bonus" class="slot-bonus" hidden></small><small id="wedge-bonus" class="slot-bonus" hidden></small></span>
                 </button>
                 <span id="blade-meter" role="group" tabindex="0" data-hold-help hidden>
@@ -333,7 +333,7 @@
             </section>
             <section class="slot" aria-label="방어 칸" data-dice-zone="guard">
               <button id="assign-guard" type="button" class="slot-target">
-                <span><svg class="icon" aria-hidden="true"><use href="#icon-shield"/></svg>방어</span>
+                <span><img class="icon" src="./art/ui/icons/icon-shield.png" alt="">방어</span>
                 <span class="slot-total"><small id="guard-exact" hidden>✓ 정확</small><strong id="guard-total">0</strong><small id="guard-goal" hidden></small><small id="guard-bonus" class="slot-bonus" hidden></small></span>
               </button>
               <div id="guard-dice" class="dice-row"></div>
@@ -342,11 +342,11 @@
 
           <div class="controls">
             <button id="reroll" type="button">
-              <svg class="icon" aria-hidden="true"><use href="#icon-reroll"/></svg>
+              <img class="icon" src="./art/ui/icons/icon-reroll.png" alt="">
               <span id="reroll-count"></span>
             </button>
             <button id="extra-reroll" type="button"></button>
-            <button id="resolve" class="primary" type="button">턴 끝내기 <svg class="icon" aria-hidden="true"><use href="#icon-next"/></svg></button>
+            <button id="resolve" class="primary" type="button">턴 끝내기 <img class="icon" src="./art/ui/icons/icon-next.png" alt=""></button>
           </div>
         </section>
 

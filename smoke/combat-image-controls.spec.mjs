@@ -1,0 +1,35 @@
+import { expect, test } from '@playwright/test'
+
+test('두 주사위를 화면 끝으로 끌어도 이미지와 눈이 남고 방어에 함께 놓인다', async ({ page }) => {
+  await page.goto(new URL('?seed=10', process.env.HWIGI_SMOKE_URL).href)
+  await page.locator('#new-ascent').tap()
+  await page.getByRole('button', { name: /^방패의 기세,/ }).tap()
+  await page.locator('#fork-options button').tap()
+  await page.locator('#enter-room').tap()
+  await expect(page.locator('#room-transition')).toBeHidden()
+
+  const first = page.locator('#die-0')
+  await expect(first).toBeVisible()
+  await first.focus()
+  await page.keyboard.press('Space')
+  await expect(first).toHaveAttribute('aria-pressed', 'true')
+  await page.locator('#die-1').tap()
+  const start = await first.boundingBox()
+  const viewport = page.viewportSize()
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(viewport.width - 1, viewport.height - 1, { steps: 4 })
+  const ghost = page.locator('.dice-drag-preview')
+  await expect(ghost).toBeInViewport({ ratio: 1 })
+  const tiles = ghost.locator('.die-face')
+  await expect(tiles).toHaveText(['6', '3'])
+  for (const tile of await tiles.all()) {
+    await expect(tile).toHaveCSS('background-image', /bone\.png/)
+  }
+  const guard = await page.locator('#assign-guard').boundingBox()
+  await page.mouse.move(guard.x + guard.width / 2, guard.y + guard.height / 2)
+  await page.mouse.up()
+  await expect(ghost).toHaveCount(0)
+  await expect(page.locator('#guard-total')).toHaveText('9')
+  await expect(page.locator('#guard-dice .die-face')).toHaveText(['6', '3'])
+})
