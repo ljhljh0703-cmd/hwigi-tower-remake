@@ -1,0 +1,1472 @@
+{
+  "baseCommit": "0cf0cc6",
+  "seed": 12,
+  "contactOffsetsMs": [
+    112,
+    136,
+    160,
+    340
+  ],
+  "publicControls": {
+    "320x568": {
+      "seed12_numberBoxOnShards": {
+        "112": 1281,
+        "136": 1020,
+        "160": 674,
+        "340": 200
+      },
+      "Cz8h_BRP_guardAt211ms": {
+        "numberBehindCue": true,
+        "hpInsets": [
+          0.28125,
+          6,
+          6
+        ],
+        "cardGap": 22.34375
+      }
+    },
+    "390x844": {
+      "seed12_numberBoxOnShards": {
+        "112": 1380,
+        "136": 953,
+        "160": 465,
+        "340": 254
+      },
+      "Cz8h_BRP_guardAt211ms": {
+        "numberBehindCue": true,
+        "hpInsets": [
+          17.078125,
+          6,
+          6
+        ],
+        "cardGap": 37.046875
+      }
+    }
+  },
+  "candidate": {
+    "320x568": {
+      "default": {
+        "frames": [
+          {
+            "offset": 112,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 16.2
+          },
+          {
+            "offset": 136,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 16
+          },
+          {
+            "offset": 160,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 16.4
+          },
+          {
+            "offset": 340,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 16.4
+          }
+        ],
+        "publicNearPercent": [
+          56.8,
+          55.2,
+          50.1
+        ],
+        "earlyGainPp": 37.8
+      },
+      "fast": {
+        "frames": [
+          {
+            "offset": 112,
+            "numeral": "−11",
+            "glyphPixels": 408,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 17.1
+          },
+          {
+            "offset": 136,
+            "numeral": "−11",
+            "glyphPixels": 408,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 16.3
+          },
+          {
+            "offset": 160,
+            "numeral": "−11",
+            "glyphPixels": 408,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 16.6
+          },
+          {
+            "offset": 340,
+            "numeral": "−11",
+            "glyphPixels": 408,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 14.8
+          }
+        ]
+      },
+      "reduced": {
+        "frames": [
+          {
+            "offset": 112,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 21.6
+          },
+          {
+            "offset": 136,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 21.6
+          },
+          {
+            "offset": 160,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 21.6
+          }
+        ]
+      },
+      "ice": {
+        "frames": [
+          {
+            "offset": 112,
+            "numeral": "−8",
+            "glyphPixels": 137,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 23.8
+          },
+          {
+            "offset": 136,
+            "numeral": "−8",
+            "glyphPixels": 137,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 23.7
+          },
+          {
+            "offset": 160,
+            "numeral": "−8",
+            "glyphPixels": 137,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 23.2
+          },
+          {
+            "offset": 340,
+            "numeral": "−8",
+            "glyphPixels": 137,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 24
+          }
+        ],
+        "publicNearPercent": [
+          41.4,
+          43.1,
+          45.3
+        ],
+        "earlyGainPp": 19.7
+      },
+      "brass": {
+        "frames": [
+          {
+            "offset": 112,
+            "numeral": "−8",
+            "glyphPixels": 137,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 28.2
+          },
+          {
+            "offset": 136,
+            "numeral": "−8",
+            "glyphPixels": 137,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 28.4
+          },
+          {
+            "offset": 160,
+            "numeral": "−8",
+            "glyphPixels": 137,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 29.4
+          },
+          {
+            "offset": 340,
+            "numeral": "−8",
+            "glyphPixels": 137,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 30
+          }
+        ],
+        "publicNearPercent": [
+          41,
+          43.1,
+          47.1
+        ],
+        "earlyGainPp": 15.1
+      },
+      "realTimeTurns": [
+        {
+          "turn": 1,
+          "dice": [
+            "6",
+            "3",
+            "3"
+          ],
+          "before": 23,
+          "after": 11,
+          "contactMs": 232.5,
+          "distinctSteps": 8,
+          "maxPieces": 0,
+          "pulses": [
+            24
+          ],
+          "sounds": [
+            {
+              "name": "swish.wav",
+              "ms": 172
+            },
+            {
+              "name": "slam.wav",
+              "ms": 230.3
+            }
+          ],
+          "heroHp": 13
+        },
+        {
+          "turn": 2,
+          "dice": [
+            "4",
+            "5",
+            "3"
+          ],
+          "before": 11,
+          "after": 0,
+          "contactMs": 227.2,
+          "distinctSteps": 8,
+          "maxPieces": 7,
+          "pulses": [
+            52
+          ],
+          "sounds": [
+            {
+              "name": "swish.wav",
+              "ms": 165.5
+            },
+            {
+              "name": "slam.wav",
+              "ms": 226.8
+            },
+            {
+              "name": "seat.wav",
+              "ms": 583.3
+            },
+            {
+              "name": "victory.mp3",
+              "ms": 1914.6
+            }
+          ],
+          "heroHp": 13
+        }
+      ],
+      "guard-2xCheck": {
+        "offset": 211,
+        "area": 2550,
+        "distinct": 6,
+        "coveredByNumber": 0,
+        "coveredHud": {},
+        "cardInsets": [
+          {
+            "text": "나−4",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          },
+          {
+            "text": "−3",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          },
+          {
+            "text": "호위−5",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          }
+        ],
+        "cardGap": 17.546875,
+        "hpInsets": [
+          6,
+          6,
+          6
+        ],
+        "numberBehindCue": false,
+        "hits": [
+          {
+            "target": "escort-damage",
+            "damage": "호위−5",
+            "at": 531.5
+          },
+          {
+            "target": "enemy-damage",
+            "damage": "−3",
+            "at": 557
+          },
+          {
+            "target": "player-damage",
+            "damage": "나−4",
+            "at": 585
+          }
+        ]
+      },
+      "quiet-unlockCheck": {
+        "offset": 240,
+        "area": 1584,
+        "distinct": 5,
+        "coveredByNumber": 0,
+        "coveredHud": {},
+        "cardInsets": [
+          {
+            "text": "−11",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          }
+        ],
+        "cardGap": 44.203125,
+        "hpInsets": [
+          16.28125,
+          6
+        ],
+        "numberBehindCue": false,
+        "hits": [
+          {
+            "target": "enemy-damage",
+            "damage": "−11",
+            "at": 505
+          }
+        ],
+        "stationaryMasks": [
+          96892374,
+          96892374,
+          96892374
+        ]
+      },
+      "counterCheck": {
+        "offset": 211,
+        "area": 3004,
+        "distinct": 7,
+        "coveredByNumber": 0,
+        "coveredHud": {},
+        "cardInsets": [
+          {
+            "text": "−1",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          }
+        ],
+        "cardGap": 51.203125,
+        "hpInsets": [
+          16.28125,
+          6
+        ],
+        "numberBehindCue": false,
+        "hits": [
+          {
+            "target": "enemy-damage",
+            "damage": "−1",
+            "at": 2685
+          }
+        ],
+        "effects": [
+          {
+            "name": "perfect-block.mp3",
+            "at": 334
+          },
+          {
+            "name": "stone-hit.mp3",
+            "at": 496
+          },
+          {
+            "name": "roulette-engage.wav",
+            "at": 537
+          },
+          {
+            "name": "roulette-ratchet.wav",
+            "at": 537
+          },
+          {
+            "name": "roulette-latch.wav",
+            "at": 1999
+          },
+          {
+            "name": "slam.wav",
+            "at": 2685
+          },
+          {
+            "name": "grit.wav",
+            "at": 2685
+          },
+          {
+            "name": "seat.wav",
+            "at": 3033
+          }
+        ]
+      },
+      "fast-2xCheck": {
+        "offset": 136,
+        "area": 17974,
+        "distinct": 5,
+        "coveredByNumber": 0,
+        "coveredHud": {},
+        "cardInsets": [
+          {
+            "text": "−11",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          }
+        ],
+        "cardGap": 44.203125,
+        "hpInsets": [
+          16.28125,
+          6
+        ],
+        "numberBehindCue": false,
+        "hits": [
+          {
+            "target": "enemy-damage",
+            "damage": "−11",
+            "at": 618
+          }
+        ]
+      },
+      "golemCheck": {
+        "offset": 560,
+        "area": 1584,
+        "distinct": 5,
+        "coveredByNumber": 0,
+        "coveredHud": {},
+        "cardInsets": [
+          {
+            "text": "−11",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          }
+        ],
+        "cardGap": 44.203125,
+        "hpInsets": [
+          16.28125,
+          6
+        ],
+        "numberBehindCue": false,
+        "hits": [
+          {
+            "target": "enemy-damage",
+            "damage": "−11",
+            "at": 731
+          }
+        ]
+      },
+      "workGuardHp": [
+        {
+          "offset": 112,
+          "hp": 18,
+          "hpLabel": "18/22",
+          "mapHp": "체력 18/22",
+          "hpChanges": [
+            {
+              "from": 22,
+              "to": 18,
+              "at": 579
+            }
+          ],
+          "cardInsets": [
+            {
+              "text": "나−4",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "−3",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "호위−5",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            }
+          ],
+          "cardGap": 17.546875,
+          "numberBehindCue": false
+        },
+        {
+          "offset": 211,
+          "hp": 18,
+          "hpLabel": "18/22",
+          "mapHp": "체력 18/22",
+          "hpChanges": [
+            {
+              "from": 22,
+              "to": 18,
+              "at": 579
+            }
+          ],
+          "cardInsets": [
+            {
+              "text": "나−4",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "−3",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "호위−5",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            }
+          ],
+          "cardGap": 17.546875,
+          "numberBehindCue": false
+        },
+        {
+          "offset": 340,
+          "hp": 18,
+          "hpLabel": "18/22",
+          "mapHp": "체력 18/22",
+          "hpChanges": [
+            {
+              "from": 22,
+              "to": 18,
+              "at": 579
+            }
+          ],
+          "cardInsets": [
+            {
+              "text": "나−4",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "−3",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "호위−5",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            }
+          ],
+          "cardGap": 17.546875,
+          "numberBehindCue": false
+        },
+        {
+          "offset": 370,
+          "hp": 9,
+          "hpLabel": "9/22",
+          "mapHp": "체력 9/22",
+          "hpChanges": [
+            {
+              "from": 22,
+              "to": 18,
+              "at": 579
+            },
+            {
+              "from": 18,
+              "to": 9,
+              "at": 703
+            }
+          ],
+          "cardInsets": [
+            {
+              "text": "나−9",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "−3",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "호위−5",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            }
+          ],
+          "cardGap": 17.546875,
+          "numberBehindCue": false
+        },
+        {
+          "offset": 540,
+          "hp": 9,
+          "hpLabel": "9/22",
+          "mapHp": "체력 9/22",
+          "hpChanges": [
+            {
+              "from": 22,
+              "to": 18,
+              "at": 579
+            },
+            {
+              "from": 18,
+              "to": 9,
+              "at": 703
+            }
+          ],
+          "cardInsets": [
+            {
+              "text": "나−9",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "−3",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "호위−5",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            }
+          ],
+          "cardGap": 17.546875,
+          "numberBehindCue": false
+        }
+      ]
+    },
+    "390x844": {
+      "default": {
+        "frames": [
+          {
+            "offset": 112,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 19.7
+          },
+          {
+            "offset": 136,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 18.1
+          },
+          {
+            "offset": 160,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 18.6
+          },
+          {
+            "offset": 340,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 22.4
+          }
+        ],
+        "publicNearPercent": [
+          40.4,
+          53.1,
+          55.6
+        ],
+        "earlyGainPp": 30.9
+      },
+      "fast": {
+        "frames": [
+          {
+            "offset": 112,
+            "numeral": "−11",
+            "glyphPixels": 408,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 19.9
+          },
+          {
+            "offset": 136,
+            "numeral": "−11",
+            "glyphPixels": 408,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 18.7
+          },
+          {
+            "offset": 160,
+            "numeral": "−11",
+            "glyphPixels": 408,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 19.3
+          },
+          {
+            "offset": 340,
+            "numeral": "−11",
+            "glyphPixels": 408,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 19.9
+          }
+        ]
+      },
+      "reduced": {
+        "frames": [
+          {
+            "offset": 112,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 24.5
+          },
+          {
+            "offset": 136,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 24.5
+          },
+          {
+            "offset": 160,
+            "numeral": "−11",
+            "glyphPixels": 158,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 24.5
+          }
+        ]
+      },
+      "ice": {
+        "frames": [
+          {
+            "offset": 112,
+            "numeral": "−8",
+            "glyphPixels": 138,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 23.8
+          },
+          {
+            "offset": 136,
+            "numeral": "−8",
+            "glyphPixels": 138,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 23.7
+          },
+          {
+            "offset": 160,
+            "numeral": "−8",
+            "glyphPixels": 138,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 24.8
+          },
+          {
+            "offset": 340,
+            "numeral": "−8",
+            "glyphPixels": 138,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 25.1
+          }
+        ],
+        "publicNearPercent": [
+          32.1,
+          35.6,
+          37.3
+        ],
+        "earlyGainPp": 10.9
+      },
+      "brass": {
+        "frames": [
+          {
+            "offset": 112,
+            "numeral": "−8",
+            "glyphPixels": 137,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 27.6
+          },
+          {
+            "offset": 136,
+            "numeral": "−8",
+            "glyphPixels": 137,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 26.3
+          },
+          {
+            "offset": 160,
+            "numeral": "−8",
+            "glyphPixels": 137,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 26.8
+          },
+          {
+            "offset": 340,
+            "numeral": "−8",
+            "glyphPixels": 137,
+            "covered": 0,
+            "cardFit": true,
+            "peerOverlap": false,
+            "nearBackgroundPercent": 29.3
+          }
+        ],
+        "publicNearPercent": [
+          36.8,
+          37.9,
+          41.5
+        ],
+        "earlyGainPp": 11.8
+      },
+      "realTimeTurns": [
+        {
+          "turn": 1,
+          "dice": [
+            "6",
+            "3",
+            "3"
+          ],
+          "before": 23,
+          "after": 11,
+          "contactMs": 233.3,
+          "distinctSteps": 8,
+          "maxPieces": 0,
+          "pulses": [
+            24
+          ],
+          "sounds": [
+            {
+              "name": "swish.wav",
+              "ms": 181.1
+            },
+            {
+              "name": "slam.wav",
+              "ms": 230.6
+            }
+          ],
+          "heroHp": 13
+        },
+        {
+          "turn": 2,
+          "dice": [
+            "4",
+            "5",
+            "3"
+          ],
+          "before": 11,
+          "after": 0,
+          "contactMs": 226.6,
+          "distinctSteps": 8,
+          "maxPieces": 7,
+          "pulses": [
+            52
+          ],
+          "sounds": [
+            {
+              "name": "swish.wav",
+              "ms": 172.9
+            },
+            {
+              "name": "slam.wav",
+              "ms": 225.9
+            },
+            {
+              "name": "seat.wav",
+              "ms": 578.9
+            },
+            {
+              "name": "victory.mp3",
+              "ms": 1912.8
+            }
+          ],
+          "heroHp": 13
+        }
+      ],
+      "guard-2xCheck": {
+        "offset": 211,
+        "area": 2550,
+        "distinct": 6,
+        "coveredByNumber": 0,
+        "coveredHud": {},
+        "cardInsets": [
+          {
+            "text": "나−4",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          },
+          {
+            "text": "−3",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          },
+          {
+            "text": "호위−5",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          }
+        ],
+        "cardGap": 31.1875,
+        "hpInsets": [
+          6,
+          6,
+          6
+        ],
+        "numberBehindCue": false,
+        "hits": [
+          {
+            "target": "escort-damage",
+            "damage": "호위−5",
+            "at": 530.5
+          },
+          {
+            "target": "enemy-damage",
+            "damage": "−3",
+            "at": 556
+          },
+          {
+            "target": "player-damage",
+            "damage": "나−4",
+            "at": 584
+          }
+        ]
+      },
+      "quiet-unlockCheck": {
+        "offset": 240,
+        "area": 2808,
+        "distinct": 6,
+        "coveredByNumber": 0,
+        "coveredHud": {},
+        "cardInsets": [
+          {
+            "text": "−11",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          }
+        ],
+        "cardGap": 63.90625,
+        "hpInsets": [
+          32.3125,
+          25.3125
+        ],
+        "numberBehindCue": false,
+        "hits": [
+          {
+            "target": "enemy-damage",
+            "damage": "−11",
+            "at": 508
+          }
+        ],
+        "stationaryMasks": [
+          -754986040,
+          -754986040,
+          -754986040
+        ]
+      },
+      "counterCheck": {
+        "offset": 211,
+        "area": 6759,
+        "distinct": 7,
+        "coveredByNumber": 0,
+        "coveredHud": {},
+        "cardInsets": [
+          {
+            "text": "−1",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          }
+        ],
+        "cardGap": 39.90625,
+        "hpInsets": [
+          32.3125,
+          25.3125
+        ],
+        "numberBehindCue": false,
+        "hits": [
+          {
+            "target": "enemy-damage",
+            "damage": "−1",
+            "at": 2993
+          }
+        ],
+        "effects": [
+          {
+            "name": "perfect-block.mp3",
+            "at": 348
+          },
+          {
+            "name": "stone-hit.mp3",
+            "at": 512
+          },
+          {
+            "name": "roulette-engage.wav",
+            "at": 557
+          },
+          {
+            "name": "roulette-ratchet.wav",
+            "at": 557
+          },
+          {
+            "name": "roulette-latch.wav",
+            "at": 2307
+          },
+          {
+            "name": "slam.wav",
+            "at": 2993
+          },
+          {
+            "name": "grit.wav",
+            "at": 2993
+          },
+          {
+            "name": "seat.wav",
+            "at": 3341
+          }
+        ]
+      },
+      "fast-2xCheck": {
+        "offset": 136,
+        "area": 21538,
+        "distinct": 8,
+        "coveredByNumber": 0,
+        "coveredHud": {},
+        "cardInsets": [
+          {
+            "text": "−11",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          }
+        ],
+        "cardGap": 63.90625,
+        "hpInsets": [
+          32.3125,
+          25.3125
+        ],
+        "numberBehindCue": false,
+        "hits": [
+          {
+            "target": "enemy-damage",
+            "damage": "−11",
+            "at": 621
+          }
+        ]
+      },
+      "golemCheck": {
+        "offset": 560,
+        "area": 2808,
+        "distinct": 6,
+        "coveredByNumber": 0,
+        "coveredHud": {},
+        "cardInsets": [
+          {
+            "text": "−11",
+            "right": 6,
+            "inset": 6,
+            "inside": true,
+            "peerOverlap": false,
+            "opacity": 1
+          }
+        ],
+        "cardGap": 63.90625,
+        "hpInsets": [
+          32.3125,
+          25.3125
+        ],
+        "numberBehindCue": false,
+        "hits": [
+          {
+            "target": "enemy-damage",
+            "damage": "−11",
+            "at": 728
+          }
+        ]
+      },
+      "workGuardHp": [
+        {
+          "offset": 112,
+          "hp": 18,
+          "hpLabel": "18/22",
+          "mapHp": "체력 18/22",
+          "hpChanges": [
+            {
+              "from": 22,
+              "to": 18,
+              "at": 581
+            }
+          ],
+          "cardInsets": [
+            {
+              "text": "나−4",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "−3",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "호위−5",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            }
+          ],
+          "cardGap": 31.1875,
+          "numberBehindCue": false
+        },
+        {
+          "offset": 211,
+          "hp": 18,
+          "hpLabel": "18/22",
+          "mapHp": "체력 18/22",
+          "hpChanges": [
+            {
+              "from": 22,
+              "to": 18,
+              "at": 581
+            }
+          ],
+          "cardInsets": [
+            {
+              "text": "나−4",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "−3",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "호위−5",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            }
+          ],
+          "cardGap": 31.1875,
+          "numberBehindCue": false
+        },
+        {
+          "offset": 340,
+          "hp": 18,
+          "hpLabel": "18/22",
+          "mapHp": "체력 18/22",
+          "hpChanges": [
+            {
+              "from": 22,
+              "to": 18,
+              "at": 581
+            }
+          ],
+          "cardInsets": [
+            {
+              "text": "나−4",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "−3",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "호위−5",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            }
+          ],
+          "cardGap": 31.1875,
+          "numberBehindCue": false
+        },
+        {
+          "offset": 370,
+          "hp": 9,
+          "hpLabel": "9/22",
+          "mapHp": "체력 9/22",
+          "hpChanges": [
+            {
+              "from": 22,
+              "to": 18,
+              "at": 581
+            },
+            {
+              "from": 18,
+              "to": 9,
+              "at": 705
+            }
+          ],
+          "cardInsets": [
+            {
+              "text": "나−9",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "−3",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "호위−5",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            }
+          ],
+          "cardGap": 31.1875,
+          "numberBehindCue": false
+        },
+        {
+          "offset": 540,
+          "hp": 9,
+          "hpLabel": "9/22",
+          "mapHp": "체력 9/22",
+          "hpChanges": [
+            {
+              "from": 22,
+              "to": 18,
+              "at": 581
+            },
+            {
+              "from": 18,
+              "to": 9,
+              "at": 705
+            }
+          ],
+          "cardInsets": [
+            {
+              "text": "나−9",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "−3",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            },
+            {
+              "text": "호위−5",
+              "right": 6,
+              "inset": 6,
+              "inside": true,
+              "peerOverlap": false,
+              "opacity": 1
+            }
+          ],
+          "cardGap": 31.1875,
+          "numberBehindCue": false
+        }
+      ]
+    }
+  },
+  "comparisonAssetsSHA256": {
+    "index-BhXUYUeV.js": "63d49e51cb86f41b3f677740e4c74a84eb4957838a01d45c9c0d62080f7484fa",
+    "index-CK1EWJuU.css": "a5df781bf8afd6b1ce5d4dd4db79c963743718bf92a2fe28dbc48d3ca70943ea"
+  },
+  "workAssetsSHA256": {
+    "index-CK1EWJuU.css": "a5df781bf8afd6b1ce5d4dd4db79c963743718bf92a2fe28dbc48d3ca70943ea",
+    "index-RyveaR9g.js": "97437fffecf623cba2cc9253ffd634ad967a2caced16526f9e9162f0e900fe8a"
+  }
+}

@@ -255,26 +255,24 @@
             <svg class="icon"><use href="#icon-companion-awake"/></svg>
           </div>
           <div class="combatant player">
-            <output id="player-damage" class="damage-float" aria-hidden="true"></output>
             <div class="vital">
               <label for="player-hp"><svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="player-total"></span></label>
+              <output id="player-damage" class="damage-float" aria-hidden="true"></output>
               <span class="hp-track"><meter id="player-hp" min="0" aria-label="내 체력"></meter><span class="hp-trail" aria-hidden="true"></span></span>
             </div>
           </div>
           <div class="combatant enemy">
-            <output id="enemy-damage" class="damage-float" aria-hidden="true"></output>
             <div class="vital">
               <span id="enemy-status" class="enemy-status" role="group" aria-label="적 상태" hidden></span>
               <label for="enemy-hp"><svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="enemy-total"></span></label>
+              <output id="enemy-damage" class="damage-float foe-damage" aria-hidden="true"></output>
               <span class="hp-track"><meter id="enemy-hp" min="0" aria-label="적 체력"></meter><span class="hp-trail" aria-hidden="true"></span></span>
             </div>
-          </div>
-          <div class="combatant escort-damage">
-            <output id="escort-damage" class="damage-float" aria-hidden="true"></output>
           </div>
           <div id="escort-guard" class="combatant escort-guard" hidden>
             <div id="escort-guard-vital" class="vital" role="img">
               <svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="escort-guard-total"></span>
+              <output id="escort-damage" class="damage-float foe-damage" aria-hidden="true"></output>
             </div>
           </div>
           <p id="parry-cue" role="img" aria-label="딱 막음" hidden>
