@@ -457,14 +457,24 @@ test('해금 신호와 첫 설명을 보고 나뉜 같은 눈 셋으로 깨운 �
   await page.locator('#assign-guard').tap()
   await expect(tripleChip).toHaveAttribute('data-progress', '3')
   await expect(page.locator('#guard-exact')).toBeHidden()
+  const unlock = page.locator('#new-unlock')
+  await unlock.evaluate(element => {
+    window.unlockPresented = false
+    const observer = new MutationObserver(() => {
+      if (element.hidden || !element.getClientRects().length) return
+      window.unlockPresented = true
+      observer.disconnect()
+    })
+    observer.observe(element, { attributeFilter: ['hidden'] })
+  })
   await page.locator('#resolve').tap()
   await expect(ego).toHaveAttribute('data-awakening', '')
   await expect(presence).toHaveText('다시, 여기.')
   await expect(presence.locator('use')).toHaveAttribute('href', '#icon-companion-awake')
   await expect(page.locator('#ego-awakening-note')).toBeInViewport({ ratio: 1 })
   await photo('awakening')
-  await expect(page.locator('#new-unlock')).toBeVisible()
-  await expect(page.locator('#new-unlock')).toBeHidden()
+  await expect.poll(() => page.evaluate(() => window.unlockPresented)).toBe(true)
+  await expect(unlock).toBeHidden()
   await expect(ego).toBeVisible()
   await expect(page.locator('#pool-dice .die-arriving')).toHaveCount(0)
   await ego.tap()

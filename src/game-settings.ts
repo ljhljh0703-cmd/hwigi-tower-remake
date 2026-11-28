@@ -3,21 +3,23 @@ export const GAME_SETTINGS_KEY = 'hwigi-tower.settings'
 export interface GameSettings {
   readonly music: boolean
   readonly effects: boolean
+  readonly vibration: boolean
   readonly speed: 'normal' | 'fast'
   readonly reducedMotion?: boolean
   readonly automaticCounter?: boolean
   readonly restoreAudio?: 'music' | 'effects' | 'both'
 }
 
-const defaults: GameSettings = { music: true, effects: true, speed: 'normal' }
+const defaults: GameSettings = { music: true, effects: true, vibration: true, speed: 'normal' }
 
 export function loadGameSettings(storage?: Pick<Storage, 'getItem'>): GameSettings {
   try {
     const saved = JSON.parse((storage ?? globalThis.localStorage).getItem(GAME_SETTINGS_KEY) ?? 'null')
-    const { music, effects, speed, reducedMotion, restoreAudio, automaticCounter } = saved ?? {}
+    const { music, effects, vibration, speed, reducedMotion, restoreAudio, automaticCounter } = saved ?? {}
     return {
       music: typeof music === 'boolean' ? music : defaults.music,
       effects: typeof effects === 'boolean' ? effects : defaults.effects,
+      vibration: typeof vibration === 'boolean' ? vibration : defaults.vibration,
       speed: speed === 'fast' ? speed : defaults.speed,
       ...(typeof reducedMotion === 'boolean' && { reducedMotion }),
       ...(typeof automaticCounter === 'boolean' && { automaticCounter }),

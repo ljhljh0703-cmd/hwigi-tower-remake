@@ -9,7 +9,9 @@ import { perkDisplayName, rewardDisplayName } from './display-names.ts'
 import { enemyBadge, enemyNameplate, ENEMY_CODEX, TOWER_REGIONS, towerRegion } from './enemy-codex.ts'
 import { bossRelicText, isBossRelic, SEVEN_BOSS_RELICS, SEVEN_EMPEROR_SHIELD_CAP } from './boss-relic.ts'
 import { ASCENT_SAVE_KEY, clearAscentSave, loadAscentSave, readAscentSave, writeAscentSave } from './ascent-save.ts'
-import { Arena, battleImpactTier } from './arena.ts'
+import { Arena, battleImpactTier, heavyStrike } from './arena.ts'
+import { fracture } from './body-fragments.ts'
+import { impactMaterial } from './impact-material.ts'
 import { icon, itemIcon, pixelIcon } from './icons.ts'
 import { GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
 import type { BattleHit } from './arena.ts'
@@ -71,6 +73,7 @@ const ui = {
   settings: element<HTMLDialogElement>('settings'),
   settingsMusic: element<HTMLButtonElement>('settings-music'),
   settingsEffects: element<HTMLButtonElement>('settings-effects'),
+  settingsVibration: element<HTMLButtonElement>('settings-vibration'),
   settingsSpeed: Array.from(document.querySelectorAll<HTMLInputElement>('input[name="animation-speed"]')),
   settingsMotion: element<HTMLButtonElement>('settings-motion'),
   settingsCounter: element<HTMLButtonElement>('settings-counter'),
@@ -319,11 +322,20 @@ function renderSettings() {
   const switches = [
     [ui.settingsMusic, settings.music], [ui.settingsEffects, settings.effects], [ui.settingsMotion, reduced],
     [ui.settingsCounter, settings.automaticCounter === true],
+    [ui.settingsVibration, settings.vibration],
   ] as const
   for (const [button, checked] of switches) {
     button.setAttribute('aria-checked', String(checked))
     button.querySelector('strong')!.textContent = checked ? '켬' : '끔'
   }
+  const unsupported = typeof navigator.vibrate !== 'function'
+  ui.settingsVibration.disabled = unsupported
+  if (unsupported) {
+    ui.settingsVibration.setAttribute('aria-checked', 'false')
+    ui.settingsVibration.querySelector('strong')!.textContent = '지원 안 됨'
+  }
+  ui.settingsVibration.setAttribute('aria-labelledby', unsupported
+    ? 'settings-vibration-label vibration-state' : 'settings-vibration-label')
   for (const option of ui.settingsSpeed) option.checked = option.value === settings.speed
   const muted = !settings.music && !settings.effects
   for (const button of [ui.soundToggle, ui.lobbySound]) {
@@ -375,6 +387,7 @@ for (const option of ui.settingsSpeed) {
 }
 ui.settingsMotion.addEventListener('click', () => updateSettings({ ...settings, reducedMotion: !reducedMotion() }))
 ui.settingsCounter.addEventListener('click', () => updateSettings({ ...settings, automaticCounter: !settings.automaticCounter }))
+ui.settingsVibration.addEventListener('click', () => updateSettings({ ...settings, vibration: !settings.vibration }))
 element('replay-first-run').addEventListener('click', () => {
   firstRun.replay()
   element('replay-first-run-status').textContent = '다음 새 등반에서 안내를 다시 표시합니다.'
@@ -1110,6 +1123,21 @@ function wait(milliseconds: number): Promise<void> {
   return new Promise((finish) => window.setTimeout(finish, effectDuration(milliseconds)))
 }
 
+function weaponContact(hit: BattleHit, heavy = false, pitch = 1) {
+  const surface = ascent && impactMaterial(ascent.enemy.id, hit.target)
+  const crack = surface === 'ice' ? 'frost' : surface === 'brass' ? 'rebound' : 'grit'
+  if (hit.defeated || heavy) {
+    if (settings.vibration && !document.hidden) {
+      try { navigator.vibrate?.(hit.defeated ? 52 : 24) } catch { /* Device policy can reject haptics. */ }
+    }
+    sound.play('slam', hit.defeated ? .7 : .82, hit.defeated ? .34 : .29, hit.defeated ? .19 : .14)
+    if (hit.defeated) {
+      sound.play(crack, .91, .32, .22)
+      feel.after(effectDuration(reducedMotion() ? 100 : fracture.firstLanding), () => sound.play('seat', .75, .24, .15))
+    } else sound.play('stone-hit', 1.16, .22, .095)
+  } else sound.play('stone-hit', pitch)
+}
+
 async function showExchange(before: YachtBattle, after: YachtBattle, exchange: Exchange) {
   if (exchange.ego) before = withEgoDie(before, exchange.ego)
   const { dealt, hitsTaken, awakenedDice, escortDealt } = exchange
@@ -1153,8 +1181,9 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
     ui.hitOrder.hidden = false
   }
   const start = performance.now()
+  let responseStart = start
   const at = async (time: number) => {
-    const remaining = start + effectDuration(time) - performance.now()
+    const remaining = responseStart + effectDuration(time) - performance.now()
     if (!reducedMotion() && remaining > 0) {
       await new Promise<void>((finish) => window.setTimeout(finish, remaining))
     }
@@ -1168,30 +1197,32 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   }
   let golemParry = golemSingle && !dealt && arena.beginGolemParry(start)
   let parryOffset = 0
-  type HitCue = { delay?: number; incoming?: boolean; final?: boolean; guarded?: boolean; ordered?: boolean; parry?: boolean }
+  type HitCue = { delay?: number; incoming?: boolean; final?: boolean; guarded?: boolean; ordered?: boolean; parry?: boolean; heavy?: boolean }
   const emit = (hits: BattleHit[], contact: HitCue = {}) => {
     const material = () => {
       if (contact.parry) showParry(golemParry)
       else if (contact.guarded) sound.play('block')
       else if (contact.incoming && critical) sound.play('slam', weak ? 1.28 : .9, weak ? .15 : .28)
       else if (contact.ordered && !contact.final) sound.play('tap')
+      else if (hits.length && hits[0].target !== 'player') weaponContact(hits[0], contact.heavy)
       else if (hits.length) sound.play('stone-hit', contact.ordered ? .85 : 1)
     }
     if (contact.delay) feel.after(effectDuration(contact.delay), material)
     else material()
     arena.contact(hits, contact)
     for (const hit of hits) showDamage(hit)
-    if (hits.some(hit => hit.target !== 'player')) feel.after(effectDuration(105), () => sound.play('grit', 1, .085))
   }
   const heroHit = (damage: number, final = true): BattleHit[] => damage ? [{ target: 'player', damage, defeated: final && after.playerHp === 0 }] : []
   const renewed = exchange.heartRevived || after.phase === 'won' && before.bossRelic?.id === 'healing-scepter' && after.playerHp > before.playerHp - taken
   const updatePlayer = () => updatePlayerVital(renewed ? Math.max(0, before.playerHp - taken) : after.playerHp)
   let visibleEnemyHp = before.enemyHp
-  const hitEnemy = (damage: number) => {
+  const hitEnemy = (damage: number, heavy = false) => {
     visibleEnemyHp -= damage
-    emit([{ target: 'enemy', damage, defeated: visibleEnemyHp === 0 }])
+    emit([{ target: 'enemy', damage, defeated: visibleEnemyHp === 0 }], { heavy })
     updateVital(ui.enemyHp, ui.enemyTotal, visibleEnemyHp)
   }
+  const heavyTarget = opening.escortDealt >= heavyStrike.threshold ? 'escort'
+    : opening.dealt >= heavyStrike.threshold ? 'enemy' : undefined
   ui.intent.classList.toggle('parry-in-progress', golemParry)
   if (!golemParry) {
     arena.playExchange(before, exchange, incoming, intent)
@@ -1201,17 +1232,34 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
         ui.intent.animate(fade, effectDuration(148))
         if (!chargeStop.hidden) chargeStop.animate(fade, effectDuration(148))
       }
-      sound.play('swish', 1, .09, effectDuration(opening.escortDealt ? 45 : 96) / 1000)
+      if (reducedMotion() || heavyTarget !== (opening.escortDealt ? 'escort' : 'enemy')) {
+        sound.play('swish', 1, .09, effectDuration(opening.escortDealt ? 45 : 96) / 1000)
+      }
     }
   }
   ui.awakening.hidden = !awakenedDice
   ui.awakening.innerHTML = awakenedDice ? `${icon('die')}${awakenedDice.map((face) => `<span>${face}</span>`).join('')}` : ''
   ui.awakening.setAttribute('aria-label', awakenedDice ? `각성 ${awakenedDice.join(', ')}` : '')
 
-  const hitEscort = (damage: number, hp: number) => {
-    emit([{ target: 'escort', damage, defeated: hp === 0 }])
+  const hitEscort = (damage: number, hp: number, heavy = false) => {
+    emit([{ target: 'escort', damage, defeated: hp === 0 }], { heavy })
     updateEscortVital(hp)
   }
+  const windUp = (target: 'escort' | 'enemy', beat: number) => {
+    if (heavyTarget !== target || reducedMotion()) return
+    const now = performance.now()
+    arena.windUpHeavy(target, now)
+    feel.after(effectDuration(heavyStrike.approach - 60), () => sound.play('swish', 1, .13, effectDuration(60) / 1000))
+    responseStart = now + effectDuration(heavyStrike.approach - beat)
+    arena.scheduleResponse(responseStart + effectDuration(heavyStrike.hold + heavyStrike.follow))
+  }
+  const release = (target: 'escort' | 'enemy', beat: number) => {
+    if (heavyTarget !== target || reducedMotion()) return
+    responseStart = performance.now() + effectDuration(heavyStrike.hold + heavyStrike.follow - beat)
+    arena.scheduleResponse(responseStart)
+  }
+  if (opening.escortDealt) windUp('escort', 45)
+  else windUp('enemy', 96)
   if (retreat) {
     if (!reducedMotion()) await at(60)
     sound.play('dice-place', .72)
@@ -1219,18 +1267,21 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   }
   if (exchange.gimmick === 'armor' || exchange.gimmick === 'trip' || exchange.gimmick === 'topple') {
     if (!reducedMotion()) await at(75)
-    sound.play('stone-hit', exchange.gimmick === 'armor' ? 1.33 : .82)
+    sound.play(exchange.gimmick === 'armor' ? 'latch' : 'release', exchange.gimmick === 'armor' ? 1.33 : .82)
   }
-  if (emperorShieldActive(before) && !reflected) sound.play('stone-hit', .62)
+  if (emperorShieldActive(before) && !reflected) sound.play('latch', .62)
   if (opening.escortDealt && before.escort) {
     if (!reducedMotion()) await at(45)
-    hitEscort(opening.escortDealt, before.escort.hp - opening.escortDealt)
+    hitEscort(opening.escortDealt, before.escort.hp - opening.escortDealt, heavyTarget === 'escort')
+    release('escort', 45)
+    windUp('enemy', 96)
   }
-  if (incoming) arena.queueShadow(start + effectDuration(incomingContact), false)
   if (opening.dealt) {
     await at(96)
-    hitEnemy(opening.dealt)
+    hitEnemy(opening.dealt, heavyTarget === 'enemy')
+    release('enemy', 96)
   }
+  if (incoming) arena.queueShadow(responseStart + effectDuration(incomingContact), false)
   if (reflected && opening.dealt < before.enemyHp) {
     await at(incomingContact)
     showParry()
@@ -1246,7 +1297,7 @@ async function showExchange(before: YachtBattle, after: YachtBattle, exchange: E
   }
   for (let index = 0; index < incoming; index++) {
     const time = golemParry ? parryOffset + GOLEM_PARRY.contact : incomingContact + index * repeatContact
-    if (index) arena.queueShadow(start + effectDuration(time), true)
+    if (index) arena.queueShadow(responseStart + effectDuration(time), true)
     await at(time)
     const damage = hitsTaken[index]
     const final = index === incoming - 1
@@ -2922,18 +2973,20 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
     arena.contact([hit], { joint: companionJoint })
     showDamage(hit)
     updateEscortVital(next.escort?.hp ?? 0)
-    sound.play('stone-hit', companionJoint ? 1.32 : 1)
+    weaponContact(hit, false, companionJoint ? 1.32 : 1)
     if (dealt && animate) await wait(70)
   }
   if (dealt > 0) {
     const hit = { target: 'enemy', damage: dealt, defeated: next.enemyHp === 0 } as const
-    if (!choreographed) arena.contact([hit], { joint: companionJoint })
+    if (choreographed) arena.landGolemCounter()
+    else arena.contact([hit], { joint: companionJoint })
     showDamage(hit)
     if (choreographed) ui.feedback.textContent = `반격 피해 ${dealt}`
-    sound.play('stone-hit', choreographed ? .80 : companionJoint ? 1.32 : 1, choreographed ? .31 : .19)
+    if (choreographed && !hit.defeated) sound.play('stone-hit', .80, .31)
+    else weaponContact(hit, false, companionJoint ? 1.32 : 1)
   }
   updateVital(ui.enemyHp, ui.enemyTotal, next.enemyHp)
-  if (next.lastExchange?.crownTriggered) sound.play('stone-hit', .66)
+  if (next.lastExchange?.crownTriggered) sound.play('latch', .66)
   if (next.phase === 'won' && next.playerHp > before.playerHp) {
     sound.play('unlock', .72)
     updatePlayerVital(next.playerHp)
@@ -2943,7 +2996,7 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
     await wait(companionFlightDuration - companionImpactTime)
     ui.companionFlight.hidden = true
   }
-  await wait(choreographed ? GOLEM_COUNTER.end - GOLEM_COUNTER.contact : reducedMotion() || !(dealt || escortDealt) ? 320 : damageDuration)
+  await wait(next.enemyHp === 0 && !reducedMotion() ? fracture.end : choreographed ? GOLEM_COUNTER.end - GOLEM_COUNTER.contact : reducedMotion() || !(dealt || escortDealt) ? 320 : damageDuration)
   if (choreographed) clearExchange()
   arena.finishStrike()
 }
