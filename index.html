@@ -135,7 +135,7 @@
         <path vector-effect="non-scaling-stroke" d="M4 12a7 7 0 1 1 6 7M4 6v6h6m4 6 6-6 1 3-4 5-3-2Z"/>
       </symbol>
       <symbol id="icon-reward-wedge" viewBox="0 0 24 24">
-        <path vector-effect="non-scaling-stroke" d="M6 3h12M6 21h12M8 3v4l3 4m5-8v4l-2 2M8 21v-4l3-3m5 7v-4l-1-2m-3-2 8-5-5 8Z"/>
+        <path vector-effect="non-scaling-stroke" d="M3 18 18 5l3 4L9 19H3Zm0 0 15-7m0-6-1 6 4-2M9 19l9-8"/>
       </symbol>
       <symbol id="icon-reward-tuning" viewBox="0 0 24 24">
         <path vector-effect="non-scaling-stroke" d="M10 5h9v14h-9zm-7 4 3-3 3 3m-3-3v6m-3 3 3 3 3-3m-3-3v6m8-6h1m1 4h1"/>
@@ -204,9 +204,9 @@
           <span id="map-health" role="img" hidden></span>
           <span id="run-coins" class="coin-total" role="img" hidden></span>
           <span id="map-floor" hidden></span>
-          <span id="active-perk" class="sr-only" role="img" hidden></span>
+          <button id="active-perk" type="button" data-hold-help hidden></button>
           <span id="fight" hidden></span>
-          <span id="turn" class="sr-only" role="img" hidden></span>
+          <span id="turn" role="img" hidden></span>
           <div class="header-tools">
             <button id="sound-toggle" class="icon-button" type="button" aria-label="음소거" aria-pressed="false" title="음소거" hidden>
               <svg class="icon" aria-hidden="true"><use href="#icon-sound-on"/></svg>
@@ -228,6 +228,7 @@
 
       <section id="ascent-fork" aria-labelledby="fork-heading" hidden>
         <h2 id="fork-heading">두 갈래 길</h2>
+        <details id="tower-preview"><summary>12층 지도</summary><div id="tower-map"></div></details>
         <div class="fork-room">
           <img class="fork-backdrop" src="/art/chamber.png" alt="" width="99" height="176">
           <div id="fork-options" role="group" aria-label="다음 층 선택"></div>
@@ -300,6 +301,7 @@
         <p id="feedback" class="sr-only" role="status"></p>
 
         <section id="planning" aria-label="주사위 배치" tabindex="-1">
+          <div id="thumb-items" role="group" aria-label="전투 아이템" hidden></div>
           <div class="pool" data-dice-zone="pool">
             <button id="pool-help" type="button" aria-label="놓을 주사위를 여기에서 골라요." data-hold-help>
               <svg class="icon" aria-hidden="true"><use href="#icon-die"/></svg>
@@ -356,15 +358,16 @@
           </div>
           <button id="counter" class="primary" type="button">
             <svg class="icon" aria-hidden="true"><use href="#icon-wheel"/></svg>
-            <span id="counter-action">반격 룰렛</span>
+            <span id="counter-action">룰렛 돌리기</span>
           </button>
           <div id="counter-footer">
-            <span id="counter-auto" hidden><svg class="icon" aria-hidden="true"><use href="#icon-turn"/></svg>자동 정지</span>
+            <span id="counter-auto" hidden><svg class="icon" aria-hidden="true"><use href="#icon-turn"/></svg>자동 진행</span>
             <p id="counter-result" role="status">
               <svg class="icon" aria-hidden="true"><use href="#icon-sword"/></svg>
               <span id="counter-range"></span><strong id="counter-damage" hidden></strong>
             </p>
-            <span id="counter-lock-note" hidden><svg class="icon" aria-hidden="true"><use href="#icon-lock"/></svg>합공 잠김 · 피해 적용</span>
+            <span id="counter-lock-note" hidden>에고 잠김 · 단독 6 · 8</span>
+            <p id="counter-comparison" role="status" hidden></p>
           </div>
         </section>
 
@@ -487,6 +490,9 @@
         </div>
         <button id="settings-motion" class="setting" type="button" role="switch" aria-labelledby="settings-motion-label" aria-checked="false">
           <span id="settings-motion-label">움직임 줄이기</span><strong aria-hidden="true">끔</strong>
+        </button>
+        <button id="settings-counter" class="setting" type="button" role="switch" aria-labelledby="settings-counter-label" aria-checked="false">
+          <span id="settings-counter-label">룰렛 자동 진행</span><strong aria-hidden="true">끔</strong>
         </button>
         <button id="replay-first-run" type="button">안내 다시 보기</button>
         <p id="replay-first-run-status" role="status"></p>

@@ -90,7 +90,7 @@ const SEVEN_REWARD_TEXT: Readonly<Partial<Record<Treasure, string>>> = {
   weight: '이번 턴 공격 칸의 가장 높은 눈을 한 번 더 더합니다.',
   buckle: '이번 턴 적 공격으로 받는 피해를 최대 3 줄입니다.',
   wedge: '공격 주사위를 놓은 턴의 공격 합이 3 오릅니다.',
-  coin: '정확 방어 룰렛에서 첫 칸을 포기하고 한 번 더 돌립니다.',
+  coin: '룰렛 결과를 본 뒤 한 번 더 돌려 두 결과 중 더 큰 피해를 줍니다.',
   tuning: '고른 일반 주사위의 눈을 1 올리거나 내립니다.',
   whetstone: `다음 전투 첫 턴에 공격 주사위마다 공격 합이 ${SEVEN_ITEM_VALUES.whetstonePips} 오릅니다.`,
   lining: '다음 전투에서 처음 받는 적 공격 피해를 최대 4 줄입니다.',
@@ -106,6 +106,21 @@ const SEVEN_REWARD_TEXT: Readonly<Partial<Record<Treasure, string>>> = {
 export function rewardText(id: Treasure, seven?: boolean) {
   return (seven && SEVEN_REWARD_TEXT[id]) || REWARD_TEXT[id]
 }
+
+const CARD_EFFECT: Partial<Record<Reward, string>> = {
+  weight: '공격 최고 눈 추가', buckle: '받는 피해 감소', wedge: '공격 합 +3', coin: '두 피해 중 큰 쪽',
+  tuning: '눈을 1 올리거나 내림', 'twin-mold': '두 주사위 눈 맞춤', spacer: '초과 방어 1 깎기',
+  'advance-knot': '방어 비우면 공격 +6', 'reserve-gauge': '재굴림 전후 눈 선택', 'clash-seal': '같은 눈 둘이면 공격 ×2',
+  whetstone: '첫 턴 공격 강화', lining: '첫 피격 피해 감소', 'die-latch': '다음 턴 같은 눈 사용',
+  mirror: '반격 미뤄 피해 2배', overflow: '남은 방어를 공격에', incomplete: '같은 눈 둘로 해금',
+  'heart-die': '에고 눈 홀짝 고정', hourglass: '체력 2로 눈 바꾸기', banner: '공격 눈을 방어에', horn: '합공 피해로 변경',
+  scabbard: '남은 피해 저장', 'adjacent-needle': '다음 룰렛 칸으로', 'pip-ring': '두 눈 사이 1 옮김',
+  'blood-grip': '공격 눈으로 회복', 'linked-cup': '두 눈을 연속으로',
+  'revived-heart': '치명상에서 1회 부활', 'emperor-shield': '첫 턴 피해 감소',
+  'brake-crown': '첫 반격으로 적 넘어뜨림', 'healing-scepter': '승리 시 체력 회복',
+}
+
+export function sevenCardEffect(id: Reward) { return CARD_EFFECT[id] }
 
 export function oathDescription(parity?: Parity) {
   const dice = parity === 'odd' ? '홀수 눈' : parity === 'even' ? '짝수 눈' : '시작 시 고른 홀수·짝수 눈'

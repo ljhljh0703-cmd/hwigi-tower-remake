@@ -124,13 +124,13 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     if (['fork', 'battle', 'reward'].includes(screen)) {
       const floor = screen === 'fork' ? mapFloor : battleFloor
       await expect(floor).toHaveText(/^\d+\/12 층$/)
-      const ordered = [mapHealth, page.locator('#run-coins'), floor]
+      if (screen === 'battle') await expect(mapHealth).toBeHidden()
+      const ordered = [...(screen === 'battle' ? [] : [mapHealth]), page.locator('#run-coins'), floor]
       for (const entry of ordered) await expect(entry).toBeInViewport({ ratio: 1 })
-      const [health, coins, level] = await Promise.all(ordered.map((entry) => entry.boundingBox()))
-      expect(health.x + health.width).toBeLessThanOrEqual(coins.x)
-      expect(coins.x + coins.width).toBeLessThanOrEqual(level.x)
+      const boxes = await Promise.all(ordered.map((entry) => entry.boundingBox()))
+      for (const [index, box] of boxes.slice(1).entries()) expect(boxes[index].x + boxes[index].width).toBeLessThanOrEqual(box.x)
       const home = await page.locator('#return-lobby').boundingBox()
-      expect(home.x + home.width).toBeLessThanOrEqual(health.x)
+      expect(home.x + home.width).toBeLessThanOrEqual(boxes[0].x)
     }
   }
 

@@ -96,7 +96,7 @@ test('새 층 첫 입장, 저장 재진입, 결과에서 여러 쌍 공개와 �
   await expect(page.locator('#perk-choices .meta-new')).toHaveCount(0)
 })
 
-test('상점의 기존 두 후보와 해금 유물 한 장을 복원하고 해금 유물을 산다', async ({ page }) => {
+test('상점의 기존 후보와 추가 일회용품 및 해금 유물을 복원한다', async ({ page }) => {
   await page.goto(process.env.HWIGI_SMOKE_URL)
   const before = mapBefore(0, 8, 7)
   const shop = availableMapNodes(before).find(node => node.kind === 'shop')
@@ -106,7 +106,7 @@ test('상점의 기존 두 후보와 해금 유물 한 장을 복원하고 해�
   await page.reload()
   await page.getByRole('button', { name: '이어하기' }).tap()
   const cards = page.locator('#reward-cards button')
-  await expect(cards).toHaveCount(3)
+  await expect(cards).toHaveCount(4)
   for (const [index, id] of regular.entries()) await expect(cards.nth(index)).toHaveAttribute('data-reward', id)
   const bonus = cards.last()
   await expect(bonus).toHaveAttribute('data-reward', 'linked-cup')
@@ -167,7 +167,7 @@ test('설정에서 확인해야 해금만 초기화하고 기존 등반 저장�
   expect((await record(page)).unlocked).toEqual([])
 })
 
-test('옮김 고리는 유물 칸에서 열고 하단에서 두 눈을 옮겨 재진입한다', async ({ page }) => {
+test('엄지 띠의 옮김 고리에서 바로 두 눈을 골라 옮기고 재진입한다', async ({ page }) => {
   await page.goto(process.env.HWIGI_SMOKE_URL)
   const map = { ...mapBefore(14, 9, 7), meta: { generation: 0, pool: [7], opened: [] } }
   const combat = availableMapNodes(map).find(node => node.kind === 'fight' || node.kind === 'elite')
@@ -177,9 +177,9 @@ test('옮김 고리는 유물 칸에서 열고 하단에서 두 눈을 옮겨 �
   await store(page, { ...run, battle }, profile())
   await page.reload()
   await page.getByRole('button', { name: '이어하기' }).tap()
-  await page.locator('#artifact-strip [data-reward="pip-ring"]').tap()
+  await page.locator('#thumb-items [data-reward="pip-ring"]').tap()
   const dock = page.locator('#treasure-controls')
-  await dock.getByRole('button', { name: '사용', exact: true }).tap()
+  await expect(dock).toContainText('주사위 두 개를 고르세요.')
   await page.getByRole('button', { name: /^주사위 1,/ }).tap()
   await page.getByRole('button', { name: /^주사위 2,/ }).tap()
   await dock.getByRole('button', { name: '주사위 1에서 주사위 2로 눈 1 옮기기' }).tap()

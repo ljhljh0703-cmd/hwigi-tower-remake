@@ -35,6 +35,7 @@ interface Note {
   anchor: HTMLElement
   beside?: HTMLElement
   inFlow?: boolean
+  linger?: boolean
 }
 
 interface Lesson extends Note {
@@ -144,7 +145,6 @@ export class FirstRunGuide {
       this.note.removeAttribute('data-in-flow')
     }
     this.pointer.hidden = true
-    this.guardGoal.hidden = true
     this.status.textContent = ''
   }
 
@@ -152,7 +152,6 @@ export class FirstRunGuide {
     window.clearTimeout(this.timer)
     for (const mark of this.lesson?.marks ?? []) delete mark.dataset.firstRunTarget
     this.lesson = lesson
-    this.guardGoal.hidden = lesson.guardGoal === undefined
     if (lesson.guardGoal !== undefined) this.guardGoal.textContent = `/${lesson.guardGoal}`
     for (const mark of lesson.marks) mark.dataset.firstRunTarget = ''
     this.show(lesson)
@@ -176,6 +175,7 @@ export class FirstRunGuide {
     this.save()
     this.show(next)
     this.available = notes
+    if (next.linger) return
     this.timer = window.setTimeout(() => {
       const available = this.available
       this.clear(true)

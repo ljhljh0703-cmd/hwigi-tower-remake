@@ -123,11 +123,13 @@ test('첫 등반에서 첫 공격을 하고 정확 방어 뒤 룰렛, 보상, �
   expect(actions).toBe(10)
   console.log(`${info.project.name} 첫 공격 ${JSON.stringify(measure)}`)
 
-  await checkNote(page, 'defend', '정확히 막았습니다! 반격 룰렛을 누르세요.', '06-counter', info)
-  await expect(page.locator('#counter-lock-note')).toHaveText('합공 잠김 · 피해 적용')
+  await checkNote(page, 'defend', '정확히 막았습니다! 룰렛을 두 번 누르세요.', '06-counter', info)
+  await expect(page.locator('#counter-lock-note')).toHaveText('에고 잠김 · 단독 6 · 8')
   await expect(page.locator('#counter-lock-note')).toBeInViewport({ ratio: 1 })
   await expect(page.locator('#counter-range')).toHaveText('1–8')
   await expect(page.locator('#player-hp')).toHaveJSProperty('value', 22)
+  await tap(page.locator('#counter'))
+  await expect(page.locator('#counter-action')).toHaveText('룰렛 멈추기')
   await tap(page.locator('#counter'))
 
   const reward = page.getByRole('heading', { name: '전투 보상' })
@@ -175,7 +177,8 @@ test('첫 등반에서 첫 공격을 하고 정확 방어 뒤 룰렛, 보상, �
     const canvas = document.querySelector('#arena').getBoundingClientRect()
     return Math.max(0, element.getBoundingClientRect().bottom + 7 - canvas.top)
   })).toBe(0)
-  await expect(note(page)).toBeHidden({ timeout: 2400 })
+  await page.locator('#intent').tap()
+  await expect(note(page)).toBeHidden()
   await page.reload()
   await tap(page.locator('#continue-ascent'))
   await expect(page.locator('#intent [data-kind="trip"]')).toBeVisible()
@@ -209,7 +212,9 @@ test('규칙판 7 추가 특전으로 새로 시작해 고정 굴림 안내를 �
     await expect(reward.or(guided)).toBeVisible()
     if (await reward.isVisible()) break
     for (const die of await page.locator('#pool-dice button[data-first-run-target]').all()) await die.tap()
+    const isCounter = await guided.getAttribute('id') === 'counter'
     await guided.tap()
+    if (isCounter) await page.getByRole('button', { name: '룰렛 멈추기' }).tap()
   }
   await expect(reward).toBeVisible()
   expect((await save(page)).ascent.battle.phase).toBe('won')
@@ -260,7 +265,7 @@ test('키보드로 배치하고 재개할 수 있고 건너뛰기와 다시 보�
   await page.keyboard.press('Enter')
   await expect(page.locator('#resolve')).toBeFocused()
   await page.keyboard.press('Enter')
-  await checkNote(page, 'defend', '정확히 막았습니다! 반격 룰렛을 누르세요.')
+  await checkNote(page, 'defend', '정확히 막았습니다! 룰렛을 두 번 누르세요.')
   await expect(page.locator('#counter')).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(note(page)).toBeHidden()

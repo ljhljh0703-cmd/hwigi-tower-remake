@@ -5,6 +5,7 @@ export interface GameSettings {
   readonly effects: boolean
   readonly speed: 'normal' | 'fast'
   readonly reducedMotion?: boolean
+  readonly automaticCounter?: boolean
   readonly restoreAudio?: 'music' | 'effects' | 'both'
 }
 
@@ -13,12 +14,13 @@ const defaults: GameSettings = { music: true, effects: true, speed: 'normal' }
 export function loadGameSettings(storage?: Pick<Storage, 'getItem'>): GameSettings {
   try {
     const saved = JSON.parse((storage ?? globalThis.localStorage).getItem(GAME_SETTINGS_KEY) ?? 'null')
-    const { music, effects, speed, reducedMotion, restoreAudio } = saved ?? {}
+    const { music, effects, speed, reducedMotion, restoreAudio, automaticCounter } = saved ?? {}
     return {
       music: typeof music === 'boolean' ? music : defaults.music,
       effects: typeof effects === 'boolean' ? effects : defaults.effects,
       speed: speed === 'fast' ? speed : defaults.speed,
       ...(typeof reducedMotion === 'boolean' && { reducedMotion }),
+      ...(typeof automaticCounter === 'boolean' && { automaticCounter }),
       ...((restoreAudio === 'music' || restoreAudio === 'effects' || restoreAudio === 'both') && { restoreAudio }),
     }
   } catch {

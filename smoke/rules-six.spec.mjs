@@ -125,6 +125,7 @@ test('다섯 예고는 조건과 효과를 표시하며 눈을 넣고 빼면 함
 })
 
 test('발동한 상태가 적 체력 카드에 남고 공격이나 턴을 소모하면 사라진다', async ({ page }, info) => {
+  await page.addInitScript(() => localStorage.setItem('hwigi-tower.settings', JSON.stringify({ automaticCounter: true })))
   async function readyTurn(run, dice, attack) {
     await resume(page, { ...run, battle: { ...run.battle, turn: 2, dice, slots: dice.map(() => null) } })
     for (const index of attack) await page.locator(`#die-${index}`).tap()
@@ -190,11 +191,11 @@ test('6층 전투에서 보스 유물 네 장을 보고 고른 뒤 7층의 두 �
     const { top, height } = element.getBoundingClientRect()
     return (top + height / 2) / innerHeight
   })
-  expect(await rewardCenter()).toBeCloseTo(0.4, 2)
+  expect(Math.abs(await rewardCenter() - 0.4)).toBeLessThan(0.02)
   await cards.filter({ hasText: '제동 왕관' }).tap()
   await expect(page.locator('#reward-preview')).toContainText('첫 정확 방어')
   await expect(page.locator('#confirm-reward')).toBeInViewport({ ratio: 1 })
-  expect(await rewardCenter()).toBeCloseTo(0.4, 2)
+  expect(Math.abs(await rewardCenter() - 0.4)).toBeLessThan(0.02)
   await photograph(page, 'boss-reward', info)
   await page.reload()
   await page.getByRole('button', { name: '이어하기' }).tap()

@@ -45,6 +45,7 @@ export class ForkView {
   private readonly preview: HTMLElement
   private readonly previewContent: HTMLElement
   private readonly confirm: HTMLButtonElement
+  private readonly map: HTMLElement
   private choice?: HTMLButtonElement
   private ascent?: Ascent
 
@@ -54,6 +55,7 @@ export class ForkView {
     this.preview = panel.querySelector('#fork-preview')!
     this.previewContent = panel.querySelector('#fork-preview-content')!
     this.confirm = panel.querySelector('#enter-room')!
+    this.map = panel.querySelector('#tower-map')!
     this.options.addEventListener('click', (event) => {
       const button = (event.target as Element).closest<HTMLButtonElement>('button[data-node]')
       const node = this.ascent?.route?.map.byId[Number(button?.dataset.node)]
@@ -66,7 +68,7 @@ export class ForkView {
     })
     document.addEventListener('click', (event) => {
       if (this.panel.hidden || !this.choice || !(event.target instanceof Element)) return
-      if (!event.target.closest('.fork-card, #fork-preview, button, a, dialog, #first-run-note')) this.clearChoice()
+      if (!event.target.closest('.fork-card, #fork-preview, #tower-preview, button, a, dialog, #first-run-note')) this.clearChoice()
     })
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && !this.panel.hidden && this.choice && !document.querySelector('dialog[open]')) {
@@ -107,6 +109,24 @@ export class ForkView {
     this.clearChoice()
     this.ascent = ascent
     const nodes = availableMapNodes(ascent)
+    const route = ascent.route!
+    const last = route.completed.at(-1)
+    const floors = Array.from({ length: 12 }, (_, index) => 12 - index)
+    const x = (node: MapNode) => 30 + node.lane * 40
+    const y = (node: MapNode) => 9 + (12 - node.floor) * 18
+    const paths = route.map.nodes.flatMap(node => node.next.map(id => {
+      const next = route.map.byId[id]
+      return `<line x1="${x(node)}" y1="${y(node)}" x2="${x(next)}" y2="${y(next)}"></line>`
+    })).join('')
+    this.map.innerHTML = `<span class="tower-position">${last === undefined ? '입구' : `${route.map.byId[last].floor}층 통과`}</span>
+      <div class="tower-grid"><svg class="tower-paths" viewBox="0 0 140 216" preserveAspectRatio="none" aria-hidden="true">${paths}</svg>
+      ${floors.map(floor => `<div class="tower-floor" aria-label="${floor}층"><span>${floor}</span>${route.map.nodes.filter(node => node.floor === floor).map(node => {
+        const special = node.enemyId === 'chain-warden' || node.kind === 'boss' ? 'boss' : node.kind
+        const state = node.id === last ? 'current' : route.completed.includes(node.id) ? 'visited' : nodes.includes(node) ? 'next' : ''
+        return `<span class="tower-node" style="--lane:${node.lane}" data-kind="${special}" data-state="${state}" role="img"
+          aria-label="${floor}층 ${names[special]}${state === 'current' ? ', 현재 위치' : state === 'next' ? ', 진입 가능' : ''}">${icon(MAP_NODE_ICONS[special])}</span>`
+      }).join('')}</div>`).join('')}</div><div class="tower-legend">${(['shop', 'elite', 'rest', 'boss'] as const)
+        .map(kind => `<span>${icon(MAP_NODE_ICONS[kind])}${names[kind]}</span>`).join('')}</div>`
     this.heading.textContent = nodes.length === 2 ? '두 갈래 길' : '다음 층'
     this.options.replaceChildren(...nodes.map((node) => {
       const button = document.createElement('button')

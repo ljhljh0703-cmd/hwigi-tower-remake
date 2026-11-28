@@ -5,13 +5,14 @@ import type { Reward } from './rewards.ts'
 import { oathDescription, perkText, PERK_TEXT, rewardText } from './reward-copy.ts'
 import { isMetaArtifact } from './meta-unlocks.ts'
 import { REWARD_CARDS } from './rewards.ts'
-import { isNewTreasureId, isSevenTreasure, TREASURE_CARDS } from './treasure.ts'
+import { isNewTreasureId, isSevenTreasure } from './treasure.ts'
 
 type GuideEntry = readonly [icon: string, name: string, description: string]
 type VersionedEntry = readonly [...GuideEntry, options?: {
   readonly legacyOnly?: boolean
   readonly legacyName?: string
   readonly legacyDescription?: string
+  readonly sevenName?: string
   readonly sevenDescription?: string
   readonly reward?: Reward
 }]
@@ -50,7 +51,6 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
       ['map-relic', '유물 보상', '유물 보상이 있는 강적 방을 표시합니다.'],
     ],
   },
-  { title: '아이템과 유물', entries: (Object.keys(TREASURE_CARDS) as (keyof typeof TREASURE_CARDS)[]).map(rewardEntry) },
   {
     title: '적 기믹',
     entries: [
@@ -80,12 +80,13 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
     title: '칸과 전투 표시',
     entries: [
       ['sword', '공격 칸', '큰 숫자는 보너스 포함 피해, 작은 +숫자는 보너스입니다. 큰 칼로 공격 옆에 ×2가 뜨면 피해가 두 배가 됩니다.'],
-      ['shield', '방어 칸', '방어 칸 눈과 보너스 합으로 적 공격을 막습니다.'],
+      ['shield', '방어 칸', '방어 칸 눈과 보너스 합으로 적 공격을 막습니다. 빗금 뒤 숫자는 정확 방어 목표입니다.'],
       ['parry', '정확히 막기', '방어 합이 적 총피해와 같으면 정확히 막습니다. 적이 살아 있으면 반격 룰렛을 돌립니다.'],
-      ['wheel', '반격 룰렛', '정확히 막은 뒤 룰렛을 돌려 걸린 숫자만큼 피해를 줍니다.'],
-      ['joint', '합공', '합공 칸도 표시 숫자만큼 피해를 줍니다. 에고 주사위가 잠들면 자물쇠가 뜨고, 깨어 있으면 적에게 날아갑니다.'],
+      ['wheel', '반격 룰렛', '룰렛을 눌러 돌리고 다시 눌러 멈춥니다. 설정에서 자동 진행을 켤 수 있습니다.'],
+      ['joint', '합공', '에고가 잠들면 6·8 칸은 단독 피해를 줍니다. 에고가 깨어 있으면 합공으로 적에게 날아갑니다.'],
       ['heart', '체력', '앞 숫자는 남은 체력, 뒤 숫자는 최대 체력입니다. 체력이 0이 되면 등반이 끝납니다.'],
-      ['die', '주사위 자리 · 각성', '미배치 주사위 자리입니다. 위기에서 각성하면 바뀐 눈이 전장에 나타납니다.'],
+      ['die', '주사위 자리 · 각성', '미배치 주사위 자리입니다. 위기에서 각성하면 바뀐 눈이 전장에 나타납니다.',
+        { sevenName: '주사위 자리', sevenDescription: '배치할 일반 주사위를 고릅니다.' }],
       ['reroll', '다시 굴리기', '턴당 1회, 고른 주사위를 함께 다시 굴립니다. 눈이 낮아져도 그대로 씁니다.'],
       ['return', '되돌리기', '배치한 주사위를 되돌립니다.', { legacyName: '되돌리기 · 회수',
         legacyDescription: '배치한 주사위를 되돌립니다. 빼앗긴 주사위 숫자는 되찾는 데 필요한 피해입니다.' }],
@@ -93,7 +94,7 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
       ['next', '다음', '주사위를 모두 놓은 뒤 턴을 끝내거나, 승리 후 다음 층으로 갑니다.'],
       ['retry', '다시 등반', '결과 화면에서 누르면 시작 특전 선택으로 돌아갑니다.'],
       ['guide', '도감', '전투 아이콘과 해금 조건을 봅니다. 닫으면 이전 화면으로 돌아갑니다.'],
-      ['settings', '설정', '소리·연출 속도·움직임을 조절합니다. 전투 중 등반을 포기할 수 있습니다.'],
+      ['settings', '설정', '소리·연출 속도·움직임·룰렛 자동 진행을 조절합니다. 전투 중 등반을 포기할 수 있습니다.'],
       ['lobby', '로비', '로비로 돌아갑니다. 진행 중인 등반은 저장됩니다.'],
     ],
   },
@@ -145,7 +146,7 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
     ],
   },
   {
-    title: '전투 보상',
+    title: '보상과 유물',
     entries: [
       ...(Object.keys(REWARD_CARDS) as Reward[]).filter((id) => !isMetaArtifact(id)).map(rewardEntry),
       ['completion-seal', '완주 인장', '탑의 문지기를 쓰러뜨리면 결과 화면에 완주 인장이 뜹니다.'],
@@ -168,7 +169,7 @@ export function battleGuideFor(rules: MapRules = CURRENT_MAP_RULES): readonly Gu
         }
         if (isNewTreasureId(id)) return []
       }
-      if (seven && options?.sevenDescription) return [[symbol, name, options.sevenDescription]]
+      if (seven && options?.sevenDescription) return [[symbol, options.sevenName ?? name, options.sevenDescription]]
       return [[symbol, (legacy && options?.legacyName) || name, (legacy && options?.legacyDescription) || description]]
     }),
   }))

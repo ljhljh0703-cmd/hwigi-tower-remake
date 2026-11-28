@@ -15,6 +15,7 @@ export class CounterRoulette {
   private labels: HTMLElement[] = []
   private degreesPerSlot = 0
   private spin?: Animation
+  private stop?: () => void
   private companionAwake = false
   private playing = false
 
@@ -57,8 +58,8 @@ export class CounterRoulette {
       text.textContent = String(reward.damage)
       if (reward.joint) {
         label.classList.toggle('locked', !this.companionAwake)
-        const icon = this.companionAwake ? 'joint' : 'lock'
-        text.insertAdjacentHTML('beforeend', `<svg class="icon" aria-hidden="true"><use href="#icon-${icon}"/></svg>`)
+        text.insertAdjacentHTML('beforeend', this.companionAwake ? '<svg class="icon" aria-hidden="true"><use href="#icon-joint"/></svg>'
+          : '<small aria-hidden="true">단독</small>')
       }
       label.append(text)
       return label
@@ -70,7 +71,7 @@ export class CounterRoulette {
     this.result.setAttribute('aria-label', `가능한 반격 피해 ${this.range.textContent}`)
     this.lockNote.hidden = this.companionAwake || !rewards.some(({ joint }) => joint)
     const labels = rewards.map(({ damage, joint }) => joint
-      ? `피해 ${damage}${this.companionAwake ? ' 합공' : ', 합공 잠김, 피해 적용'}` : String(damage))
+      ? `피해 ${damage}${this.companionAwake ? ' 합공' : ' 단독'}` : String(damage))
     this.stage.setAttribute('aria-label', `반격 피해 ${labels.join(', ')}`)
   }
 
@@ -99,7 +100,7 @@ export class CounterRoulette {
       delete this.panel.dataset.rollState
       this.button.hidden = false
       this.button.disabled = false
-      this.action.textContent = '반격 룰렛'
+      this.action.textContent = '룰렛 돌리기'
     }
     this.panel.hidden = !rewards
   }
@@ -112,17 +113,39 @@ export class CounterRoulette {
     this.auto.hidden = !automatic
   }
 
-  async reveal(reward: CounterResult, animate: boolean, onTick: () => void, speed = 1) {
+  requestStop() {
+    if (!this.stop) return false
+    this.stop()
+    this.stop = undefined
+    return true
+  }
+
+  async waitForStop(animate: boolean, speed: number) {
+    this.button.hidden = false
+    this.button.disabled = false
+    this.action.textContent = '룰렛 멈추기'
+    this.panel.dataset.rollState = 'free'
+    const duration = 660 / speed
+    const rotation = animate ? this.wheel.animate([{ '--counter-angle': '0deg' }, { '--counter-angle': '360deg' }],
+      { duration, iterations: Infinity }) : undefined
+    await new Promise<void>(resolve => { this.stop = resolve })
+    const angle = (Number(rotation?.currentTime ?? 0) % duration) / duration * 360
+    this.wheel.style.setProperty('--counter-angle', `${angle}deg`)
+    rotation?.cancel()
+    return angle
+  }
+
+  async reveal(reward: CounterResult, animate: boolean, onTick: () => void, speed = 1, startAngle = 0) {
     this.button.disabled = true
     this.action.textContent = '회전 중'
     const onField = this.panel.classList.contains('counter-over-field')
-    const angle = 1080 + (360 - reward.slot * this.degreesPerSlot) % 360
+    const angle = (startAngle ? 360 : 1080) + (360 - reward.slot * this.degreesPerSlot) % 360
     const rotation = `${angle}deg`
     if (animate) {
       this.panel.dataset.rollState = 'spinning'
       const spin = this.wheel.animate(
-        [{ '--counter-angle': '0deg' }, { '--counter-angle': rotation }],
-        { duration: 920 / speed, easing: 'cubic-bezier(.15,.65,.22,1)' },
+        [{ '--counter-angle': `${startAngle}deg` }, { '--counter-angle': rotation }],
+        { duration: (startAngle ? 490 : 920) / speed, easing: 'cubic-bezier(.15,.65,.22,1)' },
       )
       this.spin = spin
       let frame = 0

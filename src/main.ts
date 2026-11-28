@@ -13,7 +13,7 @@ import { GOLEM_COUNTER, GOLEM_PARRY } from './golem-parry.ts'
 import type { BattleHit } from './arena.ts'
 import { BattleAudio } from './battle-audio.ts'
 import { battleGuideFor } from './battle-guide.ts'
-import { oathDescription, perkText, rewardText, sevenItemEffect } from './reward-copy.ts'
+import { oathDescription, perkText, rewardText, sevenCardEffect, sevenItemEffect } from './reward-copy.ts'
 import { COMPANION_LINES, companionDieIndex } from './companion.ts'
 import { enemyForFight } from './enemy-roster.ts'
 import { firstBattlePlan, FirstRunGuide } from './first-run-guide.ts'
@@ -40,7 +40,7 @@ import { bloodDieFor, bloodHealing, canPlaceMetaDie, draftMetaDie, transferMetaP
 import {
   bladeChargePreview, canReroll, canResolveYachtTurn, canUseExtraReroll, displayedCounterRewards, previewUnlockProgress, toggleYachtWedge, tuneYachtDie, yachtAllocationTotals,
   classifyYachtHand, diceUnlockSignals, emperorShieldActive, forecastYacht, hasAutomaticEgo, rerollYachtDice, resolveYachtTurn,
-  withEgoDie, yachtGimmick, yachtRerollCost,
+  withEgoDie, yachtCounterSlot, yachtGimmick, yachtRerollCost,
 } from './yacht-combat.ts'
 import type { Hand, UnlockHint, YachtBattle } from './yacht-combat.ts'
 import { bindDiceInput, rerollSelectedDice } from './dice-drag.ts'
@@ -71,6 +71,7 @@ const ui = {
   settingsEffects: element<HTMLButtonElement>('settings-effects'),
   settingsSpeed: Array.from(document.querySelectorAll<HTMLInputElement>('input[name="animation-speed"]')),
   settingsMotion: element<HTMLButtonElement>('settings-motion'),
+  settingsCounter: element<HTMLButtonElement>('settings-counter'),
   abandonAscent: element<HTMLButtonElement>('abandon-ascent'),
   confirm: element<HTMLDialogElement>('lobby-confirm'),
   confirmTitle: element('lobby-confirm-title'),
@@ -159,6 +160,7 @@ const ui = {
   wedgeBonus: element('wedge-bonus'),
   attackMultiplier: element('attack-multiplier'),
   guardTotal: element('guard-total'),
+  guardGoal: element('guard-goal'),
   guardBonus: element('guard-bonus'),
   guardExact: element('guard-exact'),
   reroll: element<HTMLButtonElement>('reroll'),
@@ -300,6 +302,7 @@ function renderSettings() {
   }
   const switches = [
     [ui.settingsMusic, settings.music], [ui.settingsEffects, settings.effects], [ui.settingsMotion, reduced],
+    [ui.settingsCounter, settings.automaticCounter === true],
   ] as const
   for (const [button, checked] of switches) {
     button.setAttribute('aria-checked', String(checked))
@@ -339,6 +342,12 @@ for (const button of [ui.lobbySettings, ui.battleSettings]) {
 ui.settings.addEventListener('click', (event) => {
   if (event.target === ui.settings) ui.settings.close()
 })
+ui.settings.addEventListener('close', () => {
+  if (ascent?.battle.phase === 'counter' && !roulette.busy) {
+    render()
+    resumeCounterOrFocus()
+  }
+})
 for (const [button, channel] of [[ui.settingsMusic, 'music'], [ui.settingsEffects, 'effects']] as const) {
   button.addEventListener('click', (event) => {
     const enabled = !settings[channel]
@@ -349,6 +358,7 @@ for (const option of ui.settingsSpeed) {
   option.addEventListener('change', () => updateSettings({ ...settings, speed: option.value === 'fast' ? 'fast' : 'normal' }))
 }
 ui.settingsMotion.addEventListener('click', () => updateSettings({ ...settings, reducedMotion: !reducedMotion() }))
+ui.settingsCounter.addEventListener('click', () => updateSettings({ ...settings, automaticCounter: !settings.automaticCounter }))
 element('replay-first-run').addEventListener('click', () => {
   firstRun.replay()
   element('replay-first-run-status').textContent = '다음 새 등반에서 안내를 다시 표시합니다.'
@@ -448,6 +458,7 @@ function showHelp(target: HTMLElement) {
   holdHelp.style.top = `${Math.min(innerHeight - height - 16, top)}px`
 }
 const helpTargets = Array.from(document.querySelectorAll<HTMLElement>('[data-hold-help]'))
+ui.activePerk.addEventListener('click', () => showHelp(ui.activePerk))
 for (const target of helpTargets) {
   target.addEventListener('pointerdown', (event) => {
     if (event.button !== 0) return
@@ -744,7 +755,10 @@ function refreshDice(battle: YachtBattle, { attack, guard }: SlotTotals, unlocks
     }
   }
   ui.guardExact.hidden = !exact
-  ui.assign.guard.setAttribute('aria-label', `방어 칸, 합계 ${guard}${guardHint}${exact ? ', 정확 방어' : ''}`)
+  const goal = planning ? forecastYacht(battle).incoming.totalDamage : 0
+  ui.guardGoal.hidden = !planning
+  ui.guardGoal.textContent = `/${goal}`
+  ui.assign.guard.setAttribute('aria-label', `방어 칸, 합계 ${guard}, 방어 목표 ${goal}${guardHint}${exact ? ', 정확 방어' : ''}`)
   const canPlace = planning && selected.size > 0
   const rerollable = [...selected].filter((index) => canReroll(battle, index))
   ui.assign.pool.disabled = !canPlace || ![...selected].some((index) => battle.slots[index] !== null)
@@ -1311,7 +1325,10 @@ function renderActivePerk(battle: YachtBattle) {
   const previewLabel = projected
     ? `${blade?.pipsAdded ? `, 공격 눈 합 +${blade.pipsAdded}` : ''}, 배치 후 예상 ${projected}` : ''
   ui.activePerk.innerHTML = `${itemIcon(symbol)}<strong>${value}</strong>${preview}`
-  ui.activePerk.setAttribute('aria-label', `${name} ${value}${previewLabel}, ${perkText(perk.kind, battle.itemsSeven)}`)
+  const description = document.createElement('span')
+  description.innerHTML = perkText(perk.kind, battle.itemsSeven)
+  ui.activePerk.dataset.helpText = `${name} ${value} · ${description.textContent}`
+  ui.activePerk.setAttribute('aria-label', `${name} ${value}${previewLabel}`)
   ui.activePerk.title = name
 }
 
@@ -1385,6 +1402,7 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
   ui.rewardPanel.classList.toggle('boss-reward-seven', bossReward && seven)
   ui.rewardPanel.classList.toggle('elite-reward', eliteReward)
   const atShop = room?.kind === 'shop' && (run.route?.map.rules ?? 0) >= 3
+  ui.rewardPanel.classList.toggle('multi-shop', Boolean(atShop && seven))
   const eventName = room?.event === 'medicine' ? '무너진 약상자' : room?.event === 'pulley' ? '녹슨 도르래' : '빈 깃대'
   ui.rewardHeading.innerHTML = bossReward ? '보스 유물 선택' : atRoom ? `${icon(MAP_NODE_ICONS[room.kind])} ${room.kind === 'event' ? eventName : room.kind === 'rest' ? '11층 휴식' : atShop ? '상인' : '장터 경유'}` : eliteReward && seven ? '강적 유물 선택' : '전투 보상'
   ui.eliteCapacity.hidden = !eliteReward
@@ -1441,6 +1459,12 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
       card.setAttribute('aria-description', `${type} · ${grade}`)
       card.innerHTML = `<span class="reward-type">${type}<span>${grade}</span></span>${pictogram}<strong>${name}</strong><small class="reward-effect">${sevenItemEffect(reward, value)}</small>`
     } else card.innerHTML = pictogram
+    const description = (reward === 'kit' || reward === 'bandage' || reward === 'medicine') ? `체력 ${healingForRun(run, reward)} 회복`
+      : (seven && sevenCardEffect(reward)) || inventoryDescription(reward, seven)
+    const effectLine = document.createElement('small')
+    effectLine.className = 'reward-effect-line'
+    effectLine.textContent = description
+    card.append(effectLine)
     card.addEventListener('click', () => {
       chosenReward = chosenReward === reward ? undefined : reward
       artifactOptions = {}
@@ -1461,7 +1485,7 @@ function renderRewardOffers(run: Ascent, offers: readonly Reward[]) {
     offer.append(card, label)
     return offer
   }))
-  if (atShop && !offers.some(isArtifact)) {
+  if (atShop && !seven && !offers.some(isArtifact)) {
     const emptyStock = document.createElement('button')
     emptyStock.type = 'button'
     emptyStock.className = 'reward-card artifact-card empty-reward'
@@ -1533,6 +1557,12 @@ function inventoryChip(id: Reward, uses: number, capacity: number, disabled: boo
     button.setAttribute('aria-expanded', String(dockItem === id))
     button.addEventListener('click', () => {
       if (!ascent || exchangeBusy) return
+      if (seven && action.apply && (action.label !== '사용' || itemControl !== id)) {
+        itemControl = undefined
+        dockItem = id
+        action.apply()
+        return
+      }
       dockItem = dockItem === id ? undefined : id
       itemControl = undefined
       refreshSelection(ascent)
@@ -1551,6 +1581,7 @@ function inventoryChip(id: Reward, uses: number, capacity: number, disabled: boo
 
 function renderRewardStrip(battle: YachtBattle, disabled: boolean) {
   itemActions.clear()
+  element('thumb-items').hidden = true
   if (battle.loot) {
     renderTreasureStrips(battle, disabled)
     return
@@ -1573,7 +1604,7 @@ function renderRewardStrip(battle: YachtBattle, disabled: boolean) {
 }
 
 function focusInventoryChip(id: Reward) {
-  const chip = ui.main.querySelector<HTMLButtonElement>(`.inventory-strip [data-reward="${id}"]`)
+  const chip = ui.main.querySelector<HTMLButtonElement>(`:is(.inventory-strip, #thumb-items) [data-reward="${id}"]`)
   if (chip?.closest('#inventory-overflow')) setInventoryOverflow(true)
   chip?.focus({ preventScroll: true })
 }
@@ -1704,6 +1735,19 @@ function renderTreasureStrips(battle: YachtBattle, disabled: boolean) {
   for (const button of [...itemButtons, ...shardButtons, ...prepButtons, ...relicButtons]) {
     button.classList.toggle('triggered', loot.triggered?.some((id) => id === button.dataset.reward) ?? false)
   }
+  if (battle.itemsSeven) {
+    const thumb = element('thumb-items')
+    const active = relicButtons.filter(button => itemActions.has(button.dataset.reward as Reward) ||
+      ['banner', 'hourglass', 'die-latch', 'pip-ring', 'blood-grip', 'linked-cup'].includes(button.dataset.reward!))
+    thumb.hidden = battle.phase !== 'assign' || !itemButtons.length && !active.length
+    thumb.replaceChildren(...itemButtons, ...active)
+    ui.artifactStrip.replaceChildren(...relicButtons.filter(button => !active.includes(button)))
+    ui.artifactStrip.hidden = !ui.artifactStrip.childElementCount
+    ui.rewardStrip.replaceChildren(...prepButtons)
+    ui.rewardStrip.classList.remove('treasure-items')
+    ui.rewardStrip.hidden = !prepButtons.length
+    return
+  }
   ui.artifactStrip.replaceChildren(...relicButtons)
   ui.artifactStrip.hidden = !relicButtons.length
 
@@ -1751,11 +1795,18 @@ function openItemControl(id: NonNullable<typeof itemControl>) {
   target.focus({ preventScroll: true })
 }
 
+const treasureControlsHome = ui.treasureControls.parentElement!
+const treasureControlsNext = ui.treasureControls.nextSibling
+
 function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
   ui.treasureControls.replaceChildren()
   ui.treasureControls.hidden = true
   ui.treasureControls.toggleAttribute('data-item-planning', battle.phase === 'assign')
   ui.treasureControls.toggleAttribute('data-item-counter', battle.phase === 'counter')
+  const overlay = battle.itemsSeven && enabled && battle.phase === 'assign'
+  ui.treasureControls.toggleAttribute('data-item-overlay', Boolean(overlay))
+  if (overlay && ui.treasureControls.parentElement !== ui.encounter) ui.encounter.append(ui.treasureControls)
+  else if (!overlay && ui.treasureControls.parentElement !== treasureControlsHome) treasureControlsHome.insertBefore(ui.treasureControls, treasureControlsNext)
   const { loot } = battle
   if (!enabled) return
   const control = (label: string, content: string, action: () => void, disabled = false) => {
@@ -1791,7 +1842,7 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
         button.dataset.itemActivate = ''
         dockLine.append(button)
       }
-    } else if (!itemControl && (battle.itemsSeven || id !== 'incomplete')) {
+    } else if (!battle.itemsSeven && !itemControl && id !== 'incomplete') {
       const use = control(action.label, action.label, () => action.apply?.(), !action.apply)
       use.classList.add('primary')
       use.dataset.itemActivate = ''
@@ -1854,6 +1905,7 @@ function renderTreasureControls(battle: YachtBattle, enabled: boolean) {
       const options = document.createElement('div')
       options.className = 'item-dock-options'
       ui.treasureControls.append(options)
+      if (targets.length !== targetCount) options.textContent = targetCount === 2 ? '주사위 두 개를 고르세요.' : '주사위를 고르세요.'
       const add = (label: string, display: string, next: YachtBattle) => {
         if (next === battle) return
         const button = control(label, display, () => {
@@ -1942,7 +1994,7 @@ function teachOpening({ battle }: Ascent) {
       firstRun.clear()
       return
     }
-    firstRun.teach({ id: 'defend', text: '정확히 막았습니다! 반격 룰렛을 누르세요.', symbol: 'wheel',
+    firstRun.teach({ id: 'defend', text: '정확히 막았습니다! 룰렛을 두 번 누르세요.', symbol: 'wheel',
       anchor: ui.counter, marks: [ui.counter] })
     return
   }
@@ -2006,7 +2058,7 @@ function renderFirstRun(run: Ascent) {
     const condition = gimmick && `에 ${gimmick.face ?? '같은 눈 둘'} → ${gimmickEffects[gimmick.kind].intro}`
     firstRun.discover([
       ...(gimmick && condition ? [{ id: `gimmick-${gimmick.kind}`, symbol: gimmick.slot === 'guard' ? 'shield' : 'sword',
-        text: condition, spoken: `${gimmick.slot === 'guard' ? '방어' : '공격'} 칸${condition}`, anchor: ui.encounter, beside: ui.inventory }] : []),
+        text: condition, spoken: `${gimmick.slot === 'guard' ? '방어' : '공격'} 칸${condition}`, anchor: ui.encounter, beside: ui.inventory, linger: true }] : []),
       ...(!battle.itemsSeven && hand && !unlocks.includes(hand) ? [{ id: `unlock-${hand}`, symbol: 'lock', anchor: hand === 'triple' ? ui.lockedDie : ui.extraReroll,
         text: '잠긴 자리를 눌러 조건을 보세요.' }] : []),
     ])
@@ -2043,7 +2095,7 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.perks.hidden = true
   ui.battle.hidden = atMap
   ui.fork.hidden = !atMap
-  ui.mapHealth.hidden = false
+  ui.mapHealth.hidden = inCombat || defeated
   updatePlayerVital(playerHp, maxHp)
   ui.mapFloor.hidden = !atMap
   renderCoins(route?.coins)
@@ -2073,7 +2125,6 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.battleSettings.disabled = !showActions
   ui.soundToggle.hidden = atMap || defeated
   if (atMap) {
-    ui.activePerk.hidden = true
     ui.rewardStrip.hidden = true
     ui.artifactStrip.hidden = true
     forkView.render(ascent)
@@ -2088,8 +2139,8 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.turn.innerHTML = `${icon('turn')}${turn}`
   ui.turn.setAttribute('aria-label', `${turn}턴`)
   const totals = yachtAllocationTotals(battle)
-  ui.encounterName.hidden = enemy.id !== 'chain-warden' && enemy.id !== 'boss'
-  ui.encounterName.textContent = enemy.id === 'boss' ? '황제' : enemy.id === 'chain-warden' ? RULES_SIX_BADGES[enemy.id].label : ''
+  ui.encounterName.hidden = ui.encounter.hidden
+  ui.encounterName.textContent = enemy.id === 'boss' ? '황제' : (battle.rulesSix && rulesSixBadges[enemy.id]?.label) || enemyBadges[enemy.id].label
   renderIntent(battle, totals, enemy.id)
   renderEnemyStatus(battle)
   updateVital(ui.enemyHp, ui.enemyTotal, enemyHp, enemy.hp)
@@ -2125,9 +2176,17 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   ui.intent.classList.toggle('parry-in-progress', fieldCounter)
   roulette.setVisible(showActions && phase === 'counter' ? displayedCounterRewards(battle) : null, companionAwake)
   if (fieldCounter) {
-    const automatic = !firstRun.includes(ascent)
+    const automatic = settings.automaticCounter === true
     ui.counter.hidden = automatic || Boolean(battle.loot?.counter)
     roulette.setAutomatic(automatic)
+    const comparison = element('counter-comparison')
+    comparison.hidden = !battle.loot?.counterRecast
+    if (battle.loot?.counterRecast) {
+      const rewards = displayedCounterRewards(battle)
+      const first = rewards[yachtCounterSlot(battle)].damage
+      const second = rewards[yachtCounterSlot(battle, true)].damage
+      comparison.textContent = `첫 ${first} · 다시 ${second} → ${Math.max(first, second)}`
+    }
     if (battle.loot?.counter && ui.counterPanel.dataset.rollState !== 'locked') {
       void roulette.reveal({ ...battle.loot.counter, damage: counterDamage(battle, battle.loot.counter.damage) }, false, () => {})
     }
@@ -2714,7 +2773,7 @@ function turnCues(before: YachtBattle | undefined, changedTurn: boolean) {
 }
 
 function resumeCounterOrFocus() {
-  if (ascent?.battle.phase === 'counter' && !ascent.battle.loot?.counter && !firstRun.includes(ascent)) void playCounter()
+  if (ascent?.battle.phase === 'counter' && !ascent.battle.loot?.counter && settings.automaticCounter) void playCounter()
   else focusPhase()
 }
 
@@ -2724,21 +2783,29 @@ async function playCounter(choice?: CounterChoice) {
   const spun = spinAscentCounter(ascent, choice)
   if (spun === ascent) return
   const before = previous.battle
-  const checkpoint = firstRun.opening(noteMetaVictory(spun), before.turn)
+  let checkpoint = firstRun.opening(spun, before.turn)
   const next = checkpoint.battle
   const pending = next.loot?.counter
   const reward = pending ? { ...pending, damage: counterDamage(before, pending.damage) } : next.lastExchange?.counter
   if (!reward) return
   firstRun.clear()
+  let committed = false
+  const commit = () => {
+    if (committed) return
+    checkpoint = noteMetaVictory(checkpoint)
+    saveCurrent(checkpoint)
+    committed = true
+  }
 
   try {
-    await roulette.play(() => presentCounter(previous, checkpoint, reward, choice))
+    await roulette.play(() => presentCounter(previous, checkpoint, reward, commit, choice))
   } catch (error) {
     console.error('반격 연출을 완료하지 못했습니다.', error)
     ui.companionFlight.hidden = true
     roulette.setVisible(null)
     clearExchange()
   } finally {
+    commit()
     ascent = checkpoint
     render('normal', !pending && next.phase === 'assign')
     if (!pending) {
@@ -2749,8 +2816,7 @@ async function playCounter(choice?: CounterChoice) {
   }
 }
 
-async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: CounterResult, choice?: CounterChoice) {
-  saveCurrent(checkpoint)
+async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: CounterResult, commit: () => void, choice?: CounterChoice) {
   ui.counter.hidden = true
   const before = previous.battle
   const next = checkpoint.battle
@@ -2767,12 +2833,18 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
   const animate = !reducedMotion()
   if (next.perk?.kind === 'counter') renderActivePerk(next)
   if (!choice || choice === 'coin') {
+    element('counter-comparison').hidden = true
     sound.play('roulette-engage', 1, .26)
+    const angle = settings.automaticCounter ? 0 : await roulette.waitForStop(animate, animationSpeed())
     if (animate) sound.play('roulette-ratchet', animationSpeed(), .23)
-    await roulette.reveal(reward, animate, () => {}, animationSpeed() * 1.24)
+    const recast = choice === 'coin' ? yachtCounterSlot(before, true) : undefined
+    const landed = recast === undefined ? reward : { slot: recast, ...displayedCounterRewards(before)[recast] }
+    await roulette.reveal(landed, animate, () => {}, animationSpeed() * 1.24, angle)
     sound.play('roulette-latch', 1, .37)
+    commit()
     await wait(520)
-  }
+    if (landed.slot !== reward.slot) await roulette.reveal(reward, false, () => {})
+  } else commit()
   if (next.loot?.counter) return
   ui.counterPanel.hidden = true
   const choreographed = animate && !companionJoint && !escortDealt && dealt > 0 && arena.beginGolemCounter(next.enemyHp === 0)
@@ -2820,7 +2892,11 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
   if (choreographed) clearExchange()
   arena.finishStrike()
 }
-ui.counter.addEventListener('click', () => void playCounter())
+function operateCounter() {
+  if (!roulette.requestStop() && !ui.counter.hidden && !ui.counter.disabled) void playCounter()
+}
+ui.counter.addEventListener('click', operateCounter)
+ui.counterPanel.querySelector('.roulette-stage')?.addEventListener('click', operateCounter)
 
 const roomCover = element('room-transition')
 const roomFloor = element('room-floor')

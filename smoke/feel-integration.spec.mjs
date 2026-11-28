@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { expect, test as base } from '@playwright/test'
 import { resolveAscentTurn, spinAscentCounter } from '../src/ascent.ts'
 import { ASCENT_SAVE_KEY } from '../src/ascent-save.ts'
+import { GAME_SETTINGS_KEY } from '../src/game-settings.ts'
 import { checkpoint, encounter } from './rules-six-fixtures.mjs'
 
 const test = base.extend({
@@ -15,6 +16,9 @@ const test = base.extend({
     page.on('response', (response) => {
       if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`)
     })
+    await page.addInitScript(key => {
+      if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ automaticCounter: true }))
+    }, GAME_SETTINGS_KEY)
     await page.addInitScript(() => {
       const bytesToName = new WeakMap()
       const bufferToName = new WeakMap()
@@ -98,7 +102,7 @@ for (const [kind, dice, time, glyph] of [
   test(`무음에서 ${kind} 방어의 접촉과 방패를 표시한다`, async ({ page }, info) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     await page.addInitScript(() => {
-      localStorage.setItem('hwigi-tower.settings', JSON.stringify({ music: false, effects: false }))
+      localStorage.setItem('hwigi-tower.settings', JSON.stringify({ music: false, effects: false, automaticCounter: true }))
       const animate = Element.prototype.animate
       Element.prototype.animate = function (...args) {
         const animation = animate.apply(this, args)
@@ -166,7 +170,7 @@ for (const [kind, dice, time, glyph] of [
         expect(frame.labels).toHaveLength(6)
         for (const angle of frame.labels) expect(angle).toBeCloseTo(0, 3)
       }
-      await expect(wheel.locator('.roulette-label.locked svg')).toHaveCount(2)
+      await expect(wheel.locator('.roulette-label.locked small')).toHaveText(['단독', '단독'])
       await photograph(page, info, 'roulette-spinning')
       await page.evaluate(() => window.rouletteSpinFrame.finish())
     }
@@ -360,7 +364,7 @@ test('움직임 줄이기와 무음에서 저장된 정확 방어가 한 번만 
   expect(pending.battle.phase).toBe('counter')
   const expected = spinAscentCounter(pending).battle
   await page.addInitScript(() => {
-    localStorage.setItem('hwigi-tower.settings', JSON.stringify({ music: false, effects: false, speed: 'normal', reducedMotion: true }))
+    localStorage.setItem('hwigi-tower.settings', JSON.stringify({ music: false, effects: false, speed: 'normal', reducedMotion: true, automaticCounter: true }))
     window.rouletteStates = []
     new MutationObserver((changes) => {
       for (const change of changes) if (change.target.id === 'counter-panel') {
@@ -385,6 +389,7 @@ test('움직임 줄이기와 무음에서 저장된 정확 방어가 한 번만 
 base('룰렛 애니메이션이 실패해도 입력을 풀고 확정된 피해를 보존한다', async ({ page }, info) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.addInitScript(() => {
+    localStorage.setItem('hwigi-tower.settings', JSON.stringify({ automaticCounter: true }))
     const animate = Element.prototype.animate
     Element.prototype.animate = function (...args) {
       if (this.id === 'counter-wheel' && !window.failedRoulette) {
@@ -429,7 +434,8 @@ test('패배한 전장을 남기고 키보드로 다시 오르기와 로비에 �
     await page.locator('#resolve').tap()
     await expect(page.getByRole('heading', { name: '등반 실패' })).toBeFocused()
     await expect(page.locator('#defeat-floor')).toHaveText('1층에서 쓰러졌습니다.')
-    await expect(page.locator('#map-health')).toHaveAccessibleName('체력 0/22')
+    await expect(page.locator('#map-health')).toBeHidden()
+    await expect(page.locator('#player-hp')).toHaveJSProperty('value', 0)
     await expect(page.locator('#fight')).toHaveText('1/12 층')
     await expect(page.getByRole('region', { name: /마지막 전장/ })).toBeVisible()
     await expect(page.locator('#resolve')).toBeHidden()
