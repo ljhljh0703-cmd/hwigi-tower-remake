@@ -39,7 +39,7 @@ function poseAt(cels: readonly Pose[], elapsed: number) {
 }
 
 function positions(width: number, density: number, hero: Actor, enemy: Actor) {
-  const scale = Math.max(1, Math.min(hero.scale, Math.floor((width - 58 * density) / 96)))
+  const scale = Math.max(1, Math.min(Math.round(hero.scale * 1.5), Math.floor((width - 58 * density) / 96)))
   const margin = 9 * density
   const heroFoot = Math.round(Math.max(margin + 10 * scale,
     Math.min(hero.foot - 4 * scale, width - margin - 78 * scale - 42 * density)))

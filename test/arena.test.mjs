@@ -5,6 +5,8 @@ import { ENEMY_SPRITES, ESCORT_SPRITE, enemyExchangePoses, enemyPlanPose, escort
 import { beginAscent } from '../src/ascent.ts'
 import { ASCENT_ENEMIES, MAP_ENEMIES } from '../src/enemy-roster.ts'
 import { resolveYachtTurn, startYachtBattle } from '../src/yacht-combat.ts'
+import poolClips from '../src/pool-clips.json' with { type: 'json' }
+import poolFormat from '../src/pool-format.json' with { type: 'json' }
 
 function poses(before) {
   const { battle } = resolveYachtTurn(before)
@@ -36,8 +38,9 @@ test('the hero recoils from thorns after a finishing blow without showing a guar
 test('every enemy and the summoned guard have complete native-size artwork', () => {
   const [ordinary, elite, [boss]] = ASCENT_ENEMIES
   assert.deepEqual(Object.keys(ENEMY_SPRITES).sort(), [...ASCENT_ENEMIES.flat(), ...MAP_ENEMIES].map(({ id }) => id).concat('chain-warden').sort())
+  const pool = ENEMY_SPRITES.rage
   for (const [sprites, size] of [
-    [[...ordinary, ...MAP_ENEMIES.filter(({ attackPerUnlock }) => !attackPerUnlock)].map(({ id }) => ENEMY_SPRITES[id]), [32, 40]],
+    [[...ordinary, ...MAP_ENEMIES.filter(({ attackPerUnlock }) => !attackPerUnlock)].map(({ id }) => ENEMY_SPRITES[id]).filter(sprite => sprite !== pool), [32, 40]],
     [[...elite, ...MAP_ENEMIES.filter(({ attackPerUnlock }) => attackPerUnlock)].map(({ id }) => ENEMY_SPRITES[id]), [40, 48]],
     [[ENEMY_SPRITES[boss.id]], [48, 48]],
     [[ENEMY_SPRITES['chain-warden']], [40, 44]],
@@ -50,6 +53,27 @@ test('every enemy and the summoned guard have complete native-size artwork', () 
         assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], size, `${name}-${pose}`)
         assert.ok(footX >= 0 && footX < size[0] && footY >= 0 && footY < size[1])
       }
+    }
+  }
+  // The rage slot is the slime pool: a wide puddle whose portrait is one native
+  // 80x48 drawing and whose combat poses are cells of the rigged sheet.
+  const size = (file) => {
+    const png = readFileSync(new URL(`../public/art/${file}.png`, import.meta.url))
+    return [png.readUInt32BE(16), png.readUInt32BE(20)]
+  }
+  assert.equal(pool.name, 'slime-pool')
+  assert.ok(ordinary.some(({ id }) => id === 'rage'))
+  const [width, height] = size('slime-pool-idle')
+  assert.deepEqual([width, height], [80, 48])
+  assert.ok(pool.poses.idle >= 0 && pool.poses.idle < width && pool.footY >= 0 && pool.footY < height)
+  const [cellWidth, cellHeight] = poolFormat.size
+  const [rigWidth, rigHeight] = size('motion/slime-pool-rig')
+  assert.deepEqual(size('motion/slime-pool-layers'), [rigWidth, rigHeight * 3])
+  assert.ok(poolFormat.pivot[0] < cellWidth && poolFormat.pivot[1] < cellHeight)
+  for (const clip of ['idle', 'attack', 'hit', 'heavy-hit', 'death']) {
+    assert.ok(poolClips[clip]?.length, clip)
+    for (const [, x, y] of poolClips[clip]) {
+      assert.ok(x >= 0 && y >= 0 && x + cellWidth <= rigWidth && y + cellHeight <= rigHeight, `${clip} ${x},${y}`)
     }
   }
 })

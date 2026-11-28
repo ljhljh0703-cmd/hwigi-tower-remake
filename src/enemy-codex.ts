@@ -70,8 +70,8 @@ export const ENEMY_CODEX: Readonly<Record<string, EnemyEntry> & Record<CodexEnem
     mechanic: '예고 중 공격에 1을 놓으면 적의 다음 공격을 끊습니다.',
   },
   rage: {
-    name: '잿불 멧돼지', lineage: '탑의 산물', region: 'halls', icon: 'rage', old: { icon: 'rage', label: '격분' },
-    lore: '짙은 잿빛 등 한가운데 꺼지지 않은 붉은 불씨를 품은 채 머리를 낮추고 들이받는 짐승.',
+    name: '슬라임 웅덩이', lineage: '탑의 산물', region: 'halls', icon: 'rage', old: { icon: 'rage', label: '격분' },
+    lore: '바닥에 고인 검은 점액 속에 해골이 떠다닌다. 점액이 먼저 덮치고 해골이 뒤늦게 쏠린다.',
     mechanic: '격분을 예고한 턴에 다시 굴리면 공격이 강해집니다.',
   },
   'shield-soldier': {

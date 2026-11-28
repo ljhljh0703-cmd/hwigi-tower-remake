@@ -1,0 +1,184 @@
+{
+  "upper-shield": {
+    "ready": {
+      "alphaPixels": 312,
+      "drawing": "8dd185d61335"
+    },
+    "anticipate": {
+      "alphaPixels": 283,
+      "drawing": "bee6a10f652f"
+    },
+    "approach": {
+      "alphaPixels": 320,
+      "drawing": "64ba94662eae"
+    },
+    "contact": {
+      "alphaPixels": 321,
+      "drawing": "e5cf992c720c"
+    },
+    "follow": {
+      "alphaPixels": 328,
+      "drawing": "cf9aaf5e8e05"
+    },
+    "reload": {
+      "alphaPixels": 306,
+      "drawing": "f78ddddd9b16"
+    },
+    "repeat-contact": {
+      "alphaPixels": 323,
+      "drawing": "c97be6fbebd8"
+    },
+    "special-contact": {
+      "alphaPixels": 312,
+      "drawing": "b4533cd5be74"
+    },
+    "hit": {
+      "alphaPixels": 272,
+      "drawing": "124f4d8c58d2"
+    },
+    "heavy-hit": {
+      "alphaPixels": 279,
+      "drawing": "629a31114bc6"
+    },
+    "fall": {
+      "alphaPixels": 294,
+      "drawing": "1a3b92aa6294"
+    },
+    "down": {
+      "alphaPixels": 201,
+      "drawing": "9d4fc3e93f01"
+    },
+    "step-plant": {
+      "alphaPixels": 281,
+      "drawing": "adc8f289a69c"
+    },
+    "step-stride": {
+      "alphaPixels": 252,
+      "drawing": "f441fecfb6d1"
+    },
+    "rear-ready": {
+      "alphaPixels": 272,
+      "drawing": "6dd73b3a4ab6"
+    },
+    "rear-anticipate": {
+      "alphaPixels": 271,
+      "drawing": "db9bd0eaa9ef"
+    }
+  },
+  "upper-boss": {
+    "ready": {
+      "alphaPixels": 837,
+      "drawing": "2ffc0ca4f766"
+    },
+    "anticipate": {
+      "alphaPixels": 852,
+      "drawing": "79c03fe5a990"
+    },
+    "approach": {
+      "alphaPixels": 862,
+      "drawing": "bb67c4e37548"
+    },
+    "contact": {
+      "alphaPixels": 907,
+      "drawing": "69a825ad541d"
+    },
+    "follow": {
+      "alphaPixels": 884,
+      "drawing": "639ec8eb075f"
+    },
+    "reload": {
+      "alphaPixels": 814,
+      "drawing": "8ddedbfe90ad"
+    },
+    "repeat-contact": {
+      "alphaPixels": 852,
+      "drawing": "9747ec13e376"
+    },
+    "special-contact": {
+      "alphaPixels": 829,
+      "drawing": "a40216655c44"
+    },
+    "hit": {
+      "alphaPixels": 824,
+      "drawing": "bf13e6cf9758"
+    },
+    "heavy-hit": {
+      "alphaPixels": 914,
+      "drawing": "0f9589639b91"
+    },
+    "fall": {
+      "alphaPixels": 792,
+      "drawing": "b2966119c54d"
+    },
+    "down": {
+      "alphaPixels": 708,
+      "drawing": "6e34720ec522"
+    },
+    "step-plant": {
+      "alphaPixels": 836,
+      "drawing": "ca5ac4b9c5d4"
+    },
+    "step-stride": {
+      "alphaPixels": 776,
+      "drawing": "7df95717c9f7"
+    },
+    "rear-ready": {
+      "alphaPixels": 327,
+      "drawing": "096a02f77124"
+    },
+    "rear-anticipate": {
+      "alphaPixels": 386,
+      "drawing": "bcbe95df54a7"
+    }
+  },
+  "upper-boss-special": {
+    "charge-set": {
+      "alphaPixels": 708,
+      "drawing": "bcbe02727579"
+    },
+    "charge-peak": {
+      "alphaPixels": 705,
+      "drawing": "20ac2acaa425"
+    },
+    "charge-approach": {
+      "alphaPixels": 685,
+      "drawing": "078f3e9fd038"
+    },
+    "charge-contact": {
+      "alphaPixels": 768,
+      "drawing": "4333298c0265"
+    },
+    "charge-follow": {
+      "alphaPixels": 799,
+      "drawing": "a09b5098b85f"
+    },
+    "weak-set": {
+      "alphaPixels": 754,
+      "drawing": "8cb43e7eb1a2"
+    },
+    "weak-contact": {
+      "alphaPixels": 788,
+      "drawing": "c5f7534307aa"
+    },
+    "interrupted": {
+      "alphaPixels": 741,
+      "drawing": "5b37c7935f3c"
+    },
+    "interrupted-knee": {
+      "alphaPixels": 815,
+      "drawing": "616f58a6df37"
+    },
+    "recover-start": {
+      "alphaPixels": 864,
+      "drawing": "5fb6989901a0"
+    },
+    "recover-knee": {
+      "alphaPixels": 838,
+      "drawing": "13c62fb88935"
+    },
+    "recover-end": {
+      "alphaPixels": 835,
+      "drawing": "107e3b83faaf"
+    }
+  }
+}

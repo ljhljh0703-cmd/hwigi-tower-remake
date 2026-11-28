@@ -1,4 +1,4 @@
-const materials = ['swish', 'grit', 'block', 'tap', 'charge', 'slam', 'release', 'rebound', 'seat', 'hum', 'latch', 'coin', 'pay', 'mend', 'frost', 'stamp', 'rise', 'step', 'pulley', 'ember', 'engrave'] as const
+const materials = ['pool-slap', 'pool-drain', 'swish', 'grit', 'block', 'tap', 'charge', 'slam', 'release', 'rebound', 'seat', 'hum', 'latch', 'coin', 'pay', 'mend', 'frost', 'stamp', 'rise', 'step', 'pulley', 'ember', 'engrave'] as const
 const wheelEffects = ['roulette-engage', 'roulette-ratchet', 'roulette-latch'] as const
 const diceEffects = ['die-corner', 'die-rebound', 'die-note'] as const
 const effects = [

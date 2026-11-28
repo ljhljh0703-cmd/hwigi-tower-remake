@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "node --test",
     "smoke": "playwright test --config playwright.config.mjs",
-    "bot": "node scripts/bot.mjs"
+    "bot": "node scripts/bot.mjs",
+    "verify:art": "python scripts/verify_art.py"
   },
   "dependencies": {
     "phaser": "3.90.0"

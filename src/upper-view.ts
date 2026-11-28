@@ -133,7 +133,7 @@ export class UpperView {
       const heavy = id === 'gatekeeper' && before.formation!.bossStep === 'strike'
       const weakened = enemy?.action.pose === 'weakened'
       const motion = { id, heavy, weakened, repeat: attacker === id }
-      this.arena.setUpperScene(formation, { ...motion, kind: 'attack' })
+      this.arena.setUpperScene(formation, { ...motion, kind: 'attack', amount: damage })
       await pause(120)
       hp = Math.max(0, hp - damage)
       this.arena.setUpperScene(formation, { ...motion, kind: damage ? 'recoil' : 'block', amount: damage })

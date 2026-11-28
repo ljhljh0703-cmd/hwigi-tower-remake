@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { AUTHORED_UPPER, compileAuthoredUpper } from './compile-authored-upper.mjs'
 import { createRequire } from 'node:module'
 import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
@@ -201,6 +202,8 @@ function attackTip(frame, xOffset, yOffset, [top, bottom] = [.18, .68]) {
 }
 
 async function compile(id) {
+  // All five upper sheets are painted in Aseprite; raw/ keeps the generated pre-paint snapshots.
+  if (AUTHORED_UPPER.includes(id)) return compileAuthoredUpper(id, root, sharp)
   const effects = id === 'effects'
   const upperArt = upper[id]
   const upperSpecial = id === 'upper-boss-special'
@@ -261,16 +264,22 @@ async function compile(id) {
     reference: effects ? null : reference(id), frames: metadata }
 }
 
+// Stage-one monsters are now edited in art-source/monsters/*.aseprite and checked by
+// scripts/verify_art.py. Rebuilding them from raw would overwrite the approved PNGs.
+const { readdir } = await import('node:fs/promises')
+const edited = new Set((await readdir(path('art-source/monsters/'))).filter(file => file.endsWith('.aseprite'))
+  .map(file => file.slice(0, -'.aseprite'.length)))
 const results = []
-for (const id of selected.length ? selected : [...Object.keys(labels), ...Object.keys(upper)]) {
+for (const id of selected.length ? selected : Object.keys(upper)) {
   assert.ok(id in labels || id in upper, 'Unknown sheet ' + id)
+  assert.ok(!edited.has(id), id + ' is authored in art-source/monsters; edit the Aseprite file instead')
   const entry = await compile(id)
   results.push(entry)
   console.log(id, entry.width + 'x' + entry.height, entry.frames.length, 'frames')
 }
-if (selected.length === 0 || selected.some(id => id in upper)) {
+if (results.length) {
   const manifest = path('art-source/enemy-motion/manifest.json')
-  const previous = selected.length ? JSON.parse(await readFile(manifest, 'utf8')).sheets : []
+  const previous = JSON.parse(await readFile(manifest, 'utf8')).sheets
   const sheets = [...previous.filter(sheet => !results.some(result => sheet.id === result.id)), ...results]
   await writeFile(manifest, JSON.stringify({ version: 1, sheets }, null, 2) + '\n')
 }

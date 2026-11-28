@@ -1,0 +1,604 @@
+{
+  "upper-shield": [
+    {
+      "key": "ready",
+      "ground": 43,
+      "bounds": [
+        11,
+        18,
+        28,
+        43
+      ],
+      "contact": null,
+      "changedRGBA": 312,
+      "silhouetteEdits": 0
+    },
+    {
+      "key": "anticipate",
+      "ground": 43,
+      "bounds": [
+        10,
+        18,
+        26,
+        43
+      ],
+      "contact": null,
+      "changedRGBA": 285,
+      "silhouetteEdits": 2
+    },
+    {
+      "key": "approach",
+      "ground": 43,
+      "bounds": [
+        6,
+        19,
+        27,
+        43
+      ],
+      "contact": null,
+      "changedRGBA": 322,
+      "silhouetteEdits": 2
+    },
+    {
+      "key": "contact",
+      "ground": 43,
+      "bounds": [
+        1,
+        21,
+        28,
+        43
+      ],
+      "contact": [
+        1,
+        40
+      ],
+      "changedRGBA": 323,
+      "silhouetteEdits": 2
+    },
+    {
+      "key": "follow",
+      "ground": 43,
+      "bounds": [
+        2,
+        21,
+        28,
+        43
+      ],
+      "contact": null,
+      "changedRGBA": 330,
+      "silhouetteEdits": 2
+    },
+    {
+      "key": "reload",
+      "ground": 43,
+      "bounds": [
+        10,
+        19,
+        28,
+        43
+      ],
+      "contact": null,
+      "changedRGBA": 308,
+      "silhouetteEdits": 2
+    },
+    {
+      "key": "repeat-contact",
+      "ground": 43,
+      "bounds": [
+        2,
+        20,
+        27,
+        43
+      ],
+      "contact": [
+        2,
+        38
+      ],
+      "changedRGBA": 325,
+      "silhouetteEdits": 2
+    },
+    {
+      "key": "special-contact",
+      "ground": 43,
+      "bounds": [
+        8,
+        18,
+        28,
+        43
+      ],
+      "contact": [
+        8,
+        33
+      ],
+      "changedRGBA": 314,
+      "silhouetteEdits": 2
+    },
+    {
+      "key": "hit",
+      "ground": 43,
+      "bounds": [
+        11,
+        19,
+        28,
+        43
+      ],
+      "contact": null,
+      "changedRGBA": 274,
+      "silhouetteEdits": 2
+    },
+    {
+      "key": "heavy-hit",
+      "ground": 43,
+      "bounds": [
+        11,
+        19,
+        31,
+        43
+      ],
+      "contact": null,
+      "changedRGBA": 281,
+      "silhouetteEdits": 2
+    },
+    {
+      "key": "fall",
+      "ground": 43,
+      "bounds": [
+        7,
+        23,
+        28,
+        43
+      ],
+      "contact": null,
+      "changedRGBA": 294,
+      "silhouetteEdits": 0
+    },
+    {
+      "key": "down",
+      "ground": 43,
+      "bounds": [
+        5,
+        30,
+        29,
+        43
+      ],
+      "contact": null,
+      "changedRGBA": 203,
+      "silhouetteEdits": 2
+    },
+    {
+      "key": "step-plant",
+      "ground": 43,
+      "bounds": [
+        11,
+        19,
+        27,
+        43
+      ],
+      "contact": null,
+      "changedRGBA": 281,
+      "silhouetteEdits": 0
+    },
+    {
+      "key": "step-stride",
+      "ground": 43,
+      "bounds": [
+        11,
+        19,
+        26,
+        43
+      ],
+      "contact": null,
+      "changedRGBA": 254,
+      "silhouetteEdits": 2
+    },
+    {
+      "key": "rear-ready",
+      "ground": 43,
+      "bounds": [
+        14,
+        19,
+        29,
+        43
+      ],
+      "contact": null,
+      "changedRGBA": 274,
+      "silhouetteEdits": 2
+    },
+    {
+      "key": "rear-anticipate",
+      "ground": 43,
+      "bounds": [
+        12,
+        19,
+        28,
+        43
+      ],
+      "contact": null,
+      "changedRGBA": 273,
+      "silhouetteEdits": 2
+    }
+  ],
+  "upper-boss": [
+    {
+      "key": "ready",
+      "ground": 71,
+      "bounds": [
+        9,
+        29,
+        46,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 838,
+      "silhouetteEdits": 1
+    },
+    {
+      "key": "anticipate",
+      "ground": 71,
+      "bounds": [
+        12,
+        28,
+        45,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 855,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "approach",
+      "ground": 71,
+      "bounds": [
+        8,
+        30,
+        45,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 865,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "contact",
+      "ground": 71,
+      "bounds": [
+        1,
+        33,
+        49,
+        71
+      ],
+      "contact": [
+        1,
+        48
+      ],
+      "changedRGBA": 910,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "follow",
+      "ground": 71,
+      "bounds": [
+        1,
+        33,
+        45,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 887,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "reload",
+      "ground": 71,
+      "bounds": [
+        8,
+        31,
+        45,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 815,
+      "silhouetteEdits": 1
+    },
+    {
+      "key": "repeat-contact",
+      "ground": 71,
+      "bounds": [
+        1,
+        36,
+        47,
+        71
+      ],
+      "contact": [
+        1,
+        55
+      ],
+      "changedRGBA": 853,
+      "silhouetteEdits": 1
+    },
+    {
+      "key": "special-contact",
+      "ground": 71,
+      "bounds": [
+        8,
+        31,
+        46,
+        71
+      ],
+      "contact": [
+        8,
+        54
+      ],
+      "changedRGBA": 830,
+      "silhouetteEdits": 1
+    },
+    {
+      "key": "hit",
+      "ground": 71,
+      "bounds": [
+        11,
+        32,
+        46,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 827,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "heavy-hit",
+      "ground": 71,
+      "bounds": [
+        17,
+        31,
+        54,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 917,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "fall",
+      "ground": 71,
+      "bounds": [
+        6,
+        38,
+        47,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 793,
+      "silhouetteEdits": 1
+    },
+    {
+      "key": "down",
+      "ground": 71,
+      "bounds": [
+        3,
+        49,
+        50,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 709,
+      "silhouetteEdits": 1
+    },
+    {
+      "key": "step-plant",
+      "ground": 71,
+      "bounds": [
+        7,
+        29,
+        45,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 839,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "step-stride",
+      "ground": 71,
+      "bounds": [
+        10,
+        30,
+        46,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 779,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "rear-ready",
+      "ground": 71,
+      "bounds": [
+        21,
+        45,
+        44,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 328,
+      "silhouetteEdits": 1
+    },
+    {
+      "key": "rear-anticipate",
+      "ground": 71,
+      "bounds": [
+        19,
+        45,
+        45,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 387,
+      "silhouetteEdits": 1
+    }
+  ],
+  "upper-boss-special": [
+    {
+      "key": "charge-set",
+      "ground": 71,
+      "bounds": [
+        15,
+        33,
+        45,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 711,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "charge-peak",
+      "ground": 71,
+      "bounds": [
+        22,
+        26,
+        44,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 706,
+      "silhouetteEdits": 1
+    },
+    {
+      "key": "charge-approach",
+      "ground": 71,
+      "bounds": [
+        17,
+        31,
+        45,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 686,
+      "silhouetteEdits": 1
+    },
+    {
+      "key": "charge-contact",
+      "ground": 71,
+      "bounds": [
+        1,
+        37,
+        46,
+        71
+      ],
+      "contact": [
+        1,
+        58
+      ],
+      "changedRGBA": 769,
+      "silhouetteEdits": 1
+    },
+    {
+      "key": "charge-follow",
+      "ground": 71,
+      "bounds": [
+        5,
+        36,
+        47,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 802,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "weak-set",
+      "ground": 71,
+      "bounds": [
+        9,
+        34,
+        45,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 757,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "weak-contact",
+      "ground": 71,
+      "bounds": [
+        4,
+        38,
+        46,
+        71
+      ],
+      "contact": [
+        4,
+        61
+      ],
+      "changedRGBA": 789,
+      "silhouetteEdits": 1
+    },
+    {
+      "key": "interrupted",
+      "ground": 71,
+      "bounds": [
+        20,
+        34,
+        52,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 744,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "interrupted-knee",
+      "ground": 71,
+      "bounds": [
+        7,
+        37,
+        48,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 816,
+      "silhouetteEdits": 1
+    },
+    {
+      "key": "recover-start",
+      "ground": 71,
+      "bounds": [
+        11,
+        34,
+        47,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 867,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "recover-knee",
+      "ground": 71,
+      "bounds": [
+        13,
+        34,
+        47,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 841,
+      "silhouetteEdits": 3
+    },
+    {
+      "key": "recover-end",
+      "ground": 71,
+      "bounds": [
+        11,
+        30,
+        45,
+        71
+      ],
+      "contact": null,
+      "changedRGBA": 838,
+      "silhouetteEdits": 3
+    }
+  ]
+}

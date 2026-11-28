@@ -101,7 +101,7 @@ async function resume(page, run) {
 
 async function frameWith(page, hero, enemy, pose, extraEnemy) {
   const handle = await page.waitForFunction(({ hero, enemy, pose, extraEnemy }) => {
-    return window.arenaFrames.findLast(({ actors }) => actors.some(({ art }) => art === `hero-${hero}.png`)
+    return window.arenaFrames.findLast(({ actors }) => actors.some(({ art }) => [hero].flat().some((pose) => art === `hero-${pose}.png`))
       && actors.some((actor) => actor.art === enemy && (!pose || actor.pose === pose))
       && (!extraEnemy || actors.some(({ art }) => art === extraEnemy)))
   }, { hero, enemy, pose, extraEnemy }, { timeout: 4500 })
@@ -182,8 +182,9 @@ async function keepLayout(page, actors) {
   const fore = await page.locator('#intent').boundingBox()
   const hps = await page.locator('.combatant:not([hidden]) .vital').evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()))
   const hero = actors.find(({ art }) => art === 'hero-idle.png')
-  expect(hero.scale).toBe(3)
-  expect(hero.box.slice(2)).toEqual([84, 90])
+  // 104x60 swordsman sheet: the idle ink spans 65x48 texels at a whole 2x scale.
+  expect(hero.scale).toBe(2)
+  expect(hero.box.slice(2)).toEqual([130, 96])
   expect(hero.smoothing).toBe(false)
   for (const actor of actors) {
     const [x, y, w, h] = actor.box
@@ -210,12 +211,18 @@ async function keepLayout(page, actors) {
 }
 
 test('골렘·자물쇠·얼림·호위·보스의 실루엣과 입력 영역을 확인한다', async ({ page }, info) => {
+  // Ready ink in texels (manifest bounds; freeze-ready from enemy-motion.ts) at whole scales.
+  const ink = (sheet) => manifest.sheets.find(({ id }) => id === sheet).frames.find(({ id }) => id === 'ready').bounds.slice(2)
+  const scaled = ([w, h], scale) => [w * scale, h * scale]
+  const compact = page.viewportSize().width <= 320
   const fields = [
-    ['thorns', 'golem.png', undefined, [124, 88]],
-    ['lock', 'lock.png', undefined, [92, 88]],
-    ['freeze', 'freeze-ready.png', undefined, [112, 72]],
+    // The repainted golem, lock and freeze are taller and wider; at 320 they fit whole at 3x
+    // (at 4x the kit capture ran the lock off the arena edge).
+    ['thorns', 'golem.png', undefined, scaled(ink('golem'), compact ? 3 : 4)],
+    ['lock', 'lock.png', undefined, scaled(ink('lock'), compact ? 3 : 4)],
+    ['freeze', 'freeze-ready.png', undefined, scaled([32, 26], compact ? 3 : 4)],
     ['escort', 'escort.png', 'escort-guard.png', undefined],
-    ['boss', 'boss.png', undefined, [78, 132]],
+    ['boss', 'boss.png', undefined, scaled(ink('boss'), 3)],
   ]
   for (const [name, art, guard, dimensions] of fields) {
     let run = encounter(name)
@@ -240,10 +247,15 @@ function opaqueAt(actor, x, y, tolerance = 1) {
   })
 }
 
+// Centre of the painted sword-tip texel in hero-attack.png (checked by scripts/verify_art.py).
+const heroSwordTip = [94.5, 42.5]
+
+const guardContacts = ['guard-brace', 'guard-middle', 'guard-low']
+
 function bladeTouches(frame, enemy) {
   const hero = frame.actors.find(({ art }) => art === 'hero-attack.png')
   const other = frame.actors.find(({ art }) => art === enemy)
-  return hero && other && opaqueAt(other, hero.x + 47.5 * hero.scale, hero.y + 20.5 * hero.scale)
+  return hero && other && opaqueAt(other, hero.x + heroSwordTip[0] * hero.scale, hero.y + heroSwordTip[1] * hero.scale)
 }
 
 function incomingTouches({ actors }, heroArt, enemyArt) {
@@ -269,17 +281,20 @@ test('자물쇠의 공방 10컷과 칼끝 접촉을 확인한다', async ({ page
   await resume(page, turn)
   await put(page, 'guard', [0, 1, 2, 3])
   await resolveToFrame(page, 177)
-  await frameWith(page, 'guard-brace', 'lock.png', 'contact')
+  // The guard drawing follows the attacker's contact height; the lock's claw meets a low guard.
+  const guarded = await frameWith(page, guardContacts, 'lock.png', 'contact')
+  const stance = guarded.actors.find(({ art }) => guardContacts.some((pose) => art === `hero-${pose}.png`)).art
   await photograph(page, info, 'guard-contact')
   await page.clock.resume()
   await expect(page.locator('#turn')).toHaveAttribute('aria-label', '2턴')
   const defense = await page.evaluate(() => window.arenaFrames)
   const frames = [...attack, ...defense]
   const poses = new Set(frames.flatMap(({ actors }) => actors.map(({ art }) => art)))
-  for (const pose of ['idle', 'guard-lift', 'guard', 'guard-brace', 'attack-prepare', 'step', 'attack', 'attack-follow', 'hit', 'recover']) {
+  for (const pose of ['idle', 'guard-lift', 'guard', 'attack-prepare', 'step', 'attack', 'attack-follow', 'hit', 'recover']) {
     expect(poses, pose).toContain(`hero-${pose}.png`)
   }
-  expect(defense.some((frame) => incomingTouches(frame, 'hero-guard-brace.png', 'lock.png'))).toBe(true)
+  expect(poses, 'guard contact').toContain(stance)
+  expect(defense.some((frame) => incomingTouches(frame, stance, 'lock.png'))).toBe(true)
 })
 
 test('호위병이 먼저 맞고 보스 충전과 봉인 자세가 실제 판정에 연결된다', async ({ page }, info) => {
