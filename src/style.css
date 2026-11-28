@@ -1937,7 +1937,6 @@ button.die:disabled { background: transparent; }
 .dice-guide-state { font-size: .78rem; }
 .dice-guide-entry .unlock-pattern { grid-column: 1 / -1; font-size: 22px; }
 .dice-guide-entry p { grid-column: 1 / -1; font-size: .83rem; word-break: keep-all; }
-#counter-comparison { color: #f8d3a4; font-size: .8rem; text-align: center; }
 #counter-panel:has(#counter:not([hidden]):enabled) .roulette-stage { cursor: pointer; }
 .unlock-hint, .unlock-hint:disabled {
   border: 1px dashed var(--stone-edge);
@@ -2192,6 +2191,7 @@ button.die:disabled { background: transparent; }
   position: static;
   width: 100%;
 }
+#counter-footer:has(#counter-damage[hidden]) { display: none; }
 #counter-footer {
   display: flex;
   align-items: center;
@@ -2203,17 +2203,7 @@ button.die:disabled { background: transparent; }
   background: #27221b;
   color: #ffe2b0;
 }
-#counter-lock-note { display: inline-flex; align-items: center; gap: 4px; font-size: .74rem; }
-#counter-auto {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding-inline-end: 12px;
-  border-inline-end: 1px solid #78654a;
-  font-size: .85rem;
-}
 .counter-over-field #counter-damage { font-size: 1.7rem; }
-.counter-over-field #counter-range { font-size: 1.15rem; }
 
 .roulette-stage { position: relative; width: min(100%, 218px); aspect-ratio: 1; }
 

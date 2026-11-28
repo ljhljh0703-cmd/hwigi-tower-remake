@@ -2379,15 +2379,6 @@ function render(presentation: 'normal' | 'unlock' = 'normal', rollTurn = false) 
   if (fieldCounter) {
     const automatic = settings.automaticCounter === true
     ui.counter.hidden = automatic || Boolean(battle.loot?.counter)
-    roulette.setAutomatic(automatic)
-    const comparison = element('counter-comparison')
-    comparison.hidden = !battle.loot?.counterRecast
-    if (battle.loot?.counterRecast) {
-      const rewards = displayedCounterRewards(battle)
-      const first = rewards[yachtCounterSlot(battle)].damage
-      const second = rewards[yachtCounterSlot(battle, true)].damage
-      comparison.textContent = `첫 ${first} · 다시 ${second} → ${Math.max(first, second)}`
-    }
     if (battle.loot?.counter && ui.counterPanel.dataset.rollState !== 'locked') {
       void roulette.reveal({ ...battle.loot.counter, damage: counterDamage(battle, battle.loot.counter.damage) }, false, () => {})
     }
@@ -3080,7 +3071,6 @@ async function presentCounter(previous: Ascent, checkpoint: Ascent, reward: Coun
   const animate = !reducedMotion()
   if (next.perk?.kind === 'counter') renderActivePerk(next)
   if (!choice || choice === 'coin') {
-    element('counter-comparison').hidden = true
     sound.play('roulette-engage', 1, .26)
     const angle = settings.automaticCounter ? 0 : await roulette.waitForStop(animate, animationSpeed())
     if (animate) sound.play('roulette-ratchet', animationSpeed(), .23)

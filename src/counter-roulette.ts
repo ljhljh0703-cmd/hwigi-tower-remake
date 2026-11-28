@@ -6,9 +6,6 @@ export class CounterRoulette {
   private readonly wheel: HTMLElement
   private readonly result: HTMLElement
   private readonly damage: HTMLElement
-  private readonly range: HTMLElement
-  private readonly auto: HTMLElement
-  private readonly lockNote: HTMLElement
   private readonly stage: HTMLElement
   private readonly action: HTMLElement
   private readonly medallion: HTMLElement
@@ -25,9 +22,6 @@ export class CounterRoulette {
     this.wheel = panel.querySelector<HTMLElement>('#counter-wheel')!
     this.result = panel.querySelector<HTMLElement>('#counter-result')!
     this.damage = panel.querySelector<HTMLElement>('#counter-damage')!
-    this.range = panel.querySelector<HTMLElement>('#counter-range')!
-    this.auto = panel.querySelector<HTMLElement>('#counter-auto')!
-    this.lockNote = panel.querySelector<HTMLElement>('#counter-lock-note')!
     this.stage = panel.querySelector<HTMLElement>('.roulette-stage')!
     this.action = button.querySelector<HTMLElement>('#counter-action')!
     this.medallion = panel.querySelector<HTMLElement>('#counter-medallion')!
@@ -63,13 +57,6 @@ export class CounterRoulette {
     })
     this.wheel.replaceChildren(...this.labels)
     this.paintSegments()
-    const values = rewards.map(({ damage }) => damage)
-    const range = `${Math.min(...values)}–${Math.max(...values)}`
-    const jointValues = rewards.filter(reward => reward.joint).map(reward => reward.damage).join('·')
-    this.range.textContent = `피해 ${range}`
-    this.result.setAttribute('aria-label', `가능한 반격 피해 ${range}`)
-    this.lockNote.textContent = `· 에고 깨어나면 ${jointValues} 합공`
-    this.lockNote.hidden = this.companionAwake || !jointValues
     const labels = rewards.map(({ damage, joint }) => joint
       ? `피해 ${damage}${this.companionAwake ? ' 합공' : ''}` : String(damage))
     this.stage.setAttribute('aria-label', `반격 피해 ${labels.join(', ')}`)
@@ -92,7 +79,6 @@ export class CounterRoulette {
     if (rewards && this.panel.hidden) {
       this.setRewards(rewards)
       this.wheel.style.removeProperty('--counter-angle')
-      this.range.hidden = false
       this.damage.hidden = true
       this.damage.textContent = ''
       this.medallion.textContent = ''
@@ -106,10 +92,6 @@ export class CounterRoulette {
 
   finishMotion() {
     this.spin?.finish()
-  }
-
-  setAutomatic(automatic: boolean) {
-    this.auto.hidden = !automatic
   }
 
   requestStop() {
@@ -176,8 +158,6 @@ export class CounterRoulette {
     this.labels[reward.slot].classList.add('winner')
     this.paintSegments(reward.slot)
     this.button.hidden = true
-    this.range.hidden = true
-    this.lockNote.hidden = true
     this.damage.hidden = false
     if (animate) this.panel.querySelector('.roulette-pointer')?.animate(
       [{ rotate: '-9deg' }, { rotate: '4deg' }, { rotate: '0deg' }], { duration: 95 / speed })

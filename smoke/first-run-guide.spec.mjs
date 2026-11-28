@@ -124,9 +124,6 @@ test('첫 등반에서 첫 공격을 하고 정확 방어 뒤 룰렛, 보상, �
   console.log(`${info.project.name} 첫 공격 ${JSON.stringify(measure)}`)
 
   await checkNote(page, 'defend', '정확히 막았습니다! 룰렛을 두 번 누르세요.', '06-counter', info)
-  await expect(page.locator('#counter-lock-note')).toHaveText('· 에고 깨어나면 6·8 합공')
-  await expect(page.locator('#counter-lock-note')).toBeInViewport({ ratio: 1 })
-  await expect(page.locator('#counter-range')).toHaveText('피해 1–8')
   const hintBox = await note(page).boundingBox()
   const footerBox = await page.locator('#counter-footer').boundingBox()
   expect(hintBox.y + hintBox.height).toBeLessThanOrEqual(footerBox.y)

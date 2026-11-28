@@ -129,7 +129,6 @@ test('위기 턴을 그대로 막고 수동 룰렛과 새긴 동전으로 큰 �
   await expect(coin).toBeVisible()
   await coin.tap()
   await stop.tap()
-  await expect(page.locator('#counter-comparison')).toHaveText(`첫 ${first} · 다시 ${second} → ${first}`)
   await expect(page.locator('#counter-damage')).toHaveText(String(first))
   await photo(page, info, 'better-coin-result')
   await page.getByRole('button', { name: `피해 ${first} 주기` }).tap()

@@ -99,8 +99,6 @@ for (const [kind, dice, time, glyph] of [
       await page.evaluate(() => window.parryFlashFrame.finish())
       await page.clock.resume()
       await expect(panel).toHaveAttribute('data-roll-state', 'spinning')
-      await expect(page.locator('#counter-auto')).toBeVisible()
-      await expect(page.locator('#counter-range')).toHaveText(/\d+–\d+/)
       const wheel = page.locator('#counter-wheel')
       await expect(wheel).toHaveCSS('background-image', /rgb\(36, 34, 30\)/)
       const frames = await wheel.evaluate((element) => {
