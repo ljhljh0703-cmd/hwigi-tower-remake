@@ -27,8 +27,7 @@ test('규칙판 7 이름을 층 진입·전투·도감·보상에 표시하고 �
   const { seed, node } = nodeFor('lock', 4, 7)
   await resume(mapBefore(seed, 4, 7))
   await page.locator(`#fork-options [data-node="${node.id}"]`).tap()
-  await expect(page.locator('#fork-preview')).toContainText('쇠아귀')
-  await page.locator('#enter-room').tap()
+
   const floor = page.locator('#room-floor')
   await expect(floor).toHaveText('4층 — 무너진 회랑')
   await photo('floor-entry', floor)

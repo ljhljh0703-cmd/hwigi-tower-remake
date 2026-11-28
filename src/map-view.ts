@@ -42,70 +42,16 @@ function firstAttack(room: Ascent) {
 export class ForkView {
   private readonly heading: HTMLElement
   private readonly options: HTMLElement
-  private readonly preview: HTMLElement
-  private readonly previewContent: HTMLElement
-  private readonly confirm: HTMLButtonElement
-  private choice?: HTMLButtonElement
-  private ascent?: Ascent
-
-  constructor(private readonly panel: HTMLElement, enter: (id: number) => void) {
+  constructor(panel: HTMLElement, enter: (id: number) => void) {
     this.heading = panel.querySelector('#fork-heading')!
     this.options = panel.querySelector('#fork-options')!
-    this.preview = panel.querySelector('#fork-preview')!
-    this.previewContent = panel.querySelector('#fork-preview-content')!
-    this.confirm = panel.querySelector('#enter-room')!
     this.options.addEventListener('click', (event) => {
       const button = (event.target as Element).closest<HTMLButtonElement>('button[data-node]')
-      const node = this.ascent?.route?.map.byId[Number(button?.dataset.node)]
-      if (!button || !node) return
-      this.choose(button, node)
-      if (event.detail === 0) this.confirm.focus()
+      if (!panel.hidden && button) enter(Number(button.dataset.node))
     })
-    this.confirm.addEventListener('click', () => {
-      if (!this.panel.hidden && this.choice) enter(Number(this.choice.dataset.node))
-    })
-    document.addEventListener('click', (event) => {
-      if (this.panel.hidden || !this.choice || !(event.target instanceof Element)) return
-      if (!event.target.closest('.fork-card, #fork-preview, button, a, dialog, #first-run-note')) this.clearChoice()
-    })
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && !this.panel.hidden && this.choice && !document.querySelector('dialog[open]')) {
-        this.clearChoice()
-      }
-    })
-  }
-
-  private clearChoice() {
-    if (this.preview.contains(document.activeElement)) this.choice?.focus({ preventScroll: true })
-    this.choice?.setAttribute('aria-pressed', 'false')
-    this.choice = undefined
-    this.preview.hidden = true
-  }
-
-  private choose(button: HTMLButtonElement, node: MapNode) {
-    const ascent = this.ascent!
-    const room = enterMapNode(ascent, node.id)
-    if (room === ascent) return
-    this.choice?.setAttribute('aria-pressed', 'false')
-    this.choice = button
-    this.choice.setAttribute('aria-pressed', 'true')
-    if (room.route?.screen === 'battle') {
-      const { battle, enemy } = room
-      const name = battle.formation ? `전위·후위 ${livingEnemies(battle.formation).length}마리` : enemyBadge(enemy.id, ascent.route!.map.rules).label
-      this.previewContent.innerHTML = `${roomPortrait(room, 'fork-preview-portrait')}
-        <div><strong>${name}</strong><div class="fork-preview-stats">
-          <span aria-label="적 체력 ${battle.enemyHp}">${icon('heart')}${battle.enemyHp}</span>
-          ${firstAttack(room)}
-        </div></div>`
-    } else {
-      this.previewContent.innerHTML = `${pixelIcon(MAP_NODE_ICONS[node.kind])}<strong>${names[node.kind]}</strong>`
-    }
-    this.preview.hidden = false
   }
 
   render(ascent: Ascent) {
-    this.clearChoice()
-    this.ascent = ascent
     const nodes = availableMapNodes(ascent)
     this.heading.textContent = nodes.length === 2 ? '두 갈래 길' : '다음 층'
     this.options.replaceChildren(...nodes.map((node) => {
@@ -114,8 +60,6 @@ export class ForkView {
       button.className = `fork-card ${node.kind}`
       button.dataset.node = String(node.id)
       button.dataset.kind = node.kind
-      button.setAttribute('aria-pressed', 'false')
-      button.setAttribute('aria-controls', this.preview.id)
       const name = names[node.kind]
       const rules = ascent.route!.map.rules
       const entered = enterMapNode(ascent, node.id)

@@ -50,7 +50,7 @@ async function prepareSecondTurn(page, checkDiscovery = false) {
   await page.getByRole('button', { name: '새로 하기' }).tap()
   await page.getByRole('button', { name: /^방패의 기세,/ }).tap()
   await page.locator('#fork-options button').tap()
-  await page.locator('#enter-room').tap()
+
   await page.getByRole('button', { name: '안내 건너뛰기' }).tap()
   for (const turn of [1, 2]) {
     await expect(page.locator('#turn')).toHaveAttribute('aria-label', turn + '턴')

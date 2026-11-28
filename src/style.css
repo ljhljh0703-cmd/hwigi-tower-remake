@@ -177,7 +177,7 @@ body:has(#battle-guide[open], #lobby-confirm[open], #inventory-detail[open], #se
 #room-transition { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: #1c1915; }
 #room-floor { color: #ffe4af; font-size: clamp(3rem, 15vw, 5rem); line-height: 1; }
 #room-floor.room-floor-region { padding-inline: 16px; text-align: center; font-size: clamp(1.2rem, 5.7vw, 2.75rem); line-height: 1.4; word-break: keep-all; }
-[data-entering] :is(#fork-heading, #fork-preview, .fork-caption, .fork-relic, .fork-card[aria-pressed='false']) { visibility: hidden; }
+[data-entering] :is(#fork-heading, .fork-caption, .fork-relic, .fork-card:not([data-chosen])) { visibility: hidden; }
 
 #battle-guide, #settings {
   position: fixed;
@@ -629,8 +629,8 @@ main[data-screen='battle'] {
 .fork-card.elite .fork-caption { border-block-start-color: #b5806b; }
 .fork-card:focus-visible .fork-caption { background: #494238; }
 .fork-card:focus-visible .fork-art::before { background: #8c7b60; }
-.fork-card[aria-pressed='true'] .fork-caption { background: #514535; color: #fff1d6; }
-.fork-card[aria-pressed='true'] .fork-art::before { background: #dcba83; }
+.fork-card[data-chosen] .fork-caption { background: #514535; color: #fff1d6; }
+.fork-card[data-chosen] .fork-art::before { background: #dcba83; }
 
 @media (hover: hover) {
   .fork-card:hover { filter: none; }
@@ -672,20 +672,6 @@ main[data-screen='battle'] {
 .fork-hint { display: inline-flex; align-items: center; gap: 5px; color: #d1cabc; font-size: .86rem; }
 .fork-hint > span { display: inline-flex; align-items: center; gap: 3px; }
 .fork-hint > span + span { border-inline-start: 1px solid #777061; padding-inline-start: 5px; }
-#fork-preview {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px;
-  border: 1px solid #8f795a;
-  background: var(--stone-face);
-}
-#fork-preview-content { display: flex; align-items: center; gap: 8px; min-inline-size: 0; }
-.fork-preview-portrait { display: block; inline-size: 48px; block-size: 48px; object-fit: contain; image-rendering: pixelated; }
-.fork-preview-stats, .fork-preview-stats span { display: flex; align-items: center; gap: 5px; }
-.fork-preview-stats { gap: 10px; color: #eddfc8; font-size: .85rem; }
-#enter-room { min-inline-size: 68px; flex: none; }
 #map-rest-marker { display: grid; place-items: center; inline-size: 90px; block-size: 90px; border: 3px double #dbaa7d; background: #44372d; color: #f6c795; font-size: 2.7rem; }
 #event-floor > :is(span, strong) { display: inline-flex; align-items: center; gap: 5px; }
 

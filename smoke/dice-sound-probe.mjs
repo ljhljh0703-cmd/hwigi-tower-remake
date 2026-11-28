@@ -78,11 +78,10 @@ export async function startSeedSeven(page, url) {
   await page.goto(new URL('?seed=7', url).href)
   await page.locator('#new-ascent').tap()
   await page.locator('#perk-choices button').first().tap()
-  await page.locator('#fork-options button').first().tap()
 }
 
 export async function rollStraight(page) {
-  await page.locator('#enter-room').tap()
+  await page.locator('#fork-options button').tap()
   const pool = page.locator('#pool-dice button:not([hidden])')
   await pool.first().waitFor()
   await page.locator('.die-arriving').first().waitFor({ state: 'hidden' })

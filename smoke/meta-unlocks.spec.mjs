@@ -59,9 +59,9 @@ test('새 층 첫 입장, 저장 재진입, 결과에서 여러 쌍 공개와 �
   await store(page, approach, profile())
   await page.reload()
   await page.getByRole('button', { name: '이어하기' }).tap()
-  await page.getByRole('region', { name: '두 갈래 길' }).locator(`[data-node="${combat.id}"]`).tap()
   expect((await record(page)).unlocked).toEqual(initialStages)
-  await page.locator('#enter-room').tap()
+  await page.getByRole('region', { name: '두 갈래 길' }).locator(`[data-node="${combat.id}"]`).tap()
+
   await expect.poll(async () => (await record(page)).unlocked).toEqual(stages)
   await expect.poll(async () => (await saved(page)).ascent.meta.opened).toEqual(stages)
 
@@ -134,7 +134,7 @@ test('선행 재굴림은 족보를 열기 전 첫 전투에서 특전 1회로 �
   await page.getByRole('button', { name: '새로 하기' }).tap()
   await page.getByRole('button', { name: /첫수의 행운/ }).tap()
   await page.getByRole('group', { name: '다음 층 선택' }).getByRole('button', { name: /^전투/ }).tap()
-  await page.locator('#enter-room').tap()
+
   await expect(page.locator('#room-transition')).toBeHidden()
   await page.getByRole('button', { name: '안내 건너뛰기' }).tap()
   await page.getByRole('button', { name: /^주사위 1,/ }).tap()

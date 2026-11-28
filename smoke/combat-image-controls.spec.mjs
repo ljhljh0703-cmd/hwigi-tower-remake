@@ -5,7 +5,7 @@ test('두 주사위를 화면 끝으로 끌어도 이미지와 눈이 남고 방
   await page.locator('#new-ascent').tap()
   await page.getByRole('button', { name: /^방패의 기세,/ }).tap()
   await page.locator('#fork-options button').tap()
-  await page.locator('#enter-room').tap()
+
   await expect(page.locator('#room-transition')).toBeHidden()
 
   const first = page.locator('#die-0')

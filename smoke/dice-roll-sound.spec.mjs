@@ -56,7 +56,7 @@ test.describe('Dice audio', () => {
         })
         observer.observe(document.body, { subtree: true, childList: true })
       })
-      await page.locator('#enter-room').tap()
+      await page.locator('#fork-options button').tap()
       await expect(page.locator('#room-transition')).toBeHidden()
       const witnesses = []
       for (const [index, part] of ['land', 'bounce'].entries()) {
@@ -255,7 +255,7 @@ test.describe('Dice audio', () => {
         else if (kind === 'hidden') document.addEventListener('visibilitychange', snapshot, { once: true })
         else window.addEventListener('resize', snapshot, { once: true })
       }, interruption)
-      await page.locator('#enter-room').tap()
+      await page.locator('#fork-options button').tap()
       await expect(page.locator('.encounter .dice-motion')).toHaveCount(1)
       if (interruption === 'resize') await page.setViewportSize({ ...page.viewportSize(), height: page.viewportSize().height - 16 })
       if (interruption === 'hidden') await page.evaluate(() => {
@@ -293,7 +293,7 @@ test.describe('Dice audio', () => {
       })
       observer.observe(document.body, { childList: true, subtree: true })
     })
-    await page.locator('#enter-room').tap()
+    await page.locator('#fork-options button').tap()
     const die = visibleDice(page).first()
     await expect(die).toBeVisible()
     await expect.poll(() => page.evaluate(() => window.longFrame?.endMs)).toBeGreaterThan(600)

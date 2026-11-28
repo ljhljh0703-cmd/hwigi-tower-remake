@@ -31,7 +31,7 @@ test('도감은 저장 파일이 아닌 현재 등반의 규칙판을 따라간�
   await page.getByRole('button', { name: '새로 하기' }).tap()
   await page.getByRole('button', { name: /^방패의 기세,/ }).tap()
   await room.tap()
-  await page.locator('#enter-room').tap()
+
   await page.getByRole('button', { name: '안내 건너뛰기' }).tap()
   expect(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).ascent.route.rules, ASCENT_SAVE_KEY)).toBe(7)
   await open()
@@ -51,7 +51,7 @@ test('도감은 저장 파일이 아닌 현재 등반의 규칙판을 따라간�
   await close()
   await page.getByRole('button', { name: '이어하기' }).tap()
   await room.tap()
-  await page.locator('#enter-room').tap()
+
   await open()
   await expect(section.locator('dt strong')).toHaveText(legacy)
   await expect(dialog).toContainText('봉인집게')

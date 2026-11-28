@@ -69,7 +69,7 @@ test('첫 등반에서 첫 공격을 하고 정확 방어 뒤 룰렛, 보상, �
   expect((await save(page)).ascent.route.rules).toBe(7)
   await expect(note(page)).toBeHidden()
   await tap(page.locator('#fork-options button'))
-  await tap(page.locator('#enter-room'))
+
   await expect(die(page, 0)).toBeVisible()
   await expect(page.locator('#pool-dice .die-face')).toHaveText(['6', '3', '3'])
   await expect(page.locator('#first-run-point > .icon')).toHaveCSS('animation-name', 'first-run-point')
@@ -154,7 +154,7 @@ test('첫 등반에서 첫 공격을 하고 정확 방어 뒤 룰렛, 보상, �
   await tap(page.locator('#skip-reward'))
   await checkNote(page, 'fork', '다음 길을 고르세요.')
   await tap(page.getByRole('button', { name: /전투.*서리 야수/ }))
-  await tap(page.locator('#enter-room'))
+
   await expect(page.locator('#fight')).toHaveText(/^2\//)
   const battleSeed = (await save(page)).ascent.battle.seed
   const pool = page.locator('#pool-dice button')
@@ -199,7 +199,7 @@ test('규칙판 7 추가 특전으로 새로 시작해 고정 굴림 안내를 �
   await page.locator('#new-ascent').tap()
   await page.getByRole('button', { name: /첫수의 행운/ }).tap()
   await page.locator('#fork-options button').tap()
-  await page.locator('#enter-room').tap()
+
   await expect(page.locator('#room-transition')).toBeHidden()
   await expect(page.locator('#pool-dice .die-face')).toHaveText(['6', '3', '3'])
   await expect(page.getByRole('button', { name: '특전 재굴림, 이번 전투 1회 남음' })).toBeVisible()
@@ -247,8 +247,6 @@ test('키보드로 배치하고 재개할 수 있고 건너뛰기와 다시 보�
   await page.keyboard.press('Enter')
   await expect(page.locator('#fork-options button')).toBeFocused()
   await page.keyboard.press('Enter')
-  await expect(page.locator('#enter-room')).toBeFocused()
-  await page.keyboard.press('Enter')
   await checkNote(page, 'attack', '표시한 주사위를 공격에 두세요.')
   await expect(page.locator('#first-run-point > .icon')).toHaveCSS('animation-name', 'none')
   await expect(page.locator('#pool-dice button[data-first-run-target]')).toBeFocused()
@@ -288,7 +286,7 @@ test('키보드로 배치하고 재개할 수 있고 건너뛰기와 다시 보�
   await page.locator('#lobby-confirm-action').press('Enter')
   await perk.press('Enter')
   await page.locator('#fork-options button').press('Enter')
-  await page.locator('#enter-room').press('Enter')
+
   await checkNote(page, 'attack', '표시한 주사위를 공격에 두세요.')
   expect((await save(page)).ascent.seed).not.toBe(current.ascent.seed)
   const bounds = await page.locator('#pool-dice button[data-first-run-target]').boundingBox()

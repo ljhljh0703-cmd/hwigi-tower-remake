@@ -3185,7 +3185,9 @@ function enterFork(id: number) {
   saveCurrent()
   sound.play('step')
   const room = ui.fork.querySelector<HTMLElement>('.fork-room')!
-  const entrance = room.querySelector<HTMLElement>(`[data-node="${id}"] .fork-art`)
+  const chosenDoor = room.querySelector<HTMLElement>(`[data-node="${id}"]`)
+  chosenDoor?.setAttribute('data-chosen', '')
+  const entrance = chosenDoor?.querySelector<HTMLElement>('.fork-art')
   if (next.route && entrance && (next.route.screen === 'battle' || next.battle.itemsSeven)) {
     void transitionToBattle(room, entrance, showEnteredRoom, focusPhase, next.route.map.byId[id].floor)
   } else {

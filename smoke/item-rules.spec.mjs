@@ -109,7 +109,7 @@ test('규칙판 7 보상을 받아 쓰고 강적·보스·상점을 거쳐 문�
   await choose(page).tap()
   await expect.poll(async () => (await saved(page)).battle.loot.consumables['advance-knot']).toBe(1)
   await page.getByRole('group', { name: '다음 층 선택' }).getByRole('button', { name: /^전투/ }).first().tap()
-  await page.locator('#enter-room').tap()
+
   await expect(page.locator('#room-transition')).toBeHidden()
   const guard = page.getByRole('button', { name: /^방어 칸/ })
   const attack = page.getByRole('button', { name: /^공격 칸/ })

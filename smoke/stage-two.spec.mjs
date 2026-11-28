@@ -170,8 +170,7 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   await page.locator('#next').tap()
   await expect(page.locator('#fork-options .fork-portrait')).toHaveAttribute('src', /upper-dash-idle\.png$/)
   await page.locator('#fork-options button').tap()
-  await expect(page.locator('#fork-preview .fork-preview-portrait')).toHaveAttribute('src', /upper-dash-idle\.png$/)
-  await page.locator('#enter-room').tap()
+
   const floor = page.locator('#room-floor')
   await expect(floor).toBeVisible()
   await expect(floor).toHaveText('13층 — 부서진 돌계단')

@@ -187,7 +187,7 @@ test('로비부터 1층 강타의 타점과 소리를 확인한다', async ({ pa
   await page.getByRole('button', { name: '새로 하기' }).tap()
   await page.getByRole('button', { name: /^방패의 기세,/ }).tap()
   await page.locator('#fork-options button').tap()
-  await page.locator('#enter-room').tap()
+
   await page.getByRole('button', { name: '안내 건너뛰기' }).tap()
   await expect(page.locator('#fight')).toHaveText(/^1\//)
   await expect(page.locator('.slot')).toHaveCount(2)
@@ -440,7 +440,7 @@ test('시드 0에서 선제 처치하면 가시 피해 없이 살아남고 적�
   await page.getByRole('button', { name: '새로 하기' }).tap()
   await page.getByRole('button', { name: /^방패의 기세,/ }).tap()
   await page.locator('#fork-options button').tap()
-  await page.locator('#enter-room').tap()
+
   const resolve = page.locator('#resolve')
   const arriving = page.locator('#pool-dice .die-arriving')
   await expect(page.locator('#pool-dice .die-face')).toHaveText(['6', '6', '5'])
