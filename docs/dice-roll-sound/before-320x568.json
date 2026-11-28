@@ -3,10 +3,10 @@
   "browserVersion": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36 Edg/158.0.0.0",
   "width": 320,
   "height": 568,
-  "frames": 151,
-  "durationMs": 6267,
+  "frames": 149,
+  "durationMs": 6217,
   "sampleRate": 48000,
-  "peakDbFS": -19.2,
+  "peakDbFS": -18.9,
   "finalDice": [
     5,
     1,
@@ -36,22 +36,22 @@
       "secondDustMs": 1400
     },
     {
-      "startMs": 5067,
+      "startMs": 5000,
       "duration": 664,
-      "firstDustMs": 5366,
-      "secondDustMs": 5583
+      "firstDustMs": 5300,
+      "secondDustMs": 5516
     },
     {
-      "startMs": 5091,
+      "startMs": 5024,
       "duration": 664,
-      "firstDustMs": 5400,
-      "secondDustMs": 5600
+      "firstDustMs": 5333,
+      "secondDustMs": 5533
     },
     {
-      "startMs": 5115,
+      "startMs": 5048,
       "duration": 664,
-      "firstDustMs": 5416,
-      "secondDustMs": 5633
+      "firstDustMs": 5350,
+      "secondDustMs": 5566
     }
   ],
   "sounds": [
@@ -64,7 +64,7 @@
     {
       "name": "dice-roll.mp3",
       "rate": 1.05,
-      "ms": 1169,
+      "ms": 1168,
       "filled": 0
     },
     {
@@ -76,7 +76,7 @@
     {
       "name": "rebound.wav",
       "rate": 1,
-      "ms": 1352,
+      "ms": 1351,
       "filled": 0
     },
     {
@@ -112,55 +112,55 @@
     {
       "name": "dice-place.mp3",
       "rate": 1,
-      "ms": 3151,
+      "ms": 3168,
       "filled": 0
     },
     {
       "name": "unlock.mp3",
       "rate": 1,
-      "ms": 4427,
+      "ms": 4357,
       "filled": 0
     },
     {
       "name": "dice-roll.mp3",
       "rate": 1,
-      "ms": 5367,
+      "ms": 5301,
       "filled": 0
     },
     {
       "name": "dice-roll.mp3",
       "rate": 1.05,
-      "ms": 5400,
+      "ms": 5334,
       "filled": 0
     },
     {
       "name": "dice-roll.mp3",
       "rate": 1.1,
-      "ms": 5418,
+      "ms": 5351,
       "filled": 0
     },
     {
       "name": "rebound.wav",
       "rate": 1,
-      "ms": 5584,
+      "ms": 5518,
       "filled": 0
     },
     {
       "name": "rebound.wav",
       "rate": 1.06,
-      "ms": 5601,
+      "ms": 5534,
       "filled": 0
     },
     {
       "name": "rebound.wav",
       "rate": 1.12,
-      "ms": 5634,
+      "ms": 5568,
       "filled": 0
     },
     {
       "name": "seat.wav",
       "rate": 1,
-      "ms": 6184,
+      "ms": 6118,
       "filled": 0
     }
   ],
@@ -172,7 +172,7 @@
       "idealMs": 1132,
       "paintMs": 1133,
       "audioCallMs": 1134,
-      "audioMinusPaintMs": 0.7
+      "audioMinusPaintMs": 0.6
     },
     {
       "turn": 1,
@@ -180,8 +180,8 @@
       "part": "bounce",
       "idealMs": 1338,
       "paintMs": 1350,
-      "audioCallMs": 1352,
-      "audioMinusPaintMs": 1.9
+      "audioCallMs": 1351,
+      "audioMinusPaintMs": 1.2
     },
     {
       "turn": 1,
@@ -189,8 +189,8 @@
       "part": "land",
       "idealMs": 1156,
       "paintMs": 1167,
-      "audioCallMs": 1169,
-      "audioMinusPaintMs": 2.6
+      "audioCallMs": 1168,
+      "audioMinusPaintMs": 0.9
     },
     {
       "turn": 1,
@@ -208,7 +208,7 @@
       "idealMs": 1180,
       "paintMs": 1183,
       "audioCallMs": 1184,
-      "audioMinusPaintMs": 0.8
+      "audioMinusPaintMs": 0.9
     },
     {
       "turn": 1,
@@ -223,55 +223,55 @@
       "turn": 2,
       "die": 1,
       "part": "land",
-      "idealMs": 5365,
-      "paintMs": 5366,
-      "audioCallMs": 5367,
-      "audioMinusPaintMs": 0.7
+      "idealMs": 5299,
+      "paintMs": 5300,
+      "audioCallMs": 5301,
+      "audioMinusPaintMs": 1
     },
     {
       "turn": 2,
       "die": 1,
       "part": "bounce",
-      "idealMs": 5571,
-      "paintMs": 5583,
-      "audioCallMs": 5584,
+      "idealMs": 5504,
+      "paintMs": 5516,
+      "audioCallMs": 5518,
+      "audioMinusPaintMs": 1.7
+    },
+    {
+      "turn": 2,
+      "die": 2,
+      "part": "land",
+      "idealMs": 5323,
+      "paintMs": 5333,
+      "audioCallMs": 5334,
       "audioMinusPaintMs": 0.9
     },
     {
       "turn": 2,
       "die": 2,
-      "part": "land",
-      "idealMs": 5389,
-      "paintMs": 5400,
-      "audioCallMs": 5400,
-      "audioMinusPaintMs": 0.5
-    },
-    {
-      "turn": 2,
-      "die": 2,
       "part": "bounce",
-      "idealMs": 5595,
-      "paintMs": 5600,
-      "audioCallMs": 5601,
-      "audioMinusPaintMs": 1
+      "idealMs": 5528,
+      "paintMs": 5533,
+      "audioCallMs": 5534,
+      "audioMinusPaintMs": 1.1
     },
     {
       "turn": 2,
       "die": 3,
       "part": "land",
-      "idealMs": 5413,
-      "paintMs": 5416,
-      "audioCallMs": 5418,
-      "audioMinusPaintMs": 1.2
+      "idealMs": 5347,
+      "paintMs": 5350,
+      "audioCallMs": 5351,
+      "audioMinusPaintMs": 1
     },
     {
       "turn": 2,
       "die": 3,
       "part": "bounce",
-      "idealMs": 5619,
-      "paintMs": 5633,
-      "audioCallMs": 5634,
-      "audioMinusPaintMs": 1
+      "idealMs": 5552,
+      "paintMs": 5566,
+      "audioCallMs": 5568,
+      "audioMinusPaintMs": 1.7
     }
   ],
   "ready": [
@@ -282,7 +282,7 @@
         1
       ],
       "focus": "die-0",
-      "msFromThrow": 1153
+      "msFromThrow": 1152.5
     },
     {
       "dice": [
@@ -291,17 +291,17 @@
         2
       ],
       "focus": "die-0",
-      "msFromThrow": 1153
+      "msFromThrow": 1153.6
     }
   ],
   "taps": [
     {
       "button": "die-0",
-      "ms": 2408
+      "ms": 2409
     },
     {
       "button": "die-1",
-      "ms": 2474
+      "ms": 2475
     },
     {
       "button": "reroll",
@@ -309,23 +309,23 @@
     },
     {
       "button": "die-0",
-      "ms": 2843
+      "ms": 2842
     },
     {
       "button": "die-1",
-      "ms": 2909
+      "ms": 2910
     },
     {
       "button": "die-2",
-      "ms": 2973
+      "ms": 2993
     },
     {
       "button": "assign-guard",
-      "ms": 3038
+      "ms": 3058
     },
     {
       "button": "resolve",
-      "ms": 3321
+      "ms": 3255
     }
   ]
 }

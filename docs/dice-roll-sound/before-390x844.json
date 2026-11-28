@@ -3,10 +3,10 @@
   "browserVersion": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/158.0.0.0 Safari/537.36 Edg/158.0.0.0",
   "width": 390,
   "height": 844,
-  "frames": 149,
-  "durationMs": 6234,
+  "frames": 153,
+  "durationMs": 6350,
   "sampleRate": 48000,
-  "peakDbFS": -19.2,
+  "peakDbFS": -18.9,
   "finalDice": [
     5,
     1,
@@ -36,22 +36,22 @@
       "secondDustMs": 1400
     },
     {
-      "startMs": 5033,
+      "startMs": 5150,
       "duration": 664,
-      "firstDustMs": 5333,
-      "secondDustMs": 5550
+      "firstDustMs": 5450,
+      "secondDustMs": 5666
     },
     {
-      "startMs": 5057,
+      "startMs": 5174,
       "duration": 664,
-      "firstDustMs": 5366,
-      "secondDustMs": 5566
+      "firstDustMs": 5483,
+      "secondDustMs": 5683
     },
     {
-      "startMs": 5081,
+      "startMs": 5198,
       "duration": 664,
-      "firstDustMs": 5383,
-      "secondDustMs": 5600
+      "firstDustMs": 5500,
+      "secondDustMs": 5716
     }
   ],
   "sounds": [
@@ -70,19 +70,19 @@
     {
       "name": "dice-roll.mp3",
       "rate": 1.1,
-      "ms": 1184,
+      "ms": 1185,
       "filled": 0
     },
     {
       "name": "rebound.wav",
       "rate": 1,
-      "ms": 1351,
+      "ms": 1352,
       "filled": 0
     },
     {
       "name": "rebound.wav",
       "rate": 1.06,
-      "ms": 1368,
+      "ms": 1367,
       "filled": 0
     },
     {
@@ -100,67 +100,67 @@
     {
       "name": "dice-roll.mp3",
       "rate": 1.2,
-      "ms": 2527,
+      "ms": 2568,
       "filled": 0
     },
     {
       "name": "rebound.wav",
       "rate": 1,
-      "ms": 2685,
+      "ms": 2717,
       "filled": 0
     },
     {
       "name": "dice-place.mp3",
       "rate": 1,
-      "ms": 3134,
+      "ms": 3201,
       "filled": 0
     },
     {
       "name": "unlock.mp3",
       "rate": 1,
-      "ms": 4393,
+      "ms": 4495,
       "filled": 0
     },
     {
       "name": "dice-roll.mp3",
       "rate": 1,
-      "ms": 5334,
+      "ms": 5451,
       "filled": 0
     },
     {
       "name": "dice-roll.mp3",
       "rate": 1.05,
-      "ms": 5368,
+      "ms": 5484,
       "filled": 0
     },
     {
       "name": "dice-roll.mp3",
       "rate": 1.1,
-      "ms": 5384,
+      "ms": 5501,
       "filled": 0
     },
     {
       "name": "rebound.wav",
       "rate": 1,
-      "ms": 5551,
+      "ms": 5668,
       "filled": 0
     },
     {
       "name": "rebound.wav",
       "rate": 1.06,
-      "ms": 5568,
+      "ms": 5685,
       "filled": 0
     },
     {
       "name": "rebound.wav",
       "rate": 1.12,
-      "ms": 5601,
+      "ms": 5717,
       "filled": 0
     },
     {
       "name": "seat.wav",
       "rate": 1,
-      "ms": 6151,
+      "ms": 6268,
       "filled": 0
     }
   ],
@@ -172,7 +172,7 @@
       "idealMs": 1132,
       "paintMs": 1133,
       "audioCallMs": 1134,
-      "audioMinusPaintMs": 0.8
+      "audioMinusPaintMs": 0.9
     },
     {
       "turn": 1,
@@ -180,8 +180,8 @@
       "part": "bounce",
       "idealMs": 1338,
       "paintMs": 1350,
-      "audioCallMs": 1351,
-      "audioMinusPaintMs": 0.7
+      "audioCallMs": 1352,
+      "audioMinusPaintMs": 1.7
     },
     {
       "turn": 1,
@@ -190,7 +190,7 @@
       "idealMs": 1156,
       "paintMs": 1167,
       "audioCallMs": 1168,
-      "audioMinusPaintMs": 1.1
+      "audioMinusPaintMs": 1
     },
     {
       "turn": 1,
@@ -198,8 +198,8 @@
       "part": "bounce",
       "idealMs": 1362,
       "paintMs": 1367,
-      "audioCallMs": 1368,
-      "audioMinusPaintMs": 1.1
+      "audioCallMs": 1367,
+      "audioMinusPaintMs": 0.6
     },
     {
       "turn": 1,
@@ -207,8 +207,8 @@
       "part": "land",
       "idealMs": 1180,
       "paintMs": 1183,
-      "audioCallMs": 1184,
-      "audioMinusPaintMs": 1.1
+      "audioCallMs": 1185,
+      "audioMinusPaintMs": 1.4
     },
     {
       "turn": 1,
@@ -217,61 +217,61 @@
       "idealMs": 1386,
       "paintMs": 1400,
       "audioCallMs": 1401,
-      "audioMinusPaintMs": 0.8
+      "audioMinusPaintMs": 1.5
     },
     {
       "turn": 2,
       "die": 1,
       "part": "land",
-      "idealMs": 5332,
-      "paintMs": 5333,
-      "audioCallMs": 5334,
-      "audioMinusPaintMs": 0.8
+      "idealMs": 5449,
+      "paintMs": 5450,
+      "audioCallMs": 5451,
+      "audioMinusPaintMs": 1.1
     },
     {
       "turn": 2,
       "die": 1,
       "part": "bounce",
-      "idealMs": 5538,
-      "paintMs": 5550,
-      "audioCallMs": 5551,
-      "audioMinusPaintMs": 1.3
+      "idealMs": 5654,
+      "paintMs": 5666,
+      "audioCallMs": 5668,
+      "audioMinusPaintMs": 1.5
     },
     {
       "turn": 2,
       "die": 2,
       "part": "land",
-      "idealMs": 5356,
-      "paintMs": 5366,
-      "audioCallMs": 5368,
-      "audioMinusPaintMs": 2
+      "idealMs": 5473,
+      "paintMs": 5483,
+      "audioCallMs": 5484,
+      "audioMinusPaintMs": 0.9
     },
     {
       "turn": 2,
       "die": 2,
       "part": "bounce",
-      "idealMs": 5562,
-      "paintMs": 5566,
-      "audioCallMs": 5568,
-      "audioMinusPaintMs": 2.1
+      "idealMs": 5678,
+      "paintMs": 5683,
+      "audioCallMs": 5685,
+      "audioMinusPaintMs": 1.4
     },
     {
       "turn": 2,
       "die": 3,
       "part": "land",
-      "idealMs": 5380,
-      "paintMs": 5383,
-      "audioCallMs": 5384,
+      "idealMs": 5497,
+      "paintMs": 5500,
+      "audioCallMs": 5501,
       "audioMinusPaintMs": 1.3
     },
     {
       "turn": 2,
       "die": 3,
       "part": "bounce",
-      "idealMs": 5586,
-      "paintMs": 5600,
-      "audioCallMs": 5601,
-      "audioMinusPaintMs": 0.8
+      "idealMs": 5702,
+      "paintMs": 5716,
+      "audioCallMs": 5717,
+      "audioMinusPaintMs": 0.5
     }
   ],
   "ready": [
@@ -282,7 +282,7 @@
         1
       ],
       "focus": "die-0",
-      "msFromThrow": 1153
+      "msFromThrow": 1155.5
     },
     {
       "dice": [
@@ -291,41 +291,41 @@
         2
       ],
       "focus": "die-0",
-      "msFromThrow": 1152.4
+      "msFromThrow": 1153.8
     }
   ],
   "taps": [
     {
       "button": "die-0",
-      "ms": 2391
+      "ms": 2409
     },
     {
       "button": "die-1",
-      "ms": 2457
+      "ms": 2478
     },
     {
       "button": "reroll",
-      "ms": 2521
+      "ms": 2555
     },
     {
       "button": "die-0",
-      "ms": 2823
+      "ms": 2874
     },
     {
       "button": "die-1",
-      "ms": 2890
+      "ms": 2943
     },
     {
       "button": "die-2",
-      "ms": 2958
+      "ms": 3011
     },
     {
       "button": "assign-guard",
-      "ms": 3021
+      "ms": 3088
     },
     {
       "button": "resolve",
-      "ms": 3288
+      "ms": 3388
     }
   ]
 }
