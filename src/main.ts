@@ -106,7 +106,6 @@ const ui = {
   guide: element<HTMLDialogElement>('battle-guide'),
   guideEntries: element('guide-entries'),
   intent: element('intent'),
-  firstRunAnchor: element('first-run-anchor'),
   playerHp: element<HTMLMeterElement>('player-hp'),
   enemyHp: element<HTMLMeterElement>('enemy-hp'),
   playerTotal: element('player-total'),
@@ -612,14 +611,7 @@ const unlockHands = ['triple', 'straight'] as const
 const unlockNames = { triple: '에고 주사위', straight: '재굴림 주사위' } as const
 const egoHover = element('ego-hover')
 egoHover.addEventListener('click', () => { if (!exchangeBusy) showHelp(egoHover) })
-const egoAwakeningNote = element('ego-awakening-note')
-const egoPresence = element('ego-presence')
 const egoPlacement = element('ego-placement')
-const unlockDiscovery = element('unlock-discovery')
-const unlockLessonKey = 'hwigi-tower.dice-lesson'
-const presenceKey = 'hwigi-tower.ego-presence'
-let presenceTimer = 0
-let discoveryTimer = 0
 
 function unlockPattern(hand: Hand, filled = 0) {
   const text = hand === 'triple' ? '같은 눈 셋' : '이어지는 눈 셋'
@@ -665,17 +657,6 @@ function renderUnlockProgress(hint: HTMLElement, preview?: UnlockHint) {
   return blocked === 'guard' ? ', 정확 방어가 필요함' : ', 봉인된 눈은 제외됨'
 }
 
-function storedUnlockCue(key: string) {
-  try { return localStorage.getItem(key) } catch { return null }
-}
-
-function rememberUnlockCue(key: string, value: string) {
-  try { localStorage.setItem(key, value) } catch { /* 안내는 현재 세션에서도 한 번만 표시한다. */ }
-}
-
-let lessonShown = storedUnlockCue(unlockLessonKey) === '1'
-let presenceRun = storedUnlockCue(presenceKey)
-
 function renderDiceUnlockCues(battle: YachtBattle, unlocks: readonly Hand[]) {
   const planning = !ui.planning.hidden && battle.phase === 'assign' && battle.itemsSeven === true
   ui.planning.toggleAttribute('data-unlock-cues', planning)
@@ -699,35 +680,6 @@ function renderDiceUnlockCues(battle: YachtBattle, unlocks: readonly Hand[]) {
       ui.assign[slot].closest('.slot')?.toggleAttribute(`data-unlock-${hand}`,
         Boolean(state && [...state.complete].some(index => battle.slots[index] === slot)))
     }
-  }
-  if (!planning) {
-    egoPresence.hidden = true
-    delete ui.encounter.dataset.egoPresence
-    unlockDiscovery.hidden = true
-    return
-  }
-  const runKey = String(ascent?.seed)
-  const closeHand = unlockHands.find(hand => !unlocks.includes(hand) && signals?.[hand].progress === 2)
-  if (closeHand && presenceRun !== runKey) {
-    presenceRun = runKey
-    rememberUnlockCue(presenceKey, runKey)
-    ui.encounter.dataset.egoPresence = closeHand
-    showCompanionLine(egoPresence, '…그 눈이면.')
-    window.clearTimeout(presenceTimer)
-    presenceTimer = window.setTimeout(() => {
-      egoPresence.hidden = true
-      delete ui.encounter.dataset.egoPresence
-    }, 1450)
-  }
-  if (closeHand && ascent?.fight === 1 && !lessonShown) {
-    lessonShown = true
-    rememberUnlockCue(unlockLessonKey, '1')
-    unlockDiscovery.innerHTML = `<span class="discovery-diagram" data-hand="triple">${unlockPattern('triple')}
-      ${icon('next')}${icon(unlockInfo.triple.icon)}</span>
-      <strong>같은 눈 셋으로 에고 주사위가 깨어납니다.</strong>`
-    unlockDiscovery.hidden = false
-    window.clearTimeout(discoveryTimer)
-    discoveryTimer = window.setTimeout(() => { unlockDiscovery.hidden = true }, 4200)
   }
 }
 
@@ -1462,7 +1414,7 @@ function renderActivePerk(battle: YachtBattle) {
   const preview = projected ? `<small class="perk-preview">${pips} →${projected}</small>` : ''
   const previewLabel = projected
     ? `${blade?.pipsAdded ? `, 공격 눈 합 +${blade.pipsAdded}` : ''}, 배치 후 예상 ${projected}` : ''
-  ui.activePerk.innerHTML = `${itemIcon(symbol)}<strong>${value}</strong>${preview}`
+  ui.activePerk.innerHTML = `${itemIcon(symbol)}<span class="active-perk-name">${name}</span><strong>${value}</strong>${preview}`
   const description = document.createElement('span')
   description.innerHTML = perkText(perk.kind, battle.itemsSeven)
   ui.activePerk.dataset.helpText = `${name} ${value} · ${description.textContent}`
@@ -1473,7 +1425,6 @@ function renderActivePerk(battle: YachtBattle) {
 function showCompanionLine(output: HTMLElement, line: string) {
   output.textContent = line
   output.hidden = !line.trim()
-  if (line && output === egoPresence) output.insertAdjacentHTML('afterbegin', icon('companion-awake'))
 }
 
 function rewardHealingLabel(run: Ascent, choice: Treasure) {
@@ -2197,7 +2148,7 @@ function teachOpening({ battle }: Ascent) {
   if (misplaced >= 0) {
     const from = diceButtons[misplaced]
     const slot = battle.slots[misplaced] === 'guard' ? '방어' : '공격'
-    firstRun.teach({ id: 'correct', text: `${slot}에서 표시한 주사위를 빼요.`, symbol: 'return', anchor: ui.firstRunAnchor,
+    firstRun.teach({ id: 'correct', text: `${slot}에서 표시한 주사위를 빼요.`, symbol: 'return', anchor: from,
       marks: [from, ui.assign.pool], from, to: ui.dice.pool })
     return
   }
@@ -2206,17 +2157,17 @@ function teachOpening({ battle }: Ascent) {
   const guard = slots.flatMap((slot, index) => slot === 'guard' && battle.slots[index] === null ? [diceButtons[index]] : [])
   const guardFirst = battle.turn > 1 && guard.length > 0
   if (attack.length && !guardFirst) {
-    firstRun.teach({ id: 'attack', text: '표시한 주사위를 공격에 두세요.', symbol: 'sword', anchor: ui.firstRunAnchor,
+    firstRun.teach({ id: 'attack', text: '표시한 주사위를 공격에 두세요.', symbol: 'sword', anchor: ui.assign.attack,
       marks: [ui.assign.attack, ...attack], from: attack[0], to: ui.assign.attack })
   } else if (guard.length) {
     const damage = outcome.incoming.totalDamage
     const text = outcome.counter ? `방어 ${damage} = 적 공격 ${damage} → 정확 방어` : '표시한 주사위를 방어에 두세요.'
-    firstRun.teach({ id: 'defend', text, symbol: 'shield', anchor: ui.firstRunAnchor,
+    firstRun.teach({ id: 'defend', text, symbol: 'shield', anchor: ui.assign.guard,
       marks: [ui.intent, ui.assign.guard, ...guard], arrows: guard, to: ui.dice.guard, guardGoal: damage,
       headings: [ui.assign.attack.closest<HTMLElement>('.attack-heading')!, ui.assign.guard] })
   } else {
     const text = outcome.counter ? '턴을 끝내 반격 룰렛을 여세요.' : '턴 끝내기 누르세요.'
-    firstRun.teach({ id: 'end-turn', text, symbol: 'turn', anchor: ui.firstRunAnchor, marks: [ui.resolve],
+    firstRun.teach({ id: 'end-turn', text, symbol: 'turn', anchor: ui.resolve, marks: [ui.resolve],
       guardGoal: outcome.counter ? outcome.incoming.totalDamage : undefined })
   }
 }
@@ -2534,8 +2485,6 @@ function showPerks() {
   const begin = (event: MouseEvent, perk: StartPerk, parity?: Parity) => {
     if (event.isTrusted) sound.activate()
     ascent = beginMapAscent(seed, perk, parity, CURRENT_MAP_RULES, snapshot, true)
-    presenceRun = null
-    rememberUnlockCue(presenceKey, '')
     firstRun.start(seed)
     saveCurrent()
     render()
@@ -2813,13 +2762,8 @@ async function showEgoPlacement(ego: NonNullable<Exchange['ego']>, signal: Abort
 }
 
 async function showUnlockAwakening(hand: Hand) {
-  window.clearTimeout(presenceTimer)
-  unlockDiscovery.hidden = true
-  showCompanionLine(egoPresence, hand === 'triple' ? COMPANION_LINES.awaken : '…그 눈이면.')
-  ui.encounter.dataset.egoPresence = hand
   if (hand === 'triple') {
     egoHover.hidden = false
-    egoAwakeningNote.hidden = false
     egoHover.dataset.awakening = ''
     if (!reducedMotion()) {
       egoHover.animate([{ transform: 'translateY(-42px) rotate(-14deg)', opacity: .2 },
@@ -2828,10 +2772,7 @@ async function showUnlockAwakening(hand: Hand) {
     }
   }
   await wait(hand === 'triple' ? 1000 : reducedMotion() ? 275 : 530)
-  egoAwakeningNote.hidden = true
   delete egoHover.dataset.awakening
-  delete ui.encounter.dataset.egoPresence
-  egoPresence.hidden = true
 }
 
 ui.resolve.addEventListener('click', async () => {
@@ -2840,8 +2781,6 @@ ui.resolve.addEventListener('click', async () => {
   const before = ascent.battle
   const resolved = resolveAscentTurn(ascent)
   if (resolved === ascent) return
-  window.clearTimeout(discoveryTimer)
-  unlockDiscovery.hidden = true
   itemControl = undefined
   dockItem = undefined
   let next = resolved

@@ -111,6 +111,7 @@ h1, h2,
 #active-perk strong { color: #f1f0ee; white-space: nowrap; font-variant-numeric: tabular-nums; }
 #active-perk { min-inline-size: 42px; padding-inline: 3px; border-color: #77624e; gap: 3px; white-space: nowrap; }
 #active-perk .pixel-icon { inline-size: 18px; block-size: 18px; }
+.active-perk-name { color: #f1dfc7; overflow: hidden; text-overflow: ellipsis; }
 #active-perk .perk-preview { display: none; }
 #turn { white-space: nowrap; }
 #active-perk.perk-ready strong { color: #f2ac98; }
@@ -456,11 +457,6 @@ main[data-screen='battle'] {
   content: '';
 }
 
-#first-run-anchor {
-  position: absolute;
-  inset: auto 0 calc(var(--arena-footer) - var(--vital-offset) - 2px);
-  pointer-events: none;
-}
 
 #first-run-note[data-below='true']::after { top: -5px; bottom: auto; rotate: 225deg; }
 #first-run-note[data-in-flow] { position: relative; max-width: 100%; }
@@ -1890,9 +1886,6 @@ button.die:disabled { background: transparent; }
 .slot:is([data-unlock-triple], [data-unlock-straight]) { animation: unlock-slot .55s ease-out; }
 @keyframes unlock-pips { to { text-shadow: 0 0 6px var(--pip-light), 0 0 2px #fff; } }
 @keyframes unlock-slot { 45% { box-shadow: inset 0 0 14px var(--completed-light), 0 0 10px var(--completed-light); } }
-.encounter[data-ego-presence='triple'] ~ #planning .companion-closed,
-.encounter[data-ego-presence='straight'] ~ #planning #extra-reroll > .icon:nth-child(2) { animation: unlock-rattle .35s ease-in-out 2; }
-@keyframes unlock-rattle { 25% { rotate: -15deg; } 75% { rotate: 15deg; } }
 
 #ego-hover {
   position: absolute;
@@ -1917,16 +1910,6 @@ button.die:disabled { background: transparent; }
 }
 #ego-placement strong { font-size: 1.25rem; }
 #ego-placement small { position: absolute; inset: auto auto calc(100% + 3px) 50%; translate: -50%; padding: 2px 5px; white-space: nowrap; background: #27232a; color: #d4eeff; }
-#ego-notices { position: absolute; z-index: 3; inset: 5px auto auto 6px; max-inline-size: 45%; display: grid; justify-items: start; gap: 4px; pointer-events: none; }
-#encounter-name:not([hidden]) ~ #ego-notices { inset-block-start: calc(var(--encounter-name-top, 10px) + 20px); }
-#ego-presence, #unlock-discovery { border: 1px solid #b29464; border-radius: 4px; background: #292722; }
-#ego-presence { display: flex; align-items: center; gap: 4px; padding: 3px 8px; color: #f6d9a7; font-size: .78rem; }
-#ego-awakening-note { position: absolute; z-index: 3; inset: auto auto calc(100% + 1px) 50%; translate: -50%; padding: 3px 6px; white-space: nowrap; border: 1px solid #dec392; background: #292722; color: #f6d9a7; font-size: .78rem; }
-#locked-die:has(#ego-awakening-note:not([hidden])) .unlock-chip { visibility: hidden; }
-#unlock-discovery { display: grid; gap: 3px; padding: 4px 6px; font-size: .71rem; color: #f9e4bd; word-break: keep-all; }
-.discovery-diagram { display: flex; gap: 6px; align-items: center; color: var(--unlock-color); }
-.discovery-diagram .unlock-pattern { font-size: .82rem; }
-.discovery-diagram > .icon { inline-size: 14px; block-size: 14px; }
 [data-reduced-motion='true'] :is(#ego-hover > .icon, .die[data-unlock-triple] .die-face, .die[data-unlock-straight] .die-face,
   .slot[data-unlock-triple], .slot[data-unlock-straight], .companion-closed, #extra-reroll > .icon) { animation: none; }
 
@@ -2687,8 +2670,6 @@ main[data-screen='defeat'] {
     --vital-offset: 5px;
   }
   .upper-field .upper-goal { inset-block-start: -5px; padding-block: 3px; }
-  .upper-field #encounter-name ~ #ego-notices { inset-block-start: 40px; max-inline-size: 68px; }
-  .upper-field #ego-presence { padding: 2px 3px; gap: 2px; font-size: .7rem; }
   .upper-card { padding-block: 1px; }
   .upper-hp, .upper-intent, .upper-action { gap: 2px; }
   .upper-hp { margin-block: 1px; font-size: 12px; }

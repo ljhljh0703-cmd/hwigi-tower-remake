@@ -57,7 +57,7 @@ export function observeBreak() {
     const box = arena.getBoundingClientRect()
     const visible = selector => [...document.querySelectorAll(selector)].map(el => el.getBoundingClientRect()).filter(r => r.width && r.height)
     const numberRects = visible('.damage-number')
-    const hud = [...document.querySelectorAll('.vital, #intent, #charge-stop, #planning button, #hit-order, #parry-cue, #encounter-name, #escort-guard-name, #ego-hover, #ego-presence, #unlock-discovery')]
+    const hud = [...document.querySelectorAll('.vital, #intent, #charge-stop, #planning button, #hit-order, #parry-cue, #encounter-name, #escort-guard-name, #ego-hover')]
       .map(el => ({ id: el.id || el.parentElement.className, rect: el.getBoundingClientRect() })).filter(({ rect }) => rect.width && rect.height)
     const coveredHud = {}
     const mask = document.createElement('canvas')

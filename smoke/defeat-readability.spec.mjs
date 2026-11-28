@@ -45,7 +45,7 @@ function checkComposition(frames) {
   }
 }
 
-async function prepareSecondTurn(page, checkDiscovery = false) {
+async function prepareSecondTurn(page) {
   await page.goto(new URL('?seed=12', process.env.HWIGI_SMOKE_URL).href)
   await page.getByRole('button', { name: '새로 하기' }).tap()
   await page.getByRole('button', { name: /^방패의 기세,/ }).tap()
@@ -57,19 +57,7 @@ async function prepareSecondTurn(page, checkDiscovery = false) {
     await expect(page.locator('.die-arriving')).toHaveCount(0)
     for (const die of await page.locator('#pool-dice button').all()) await die.tap()
     await page.locator('#assign-attack').tap()
-    if (turn === 1) {
-      const discovery = page.locator('#unlock-discovery')
-      if (checkDiscovery) {
-        await expect(discovery).toBeInViewport({ ratio: 1 })
-        await expect(discovery).toContainText('같은 눈 셋')
-        // Read the actual first confirmation before a timeout can dismiss the lesson.
-        await page.locator('#resolve').evaluate(button => button.addEventListener('click', () => {
-          window.lessonClosedOnCommit = document.querySelector('#unlock-discovery').hidden
-        }, { once: true }))
-      }
-      await page.locator('#resolve').tap()
-      if (checkDiscovery) expect(await page.evaluate(() => window.lessonClosedOnCommit)).toBe(true)
-    }
+    if (turn === 1) await page.locator('#resolve').tap()
   }
   await expect(page.locator('#enemy-hp')).toHaveJSProperty('value', 11)
   await page.evaluate(observeBreak)
@@ -109,7 +97,7 @@ test.describe('고밀도 전투 HUD', () => {
   test('빠른 직접 강타·격파가 체력 카드 안쪽 여백에 들어간다', async ({ page }, info) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
     await page.addInitScript(() => localStorage.setItem('hwigi-tower.settings', JSON.stringify({ speed: 'fast' })))
-    await prepareSecondTurn(page, true)
+    await prepareSecondTurn(page)
     await stopAtContact(page, 113)
     const frames = await sample(page, info, 'fast-2x', [16, 112, 136, 160, 340, 560], 2)
     for (const f of frames) expect(f.cardInsets.map(c => c.text)).toEqual(['−11'])
