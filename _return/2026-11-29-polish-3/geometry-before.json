@@ -1,0 +1,598 @@
+{
+  "1440x900": {
+    "13": {
+      "foes": [
+        {
+          "sheet": "upper-dash",
+          "pose": "ready",
+          "scale": 5,
+          "bounds": [
+            320,
+            576,
+            510,
+            696
+          ]
+        },
+        {
+          "sheet": "upper-support",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            673,
+            536,
+            729,
+            636
+          ]
+        }
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 6,
+        "scaleY": 6,
+        "foot": [
+          149,
+          696
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          107,
+          516,
+          275,
+          696
+        ]
+      },
+      "ground": 696,
+      "size": [
+        830,
+        794
+      ],
+      "cards": [
+        {
+          "role": "dash",
+          "x": 412.84375,
+          "y": 788,
+          "width": 70,
+          "height": 55.15625,
+          "top": 788,
+          "right": 482.84375,
+          "bottom": 843.15625,
+          "left": 412.84375
+        },
+        {
+          "role": "support",
+          "x": 699.09375,
+          "y": 728,
+          "width": 70,
+          "height": 55.15625,
+          "top": 728,
+          "right": 769.09375,
+          "bottom": 783.15625,
+          "left": 699.09375
+        }
+      ]
+    },
+    "17": {
+      "foes": [
+        {
+          "sheet": "upper-shield",
+          "pose": "ready",
+          "scale": 5,
+          "bounds": [
+            287,
+            571,
+            372,
+            696
+          ]
+        },
+        {
+          "sheet": "upper-dash",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            452,
+            536,
+            596,
+            636
+          ]
+        },
+        {
+          "sheet": "upper-support",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            731,
+            536,
+            787,
+            636
+          ]
+        }
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 6,
+        "scaleY": 6,
+        "foot": [
+          149,
+          696
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          107,
+          516,
+          275,
+          696
+        ]
+      },
+      "ground": 696,
+      "size": [
+        830,
+        794
+      ],
+      "cards": [
+        {
+          "role": "shield",
+          "x": 321.578125,
+          "y": 788,
+          "width": 70,
+          "height": 55.15625,
+          "top": 788,
+          "right": 391.578125,
+          "bottom": 843.15625,
+          "left": 321.578125
+        },
+        {
+          "role": "dash",
+          "x": 521.53125,
+          "y": 728,
+          "width": 70,
+          "height": 55.15625,
+          "top": 728,
+          "right": 591.53125,
+          "bottom": 783.15625,
+          "left": 521.53125
+        },
+        {
+          "role": "support",
+          "x": 753.015625,
+          "y": 728,
+          "width": 70,
+          "height": 55.15625,
+          "top": 728,
+          "right": 823.015625,
+          "bottom": 783.15625,
+          "left": 753.015625
+        }
+      ]
+    },
+    "19": {
+      "foes": [
+        {
+          "sheet": "upper-shield",
+          "pose": "ready",
+          "scale": 5,
+          "bounds": [
+            372,
+            571,
+            457,
+            696
+          ]
+        },
+        {
+          "sheet": "upper-boss",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            655,
+            532,
+            747,
+            636
+          ]
+        }
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 6,
+        "scaleY": 6,
+        "foot": [
+          149,
+          696
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          107,
+          516,
+          275,
+          696
+        ]
+      },
+      "ground": 696,
+      "size": [
+        830,
+        794
+      ],
+      "cards": [
+        {
+          "role": "guard",
+          "x": 412.84375,
+          "y": 788,
+          "width": 70,
+          "height": 55.15625,
+          "top": 788,
+          "right": 482.84375,
+          "bottom": 843.15625,
+          "left": 412.84375
+        },
+        {
+          "role": "gatekeeper",
+          "x": 696.09375,
+          "y": 728,
+          "width": 76,
+          "height": 53.859375,
+          "top": 728,
+          "right": 772.09375,
+          "bottom": 781.859375,
+          "left": 696.09375
+        }
+      ]
+    },
+    "19-front": {
+      "foes": [
+        {
+          "sheet": "upper-boss",
+          "pose": "ready",
+          "scale": 4,
+          "bounds": [
+            524,
+            528,
+            672,
+            696
+          ]
+        }
+      ],
+      "ground": 696,
+      "size": [
+        830,
+        794
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 6,
+        "scaleY": 6,
+        "foot": [
+          149,
+          696
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          107,
+          516,
+          275,
+          696
+        ]
+      },
+      "cards": [
+        {
+          "role": "gatekeeper",
+          "x": 592.375,
+          "y": 788,
+          "width": 76,
+          "height": 53.859375,
+          "top": 788,
+          "right": 668.375,
+          "bottom": 841.859375,
+          "left": 592.375
+        }
+      ]
+    }
+  },
+  "1920x1080": {
+    "13": {
+      "foes": [
+        {
+          "sheet": "upper-dash",
+          "pose": "ready",
+          "scale": 5,
+          "bounds": [
+            432,
+            756,
+            622,
+            876
+          ]
+        },
+        {
+          "sheet": "upper-support",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            863,
+            716,
+            919,
+            816
+          ]
+        }
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 6,
+        "scaleY": 6,
+        "foot": [
+          190,
+          876
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          148,
+          696,
+          316,
+          876
+        ]
+      },
+      "ground": 876,
+      "size": [
+        1054,
+        974
+      ],
+      "cards": [
+        {
+          "role": "dash",
+          "x": 589,
+          "y": 968,
+          "width": 70,
+          "height": 55.15625,
+          "top": 968,
+          "right": 659,
+          "bottom": 1023.15625,
+          "left": 589
+        },
+        {
+          "role": "support",
+          "x": 952.625,
+          "y": 908,
+          "width": 70,
+          "height": 55.15625,
+          "top": 908,
+          "right": 1022.625,
+          "bottom": 963.15625,
+          "left": 952.625
+        }
+      ]
+    },
+    "17": {
+      "foes": [
+        {
+          "sheet": "upper-shield",
+          "pose": "ready",
+          "scale": 5,
+          "bounds": [
+            328,
+            751,
+            413,
+            876
+          ]
+        },
+        {
+          "sheet": "upper-dash",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            593,
+            716,
+            737,
+            816
+          ]
+        },
+        {
+          "sheet": "upper-support",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            935,
+            716,
+            991,
+            816
+          ]
+        }
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 6,
+        "scaleY": 6,
+        "foot": [
+          190,
+          876
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          148,
+          696,
+          316,
+          876
+        ]
+      },
+      "ground": 876,
+      "size": [
+        1054,
+        974
+      ],
+      "cards": [
+        {
+          "role": "shield",
+          "x": 473.046875,
+          "y": 968,
+          "width": 70,
+          "height": 55.15625,
+          "top": 968,
+          "right": 543.046875,
+          "bottom": 1023.15625,
+          "left": 473.046875
+        },
+        {
+          "role": "dash",
+          "x": 727.0625,
+          "y": 908,
+          "width": 70,
+          "height": 55.15625,
+          "top": 908,
+          "right": 797.0625,
+          "bottom": 963.15625,
+          "left": 727.0625
+        },
+        {
+          "role": "support",
+          "x": 1021.125,
+          "y": 908,
+          "width": 70,
+          "height": 55.15625,
+          "top": 908,
+          "right": 1091.125,
+          "bottom": 963.15625,
+          "left": 1021.125
+        }
+      ]
+    },
+    "19": {
+      "foes": [
+        {
+          "sheet": "upper-shield",
+          "pose": "ready",
+          "scale": 5,
+          "bounds": [
+            484,
+            751,
+            569,
+            876
+          ]
+        },
+        {
+          "sheet": "upper-boss",
+          "pose": "rear-ready",
+          "scale": 4,
+          "bounds": [
+            845,
+            712,
+            937,
+            816
+          ]
+        }
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 6,
+        "scaleY": 6,
+        "foot": [
+          190,
+          876
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          148,
+          696,
+          316,
+          876
+        ]
+      },
+      "ground": 876,
+      "size": [
+        1054,
+        974
+      ],
+      "cards": [
+        {
+          "role": "guard",
+          "x": 589,
+          "y": 968,
+          "width": 70,
+          "height": 55.15625,
+          "top": 968,
+          "right": 659,
+          "bottom": 1023.15625,
+          "left": 589
+        },
+        {
+          "role": "gatekeeper",
+          "x": 949.625,
+          "y": 908,
+          "width": 76,
+          "height": 53.859375,
+          "top": 908,
+          "right": 1025.625,
+          "bottom": 961.859375,
+          "left": 949.625
+        }
+      ]
+    },
+    "19-front": {
+      "foes": [
+        {
+          "sheet": "upper-boss",
+          "pose": "ready",
+          "scale": 4,
+          "bounds": [
+            685,
+            708,
+            833,
+            876
+          ]
+        }
+      ],
+      "ground": 876,
+      "size": [
+        1054,
+        974
+      ],
+      "hero": {
+        "pose": "idle",
+        "scale": 6,
+        "scaleY": 6,
+        "foot": [
+          190,
+          876
+        ],
+        "camera": [
+          0,
+          0
+        ],
+        "opaque": [
+          148,
+          696,
+          316,
+          876
+        ]
+      },
+      "cards": [
+        {
+          "role": "gatekeeper",
+          "x": 817.875,
+          "y": 968,
+          "width": 76,
+          "height": 53.859375,
+          "top": 968,
+          "right": 893.875,
+          "bottom": 1021.859375,
+          "left": 817.875
+        }
+      ]
+    }
+  }
+}
