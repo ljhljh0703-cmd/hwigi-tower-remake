@@ -1,0 +1,124 @@
+[
+  {
+    "size": "320x568",
+    "scene": "golem",
+    "outcome": [
+      {
+        "target": "enemy-damage",
+        "damage": "−11"
+      }
+    ],
+    "sounds": [
+      "dice-place.mp3",
+      "swish.wav",
+      "slam.wav",
+      "grit.wav",
+      "seat.wav"
+    ],
+    "previousEndHash": 1806546390,
+    "newEndHash": 1806546390,
+    "offsets": [
+      16,
+      112,
+      136,
+      160,
+      211,
+      340,
+      420,
+      560,
+      640
+    ]
+  },
+  {
+    "size": "320x568",
+    "scene": "counter",
+    "outcome": [
+      {
+        "target": "enemy-damage",
+        "damage": "−1"
+      }
+    ],
+    "sounds": [
+      "perfect-block.mp3",
+      "stone-hit.mp3",
+      "roulette-engage.wav",
+      "roulette-ratchet.wav",
+      "roulette-latch.wav",
+      "slam.wav",
+      "grit.wav",
+      "seat.wav"
+    ],
+    "previousEndHash": -336633811,
+    "newEndHash": -336633811,
+    "offsets": [
+      16,
+      112,
+      136,
+      160,
+      211,
+      340,
+      560
+    ]
+  },
+  {
+    "size": "390x844",
+    "scene": "golem",
+    "outcome": [
+      {
+        "target": "enemy-damage",
+        "damage": "−11"
+      }
+    ],
+    "sounds": [
+      "dice-place.mp3",
+      "swish.wav",
+      "slam.wav",
+      "grit.wav",
+      "seat.wav"
+    ],
+    "previousEndHash": 1378240968,
+    "newEndHash": 1378240968,
+    "offsets": [
+      16,
+      112,
+      136,
+      160,
+      211,
+      340,
+      420,
+      560,
+      640
+    ]
+  },
+  {
+    "size": "390x844",
+    "scene": "counter",
+    "outcome": [
+      {
+        "target": "enemy-damage",
+        "damage": "−1"
+      }
+    ],
+    "sounds": [
+      "perfect-block.mp3",
+      "stone-hit.mp3",
+      "roulette-engage.wav",
+      "roulette-ratchet.wav",
+      "roulette-latch.wav",
+      "slam.wav",
+      "grit.wav",
+      "seat.wav"
+    ],
+    "previousEndHash": 1565551166,
+    "newEndHash": 1565551166,
+    "offsets": [
+      16,
+      112,
+      136,
+      160,
+      211,
+      340,
+      560
+    ]
+  }
+]

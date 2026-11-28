@@ -1,0 +1,238 @@
+[
+  {
+    "width": 320,
+    "height": 568,
+    "weakened": false,
+    "contacts": [
+      {
+        "damage": "나−18",
+        "at": 627
+      }
+    ],
+    "sounds": [
+      {
+        "name": "slam.wav",
+        "rate": 1,
+        "at": 627,
+        "frame": 1721.5,
+        "audioTime": 0.912,
+        "filled": 0
+      }
+    ],
+    "captures": {
+      "charge-contact": {
+        "id": "charge-contact",
+        "at": 627,
+        "args": [
+          240,
+          0,
+          80,
+          80,
+          9,
+          -118,
+          320,
+          320
+        ],
+        "canvas": [
+          288,
+          199
+        ]
+      },
+      "charge-follow": {
+        "id": "charge-follow",
+        "at": 752,
+        "args": [
+          0,
+          80,
+          80,
+          80,
+          10,
+          -119,
+          320,
+          320
+        ],
+        "canvas": [
+          288,
+          199
+        ]
+      }
+    }
+  },
+  {
+    "width": 320,
+    "height": 568,
+    "weakened": true,
+    "contacts": [
+      {
+        "damage": "나−8",
+        "at": 622
+      }
+    ],
+    "sounds": [
+      {
+        "name": "slam.wav",
+        "rate": 1,
+        "at": 622,
+        "frame": 1326.8,
+        "audioTime": 1.112,
+        "filled": 0
+      }
+    ],
+    "captures": {
+      "weak-contact": {
+        "id": "weak-contact",
+        "at": 624,
+        "args": [
+          160,
+          80,
+          80,
+          80,
+          9,
+          -134,
+          320,
+          320
+        ],
+        "canvas": [
+          288,
+          199
+        ]
+      },
+      "recover-start": {
+        "id": "recover-start",
+        "at": 752,
+        "args": [
+          80,
+          160,
+          80,
+          80,
+          12,
+          -135,
+          320,
+          320
+        ],
+        "canvas": [
+          288,
+          199
+        ]
+      }
+    }
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "weakened": false,
+    "contacts": [
+      {
+        "damage": "나−18",
+        "at": 625
+      }
+    ],
+    "sounds": [
+      {
+        "name": "slam.wav",
+        "rate": 1,
+        "at": 625,
+        "frame": 1224.7,
+        "audioTime": 1.0106666666666666,
+        "filled": 0
+      }
+    ],
+    "captures": {
+      "charge-contact": {
+        "id": "charge-contact",
+        "at": 625,
+        "args": [
+          240,
+          0,
+          80,
+          80,
+          9,
+          35,
+          400,
+          400
+        ],
+        "canvas": [
+          358,
+          423
+        ]
+      },
+      "charge-follow": {
+        "id": "charge-follow",
+        "at": 752,
+        "args": [
+          0,
+          80,
+          80,
+          80,
+          11,
+          33,
+          400,
+          400
+        ],
+        "canvas": [
+          358,
+          423
+        ]
+      }
+    }
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "weakened": true,
+    "contacts": [
+      {
+        "damage": "나−8",
+        "at": 625
+      }
+    ],
+    "sounds": [
+      {
+        "name": "slam.wav",
+        "rate": 1,
+        "at": 625,
+        "frame": 1213.6,
+        "audioTime": 1.0213333333333334,
+        "filled": 0
+      }
+    ],
+    "captures": {
+      "weak-contact": {
+        "id": "weak-contact",
+        "at": 625,
+        "args": [
+          160,
+          80,
+          80,
+          80,
+          9,
+          15,
+          400,
+          400
+        ],
+        "canvas": [
+          358,
+          423
+        ]
+      },
+      "recover-start": {
+        "id": "recover-start",
+        "at": 752,
+        "args": [
+          80,
+          160,
+          80,
+          80,
+          11,
+          14,
+          400,
+          400
+        ],
+        "canvas": [
+          358,
+          423
+        ]
+      }
+    }
+  }
+]
