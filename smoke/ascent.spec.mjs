@@ -42,7 +42,7 @@ test('선택한 문으로 다가간 뒤 전장을 열고 움직임 줄이기는 
   })
   await page.goto(new URL('?seed=12', process.env.HWIGI_SMOKE_URL).href)
   await page.getByRole('button', { name: '새로 하기' }).tap()
-  await page.getByRole('button', { name: /^방패 저금,/ }).tap()
+  await page.getByRole('button', { name: /^방패의 기세,/ }).tap()
   await page.locator('#fork-options button').tap()
   await page.locator('#enter-room').tap()
   const main = page.locator('main')
@@ -60,7 +60,7 @@ test('선택한 문으로 다가간 뒤 전장을 열고 움직임 줄이기는 
     await page.screenshot({ path: join(process.env.HWIGI_PLAYTEST_SHOTS, `${info.project.name}-room-transition.png`) })
   }
   await page.evaluate(() => window.roomFrames.forEach((animation) => animation.finish()))
-  await expect(page.locator('#room-floor')).toHaveText('1층')
+  await expect(page.locator('#room-floor')).toHaveText('1층 — 무너진 회랑')
   await expect(page.locator('#room-floor')).toBeVisible()
   if (process.env.HWIGI_PLAYTEST_SHOTS) {
     await page.screenshot({ path: join(process.env.HWIGI_PLAYTEST_SHOTS, `${info.project.name}-room-floor.png`) })
@@ -69,7 +69,7 @@ test('선택한 문으로 다가간 뒤 전장을 열고 움직임 줄이기는 
   await expect(cover).toBeHidden()
   await expect(main).toHaveAttribute('data-screen', 'battle')
   const watched = await page.evaluate(() => window.roomMotion)
-  expect(watched).toEqual([['fork-room', 205], ['room-transition', 205], ['room-floor', 95], ['room-transition', 180]])
+  expect(watched).toEqual([['fork-room', 205], ['room-transition', 205], ['room-floor', 620], ['room-transition', 180]])
 
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.reload()
@@ -175,7 +175,7 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     const { y, height } = await page.locator('#perk-choices').boundingBox()
     expect(y + height / 2).toBeLessThan(page.viewportSize().height * .6)
     await photograph('perks')
-    await page.getByRole('button', { name: /^방패 저금,/ }).tap()
+    await page.getByRole('button', { name: /^방패의 기세,/ }).tap()
   })
 
   await test.step('1층에 들어가 주사위를 배치하고 두 턴에 승리한다', async () => {
@@ -186,7 +186,7 @@ test('새 등반에서 1층 승리와 저장 복원을 거쳐 2층 전투에 진
     await enter.tap()
     await page.getByRole('button', { name: '안내 건너뛰기' }).tap()
 
-    // 시드 12에서 방패 저금을 고르면 두 턴 모두 공격에 배치해 1층을 이긴다.
+    // 시드 12에서 방패의 기세를 고르면 두 턴 모두 공격에 배치해 1층을 이긴다.
     for (const turn of [1, 2]) {
       await expect(battleFloor).toHaveText(/^1\s*\//)
       await expect(page.locator('#turn')).toHaveAttribute('aria-label', `${turn}턴`)

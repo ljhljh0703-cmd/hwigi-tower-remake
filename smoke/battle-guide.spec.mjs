@@ -29,7 +29,7 @@ test('도감은 저장 파일이 아닌 현재 등반의 규칙판을 따라간�
 
   await page.goto(new URL('?seed=12', process.env.HWIGI_SMOKE_URL).href)
   await page.getByRole('button', { name: '새로 하기' }).tap()
-  await page.getByRole('button', { name: /^방패 저금,/ }).tap()
+  await page.getByRole('button', { name: /^방패의 기세,/ }).tap()
   await room.tap()
   await page.locator('#enter-room').tap()
   await page.getByRole('button', { name: '안내 건너뛰기' }).tap()
@@ -38,7 +38,7 @@ test('도감은 저장 파일이 아닌 현재 등반의 규칙판을 따라간�
   await expect(section.locator('dt strong')).toHaveText(current)
   await expect(dialog).not.toContainText(oldOnly)
   await expect(dialog).not.toContainText('호위 갈고리')
-  await expect(dialog).toContainText('쌍금 틀')
+  await expect(dialog).toContainText('쌍둥이 거푸집')
   await photograph('rules-7')
 
   const { json, restored } = checkpoint(beginMapAscent(12, undefined, 'odd', 5))

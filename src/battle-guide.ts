@@ -1,8 +1,11 @@
 import { CURRENT_MAP_RULES } from './ascent-map.ts'
 import type { MapRules } from './ascent-map.ts'
 import { bossRelicText, isBossRelic } from './boss-relic.ts'
+import { perkDisplayName, rewardDisplayName } from './display-names.ts'
+import { enemyBadge, ENEMY_CODEX } from './enemy-codex.ts'
 import type { Reward } from './rewards.ts'
 import { oathDescription, perkText, PERK_TEXT, rewardText } from './reward-copy.ts'
+import { START_PERK_CARDS, START_PERKS } from './perks.ts'
 import { isMetaArtifact } from './meta-unlocks.ts'
 import { REWARD_CARDS } from './rewards.ts'
 import { isNewTreasureId, isSevenTreasure } from './treasure.ts'
@@ -15,6 +18,7 @@ type VersionedEntry = readonly [...GuideEntry, options?: {
   readonly sevenName?: string
   readonly sevenDescription?: string
   readonly reward?: Reward
+  readonly perk?: keyof typeof START_PERKS
 }]
 
 interface GuideSection<Entry = GuideEntry> {
@@ -40,11 +44,13 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
       ['map-elite', '강적', '일반 전투보다 강한 적과 싸웁니다. 이기면 전리품을 고릅니다.'],
       ['map-event', '이벤트', '체력과 보상을 보고 행동을 고릅니다. 떠나면 효과 없이 지나갑니다.'],
       ['map-shop', '상인', '치료 도구는 2동전, 유물은 4동전에 살 수 있습니다. 한 번만 구매할 수 있습니다. 이전 등반의 장터는 경유합니다.',
-        { sevenDescription: '치료 도구 2동전, 일반 유물 4동전, 희귀 유물 5동전 중 1회 구매합니다.' }],
+        { sevenDescription: `${rewardDisplayName('kit', true)} 2동전, 일반 유물 4동전, 희귀 유물 5동전입니다. 동전이 남으면 여러 품목을 살 수 있습니다.` }],
       ['ascent-coin', '동전', '일반 전투 승리 시 1개, 강적 승리 시 2개를 얻습니다. 이번 등반 상인에게 씁니다.'],
-      ['map-rest', '고정 휴식', '11층에서 보스전을 준비합니다. 치료 도구나 다음 전투용 숫돌을 고릅니다.'],
-      ['map-boss', '보스', '6층 쇠사슬 집행관과 12층 문지기입니다. 힘 모으기에 대비하고 12층에서 승리하면 완주 인장을 받습니다.',
-        { legacyDescription: '12층 문지기입니다. 힘 모으기와 봉인에 대비하고 승리하면 완주 인장을 받습니다.' }],
+      ['map-rest', '고정 휴식', `11층에서 보스전을 준비합니다. ${rewardDisplayName('kit')}나 다음 전투용 숫돌을 고릅니다.`,
+        { sevenDescription: `11층에서 보스전을 준비합니다. ${rewardDisplayName('kit', true)}나 다음 전투용 숫돌을 고릅니다.` }],
+      ['map-boss', '보스', `6층 ${enemyBadge('chain-warden', 6).label}과 12층 문지기입니다. 힘 모으기에 대비하고 12층에서 승리하면 완주 인장을 받습니다.`,
+        { legacyDescription: '12층 문지기입니다. 힘 모으기와 봉인에 대비하고 승리하면 완주 인장을 받습니다.',
+          sevenDescription: `6층 ${ENEMY_CODEX['chain-warden'].name}와 12층 ${ENEMY_CODEX.boss.name}입니다. 힘 모으기에 대비하고 12층에서 승리하면 완주 인장을 받습니다.` }],
       ['map-pin', '갈림길', '보상 후 다음 층 길을 고릅니다. 시작·휴식·보스 앞에서는 길이 하나뿐입니다.'],
       ['map-check', '완료한 층', '등반 결과에 통과한 층 수를 표시합니다.'],
       ['map-reward', '전리품', '보스 전 전투에서 이기면 전리품을 고르거나 건너뜁니다.'],
@@ -73,13 +79,15 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
       ['charge', '힘 모으기', '적이 이번 턴을 쉬고 다음 턴 치명 일격을 준비합니다. 큰 숫자가 다음 일격 피해입니다.'],
       ['break-charge', '힘 모으기 끊기', '공격 칸의 본체 피해가 표시 숫자 이상이면 다음 치명 일격 피해가 절반으로 줄어듭니다.'],
       ['critical', '치명 일격', '적이 표시 피해를 한 번에 줍니다. 앞 턴에 힘 모으기를 끊었다면 줄어든 값이 뜹니다.'],
-      ['knockdown', '넉다운', '적이 공격을 쉬고 표시 배율로 피해를 받습니다. 큰 칼과 겹치면 더 큰 배율만 적용됩니다.'],
+      ['knockdown', '넉다운', `적이 공격을 쉬고 표시 배율로 피해를 받습니다. ${perkDisplayName('blade')}과 겹치면 더 큰 배율만 적용됩니다.`,
+        { sevenDescription: `적이 공격을 쉬고 표시 배율로 피해를 받습니다. ${perkDisplayName('blade', true)}과 겹치면 더 큰 배율만 적용됩니다.` }],
     ],
   },
   {
     title: '칸과 전투 표시',
     entries: [
-      ['sword', '공격 칸', '큰 숫자는 보너스 포함 피해, 작은 +숫자는 보너스입니다. 큰 칼로 공격 옆에 ×2가 뜨면 피해가 두 배가 됩니다.'],
+      ['sword', '공격 칸', `큰 숫자는 보너스 포함 피해, 작은 +숫자는 보너스입니다. ${perkDisplayName('blade')}로 공격 옆에 ×2가 뜨면 피해가 두 배가 됩니다.`,
+        { sevenDescription: `큰 숫자는 보너스 포함 피해, 작은 +숫자는 보너스입니다. ${perkDisplayName('blade', true)} 효과로 공격 옆에 ×2가 뜨면 피해가 두 배가 됩니다.` }],
       ['shield', '방어 칸', '방어 칸 눈과 보너스 합으로 적 공격을 막습니다. 빗금 뒤 숫자는 정확 방어 목표입니다.'],
       ['parry', '정확히 막기', '방어 합이 적 총피해와 같으면 정확히 막습니다. 적이 살아 있으면 반격 룰렛을 돌립니다.'],
       ['wheel', '반격 룰렛', '룰렛을 눌러 돌리고 다시 눌러 멈춥니다. 설정에서 자동 진행을 켤 수 있습니다.'],
@@ -125,13 +133,10 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
   {
     title: '상단 특전 표시',
     entries: [
-      ['parry', '방패 저금', PERK_TEXT.shield, { sevenDescription: perkText('shield', true) }],
-      ['sword', '큰 칼', PERK_TEXT.blade],
-      ['pair', '족보 수집가', PERK_TEXT.collector, { sevenDescription: perkText('collector', true) }],
-      ['devil-die', '악마의 재굴림', PERK_TEXT.reroll],
+      ...(['shield', 'blade', 'collector', 'reroll'] as const).map(perkEntry),
       ['die', '홀수 서약', oathDescription('odd')],
       ['die-even', '짝수 서약', oathDescription('even')],
-      ['wheel', '역습 표식', PERK_TEXT.counter, { sevenDescription: perkText('counter', true) }],
+      perkEntry('counter'),
     ],
   },
   {
@@ -154,6 +159,11 @@ const BATTLE_GUIDE: readonly GuideSection<VersionedEntry>[] = [
   },
 ]
 
+function perkEntry(perk: keyof typeof START_PERKS): VersionedEntry {
+  const { icon, name } = START_PERK_CARDS[perk]
+  return [icon, name, PERK_TEXT[perk], { perk }]
+}
+
 export function battleGuideFor(rules: MapRules = CURRENT_MAP_RULES): readonly GuideSection[] {
   const legacy = rules <= 5
   const seven = rules === 7
@@ -164,11 +174,13 @@ export function battleGuideFor(rules: MapRules = CURRENT_MAP_RULES): readonly Gu
       if (options?.reward) {
         const id = options.reward
         if (seven) {
-          if (isBossRelic(id)) return [[symbol, name, bossRelicText(id, true)]]
-          return isSevenTreasure(id) ? [[symbol, name, rewardText(id, true)]] : []
+          const displayName = rewardDisplayName(id, true)
+          if (isBossRelic(id)) return [[symbol, displayName, bossRelicText(id, true)]]
+          return isSevenTreasure(id) ? [[symbol, displayName, rewardText(id, true)]] : []
         }
         if (isNewTreasureId(id)) return []
       }
+      if (seven && options?.perk) return [[symbol, perkDisplayName(options.perk, true), perkText(options.perk, true)]]
       if (seven && options?.sevenDescription) return [[symbol, options.sevenName ?? name, options.sevenDescription]]
       return [[symbol, (legacy && options?.legacyName) || name, (legacy && options?.legacyDescription) || description]]
     }),

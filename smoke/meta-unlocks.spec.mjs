@@ -5,7 +5,8 @@ import { availableMapNodes, enterMapNode, rewardOffers } from '../src/ascent.ts'
 import { ASCENT_SAVE_KEY } from '../src/ascent-save.ts'
 import { ALL_META_FLOORS, META_SAVE_KEY } from '../src/meta-progress.ts'
 import { isMetaPerk } from '../src/meta-unlocks.ts'
-import { offerPerks, START_PERK_CARDS } from '../src/perks.ts'
+import { perkDisplayName } from '../src/display-names.ts'
+import { offerPerks } from '../src/perks.ts'
 import { forecastYacht, resolveYachtTurn } from '../src/yacht-combat.ts'
 import { checkpoint, mapBefore } from './rules-six-fixtures.mjs'
 
@@ -79,14 +80,14 @@ test('새 층 첫 입장, 저장 재진입, 결과에서 여러 쌍 공개와 �
   await page.getByRole('button', { name: '턴 끝내기' }).tap()
   const reveal = page.locator('#meta-reveal')
   await expect(reveal.locator('li')).toHaveCount(4)
-  await expect(reveal.getByText('핏빛 손잡이')).toBeVisible()
+  await expect(reveal.getByText('핏빛 칼자루')).toBeVisible()
   await shot(page, info, 'result-unlocked-cards', reveal)
   await page.locator('#climb-again').tap()
   await expect(page.locator('#boss-relic-slot')).toBeHidden()
   const startingCards = page.locator('#perk-choices .perk-choice')
   await expect(startingCards).toHaveCount(4)
   for (const [index, perk] of offerPerks(seed).entries()) {
-    await expect(startingCards.nth(index)).toContainText(START_PERK_CARDS[perk].name)
+    await expect(startingCards.nth(index)).toContainText(perkDisplayName(perk, true))
   }
   await expect(page.locator('#perk-choices .meta-new').first()).toHaveText('새')
   await expect.poll(async () => (await record(page)).seen.length).toBeGreaterThan(0)
@@ -131,7 +132,7 @@ test('선행 재굴림은 족보를 열기 전 첫 전투에서 특전 1회로 �
   })
   await page.reload()
   await page.getByRole('button', { name: '새로 하기' }).tap()
-  await page.getByRole('button', { name: /선행 재굴림/ }).tap()
+  await page.getByRole('button', { name: /첫수의 행운/ }).tap()
   await page.getByRole('group', { name: '다음 층 선택' }).getByRole('button', { name: /^전투/ }).tap()
   await page.locator('#enter-room').tap()
   await expect(page.locator('#room-transition')).toBeHidden()

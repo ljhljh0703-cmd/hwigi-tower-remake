@@ -44,21 +44,6 @@ const normalEnemies = [['lock', 'freeze'], ['thorns', 'rage']] as const
 const eliteEnemies = ['reaction', 'vitality', 'escort'] as const
 const roster = [...ASCENT_ENEMIES.flat(), ...MAP_ENEMIES]
 
-export const MAP_ENEMY_BADGES = {
-  'shield-soldier': { icon: 'reaction', label: '방패병' },
-  'seal-sentinel': { icon: 'seal', label: '봉인 파수꾼' },
-  'iron-knight': { icon: 'charge', label: '철갑 기사' },
-} satisfies Partial<Record<AscentEnemyId, { icon: string; label: string }>>
-
-export const RULES_SIX_BADGES = {
-  freeze: { icon: 'sword', label: '엇걸음병' },
-  reaction: { icon: 'shield', label: '갑주 강적' },
-  vitality: { icon: 'treasure-hammer', label: '철추 강적' },
-  escort: { icon: 'escort', label: '호위 강적' },
-  'seal-sentinel': { icon: 'knockdown', label: '눈금 파수꾼' },
-  'chain-warden': { icon: 'treasure-hammer', label: '쇠사슬 집행관' },
-} satisfies Partial<Record<AscentEnemyId, { icon: string; label: string }>>
-
 function forkKinds(seed: number, floor: number, rules: MapRules): readonly MapNodeKind[] {
   const merchantFloor = rules >= 6 ? 7 + draw(seed, 0, 90) % 2 : 6 + draw(seed, 0, 90) % 3
   const earlyEvent = 3 + draw(seed, 0, 91) % 3

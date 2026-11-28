@@ -282,6 +282,7 @@
           </div>
           <div id="escort-guard" class="combatant escort-guard" hidden>
             <div id="escort-guard-vital" class="vital" role="img">
+              <strong id="escort-guard-name" aria-hidden="true" hidden></strong>
               <svg class="icon" aria-hidden="true"><use href="#icon-heart"/></svg><span id="escort-guard-total"></span>
             </div>
           </div>
@@ -326,7 +327,7 @@
                   <span class="slot-total"><strong id="attack-total">0</strong><small id="attack-bonus" class="slot-bonus" hidden></small><small id="wedge-bonus" class="slot-bonus" hidden></small></span>
                 </button>
                 <span id="blade-meter" role="group" tabindex="0" data-hold-help hidden>
-                  <meter min="0" aria-label="큰 칼 충전"></meter>
+                  <meter min="0" aria-label="다음 공격 충전"></meter>
                 </span>
               </div>
               <div id="attack-dice" class="dice-row"></div>
@@ -465,10 +466,12 @@
       <div class="guide-tabs" role="tablist" aria-label="등반 도감">
         <button id="guide-run-tab" type="button" role="tab" aria-selected="true" aria-controls="guide-entries">이번 등반</button>
         <button id="guide-dice-tab" type="button" role="tab" aria-selected="false" aria-controls="guide-dice">주사위</button>
+        <button id="guide-enemies-tab" type="button" role="tab" aria-selected="false" aria-controls="guide-enemies">적</button>
         <button id="guide-meta-tab" type="button" role="tab" aria-selected="false" aria-controls="guide-meta">다음 등반</button>
       </div>
       <div id="guide-entries" tabindex="0" role="region" aria-label="아이콘 목록"></div>
       <div id="guide-dice" tabindex="0" role="region" aria-label="주사위 해금" hidden></div>
+      <div id="guide-enemies" tabindex="0" role="region" aria-label="적과 구역" hidden></div>
       <div id="guide-meta" tabindex="0" role="region" aria-label="다음 등반 해금" hidden></div>
     </dialog>
     <dialog id="settings" aria-labelledby="settings-title">

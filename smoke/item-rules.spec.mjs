@@ -364,7 +364,7 @@ test('예비 눈금의 선택과 새긴 동전의 두 번째 칸을 새로고침
   await resume(page, { ...parry, battle: { ...parry.battle, turn: 2, awakened: true, dice: [1, 3, 3, 6], slots: [a, g, g, a],
     loot: { ...parry.battle.loot, consumables: { coin: 1 } } } })
   await finish(page).tap()
-  const coin = page.getByRole('button', { name: '새긴 동전으로 룰렛 한 번 더 돌리기' })
+  const coin = page.getByRole('button', { name: '점술사의 은화로 룰렛 한 번 더 돌리기' })
   await page.getByRole('button', { name: '룰렛 돌리기' }).tap()
   await page.getByRole('button', { name: '룰렛 멈추기' }).tap()
   await expect(coin).toBeInViewport({ ratio: 1 })

@@ -187,15 +187,20 @@ test('6층 전투에서 보스 유물 네 장을 보고 고른 뒤 7층의 두 �
     await expect(card).toBeInViewport({ ratio: 1 })
     expect((await card.boundingBox()).height).toBeGreaterThanOrEqual(72)
   }
-  const rewardCenter = () => page.locator('#reward-panel').evaluate((element) => {
-    const { top, height } = element.getBoundingClientRect()
-    return (top + height / 2) / innerHeight
-  })
-  expect(Math.abs(await rewardCenter() - 0.4)).toBeLessThan(0.02)
+  const rewardPanel = page.locator('#reward-panel')
+  async function checkRewardPlacement() {
+    await expect(rewardPanel).toBeInViewport({ ratio: 1 })
+    const distance = await rewardPanel.evaluate((element) => {
+      const { top, height } = element.getBoundingClientRect()
+      return Math.abs(top + height / 2 - innerHeight * 0.4)
+    })
+    expect(distance).toBeLessThanOrEqual(Math.ceil(page.viewportSize().height * 0.02))
+  }
+  await checkRewardPlacement()
   await cards.filter({ hasText: '제동 왕관' }).tap()
   await expect(page.locator('#reward-preview')).toContainText('첫 정확 방어')
   await expect(page.locator('#confirm-reward')).toBeInViewport({ ratio: 1 })
-  expect(Math.abs(await rewardCenter() - 0.4)).toBeLessThan(0.02)
+  await checkRewardPlacement()
   await photograph(page, 'boss-reward', info)
   await page.reload()
   await page.getByRole('button', { name: '이어하기' }).tap()

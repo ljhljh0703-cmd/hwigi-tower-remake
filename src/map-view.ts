@@ -2,8 +2,8 @@ import { ENEMY_SPRITES } from './arena.ts'
 import { availableMapNodes, enterMapNode } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import { attackFor, enemyIntentAt } from './combat.ts'
-import { MAP_ENEMY_BADGES, RULES_SIX_BADGES } from './ascent-map.ts'
 import type { MapNode, MapNodeKind } from './ascent-map.ts'
+import { enemyBadge } from './enemy-codex.ts'
 import type { AscentEnemyId } from './enemy-roster.ts'
 import { SHOP_PRICES } from './map-treasure.ts'
 import { icon, pixelIcon } from './icons.ts'
@@ -14,20 +14,6 @@ export const MAP_NODE_ICONS: Record<MapNodeKind, string> = {
 const names: Record<MapNodeKind, string> = {
   fight: '전투', elite: '강적', rest: '휴식', boss: '보스', event: '이벤트', shop: '상인',
 }
-const rulesSixBadges: Partial<Record<AscentEnemyId, { label: string }>> = RULES_SIX_BADGES
-export const ENEMY_BADGES: Record<AscentEnemyId, { icon: string; label: string }> = {
-  thorns: { icon: 'thorns', label: '가시 골렘' },
-  lock: { icon: 'lock', label: '자물쇠' },
-  freeze: { icon: 'freeze', label: '얼림' },
-  rage: { icon: 'rage', label: '격분' },
-  reaction: { icon: 'reaction', label: '반응' },
-  vitality: { icon: 'vitality', label: '체력 비례 일격' },
-  escort: { icon: 'escort', label: '호위와 주사위 빼앗기' },
-  boss: { icon: 'charge', label: '힘 모으는 보스' },
-  'chain-warden': RULES_SIX_BADGES['chain-warden'],
-  ...MAP_ENEMY_BADGES,
-}
-
 function portraitFor(enemy: AscentEnemyId, className: string) {
   const url = new URL(`art/${ENEMY_SPRITES[enemy].name}-idle.png`, document.baseURI)
   return `<img class="${className}" alt="" src="${url.href}">`
@@ -93,7 +79,7 @@ export class ForkView {
     this.choice.setAttribute('aria-pressed', 'true')
     if (room.route?.screen === 'battle') {
       const { battle, enemy } = room
-      const name = (battle.rulesSix && rulesSixBadges[enemy.id]?.label) || ENEMY_BADGES[enemy.id].label
+      const name = enemyBadge(enemy.id, ascent.route!.map.rules).label
       this.previewContent.innerHTML = `${portraitFor(enemy.id, 'fork-preview-portrait')}
         <div><strong>${name}</strong><div class="fork-preview-stats">
           <span aria-label="적 체력 ${battle.enemyHp}">${icon('heart')}${battle.enemyHp}</span>
@@ -141,7 +127,7 @@ export class ForkView {
       const entered = enterMapNode(ascent, node.id)
       const enemy = entered.route?.screen === 'battle' ? entered.enemy : undefined
       const rulesSix = rules >= 6
-      const label = rulesSix && node.enemyId ? rulesSixBadges[node.enemyId]?.label : undefined
+      const label = rulesSix && node.enemyId ? enemyBadge(node.enemyId, rules).label : undefined
       const reward = rulesSix && node.kind === 'elite' ? `<span class="fork-relic" role="img" aria-label="유물 보상">${icon('map-relic')}</span>` : ''
       const hint = enemy ? `<span class="fork-hint"><span aria-label="${label ? `${label}, ` : ''}적 체력 ${enemy.hp}">${icon('heart')}${enemy.hp}</span>${firstAttack(entered)}</span>`
         : node.kind === 'shop' && ascent.route!.map.rules >= 3

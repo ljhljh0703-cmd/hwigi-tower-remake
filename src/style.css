@@ -176,6 +176,7 @@ body:has(#battle-guide[open], #lobby-confirm[open], #inventory-detail[open], #se
 
 #room-transition { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: #1c1915; }
 #room-floor { color: #ffe4af; font-size: clamp(3rem, 15vw, 5rem); line-height: 1; }
+#room-floor.room-floor-region { padding-inline: 16px; text-align: center; font-size: clamp(1.2rem, 5.7vw, 2.75rem); line-height: 1.4; word-break: keep-all; }
 [data-entering] :is(#fork-heading, #fork-preview, .fork-caption, .fork-relic, .fork-card[aria-pressed='false']) { visibility: hidden; }
 
 #battle-guide, #settings {
@@ -241,8 +242,11 @@ body:has(#battle-guide[open], #lobby-confirm[open], #inventory-detail[open], #se
 }
 
 .guide-header h2 { font-size: 1.1rem; }
-#guide-entries { overflow: auto; overscroll-behavior: contain; padding: 16px; word-break: keep-all; }
-#guide-entries:focus-visible { outline: 2px solid #f1f0ee; outline-offset: -2px; }
+:is(#guide-entries, #guide-enemies) { overflow: auto; overscroll-behavior: contain; padding: 16px; word-break: keep-all; }
+:is(#guide-entries, #guide-enemies):focus-visible { outline: 2px solid #f1f0ee; outline-offset: -2px; }
+.codex-region > p { margin: 0 0 8px; color: #dad2c6; font-size: .86rem; }
+.codex-region small { color: #e7b982; font-size: .75rem; }
+.codex-region dd small { display: block; margin-bottom: 2px; }
 .guide-section + .guide-section { margin-block-start: 22px; }
 .guide-section h3 { margin: 0 0 8px; color: #f6c795; font-size: .92rem; }
 .guide-section dl, .guide-entry dd { margin: 0; }
@@ -1280,6 +1284,17 @@ main[data-screen='battle'] {
   font-size: .85rem;
   font-weight: 700;
   line-height: 1.45;
+}
+#escort-guard-name {
+  position: absolute;
+  inset-block-end: calc(100% + 3px);
+  inset-inline-start: 50%;
+  translate: -50%;
+  padding-inline: 4px;
+  background: #25221f;
+  color: #fff0c9;
+  white-space: nowrap;
+  font-size: .72rem;
 }
 
 meter {

@@ -38,7 +38,9 @@ test('the rules-seven guide replaces the retired loot and its own relic text', (
   for (const name of ['되감기 핀', '봉인집게', '분할 망토', '회수 매듭', '호위 갈고리', '응급 천', '협공 잔편', '강타 잔편', '금 가르는 망치']) {
     assert.ok(!current.includes(name), name)
   }
-  assert.match(current, /쌍금 틀/)
+  assert.match(current, /쌍둥이 거푸집/)
+  assert.match(current, /간격자/)
+  assert.doesNotMatch(current, /쌍금 틀|한 치 빗장/)
   assert.match(current, /룰렛 피해는 절반/)
   assert.match(current, /기본 재굴림 시 체력 1/)
   assert.match(JSON.stringify(battleGuideFor(6)), /호위 갈고리/)
