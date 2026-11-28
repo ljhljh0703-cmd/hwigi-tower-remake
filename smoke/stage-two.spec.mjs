@@ -92,12 +92,12 @@ async function inFrame(page, selectors) {
     expect(item.x + item.width).toBeLessThanOrEqual(width)
     expect(item.y + item.height).toBeLessThanOrEqual(height)
   }
-  const healthFits = await page.locator('.upper-card').evaluateAll(nodes => nodes.every(node => {
+  const healthMargins = await page.locator('.upper-card').evaluateAll(nodes => nodes.map(node => {
     const card = node.getBoundingClientRect()
     const hp = node.querySelector('.upper-hp').getBoundingClientRect()
-    return hp.left > card.left && hp.right < card.right
+    return { role: node.dataset.role, left: hp.left - card.left, right: card.right - hp.right }
   }))
-  expect(healthFits).toBe(true)
+  for (const { role, left, right } of healthMargins) expect(Math.min(left, right), role).toBeGreaterThan(0)
   const cards = await page.locator('.upper-card').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().toJSON()))
   if (cards.length && await page.locator('#planning').isVisible()) {
     const planning = await page.locator('#planning').boundingBox()

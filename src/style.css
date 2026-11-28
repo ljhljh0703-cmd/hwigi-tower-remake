@@ -2700,7 +2700,7 @@ main[data-screen='defeat'] {
 .upper-card:not([data-lane='0']) .upper-position > span { color: #c9c9b5; }
 .upper-card[data-counter-target] { outline: 2px solid #f0cb82; outline-offset: 2px; }
 .upper-hp, .upper-intent { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
-.upper-hp { font-size: .92rem; margin: 2px 0; }
+.upper-hp { font: .92rem/1.15 ui-monospace, monospace; margin: 2px 0; }
 .upper-hp > small { color: #d3c3ac; font-size: .67rem; }
 .upper-hp .icon { color: #f2ab91; font-size: .74rem; }
 .upper-intent { min-block-size: 15px; color: #f8ca83; }
@@ -2748,9 +2748,9 @@ main[data-screen='defeat'] {
   .upper-field #ego-presence { padding: 2px 3px; gap: 2px; font-size: .7rem; }
   .upper-card { inline-size: 52px; padding-block: 1px; }
   .upper-hp, .upper-intent { gap: 2px; }
-  .upper-hp { margin-block: 1px; font-size: .8rem; }
-  .upper-hp > small { font-size: .6rem; }
-  .upper-hp .icon { font-size: .65rem; }
+  .upper-hp { margin-block: 1px; font-size: 12px; }
+  .upper-hp > small { font-size: 9px; }
+  .upper-hp .icon { inline-size: 10px; block-size: 10px; flex: none; }
   .upper-preview { min-block-size: 12px; }
   .upper-field ~ #planning .slot .dice-row {
     flex-wrap: nowrap;
