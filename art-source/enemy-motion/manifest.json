@@ -3400,6 +3400,1510 @@
           "drawing": "0e5c87357c15"
         }
       ]
+    },
+    {
+      "id": "upper-dash",
+      "label": "upper-dash",
+      "source": "art-source/enemy-motion/raw/upper-dash.png",
+      "sheet": "art-source/enemy-motion/atlases/upper-dash.png",
+      "frameCount": 16,
+      "width": 192,
+      "height": 192,
+      "pivot": [
+        24,
+        43
+      ],
+      "reference": "public/art/seal-sentinel-idle.png",
+      "frames": [
+        {
+          "id": "ready",
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            19,
+            38,
+            24
+          ],
+          "alphaPixels": 570,
+          "drawing": "68ee3e86f1c8"
+        },
+        {
+          "id": "anticipate",
+          "index": 1,
+          "rect": [
+            48,
+            0,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            20,
+            38,
+            23
+          ],
+          "alphaPixels": 539,
+          "drawing": "685c439963e9"
+        },
+        {
+          "id": "approach",
+          "index": 2,
+          "rect": [
+            96,
+            0,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            21,
+            42,
+            22
+          ],
+          "alphaPixels": 547,
+          "drawing": "b3087e4a7918"
+        },
+        {
+          "id": "contact",
+          "index": 3,
+          "rect": [
+            144,
+            0,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            21,
+            43,
+            22
+          ],
+          "alphaPixels": 568,
+          "drawing": "4d8ed3da601e",
+          "candidateContact": [
+            1,
+            34
+          ]
+        },
+        {
+          "id": "follow",
+          "index": 4,
+          "rect": [
+            0,
+            48,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            20,
+            41,
+            23
+          ],
+          "alphaPixels": 602,
+          "drawing": "4cf1bb2b0cca"
+        },
+        {
+          "id": "reload",
+          "index": 5,
+          "rect": [
+            48,
+            48,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            20,
+            39,
+            23
+          ],
+          "alphaPixels": 546,
+          "drawing": "e284c59c40ff"
+        },
+        {
+          "id": "repeat-contact",
+          "index": 6,
+          "rect": [
+            96,
+            48,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            20,
+            40,
+            23
+          ],
+          "alphaPixels": 556,
+          "drawing": "56f5002c1c24",
+          "candidateContact": [
+            2,
+            33
+          ]
+        },
+        {
+          "id": "special-contact",
+          "index": 7,
+          "rect": [
+            144,
+            48,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            22,
+            39,
+            21
+          ],
+          "alphaPixels": 544,
+          "drawing": "56f38d87f869",
+          "candidateContact": [
+            3,
+            34
+          ]
+        },
+        {
+          "id": "hit",
+          "index": 8,
+          "rect": [
+            0,
+            96,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            20,
+            37,
+            23
+          ],
+          "alphaPixels": 551,
+          "drawing": "cc0a9bfc0969"
+        },
+        {
+          "id": "heavy-hit",
+          "index": 9,
+          "rect": [
+            48,
+            96,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            19,
+            37,
+            24
+          ],
+          "alphaPixels": 569,
+          "drawing": "fb7c9e01f41d"
+        },
+        {
+          "id": "fall",
+          "index": 10,
+          "rect": [
+            96,
+            96,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            23,
+            40,
+            20
+          ],
+          "alphaPixels": 550,
+          "drawing": "15ec8f7a9d2b"
+        },
+        {
+          "id": "down",
+          "index": 11,
+          "rect": [
+            144,
+            96,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            29,
+            43,
+            14
+          ],
+          "alphaPixels": 410,
+          "drawing": "7fc8f215f3ea"
+        },
+        {
+          "id": "step-plant",
+          "index": 12,
+          "rect": [
+            0,
+            144,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            20,
+            40,
+            23
+          ],
+          "alphaPixels": 559,
+          "drawing": "b3ca6a60ffe0"
+        },
+        {
+          "id": "step-stride",
+          "index": 13,
+          "rect": [
+            48,
+            144,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            20,
+            39,
+            23
+          ],
+          "alphaPixels": 557,
+          "drawing": "7881f2ef4162"
+        },
+        {
+          "id": "rear-ready",
+          "index": 14,
+          "rect": [
+            96,
+            144,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            18,
+            36,
+            25
+          ],
+          "alphaPixels": 592,
+          "drawing": "f4f4dfe86503"
+        },
+        {
+          "id": "rear-anticipate",
+          "index": 15,
+          "rect": [
+            144,
+            144,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            18,
+            36,
+            25
+          ],
+          "alphaPixels": 616,
+          "drawing": "4958b0342ba3"
+        }
+      ]
+    },
+    {
+      "id": "upper-shield",
+      "label": "upper-shield",
+      "source": "art-source/enemy-motion/raw/upper-shield.png",
+      "sheet": "art-source/enemy-motion/atlases/upper-shield.png",
+      "frameCount": 16,
+      "width": 192,
+      "height": 192,
+      "pivot": [
+        24,
+        43
+      ],
+      "reference": "public/art/shield-soldier-idle.png",
+      "frames": [
+        {
+          "id": "ready",
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            48,
+            48
+          ],
+          "bounds": [
+            11,
+            18,
+            17,
+            25
+          ],
+          "alphaPixels": 312,
+          "drawing": "7bfb4a32fc98"
+        },
+        {
+          "id": "anticipate",
+          "index": 1,
+          "rect": [
+            48,
+            0,
+            48,
+            48
+          ],
+          "bounds": [
+            10,
+            18,
+            16,
+            25
+          ],
+          "alphaPixels": 285,
+          "drawing": "83d465bb39ed"
+        },
+        {
+          "id": "approach",
+          "index": 2,
+          "rect": [
+            96,
+            0,
+            48,
+            48
+          ],
+          "bounds": [
+            6,
+            19,
+            21,
+            24
+          ],
+          "alphaPixels": 322,
+          "drawing": "c76cf44506cc"
+        },
+        {
+          "id": "contact",
+          "index": 3,
+          "rect": [
+            144,
+            0,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            21,
+            27,
+            22
+          ],
+          "alphaPixels": 323,
+          "drawing": "46610081658f",
+          "candidateContact": [
+            1,
+            40
+          ]
+        },
+        {
+          "id": "follow",
+          "index": 4,
+          "rect": [
+            0,
+            48,
+            48,
+            48
+          ],
+          "bounds": [
+            2,
+            21,
+            26,
+            22
+          ],
+          "alphaPixels": 330,
+          "drawing": "0d20a7e94ffe"
+        },
+        {
+          "id": "reload",
+          "index": 5,
+          "rect": [
+            48,
+            48,
+            48,
+            48
+          ],
+          "bounds": [
+            10,
+            19,
+            18,
+            24
+          ],
+          "alphaPixels": 308,
+          "drawing": "09da432bf0c9"
+        },
+        {
+          "id": "repeat-contact",
+          "index": 6,
+          "rect": [
+            96,
+            48,
+            48,
+            48
+          ],
+          "bounds": [
+            2,
+            20,
+            25,
+            23
+          ],
+          "alphaPixels": 325,
+          "drawing": "3b223eec6f98",
+          "candidateContact": [
+            2,
+            38
+          ]
+        },
+        {
+          "id": "special-contact",
+          "index": 7,
+          "rect": [
+            144,
+            48,
+            48,
+            48
+          ],
+          "bounds": [
+            8,
+            18,
+            20,
+            25
+          ],
+          "alphaPixels": 314,
+          "drawing": "a8b507b9abc1",
+          "candidateContact": [
+            8,
+            33
+          ]
+        },
+        {
+          "id": "hit",
+          "index": 8,
+          "rect": [
+            0,
+            96,
+            48,
+            48
+          ],
+          "bounds": [
+            11,
+            19,
+            17,
+            24
+          ],
+          "alphaPixels": 274,
+          "drawing": "c0c055eac471"
+        },
+        {
+          "id": "heavy-hit",
+          "index": 9,
+          "rect": [
+            48,
+            96,
+            48,
+            48
+          ],
+          "bounds": [
+            11,
+            19,
+            20,
+            24
+          ],
+          "alphaPixels": 281,
+          "drawing": "e3298ecbc31b"
+        },
+        {
+          "id": "fall",
+          "index": 10,
+          "rect": [
+            96,
+            96,
+            48,
+            48
+          ],
+          "bounds": [
+            7,
+            23,
+            21,
+            20
+          ],
+          "alphaPixels": 294,
+          "drawing": "e21d8fb32c94"
+        },
+        {
+          "id": "down",
+          "index": 11,
+          "rect": [
+            144,
+            96,
+            48,
+            48
+          ],
+          "bounds": [
+            4,
+            30,
+            25,
+            13
+          ],
+          "alphaPixels": 203,
+          "drawing": "bf95c47f988d"
+        },
+        {
+          "id": "step-plant",
+          "index": 12,
+          "rect": [
+            0,
+            144,
+            48,
+            48
+          ],
+          "bounds": [
+            11,
+            19,
+            16,
+            24
+          ],
+          "alphaPixels": 281,
+          "drawing": "f14cc1adfe07"
+        },
+        {
+          "id": "step-stride",
+          "index": 13,
+          "rect": [
+            48,
+            144,
+            48,
+            48
+          ],
+          "bounds": [
+            11,
+            19,
+            15,
+            24
+          ],
+          "alphaPixels": 254,
+          "drawing": "0f60d82e6983"
+        },
+        {
+          "id": "rear-ready",
+          "index": 14,
+          "rect": [
+            96,
+            144,
+            48,
+            48
+          ],
+          "bounds": [
+            14,
+            19,
+            15,
+            24
+          ],
+          "alphaPixels": 274,
+          "drawing": "7e7638232a7e"
+        },
+        {
+          "id": "rear-anticipate",
+          "index": 15,
+          "rect": [
+            144,
+            144,
+            48,
+            48
+          ],
+          "bounds": [
+            12,
+            19,
+            16,
+            24
+          ],
+          "alphaPixels": 273,
+          "drawing": "dd56f7707351"
+        }
+      ]
+    },
+    {
+      "id": "upper-support",
+      "label": "upper-support",
+      "source": "art-source/enemy-motion/raw/upper-support.png",
+      "sheet": "art-source/enemy-motion/atlases/upper-support.png",
+      "frameCount": 16,
+      "width": 192,
+      "height": 192,
+      "pivot": [
+        24,
+        43
+      ],
+      "reference": "public/art/escort-idle.png",
+      "frames": [
+        {
+          "id": "ready",
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            48,
+            48
+          ],
+          "bounds": [
+            14,
+            17,
+            15,
+            26
+          ],
+          "alphaPixels": 222,
+          "drawing": "836ef8cc58f5"
+        },
+        {
+          "id": "anticipate",
+          "index": 1,
+          "rect": [
+            48,
+            0,
+            48,
+            48
+          ],
+          "bounds": [
+            9,
+            21,
+            19,
+            22
+          ],
+          "alphaPixels": 225,
+          "drawing": "6713d3435fc9"
+        },
+        {
+          "id": "approach",
+          "index": 2,
+          "rect": [
+            96,
+            0,
+            48,
+            48
+          ],
+          "bounds": [
+            7,
+            18,
+            21,
+            25
+          ],
+          "alphaPixels": 236,
+          "drawing": "e79a9b7b608d"
+        },
+        {
+          "id": "contact",
+          "index": 3,
+          "rect": [
+            144,
+            0,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            19,
+            29,
+            24
+          ],
+          "alphaPixels": 242,
+          "drawing": "e596cc756789",
+          "candidateContact": [
+            1,
+            28
+          ]
+        },
+        {
+          "id": "follow",
+          "index": 4,
+          "rect": [
+            0,
+            48,
+            48,
+            48
+          ],
+          "bounds": [
+            4,
+            20,
+            24,
+            23
+          ],
+          "alphaPixels": 235,
+          "drawing": "484953b1f969"
+        },
+        {
+          "id": "reload",
+          "index": 5,
+          "rect": [
+            48,
+            48,
+            48,
+            48
+          ],
+          "bounds": [
+            6,
+            20,
+            22,
+            23
+          ],
+          "alphaPixels": 244,
+          "drawing": "9911d3a5113f"
+        },
+        {
+          "id": "repeat-contact",
+          "index": 6,
+          "rect": [
+            96,
+            48,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            20,
+            26,
+            23
+          ],
+          "alphaPixels": 230,
+          "drawing": "dbb1f30df59f",
+          "candidateContact": [
+            1,
+            30
+          ]
+        },
+        {
+          "id": "special-contact",
+          "index": 7,
+          "rect": [
+            144,
+            48,
+            48,
+            48
+          ],
+          "bounds": [
+            2,
+            19,
+            27,
+            24
+          ],
+          "alphaPixels": 246,
+          "drawing": "bfd59e64842f",
+          "candidateContact": [
+            2,
+            27
+          ]
+        },
+        {
+          "id": "hit",
+          "index": 8,
+          "rect": [
+            0,
+            96,
+            48,
+            48
+          ],
+          "bounds": [
+            10,
+            19,
+            18,
+            24
+          ],
+          "alphaPixels": 235,
+          "drawing": "0cfca29f1234"
+        },
+        {
+          "id": "heavy-hit",
+          "index": 9,
+          "rect": [
+            48,
+            96,
+            48,
+            48
+          ],
+          "bounds": [
+            12,
+            19,
+            17,
+            24
+          ],
+          "alphaPixels": 235,
+          "drawing": "1df33a0915d0"
+        },
+        {
+          "id": "fall",
+          "index": 10,
+          "rect": [
+            96,
+            96,
+            48,
+            48
+          ],
+          "bounds": [
+            6,
+            26,
+            22,
+            17
+          ],
+          "alphaPixels": 209,
+          "drawing": "34ab06415e53"
+        },
+        {
+          "id": "down",
+          "index": 11,
+          "rect": [
+            144,
+            96,
+            48,
+            48
+          ],
+          "bounds": [
+            1,
+            33,
+            28,
+            10
+          ],
+          "alphaPixels": 184,
+          "drawing": "e24b4960e704"
+        },
+        {
+          "id": "step-plant",
+          "index": 12,
+          "rect": [
+            0,
+            144,
+            48,
+            48
+          ],
+          "bounds": [
+            12,
+            18,
+            16,
+            25
+          ],
+          "alphaPixels": 209,
+          "drawing": "57ee6da51c81"
+        },
+        {
+          "id": "step-stride",
+          "index": 13,
+          "rect": [
+            48,
+            144,
+            48,
+            48
+          ],
+          "bounds": [
+            12,
+            18,
+            17,
+            25
+          ],
+          "alphaPixels": 213,
+          "drawing": "392abd71dff2"
+        },
+        {
+          "id": "rear-ready",
+          "index": 14,
+          "rect": [
+            96,
+            144,
+            48,
+            48
+          ],
+          "bounds": [
+            14,
+            18,
+            14,
+            25
+          ],
+          "alphaPixels": 224,
+          "drawing": "2d901be33c68"
+        },
+        {
+          "id": "rear-anticipate",
+          "index": 15,
+          "rect": [
+            144,
+            144,
+            48,
+            48
+          ],
+          "bounds": [
+            10,
+            18,
+            18,
+            25
+          ],
+          "alphaPixels": 266,
+          "drawing": "ab1445755317"
+        }
+      ]
+    },
+    {
+      "id": "upper-boss",
+      "label": "upper-boss",
+      "source": "art-source/enemy-motion/raw/upper-boss.png",
+      "sheet": "art-source/enemy-motion/atlases/upper-boss.png",
+      "frameCount": 16,
+      "width": 320,
+      "height": 320,
+      "pivot": [
+        40,
+        71
+      ],
+      "reference": "public/art/boss-idle.png",
+      "frames": [
+        {
+          "id": "ready",
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            80,
+            80
+          ],
+          "bounds": [
+            18,
+            38,
+            29,
+            33
+          ],
+          "alphaPixels": 607,
+          "drawing": "9a2871724484"
+        },
+        {
+          "id": "anticipate",
+          "index": 1,
+          "rect": [
+            80,
+            0,
+            80,
+            80
+          ],
+          "bounds": [
+            15,
+            39,
+            32,
+            32
+          ],
+          "alphaPixels": 606,
+          "drawing": "b264a9b167f4"
+        },
+        {
+          "id": "approach",
+          "index": 2,
+          "rect": [
+            160,
+            0,
+            80,
+            80
+          ],
+          "bounds": [
+            10,
+            41,
+            36,
+            30
+          ],
+          "alphaPixels": 598,
+          "drawing": "5beddd88b944"
+        },
+        {
+          "id": "contact",
+          "index": 3,
+          "rect": [
+            240,
+            0,
+            80,
+            80
+          ],
+          "bounds": [
+            3,
+            43,
+            42,
+            28
+          ],
+          "alphaPixels": 608,
+          "drawing": "302cb3555b3a",
+          "candidateContact": [
+            3,
+            58
+          ]
+        },
+        {
+          "id": "follow",
+          "index": 4,
+          "rect": [
+            0,
+            80,
+            80,
+            80
+          ],
+          "bounds": [
+            9,
+            42,
+            37,
+            29
+          ],
+          "alphaPixels": 595,
+          "drawing": "5971df317f4c"
+        },
+        {
+          "id": "reload",
+          "index": 5,
+          "rect": [
+            80,
+            80,
+            80,
+            80
+          ],
+          "bounds": [
+            14,
+            41,
+            32,
+            30
+          ],
+          "alphaPixels": 567,
+          "drawing": "ebdf787bc030"
+        },
+        {
+          "id": "repeat-contact",
+          "index": 6,
+          "rect": [
+            160,
+            80,
+            80,
+            80
+          ],
+          "bounds": [
+            6,
+            43,
+            40,
+            28
+          ],
+          "alphaPixels": 595,
+          "drawing": "44e86c396d0d",
+          "candidateContact": [
+            6,
+            57
+          ]
+        },
+        {
+          "id": "special-contact",
+          "index": 7,
+          "rect": [
+            240,
+            80,
+            80,
+            80
+          ],
+          "bounds": [
+            18,
+            39,
+            28,
+            32
+          ],
+          "alphaPixels": 583,
+          "drawing": "295804c70c69",
+          "candidateContact": [
+            18,
+            65
+          ]
+        },
+        {
+          "id": "hit",
+          "index": 8,
+          "rect": [
+            0,
+            160,
+            80,
+            80
+          ],
+          "bounds": [
+            15,
+            39,
+            31,
+            32
+          ],
+          "alphaPixels": 602,
+          "drawing": "a275547a14b9"
+        },
+        {
+          "id": "heavy-hit",
+          "index": 9,
+          "rect": [
+            80,
+            160,
+            80,
+            80
+          ],
+          "bounds": [
+            15,
+            38,
+            33,
+            33
+          ],
+          "alphaPixels": 629,
+          "drawing": "97cdf049ee54"
+        },
+        {
+          "id": "fall",
+          "index": 10,
+          "rect": [
+            160,
+            160,
+            80,
+            80
+          ],
+          "bounds": [
+            10,
+            45,
+            37,
+            26
+          ],
+          "alphaPixels": 584,
+          "drawing": "7a9eebfa4058"
+        },
+        {
+          "id": "down",
+          "index": 11,
+          "rect": [
+            240,
+            160,
+            80,
+            80
+          ],
+          "bounds": [
+            8,
+            49,
+            40,
+            22
+          ],
+          "alphaPixels": 559,
+          "drawing": "691bd8606dc8"
+        },
+        {
+          "id": "step-plant",
+          "index": 12,
+          "rect": [
+            0,
+            240,
+            80,
+            80
+          ],
+          "bounds": [
+            14,
+            39,
+            34,
+            32
+          ],
+          "alphaPixels": 617,
+          "drawing": "086549b2617b"
+        },
+        {
+          "id": "step-stride",
+          "index": 13,
+          "rect": [
+            80,
+            240,
+            80,
+            80
+          ],
+          "bounds": [
+            12,
+            39,
+            34,
+            32
+          ],
+          "alphaPixels": 625,
+          "drawing": "4c21c706bea3"
+        },
+        {
+          "id": "rear-ready",
+          "index": 14,
+          "rect": [
+            160,
+            240,
+            80,
+            80
+          ],
+          "bounds": [
+            22,
+            45,
+            24,
+            26
+          ],
+          "alphaPixels": 395,
+          "drawing": "8ebf6d5ecc82"
+        },
+        {
+          "id": "rear-anticipate",
+          "index": 15,
+          "rect": [
+            240,
+            240,
+            80,
+            80
+          ],
+          "bounds": [
+            18,
+            45,
+            27,
+            26
+          ],
+          "alphaPixels": 402,
+          "drawing": "42bbde53a60b"
+        }
+      ]
+    },
+    {
+      "id": "upper-boss-special",
+      "label": "upper-boss-special",
+      "source": "art-source/enemy-motion/raw/upper-boss-special.png",
+      "sheet": "art-source/enemy-motion/atlases/upper-boss-special.png",
+      "frameCount": 12,
+      "width": 320,
+      "height": 240,
+      "pivot": [
+        40,
+        71
+      ],
+      "reference": "public/art/boss-idle.png",
+      "frames": [
+        {
+          "id": "charge-set",
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            80,
+            80
+          ],
+          "bounds": [
+            23,
+            39,
+            22,
+            32
+          ],
+          "alphaPixels": 464,
+          "drawing": "432a91e692fc"
+        },
+        {
+          "id": "charge-peak",
+          "index": 1,
+          "rect": [
+            80,
+            0,
+            80,
+            80
+          ],
+          "bounds": [
+            24,
+            31,
+            20,
+            40
+          ],
+          "alphaPixels": 475,
+          "drawing": "67ebe61cc45f"
+        },
+        {
+          "id": "charge-approach",
+          "index": 2,
+          "rect": [
+            160,
+            0,
+            80,
+            80
+          ],
+          "bounds": [
+            21,
+            35,
+            23,
+            36
+          ],
+          "alphaPixels": 494,
+          "drawing": "22cae38e8919"
+        },
+        {
+          "id": "charge-contact",
+          "index": 3,
+          "rect": [
+            240,
+            0,
+            80,
+            80
+          ],
+          "bounds": [
+            6,
+            48,
+            39,
+            23
+          ],
+          "alphaPixels": 454,
+          "drawing": "05dc3312affc",
+          "candidateContact": [
+            7,
+            61
+          ]
+        },
+        {
+          "id": "charge-follow",
+          "index": 4,
+          "rect": [
+            0,
+            80,
+            80,
+            80
+          ],
+          "bounds": [
+            9,
+            44,
+            36,
+            27
+          ],
+          "alphaPixels": 543,
+          "drawing": "9a9034a8e7be"
+        },
+        {
+          "id": "weak-set",
+          "index": 5,
+          "rect": [
+            80,
+            80,
+            80,
+            80
+          ],
+          "bounds": [
+            16,
+            43,
+            29,
+            28
+          ],
+          "alphaPixels": 487,
+          "drawing": "14e4bc38111a"
+        },
+        {
+          "id": "weak-contact",
+          "index": 6,
+          "rect": [
+            160,
+            80,
+            80,
+            80
+          ],
+          "bounds": [
+            7,
+            46,
+            38,
+            25
+          ],
+          "alphaPixels": 512,
+          "drawing": "a13ff15b1834",
+          "candidateContact": [
+            7,
+            65
+          ]
+        },
+        {
+          "id": "interrupted",
+          "index": 7,
+          "rect": [
+            240,
+            80,
+            80,
+            80
+          ],
+          "bounds": [
+            18,
+            41,
+            27,
+            30
+          ],
+          "alphaPixels": 524,
+          "drawing": "4c274950a59f"
+        },
+        {
+          "id": "interrupted-knee",
+          "index": 8,
+          "rect": [
+            0,
+            160,
+            80,
+            80
+          ],
+          "bounds": [
+            13,
+            48,
+            33,
+            23
+          ],
+          "alphaPixels": 475,
+          "drawing": "4a75897ba105"
+        },
+        {
+          "id": "recover-start",
+          "index": 9,
+          "rect": [
+            80,
+            160,
+            80,
+            80
+          ],
+          "bounds": [
+            17,
+            44,
+            29,
+            27
+          ],
+          "alphaPixels": 497,
+          "drawing": "620912c89be8"
+        },
+        {
+          "id": "recover-knee",
+          "index": 10,
+          "rect": [
+            160,
+            160,
+            80,
+            80
+          ],
+          "bounds": [
+            14,
+            43,
+            31,
+            28
+          ],
+          "alphaPixels": 497,
+          "drawing": "4011658afd90"
+        },
+        {
+          "id": "recover-end",
+          "index": 11,
+          "rect": [
+            240,
+            160,
+            80,
+            80
+          ],
+          "bounds": [
+            16,
+            41,
+            29,
+            30
+          ],
+          "alphaPixels": 531,
+          "drawing": "105e9dbafbd2"
+        }
+      ]
     }
   ]
 }

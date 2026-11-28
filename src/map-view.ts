@@ -1,4 +1,4 @@
-import { ENEMY_SPRITES, ESCORT_SPRITE } from './arena.ts'
+import { ENEMY_SPRITES, ESCORT_SPRITE, upperSprites } from './arena.ts'
 import { availableMapNodes, enterMapNode } from './ascent.ts'
 import type { Ascent } from './ascent.ts'
 import { attackFor, enemyIntentAt } from './combat.ts'
@@ -17,9 +17,19 @@ const names: Record<MapNodeKind, string> = {
 }
 export function enemyPortrait(enemy: string, className: string) {
   const sprite = enemy === 'escort-guard' ? ESCORT_SPRITE : ENEMY_SPRITES[enemy as AscentEnemyId]
-  if (!sprite) return ''
-  const url = new URL(`art/${sprite.name}-idle.png`, document.baseURI)
+  return sprite ? spritePortrait(sprite.name, className) : ''
+}
+
+function spritePortrait(sheet: string, className: string) {
+  const url = new URL(`art/${sheet}-idle.png`, document.baseURI)
   return `<img class="${className}" alt="" src="${url.href}">`
+}
+
+function roomPortrait(room: Ascent, className: string) {
+  const formation = room.battle.formation
+  const enemies = formation ? livingEnemies(formation) : []
+  const role = (enemies.find(enemy => enemy.id === 'gatekeeper') ?? enemies[0])?.id
+  return role ? spritePortrait(upperSprites[role], className) : enemyPortrait(room.enemy.id, className)
 }
 
 function firstAttack(room: Ascent) {
@@ -83,7 +93,7 @@ export class ForkView {
     if (room.route?.screen === 'battle') {
       const { battle, enemy } = room
       const name = battle.formation ? `전위·후위 ${livingEnemies(battle.formation).length}마리` : enemyBadge(enemy.id, ascent.route!.map.rules).label
-      this.previewContent.innerHTML = `${enemyPortrait(enemy.id, 'fork-preview-portrait')}
+      this.previewContent.innerHTML = `${roomPortrait(room, 'fork-preview-portrait')}
         <div><strong>${name}</strong><div class="fork-preview-stats">
           <span aria-label="적 체력 ${battle.enemyHp}">${icon('heart')}${battle.enemyHp}</span>
           ${firstAttack(room)}
@@ -140,7 +150,7 @@ export class ForkView {
         : node.kind === 'shop' && ascent.route!.map.rules >= 3
           ? `<span class="fork-hint" aria-label="가격 ${SHOP_PRICES.kit}에서 ${rules === 7 ? SHOP_PRICES.rare : SHOP_PRICES.artifact}동전">${icon('ascent-coin')}${SHOP_PRICES.kit}–${rules === 7 ? SHOP_PRICES.rare : SHOP_PRICES.artifact}</span>` : ''
       const portrait = enemy
-        ? enemyPortrait(enemy.id, 'fork-portrait')
+        ? roomPortrait(entered, 'fork-portrait')
         : `<span class="fork-symbol">${pixelIcon(MAP_NODE_ICONS[node.kind])}</span>`
       button.innerHTML = `
         <span class="fork-visual" aria-hidden="true"><span class="fork-art">${portrait}</span></span>

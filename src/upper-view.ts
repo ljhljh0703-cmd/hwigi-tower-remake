@@ -1,4 +1,4 @@
-import { upperLane } from './arena.ts'
+import { upperCardLanes } from './arena.ts'
 import type { Arena } from './arena.ts'
 import type { BattleAudio } from './battle-audio.ts'
 import { UPPER_ENEMIES } from './enemy-codex.ts'
@@ -26,6 +26,7 @@ export class UpperView {
 
   private show(battle: YachtBattle, formation: Formation, preview = false, damage?: FormationDamage, layout = formation) {
     const alive = livingEnemies(layout)
+    const lanes = upperCardLanes(alive.length)
     const facing = formationActions(formation)
     const forecast = preview && battle.phase === 'assign' ? forecastYacht(battle) : undefined
     const direct = forecast?.upper?.exchange.direct
@@ -48,7 +49,7 @@ export class UpperView {
         const stance = enemy.toppled ? '넘어짐 ×2' : enemy.action.pose === 'prepare' ? `준비 ${upperHeavyDamage(formation, Boolean(weakened))}`
           : enemy.action.pose === 'cancelled' ? '중단' : enemy.action.pose === 'rest' ? '자세 회복' : '대기'
         const opponent = aiding && alive.findIndex(entry => entry.id === aiding.to)
-        return `<div class="upper-card" data-role="${id}" data-lane="${lane}" style="--lane-x:${upperLane[lane] * 100}%" ${target === id ? 'data-counter-target' : ''}>
+        return `<div class="upper-card" data-role="${id}" data-lane="${lane}" style="--lane-x:${lanes[lane] * 100}%" ${target === id ? 'data-counter-target' : ''}>
           <strong class="upper-position" aria-label="${position} ${name.name}, ${name.role}"><span role="img" aria-label="${position}">${icon(lane ? 'formation-rear' : 'formation-front')}</span>${name.name}</strong>
           <span class="upper-hp" aria-label="체력 ${enemy.hp}/${enemy.maxHp}">${icon('heart')}${enemy.hp}<small>/${enemy.maxHp}</small></span>
           <span class="upper-intent" ${missed.has(id) ? 'data-cancelled' : ''}>${hits.length ? hits.map(action =>

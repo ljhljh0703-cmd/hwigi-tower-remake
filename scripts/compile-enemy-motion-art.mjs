@@ -17,6 +17,17 @@ const labels = {
 }
 const actorFrames = ['ready', 'anticipate', 'approach', 'contact', 'follow', 'reload',
   'repeat-contact', 'special-contact', 'hit', 'heavy-hit', 'fall', 'down']
+const upperActorFrames = [...actorFrames, 'step-plant', 'step-stride', 'rear-ready', 'rear-anticipate']
+const upperBossFrames = ['charge-set', 'charge-peak', 'charge-approach', 'charge-contact', 'charge-follow',
+  'weak-set', 'weak-contact', 'interrupted', 'interrupted-knee', 'recover-start', 'recover-knee', 'recover-end']
+const upper = {
+  'upper-dash': { reference: 'seal-sentinel', size: 48, pivot: [24, 43], height: 24, rearHeight: 25, rearWidth: 36, tip: [.58, .97] },
+  'upper-shield': { reference: 'shield-soldier', size: 48, pivot: [24, 43], height: 25, tip: [.38, .88] },
+  'upper-support': { reference: 'escort', size: 48, pivot: [24, 43], height: 26, rearHeight: 25, tip: [.30, .64] },
+  'upper-boss': { reference: 'boss', size: 80, pivot: [40, 71], height: 33, rearHeight: 26, tip: [.36, .80] },
+  'upper-boss-special': { reference: 'boss', size: 80, pivot: [40, 71], height: 30, tip: [.48, .77] },
+}
+const upperAccents = ['232221', '484644', '746d63', 'aa9e8c', 'c8bdad', '644235', '80503d', 'a66c50']
 const bossFrames = ['ready', 'charge-set', 'charge-peak', 'charge-contact', 'interrupted', 'knee-down',
   'knockdown', 'get-up', 'seal-set', 'seal-contact', 'seal-recover', 'defeated']
 const effectFrames = ['chip-start', 'chip-burst', 'chip-spread', 'chip-end',
@@ -97,9 +108,9 @@ function extract(source, left, right, top, bottom, effects = false) {
   return { mask, width, height, top, left, x0, x1, y0, y1, pivot, edge }
 }
 
-function splitSheet(source, effects) {
+function splitSheet(source, effects, rows = 3) {
   const opaque = (x, y) => source.data[(y * source.width + x) * 4 + 3] >= alpha
-  const ys = separators(source.height, 3, (y) => {
+  const ys = separators(source.height, rows, (y) => {
     let count = 0
     for (let x = 0; x < source.width; x++) count += Number(opaque(x, y))
     return count
@@ -115,7 +126,7 @@ function splitSheet(source, effects) {
 }
 
 function reference(id) {
-  const sprite = id === 'boss-special' ? 'boss' : id
+  const sprite = upper[id]?.reference ?? (id === 'boss-special' ? 'boss' : id)
   return 'public/art/' + sprite + '-idle.png'
 }
 
@@ -136,7 +147,9 @@ async function paletteFor(id) {
     colors.set(key, (colors.get(key) ?? 0) + 1)
   }
   const entries = [...colors].sort((a, b) => b[1] - a[1]).slice(0, 24)
-  return { height: bottom - top, colors: entries.map(([key]) => [...Buffer.from(key, 'hex')]) }
+  const keys = entries.map(([key]) => key)
+  return { height: bottom - top, colors: [...new Set(upper[id] ? [...keys, ...upperAccents] : keys)]
+    .map(key => [...Buffer.from(key, 'hex')]) }
 }
 
 function nearest(palette, red, green, blue) {
@@ -148,7 +161,7 @@ function nearest(palette, red, green, blue) {
   return value
 }
 
-async function nativeFrame(source, cell, ratio, colors) {
+async function nativeFrame(source, cell, ratio, colors, pixelated = false, maxWidth = Infinity) {
   const width = cell.x1 - cell.x0, height = cell.y1 - cell.y0
   const pixels = Buffer.alloc(width * height * 4)
   for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
@@ -156,9 +169,9 @@ async function nativeFrame(source, cell, ratio, colors) {
     const a = ((cell.top + cell.y0 + y) * source.width + cell.left + cell.x0 + x) * 4
     source.data.copy(pixels, (y * width + x) * 4, a, a + 4)
   }
-  const w = Math.max(1, Math.round(width / ratio)), h = Math.max(1, Math.round(height / ratio))
+  const w = Math.max(1, Math.min(maxWidth, Math.round(width / ratio))), h = Math.max(1, Math.round(height / ratio))
   const native = await sharp(pixels, { raw: { width, height, channels: 4 } })
-    .resize(w, h, { fit: 'fill' }).raw().toBuffer()
+    .resize(w, h, { fit: 'fill', ...(pixelated ? { kernel: 'nearest' } : {}) }).raw().toBuffer()
   let solids = 0
   for (let i = 0; i < native.length; i += 4) {
     if (native[i + 3] < 130) {
@@ -169,11 +182,12 @@ async function nativeFrame(source, cell, ratio, colors) {
     native[i] = match[0]; native[i + 1] = match[1]; native[i + 2] = match[2]; native[i + 3] = 255
     solids++
   }
-  return { pixels: native, w, h, pivot: Math.round((cell.pivot - cell.x0) / ratio), solids, edge: cell.edge }
+  const pivot = pixelated ? Math.round((cell.pivot - cell.x0) * w / width) : Math.round((cell.pivot - cell.x0) / ratio)
+  return { pixels: native, w, h, pivot, solids, edge: cell.edge }
 }
 
-function attackTip(frame, xOffset, yOffset) {
-  const start = Math.round(frame.h * .18), end = Math.round(frame.h * .68)
+function attackTip(frame, xOffset, yOffset, [top, bottom] = [.18, .68]) {
+  const start = Math.round(frame.h * top), end = Math.min(frame.h - 1, Math.round(frame.h * bottom))
   for (let x = 0; x < frame.w; x++) {
     for (let y = start; y <= end; y++) {
       if (frame.pixels[(y * frame.w + x) * 4 + 3]) return [xOffset + x, yOffset + y]
@@ -184,50 +198,75 @@ function attackTip(frame, xOffset, yOffset) {
 
 async function compile(id) {
   const effects = id === 'effects'
+  const upperArt = upper[id]
+  const upperSpecial = id === 'upper-boss-special'
+  const rows = upperArt && !upperSpecial ? 4 : 3
   const source = await rgba('art-source/enemy-motion/raw/' + id + '.png')
-  const cells = splitSheet(source, effects)
+  const cells = splitSheet(source, effects, rows)
   const { height, colors } = await paletteFor(id)
+  const baseline = cells[upperSpecial ? 11 : 0]
   const ratio = effects ? Math.max(...cells.map(({ y1, y0, x1, x0 }) => Math.max(y1 - y0, x1 - x0))) / 24
-    : (cells[0].y1 - cells[0].y0) / height
-  const frames = await Promise.all(cells.map((cell) => nativeFrame(source, cell, ratio, colors)))
-  const pivotX = Math.max(...frames.map(({ pivot }) => pivot)) + 4
+    : (baseline.y1 - baseline.y0) / (upperArt?.height ?? height)
+  const frames = await Promise.all(cells.map((cell, index) => {
+    const compact = index >= 14 && upperArt?.rearHeight
+    const scale = compact ? (cell.y1 - cell.y0) / compact : ratio
+    return nativeFrame(source, cell, scale, colors, Boolean(upperArt), compact ? upperArt.rearWidth : undefined)
+  }))
+  const pivotX = upperArt?.pivot[0] ?? Math.max(...frames.map(({ pivot }) => pivot)) + 4
   const tallest = Math.max(...frames.map(({ h }) => h))
-  const pivotY = (effects ? Math.ceil(tallest / 2) : tallest) + 3
-  const cellWidth = pivotX + Math.max(...frames.map(({ w, pivot }) => w - pivot)) + 4
-  const cellHeight = tallest + 7
-  const width = cellWidth * 4, rows = 3
+  const pivotY = upperArt?.pivot[1] ?? (effects ? Math.ceil(tallest / 2) : tallest) + 3
+  const cellWidth = upperArt?.size ?? pivotX + Math.max(...frames.map(({ w, pivot }) => w - pivot)) + 4
+  const cellHeight = upperArt?.size ?? tallest + 7
+  const width = cellWidth * 4
   const sheet = Buffer.alloc(width * cellHeight * rows * 4)
-  const names = effects ? effectFrames : id === 'boss-special' ? bossFrames : actorFrames
-  const contact = effects ? new Set() : id === 'boss-special' ? new Set([3, 9]) : frontPicking
+  const names = upperSpecial ? upperBossFrames : upperArt ? upperActorFrames
+    : effects ? effectFrames : id === 'boss-special' ? bossFrames : actorFrames
+  const contact = upperSpecial ? new Set([3, 6]) : effects ? new Set() : id === 'boss-special' ? new Set([3, 9]) : frontPicking
   const metadata = frames.map((frame, index) => {
     assert.ok(frame.solids >= (effects ? 3 : 12), id + ' native cell is empty ' + index)
     const column = index % 4, row = Math.floor(index / 4)
-    const x = pivotX - frame.pivot, y = pivotY - (effects ? Math.ceil(frame.h / 2) : frame.h)
+    const footX = pivotX - frame.pivot
+    const x = upperArt ? Math.max(1, Math.min(cellWidth - frame.w - 1, footX)) : footX
+    const y = pivotY - (effects ? Math.ceil(frame.h / 2) : frame.h)
+    assert.ok(x >= 0 && y >= 0 && x + frame.w <= cellWidth, id + ' frame overflows its cell ' + index)
     for (let dy = 0; dy < frame.h; dy++) {
       const lineStart = ((row * cellHeight + y + dy) * width + column * cellWidth + x) * 4
       frame.pixels.copy(sheet, lineStart, dy * frame.w * 4, (dy + 1) * frame.w * 4)
     }
     return { id: names[index], index, rect: [column * cellWidth, row * cellHeight, cellWidth, cellHeight],
       bounds: [x, y, frame.w, frame.h], alphaPixels: frame.solids, drawing: createHash('sha256').update(frame.pixels).digest('hex').slice(0, 12),
-      ...(contact.has(index) ? { candidateContact: attackTip(frame, x, y) } : {}),
+      ...(contact.has(index) ? { candidateContact: attackTip(frame, x, y, upperSpecial && index === 6 ? [.65, .98] : upperArt?.tip) } : {}),
       ...(frame.edge ? { sourceEdge: true } : {}) }
   })
   const output = 'art-source/enemy-motion/atlases/' + id + '.png'
   await sharp(sheet, { raw: { width, height: cellHeight * rows, channels: 4 } }).png().toFile(fileURLToPath(path(output)))
   await mkdir(path('public/art/motion/'), { recursive: true })
   await copyFile(path(output), path('public/art/motion/' + id + '.png'))
-  return { id, label: labels[id], source: 'art-source/enemy-motion/raw/' + id + '.png', sheet: output,
+  if (upperArt && !upperSpecial) {
+    const { pixels, w, h } = frames[0]
+    const portrait = Buffer.alloc(48 * 48 * 4)
+    const left = Math.floor((48 - w) / 2), top = 43 - h
+    for (let row = 0; row < h; row++) {
+      pixels.copy(portrait, ((top + row) * 48 + left) * 4, row * w * 4, (row + 1) * w * 4)
+    }
+    await sharp(portrait, { raw: { width: 48, height: 48, channels: 4 } }).png()
+      .toFile(fileURLToPath(path('public/art/' + id + '-idle.png')))
+  }
+  return { id, label: labels[id] ?? id, source: 'art-source/enemy-motion/raw/' + id + '.png', sheet: output,
     frameCount: frames.length, width, height: cellHeight * rows, pivot: [pivotX, pivotY],
     reference: effects ? null : reference(id), frames: metadata }
 }
 
 const results = []
-for (const id of selected.length ? selected : Object.keys(labels)) {
-  assert.ok(id in labels, 'Unknown sheet ' + id)
+for (const id of selected.length ? selected : [...Object.keys(labels), ...Object.keys(upper)]) {
+  assert.ok(id in labels || id in upper, 'Unknown sheet ' + id)
   const entry = await compile(id)
   results.push(entry)
   console.log(id, entry.width + 'x' + entry.height, entry.frames.length, 'frames')
 }
-if (selected.length === 0) {
-  await writeFile(path('art-source/enemy-motion/manifest.json'), JSON.stringify({ version: 1, sheets: results }, null, 2) + '\n')
+if (selected.length === 0 || selected.some(id => id in upper)) {
+  const manifest = path('art-source/enemy-motion/manifest.json')
+  const previous = selected.length ? JSON.parse(await readFile(manifest, 'utf8')).sheets : []
+  const sheets = [...previous.filter(sheet => !results.some(result => sheet.id === result.id)), ...results]
+  await writeFile(manifest, JSON.stringify({ version: 1, sheets }, null, 2) + '\n')
 }

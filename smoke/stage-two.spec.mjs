@@ -18,6 +18,13 @@ const sounds = page => page.evaluate(() => window.diceProbe.sounds.map(sound => 
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
+    window.upperPoseHistory = new Set()
+    window.upperPlayerContacts = []
+    new MutationObserver(records => {
+      for (const record of records) if (record.target.id === 'player-damage') {
+        for (const node of record.addedNodes) if (node.classList?.contains('damage-number')) window.upperPlayerContacts.push(node.textContent)
+      }
+    }).observe(document, { subtree: true, childList: true })
     const canvas = CanvasRenderingContext2D.prototype
     const clear = canvas.clearRect
     canvas.clearRect = function (...args) {
@@ -27,12 +34,20 @@ test.beforeEach(async ({ page }) => {
     const draw = canvas.drawImage
     canvas.drawImage = function (source, ...args) {
       if (this.canvas.parentElement?.id === 'arena' && source.src?.includes('/art/motion/') && args.length === 8) {
-        window.upperSpriteDraws?.push({ sheet: source.src.split('/').at(-1).replace('.png', ''), args })
+        const sheet = source.src.split('/').at(-1).replace('.png', '')
+        window.upperSpriteDraws?.push({ sheet, args })
+        window.upperPoseHistory.add(`${sheet}:${args.slice(0, 2).join(',')}`)
       }
       return draw.call(this, source, ...args)
     }
   })
 })
+
+async function poseWasDrawn(page, sheet, pose) {
+  const { rect } = atlas.find(entry => entry.id === sheet).frames.find(frame => frame.id === pose)
+  const key = `${sheet}:${rect.slice(0, 2).join(',')}`
+  await expect.poll(() => page.evaluate(key => window.upperPoseHistory.has(key), key)).toBe(true)
+}
 
 async function verifyFormationArt(page, sheets) {
   await expect.poll(async () => (await page.evaluate(() => window.upperSpriteDraws ?? []))
@@ -44,12 +59,16 @@ async function verifyFormationArt(page, sheets) {
     const [sx, sy, sw, sh, x, y, width] = args
     const frame = atlas.find(entry => entry.id === sheet).frames.find(entry => entry.rect.join() === [sx, sy, sw, sh].join())
     const scale = width / sw
+    expect(Number.isInteger(scale)).toBe(true)
+    expect(args[7] / sh).toBe(scale)
+    expect(frame.id).toBe(sheet === sheets[0] ? 'ready' : 'rear-ready')
     const [left, top, bodyWidth, height] = frame.bounds.map(value => value * scale)
-    return { left: x + left, top: y + top, right: x + left + bodyWidth, bottom: y + top + height, height }
+    return { left: x + left, top: y + top, right: x + left + bodyWidth, bottom: y + top + height, height, scale }
   })
   const [front, ...rear] = boxes
   expect(front.height).toBeGreaterThanOrEqual(95)
   for (const back of rear) {
+    expect(back.scale).toBeLessThan(front.scale)
     expect(back.height).toBeGreaterThanOrEqual(front.height * .75 - 1)
     expect(back.height).toBeLessThanOrEqual(front.height * .85 + 1)
     expect(front.bottom - back.bottom).toBeGreaterThanOrEqual(30)
@@ -126,7 +145,9 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   await inFrame(page, ['#next', '#finish-lower'])
   await photo(page, '12-turn1-choice')
   await page.locator('#next').tap()
+  await expect(page.locator('#fork-options .fork-portrait')).toHaveAttribute('src', /upper-dash-idle\.png$/)
   await page.locator('#fork-options button').tap()
+  await expect(page.locator('#fork-preview .fork-preview-portrait')).toHaveAttribute('src', /upper-dash-idle\.png$/)
   await page.locator('#enter-room').tap()
   await expect(page.locator('#room-transition')).toBeHidden()
   await expect(card(page, 'dash')).toHaveAttribute('data-lane', '0')
@@ -140,7 +161,7 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
     'die-corner.wav', 'die-corner.wav', 'die-corner.wav', 'die-rebound.wav',
   ])
   await inFrame(page, ['.upper-goal', '.upper-card[data-role="dash"]', '.upper-card[data-role="support"]', '#resolve'])
-  await verifyFormationArt(page, ['seal-sentinel', 'escort'])
+  await verifyFormationArt(page, ['upper-dash', 'upper-support'])
   await photo(page, '13-turn1-formation')
 
   await resume(page, withDice(atFloor(13), [6, 4, 2], allAttack))
@@ -152,6 +173,8 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   await expect(page.locator('.upper-readout[data-advance="support"]')).toBeVisible()
   await page.waitForTimeout(55)
   await photo(page, '13-turn1-rear-stepping')
+  await poseWasDrawn(page, 'upper-support', 'step-plant')
+  await poseWasDrawn(page, 'upper-support', 'step-stride')
   await expect(card(page, 'support')).toHaveAttribute('data-lane', '0')
   await photo(page, '13-turn1-rear-advanced')
   await expect(nextTurn(page)).toBeVisible()
@@ -163,6 +186,35 @@ test('12층 선택에서 13층 진입과 전위 격파 및 후위 전진을 정�
   expect(errors).toEqual([])
 })
 
+test('19층 보스의 준비와 두 강타가 전용 시트의 실제 자세로 재생된다', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  const run = withFormation(atFloor(19), [0, 64])
+  const before = run.battle.formation
+  const ready = openFormation({ ...before, bossStep: 'advance' }, 4)
+  await resume(page, { ...run, battle: { ...run.battle, formation: ready, turn: 4 } })
+  await poseWasDrawn(page, 'upper-boss', 'ready')
+  await photo(page, '19-boss-front')
+
+  const prepare = openFormation(ready, 5)
+  await resume(page, { ...run, battle: { ...run.battle, formation: prepare, turn: 5 } })
+  await poseWasDrawn(page, 'upper-boss-special', page.viewportSize().width === 320 ? 'charge-set' : 'charge-peak')
+  await photo(page, '19-boss-charge')
+
+  for (const weakened of [false, true]) {
+    const strike = openFormation({ ...prepare, heavy: weakened ? 'weakened' : undefined }, 6)
+    const battle = { ...run.battle, formation: strike, turn: 6 }
+    const input = withDice({ ...run, battle }, [1, 1, 1], ['guard', 'guard', 'guard'])
+    const expected = resolveAscentTurn(input).battle.lastExchange.hitsTaken
+    expect(expected).toHaveLength(1)
+    expect(expected[0]).toBeGreaterThan(0)
+    await resume(page, input)
+    await expect(goal(page)).toContainText(weakened ? '11' : '21')
+    await nextTurn(page).tap()
+    await poseWasDrawn(page, 'upper-boss-special', weakened ? 'weak-contact' : 'charge-contact')
+    await expect.poll(() => page.evaluate(() => window.upperPlayerContacts)).toEqual([`나−${expected[0]}`])
+  }
+})
+
 test('17층 세 마리와 지원, 14층 교대·취소, 19층 강타·약화 및 결산을 검증한다', async ({ page }) => {
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
@@ -171,7 +223,7 @@ test('17층 세 마리와 지원, 14층 교대·취소, 19층 강타·약화 및
   await expect(card(page, 'dash').locator('.upper-intent')).toContainText('8')
   await expect(card(page, 'support').locator('.upper-intent')).toContainText('지원')
   await inFrame(page, ['.upper-goal', ...['shield', 'dash', 'support'].map(id => `.upper-card[data-role="${id}"]`), '#resolve'])
-  await verifyFormationArt(page, ['shield-soldier', 'seal-sentinel', 'escort'])
+  await verifyFormationArt(page, ['upper-shield', 'upper-dash', 'upper-support'])
   await photo(page, '17-turn1-elite')
   await resume(page, withDice(withFormation(atFloor(17, 'elite'), [5, 4, 14]), [6, 4, 2], allAttack))
   await expect(card(page, 'support').locator('.upper-preview')).toHaveText('↪3')
@@ -193,7 +245,7 @@ test('17층 세 마리와 지원, 14층 교대·취소, 19층 강타·약화 및
   await expect(card(page, 'gatekeeper')).toHaveAttribute('data-lane', '1')
   await expect(goal(page)).toContainText('16')
   await inFrame(page, ['.upper-goal', '.upper-card[data-role="guard"]', '.upper-card[data-role="gatekeeper"]', '#resolve'])
-  await verifyFormationArt(page, ['reaction', 'boss'])
+  await verifyFormationArt(page, ['upper-shield', 'upper-boss'])
   await photo(page, '19-turn1-guarded-boss')
 
   for (const power of [11, 12]) {
