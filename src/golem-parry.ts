@@ -1,3 +1,5 @@
+import { fracture } from './body-fragments.ts'
+
 export const GOLEM_PARRY = {
   art: 'golem-parry',
   contact: 280,
@@ -50,16 +52,13 @@ function positions(width: number, density: number, hero: Actor, enemy: Actor) {
 }
 
 function actors(context: CanvasRenderingContext2D, art: HTMLImageElement, pose: number,
-  scale: number, floor: number, heroFoot: number, golemFoot: number, enemyAlpha = 1) {
+  scale: number, floor: number, heroFoot: number, golemFoot: number, showEnemy = true) {
   const top = floor - cell.floor * scale
   const draw = (row: number, foot: number, pivot: number) => {
     context.drawImage(art, pose * cell.width, row * cell.height, cell.width, cell.height,
       Math.round(foot - pivot * scale), top, cell.width * scale, cell.height * scale)
   }
-  context.save()
-  context.globalAlpha = enemyAlpha
-  draw(1, golemFoot, cell.golem)
-  context.restore()
+  if (showEnemy) draw(1, golemFoot, cell.golem)
   draw(0, heroFoot, cell.hero)
 }
 
@@ -118,6 +117,7 @@ export function drawGolemParry(
 export function drawGolemCounter(
   context: CanvasRenderingContext2D, art: HTMLImageElement, parryArt: HTMLImageElement, elapsed: number,
   floor: number, density: number, hero: Actor, enemy: Actor, defeated: boolean,
+  drawFragments: (rect: number[], pivot: number[], foot: number, scale: number, age: number) => boolean,
 ) {
   const { scale, heroFoot, safeEdge, home, frozen } = positions(context.canvas.width, density, hero, enemy)
   if (elapsed < 34) {
@@ -130,8 +130,11 @@ export function drawGolemCounter(
   const stride = Math.max(0, frozen - heroFoot - 52 * scale)
   const heroX = heroFoot + stride * arrive * (1 - recover)
   const golemX = between(Math.min(safeEdge, frozen + 4 * density * ease((hit - 48) / 82)), home, recover)
-  const enemyAlpha = defeated ? 1 - progress((elapsed - 294) / 130) : 1
-  actors(context, art, poseAt(counterCels, elapsed), scale, floor, heroX, golemX, enemyAlpha)
+  // Cell 5 is the recoiling full body immediately before it breaks.
+  const broken = defeated && hit >= fracture.release && drawFragments(
+    [5 * cell.width, cell.height, cell.width, cell.height], [cell.golem, cell.floor],
+    Math.min(safeEdge, frozen + 2 * density), scale, hit)
+  actors(context, art, poseAt(counterCels, elapsed), scale, floor, heroX, golemX, !broken)
   clash(context, golemX - 15 * scale, floor - 31 * scale,
     Math.max(1, Math.round(scale * .86)), hit, true)
   rockChips(context, golemX - 8 * scale, floor, scale, hit - 46, true)

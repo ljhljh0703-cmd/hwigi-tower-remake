@@ -258,7 +258,7 @@ test('자물쇠의 공방 10컷과 칼끝 접촉을 확인한다', async ({ page
   const run = withBattle(init, { turn: 1, dice: [1, 2, 4, 1], slots: [null, null, null, null] })
   await resume(page, run)
   await put(page, 'attack', [0, 1, 2, 3])
-  await resolveToFrame(page, 113)
+  await resolveToFrame(page, 240)
   await frameWith(page, 'attack', 'lock.png', 'hit')
   await photograph(page, info, 'sword-contact')
   await page.clock.resume()
@@ -339,7 +339,7 @@ test('치명타 뒤 무릎과 쓰러짐을 표시하고 움직임 줄이기에�
       }).observe(game, { attributeFilter: ['data-screen'] })
     })
     if (reducedMotion === 'no-preference') {
-      await resolveToFrame(page, 618)
+      await resolveToFrame(page, 946)
       await frameWith(page, 'fall', 'lock.png')
       await frameWith(page, 'down', 'lock.png')
       await expect(page.locator('main')).toHaveAttribute('data-screen', 'battle', { timeout: 0 })

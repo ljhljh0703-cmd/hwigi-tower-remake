@@ -14,8 +14,8 @@ function memoryStorage() {
 
 test('settings use one key and leave initial reduction up to the device', () => {
   const store = memoryStorage()
-  assert.deepEqual(loadGameSettings(store), { music: true, effects: true, speed: 'normal' })
-  const preferences = { music: false, effects: true, speed: 'fast', reducedMotion: false }
+  assert.deepEqual(loadGameSettings(store), { music: true, effects: true, vibration: true, speed: 'normal' })
+  const preferences = { music: false, effects: true, vibration: false, speed: 'fast', reducedMotion: false }
   saveGameSettings(preferences, store)
   assert.deepEqual(JSON.parse(store.getItem(GAME_SETTINGS_KEY)), preferences)
   assert.deepEqual(loadGameSettings(store), preferences)
@@ -27,18 +27,18 @@ test('settings use one key and leave initial reduction up to the device', () => 
 
 test('mute persists across reload and restores the independently chosen audio channels', () => {
   const store = memoryStorage()
-  const effectsOnly = { music: false, effects: true, speed: 'normal' }
+  const effectsOnly = { music: false, effects: true, vibration: false, speed: 'normal' }
   const muted = toggleMute(effectsOnly)
-  assert.deepEqual(muted, { music: false, effects: false, speed: 'normal', restoreAudio: 'effects' })
+  assert.deepEqual(muted, { music: false, effects: false, vibration: false, speed: 'normal', restoreAudio: 'effects' })
   saveGameSettings(muted, store)
   assert.deepEqual(toggleMute(loadGameSettings(store)), effectsOnly)
-  assert.deepEqual(toggleMute({ music: false, effects: false, speed: 'normal' }), loadGameSettings(memoryStorage()))
+  assert.deepEqual(toggleMute({ music: false, effects: false, vibration: true, speed: 'normal' }), loadGameSettings(memoryStorage()))
 })
 
 test('malformed or inaccessible settings fall back without preventing play', () => {
   const store = memoryStorage()
   store.setItem(GAME_SETTINGS_KEY, JSON.stringify({ music: 'off', effects: false, speed: -1, reducedMotion: null }))
-  assert.deepEqual(loadGameSettings(store), { music: true, effects: false, speed: 'normal' })
+  assert.deepEqual(loadGameSettings(store), { music: true, effects: false, vibration: true, speed: 'normal' })
   store.setItem(GAME_SETTINGS_KEY, '{')
   assert.deepEqual(loadGameSettings(store), loadGameSettings(memoryStorage()))
   const unavailable = () => { throw new Error('storage blocked') }

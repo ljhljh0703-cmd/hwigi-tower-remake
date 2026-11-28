@@ -34,10 +34,14 @@ const test = base.extend({
       }
       const start = AudioBufferSourceNode.prototype.start
       window.playedEffects = []
+      window.effectTimes = []
       AudioBufferSourceNode.prototype.start = function (...args) {
         const name = bufferToName.get(this.buffer)
         const result = start.apply(this, args)
-        if (name) window.playedEffects.push(name)
+        if (name) {
+          window.playedEffects.push(name)
+          window.effectTimes.push({ name, at: performance.now() })
+        }
         return result
       }
     })
@@ -78,6 +82,33 @@ async function placeAll(page, slot) {
   for (const die of await page.locator('#pool-dice button').all()) await die.tap()
   await page.locator(`#assign-${slot}`).tap()
 }
+
+test('진동 미지원 설정에 이유를 표시하고 지원 환경에서 저장한 켬·끔을 복원한다', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem('noMotorApi')) Object.defineProperty(navigator, 'vibrate', { value: undefined })
+  })
+  await page.goto(process.env.HWIGI_SMOKE_URL)
+  const open = () => page.locator('#lobby-settings').tap()
+  const button = page.locator('#settings-vibration')
+  await open()
+  for (const enabled of [false, true]) {
+    await button.tap()
+    await expect(button).toHaveAttribute('aria-checked', String(enabled))
+    await page.evaluate(() => sessionStorage.setItem('noMotorApi', 'true'))
+    await page.reload()
+    await open()
+    await expect(button).toBeDisabled()
+    await expect(button).toHaveAccessibleName('타격 진동 지원 안 됨')
+    await expect(button).toHaveAttribute('aria-checked','false')
+    await page.locator('#settings-music').tap()
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('hwigi-tower.settings')).vibration)).toBe(enabled)
+    await page.evaluate(() => sessionStorage.removeItem('noMotorApi'))
+    await page.reload()
+    await open()
+    await expect(button).toBeEnabled()
+    await expect(button).toHaveAttribute('aria-checked', String(enabled))
+  }
+})
 
 async function stopAtContact(page, milliseconds) {
   const resolve = page.locator('#resolve')
@@ -219,7 +250,7 @@ for (const [impact, face, enemyHp, scale] of [
   })
 }
 
-test('로비부터 1층 평타의 타점과 소리를 확인한다', async ({ page }, info) => {
+test('로비부터 1층 강타의 타점과 소리를 확인한다', async ({ page }, info) => {
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.goto(new URL('?seed=12', process.env.HWIGI_SMOKE_URL).href)
   await page.getByRole('button', { name: '새로 하기' }).tap()
@@ -238,14 +269,17 @@ test('로비부터 1층 평타의 타점과 소리를 확인한다', async ({ pa
   await page.clock.pauseAt(now + 500)
   const { x, y, width, height } = await resolve.boundingBox()
   await page.touchscreen.tap(x + width / 2, y + height / 2)
-  await page.clock.runFor(115)
+  await page.clock.runFor(240)
+  const swing = await page.evaluate(() => window.effectTimes.filter(({ name }) => ['swish.wav', 'slam.wav'].includes(name)))
+  expect(swing.map(e => e.name)).toEqual(['swish.wav', 'slam.wav'])
+  expect(swing[1].at - swing[0].at).toBeCloseTo(60, 0)
   await expect(page.locator('#intent .intent-attack-label')).toHaveText('적 공격')
   await expect(page.locator('#intent strong')).toHaveText('9')
   await expect(page.locator('#intent .intent-equation')).toHaveText('7 + 2')
   await expect(page.locator('#enemy-damage .damage-number')).toHaveText('−12')
   await expect(page.locator('#hit-order')).toBeHidden()
   await photograph(page, info, 'attack')
-  await page.clock.runFor(75)
+  await page.clock.runFor(260)
   const hits = page.getByRole('list', { name: '1턴 내 피해' }).getByRole('listitem')
   await expect(hits).toHaveText(['7'])
   await page.clock.runFor(230)
@@ -254,7 +288,7 @@ test('로비부터 1층 평타의 타점과 소리를 확인한다', async ({ pa
   await expect(page.locator('#player-hp')).toHaveJSProperty('value', 13)
   await page.clock.resume()
   await expect.poll(() => page.evaluate(() => window.playedEffects)).toEqual(
-    expect.arrayContaining(['seat.wav', 'swish.wav', 'stone-hit.mp3']),
+    expect.arrayContaining(['seat.wav', 'swish.wav', 'slam.wav', 'stone-hit.mp3']),
   )
   await expect(page.locator('#turn')).toHaveAttribute('aria-label', '2턴')
 })
@@ -300,12 +334,20 @@ test('가시 골렘 정확 방어 자세가 룰렛 동안 정지하고 자동 �
       }
     }).observe(enemyDamage, { childList: true })
   })
-  await page.locator('#resolve').tap()
+  await stopAtContact(page, 290)
   await expect(page.locator('#parry-cue')).toHaveAttribute('data-guard', 'exact')
   await expect(page.locator('#parry-cue')).toBeVisible()
   const parryPose = await pose()
   expect(parryPose).not.toBe(planningPose)
   await photograph(page, info, 'golem-parry')
+  await page.clock.runFor(162)
+  await expect(page.locator('#enemy-hp')).toHaveJSProperty('value', run.battle.enemyHp)
+  const landing = await page.evaluate(() => window.effectTimes.filter(e => ['perfect-block.mp3', 'stone-hit.mp3'].includes(e.name)))
+  expect(landing.map(e => e.name)).toEqual(['perfect-block.mp3','stone-hit.mp3'])
+  expect(landing[1].at - landing[0].at).toBeCloseTo(168, 0)
+  await photograph(page, info, 'golem-landing')
+  await page.clock.runFor(16)
+  await page.clock.resume()
   await expect(panel).toHaveAttribute('data-roll-state', 'spinning')
   const wheel = page.locator('.roulette-stage')
   await expect(wheel).toBeInViewport({ ratio: 1 })
